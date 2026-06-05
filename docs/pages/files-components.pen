@@ -1,0 +1,696 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "id": "addMenu",
+      "type": "frame",
+      "name": "添加菜单",
+      "width": 200,
+      "height": 120,
+      "fill": "#FFFFFF",
+      "cornerRadius": 16,
+      "x": 250,
+      "y": 120,
+      "layout": "vertical",
+      "gap": 0,
+      "children": [
+        {
+          "id": "menuItem1",
+          "type": "frame",
+          "name": "菜单项1",
+          "width": "fill_container",
+          "height": 40,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "menuIcon1",
+              "type": "text",
+              "name": "图标1",
+              "content": "📁",
+              "fontSize": 16,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "menuText1",
+              "type": "text",
+              "name": "文字1",
+              "content": "本地导入",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "menuDivider1",
+          "type": "frame",
+          "name": "分割线1",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "menuItem2",
+          "type": "frame",
+          "name": "菜单项2",
+          "width": "fill_container",
+          "height": 40,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "menuIcon2",
+              "type": "text",
+              "name": "图标2",
+              "content": "📊",
+              "fontSize": 16,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "menuText2",
+              "type": "text",
+              "name": "文字2",
+              "content": "综合测试",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "videoMenuWithSubtitle",
+      "type": "frame",
+      "name": "视频菜单-有字幕",
+      "width": 180,
+      "height": 180,
+      "fill": "#FFFFFF",
+      "cornerRadius": 16,
+      "x": 280,
+      "y": 400,
+      "layout": "vertical",
+      "gap": 0,
+      "children": [
+        {
+          "id": "vmItem1",
+          "type": "frame",
+          "name": "重命名",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmIcon1",
+              "type": "text",
+              "name": "重命名图标",
+              "content": "✏️",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmText1",
+              "type": "text",
+              "name": "重命名文字",
+              "content": "重命名",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "vmDivider1",
+          "type": "frame",
+          "name": "分割线1",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "vmItem2",
+          "type": "frame",
+          "name": "删除",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmIcon2",
+              "type": "text",
+              "name": "删除图标",
+              "content": "🗑️",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmText2",
+              "type": "text",
+              "name": "删除文字",
+              "content": "删除",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "vmDivider2",
+          "type": "frame",
+          "name": "分割线2",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "vmItem3",
+          "type": "frame",
+          "name": "导入字幕",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmIcon3",
+              "type": "text",
+              "name": "导入字幕图标",
+              "content": "📥",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmText3",
+              "type": "text",
+              "name": "导入字幕文字",
+              "content": "导入字幕",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "vmDivider3",
+          "type": "frame",
+          "name": "分割线3",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "vmItem4",
+          "type": "frame",
+          "name": "单元测试",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmIcon4",
+              "type": "text",
+              "name": "单元测试图标",
+              "content": "🧪",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmText4",
+              "type": "text",
+              "name": "单元测试文字",
+              "content": "单元测试",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "videoMenuNoSubtitle",
+      "type": "frame",
+      "name": "视频菜单-无字幕",
+      "width": 180,
+      "height": 140,
+      "fill": "#FFFFFF",
+      "cornerRadius": 16,
+      "x": 50,
+      "y": 400,
+      "layout": "vertical",
+      "gap": 0,
+      "children": [
+        {
+          "id": "vmnItem1",
+          "type": "frame",
+          "name": "重命名",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmnIcon1",
+              "type": "text",
+              "name": "重命名图标",
+              "content": "✏️",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmnText1",
+              "type": "text",
+              "name": "重命名文字",
+              "content": "重命名",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "vmnDivider1",
+          "type": "frame",
+          "name": "分割线1",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "vmnItem2",
+          "type": "frame",
+          "name": "删除",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmnIcon2",
+              "type": "text",
+              "name": "删除图标",
+              "content": "🗑️",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmnText2",
+              "type": "text",
+              "name": "删除文字",
+              "content": "删除",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "vmnDivider2",
+          "type": "frame",
+          "name": "分割线2",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "vmnItem3",
+          "type": "frame",
+          "name": "导入字幕",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "vmnIcon3",
+              "type": "text",
+              "name": "导入字幕图标",
+              "content": "📥",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "vmnText3",
+              "type": "text",
+              "name": "导入字幕文字",
+              "content": "导入字幕",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "heroCardMenu",
+      "type": "frame",
+      "name": "顶部卡片菜单",
+      "width": 180,
+      "height": 140,
+      "fill": "#FFFFFF",
+      "cornerRadius": 16,
+      "x": 500,
+      "y": 180,
+      "layout": "vertical",
+      "gap": 0,
+      "children": [
+        {
+          "id": "hmItem1",
+          "type": "frame",
+          "name": "重命名",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "hmIcon1",
+              "type": "text",
+              "name": "重命名图标",
+              "content": "✏️",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "hmText1",
+              "type": "text",
+              "name": "重命名文字",
+              "content": "重命名",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "hmDivider1",
+          "type": "frame",
+          "name": "分割线1",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "hmItem2",
+          "type": "frame",
+          "name": "删除",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "hmIcon2",
+              "type": "text",
+              "name": "删除图标",
+              "content": "🗑️",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "hmText2",
+              "type": "text",
+              "name": "删除文字",
+              "content": "删除",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        {
+          "id": "hmDivider2",
+          "type": "frame",
+          "name": "分割线2",
+          "width": "fill_container",
+          "height": 1,
+          "fill": "#E5E7EB"
+        },
+        {
+          "id": "hmItem3",
+          "type": "frame",
+          "name": "测试",
+          "width": "fill_container",
+          "height": 36,
+          "layout": "horizontal",
+          "gap": 12,
+          "padding": [0, 16, 0, 16],
+          "alignItems": "center",
+          "children": [
+            {
+              "id": "hmIcon3",
+              "type": "text",
+              "name": "测试图标",
+              "content": "🧪",
+              "fontSize": 14,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "hmText3",
+              "type": "text",
+              "name": "测试文字",
+              "content": "测试",
+              "fontSize": 14,
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "emptyFolder",
+      "type": "frame",
+      "name": "首页空状态",
+      "width": 375,
+      "height": 812,
+      "fill": "#F9FAFB",
+      "cornerRadius": 0,
+      "x": 850,
+      "y": 50,
+      "layout": "vertical",
+      "padding": 16,
+      "children": [
+        {
+          "id": "emptyNavBar",
+          "type": "frame",
+          "name": "空导航栏",
+          "width": "fill_container",
+          "height": 56,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "justifyContent": "space_between",
+          "padding": [0, 16, 0, 16],
+          "children": [
+            {
+              "id": "emptyTitle",
+              "type": "text",
+              "name": "空标题",
+              "content": "我的视频",
+              "fontSize": 20,
+              "fontWeight": "600",
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            },
+            {
+              "id": "emptyAddBtn",
+              "type": "ellipse",
+              "name": "添加按钮",
+              "width": 40,
+              "height": 40,
+              "fill": "#4ADE80"
+            }
+          ]
+        },
+        {
+          "id": "emptyContent",
+          "type": "frame",
+          "name": "空内容",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "gap": 16,
+          "children": [
+            {
+              "id": "emptyIcon",
+              "type": "text",
+              "name": "空图标",
+              "content": "📁",
+              "fontSize": 64,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "emptyText1",
+              "type": "text",
+              "name": "空文字1",
+              "content": "暂无文件夹",
+              "fontSize": 18,
+              "fontWeight": "600",
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            },
+            {
+              "id": "emptyText2",
+              "type": "text",
+              "name": "空文字2",
+              "content": "点击右上角 + 创建文件夹",
+              "fontSize": 14,
+              "fill": "#6B7280",
+              "textGrowth": "auto"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "emptyDetail",
+      "type": "frame",
+      "name": "详情空状态",
+      "width": 375,
+      "height": 812,
+      "fill": "#F9FAFB",
+      "cornerRadius": 0,
+      "x": 1250,
+      "y": 50,
+      "layout": "vertical",
+      "padding": 16,
+      "children": [
+        {
+          "id": "emptyDetailNavBar",
+          "type": "frame",
+          "name": "详情空导航栏",
+          "width": "fill_container",
+          "height": 56,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "justifyContent": "space_between",
+          "padding": [0, 16, 0, 16],
+          "children": [
+            {
+              "id": "emptyDetailBack",
+              "type": "ellipse",
+              "name": "返回按钮",
+              "width": 40,
+              "height": 40,
+              "fill": "#FFFFFF"
+            },
+            {
+              "id": "emptyDetailTitle",
+              "type": "text",
+              "name": "详情空标题",
+              "content": "美剧学习",
+              "fontSize": 18,
+              "fontWeight": "600",
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            },
+            {
+              "id": "emptyDetailActions",
+              "type": "frame",
+              "name": "详情空操作",
+              "layout": "horizontal",
+              "gap": 8,
+              "children": [
+                {
+                  "id": "emptyImportBtn",
+                  "type": "frame",
+                  "name": "导入按钮",
+                  "width": 60,
+                  "height": 32,
+                  "fill": "#4ADE80",
+                  "cornerRadius": 8
+                },
+                {
+                  "id": "emptyTestBtn",
+                  "type": "frame",
+                  "name": "测试按钮",
+                  "width": 72,
+                  "height": 32,
+                  "fill": "#4ADE80",
+                  "cornerRadius": 8
+                },
+                {
+                  "id": "emptyAddBtn2",
+                  "type": "ellipse",
+                  "name": "添加按钮",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#4ADE80"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "emptyDetailContent",
+          "type": "frame",
+          "name": "详情空内容",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "alignItems": "center",
+          "justifyContent": "center",
+          "gap": 16,
+          "children": [
+            {
+              "id": "emptyDetailIcon",
+              "type": "text",
+              "name": "详情空图标",
+              "content": "🎬",
+              "fontSize": 64,
+              "textGrowth": "auto"
+            },
+            {
+              "id": "emptyDetailText1",
+              "type": "text",
+              "name": "详情空文字1",
+              "content": "暂无视频文件",
+              "fontSize": 18,
+              "fontWeight": "600",
+              "fill": "#1F2937",
+              "textGrowth": "auto"
+            },
+            {
+              "id": "emptyDetailText2",
+              "type": "text",
+              "name": "详情空文字2",
+              "content": "点击右上角 + 导入视频文件",
+              "fontSize": 14,
+              "fill": "#6B7280",
+              "textGrowth": "auto"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

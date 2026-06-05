@@ -1,0 +1,38 @@
+# Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+*.iml
+.idea/
+.vscode/
+*.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+local.properties
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcodeproj/project.xcworkspace
+ios/Runner.xcodeproj/xcuserdata
+
+# macOS
+macos/Pods/
+macos/.symlinks/
+
+# Web
+web/firebase-messaging-sw.js
+
+# Env
+.env
+.env.local
