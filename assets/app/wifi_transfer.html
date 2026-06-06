@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VidLang WiFi</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+/* Header */
+.header{padding:10px 18px 8px;border-bottom:1px solid #222;flex-shrink:0}
+.header h1{font-size:18px;font-weight:700;color:#fff;letter-spacing:.5px}
+.header .sub{font-size:11px;color:#888;margin-top:1px}
+/* Main */
+.main{display:flex;flex:1;overflow:hidden}
+/* Sidebar */
+.sidebar{width:240px;min-width:240px;background:#0d0d0d;border-right:1px solid #222;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sidebar-title{padding:12px 14px 8px;font-size:11px;text-transform:uppercase;color:#666;letter-spacing:.5px;flex-shrink:0}
+.tree{flex:1;overflow-y:auto;padding:0 6px 8px}
+.tree::-webkit-scrollbar{width:4px}
+.tree::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.category{margin-bottom:4px}
+.cat-header{display:flex;align-items:center;padding:6px 8px;border-radius:6px;cursor:default;font-size:13px;font-weight:600;color:#ccc}
+.cat-header .cat-icon{width:20px;text-align:center;margin-right:6px;font-size:14px}
+.cat-header .cat-label{flex:1}
+.cat-header .cat-add{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:pointer;font-size:14px;color:#666;opacity:0;transition:all .15s}
+.cat-header:hover .cat-add{opacity:1}
+.cat-add:hover{background:#1a1a1a;color:#FF8C00}
+.cat-children{padding-left:6px}
+.folder-item{display:flex;align-items:center;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:#aaa;margin:1px 0;transition:background .1s}
+.folder-item:hover{background:#1a1a1a;color:#ddd}
+.folder-item.active{background:rgba(255,140,0,.15);color:#FF8C00;font-weight:500}
+.folder-item .f-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-item .f-del{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;font-size:12px;color:#555;opacity:0;transition:all .15s}
+.folder-item:hover .f-del{opacity:1}
+.folder-item .f-del:hover{color:#f44336;background:rgba(244,67,54,.1)}
+/* Content */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:14px 18px 0}
+.content-header{flex-shrink:0;margin-bottom:12px}
+.content-header .breadcrumb{font-size:13px;color:#888}
+.content-header .breadcrumb strong{color:#e0e0e0;font-weight:600}
+/* Upload area */
+.upload-area{margin-bottom:12px;flex-shrink:0}
+.upload-zone{border:2px dashed #333;border-radius:10px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone.dragover{border-color:#FF8C00;background:rgba(255,140,0,.05)}
+.upload-zone .icon{font-size:28px;color:#555;margin-bottom:6px}
+.upload-zone p{font-size:13px;color:#888}
+.upload-zone .ext-hint{font-size:11px;color:#555;margin-top:4px}
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0;gap:8px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:8px}
+.toolbar-left .selected-count{font-size:12px;color:#888}
+.toolbar-right{display:flex;gap:6px}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;border:none;transition:all .15s;font-family:inherit}
+.btn-primary{background:#FF8C00;color:#fff}
+.btn-primary:hover{background:#e67e00}
+.btn-primary:disabled{background:#333;color:#666;cursor:default}
+.btn-danger{background:transparent;color:#f44336;border:1px solid rgba(244,67,54,.3)}
+.btn-danger:hover{background:rgba(244,67,54,.1)}
+.btn-danger:disabled{color:#555;border-color:#222;cursor:default}
+.btn-ghost{background:transparent;color:#888}
+.btn-ghost:hover{background:#1a1a1a;color:#ccc}
+/* Table */
+.table-wrap{flex:1;overflow:auto;border-radius:8px;border:1px solid #1a1a1a}
+.table-wrap::-webkit-scrollbar{width:6px;height:6px}
+.table-wrap::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:1}
+th{background:#0d0d0d;padding:8px 10px;text-align:left;font-weight:500;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid #1a1a1a;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid #111;color:#ccc;vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.02)}
+tr.selected td{background:rgba(255,140,0,.04)}
+.check-col{width:32px;text-align:center}
+.check-col input[type=checkbox]{accent-color:#FF8C00;width:14px;height:14px;cursor:pointer}
+.thumb-col{width:56px}
+.thumb{width:48px;height:30px;border-radius:4px;object-fit:cover;background:#1a1a1a;display:block}
+.thumb-placeholder{width:48px;height:30px;border-radius:4px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:14px;color:#444}
+.name-cell{font-weight:500;color:#e0e0e0;cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name-cell:hover{color:#FF8C00}
+.sub-col{text-align:center}
+.sub-yes{color:#4caf50;font-size:13px}
+.sub-no{color:#555;font-size:13px;cursor:pointer;transition:color .15s}
+.sub-no:hover{color:#FF8C00}
+.action-col{width:36px;text-align:center}
+.action-btn{background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px;transition:all .1s;line-height:1}
+.action-btn:hover{background:#1a1a1a;color:#ccc}
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#555}
+.empty-state .icon{font-size:36px;margin-bottom:8px}
+.empty-state p{font-size:13px}
+/* Article cells */
+.word-col,.chapter-col{color:#888;font-size:12px}
+.title-cell{font-weight:500;color:#e0e0e0;cursor:pointer;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.title-cell:hover{color:#FF8C00}
+/* Modal overlay */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#141414;border-radius:12px;border:1px solid #222;width:90%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #222;flex-shrink:0}
+.modal-header h3{font-size:15px;color:#e0e0e0}
+.modal-close{background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:2px 6px;border-radius:4px}
+.modal-close:hover{color:#ccc;background:#1a1a1a}
+.modal-body{flex:1;overflow:auto;padding:14px 18px}
+.modal-body textarea{width:100%;height:400px;background:#0d0d0d;color:#e0e0e0;border:1px solid #222;border-radius:8px;padding:12px;font-family:'SF Mono','Fira Code','Consolas',monospace;font-size:13px;line-height:1.6;resize:vertical;outline:none}
+.modal-body textarea:focus{border-color:#FF8C00}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:10px 18px;border-top:1px solid #222;flex-shrink:0}
+/* Context menu */
+.context-menu{position:fixed;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:4px;z-index:200;min-width:120px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.context-menu button{display:block;width:100%;text-align:left;padding:7px 12px;border:none;background:none;color:#ccc;font-size:13px;cursor:pointer;border-radius:4px;font-family:inherit}
+.context-menu button:hover{background:#FF8C00;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>VidLang</h1>
+  <div class="sub">WiFi 传输</div>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-title">资源列表</div>
+    <div class="tree" id="tree"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="content-header" id="contentHeader">
+      <div class="breadcrumb">请从左侧选择一个文件夹</div>
+    </div>
+
+    <div class="upload-area" id="uploadArea" style="display:none">
+      <div class="upload-zone" id="uploadZone">
+        <div class="icon">📁</div>
+        <p id="uploadText">点击选择文件 或 拖拽到此处</p>
+        <div class="ext-hint" id="extHint"></div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" multiple/>
+    </div>
+
+    <!-- Article create button (shown for article folders) -->
+    <div id="articleCreateArea" style="display:none;margin-bottom:8px;flex-shrink:0">
+      <button class="btn btn-primary" onclick="openArticleEditor()">＋ 新建文章</button>
+    </div>
+
+    <div class="toolbar" id="toolbar" style="display:none">
+      <div class="toolbar-left">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:#888">
+          <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" style="accent-color:#FF8C00"/> 全选
+        </label>
+        <span class="selected-count" id="selectedCount"></span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn btn-danger" id="deleteSelectedBtn" disabled onclick="deleteSelected()">删除选中</button>
+      </div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap" style="display:none">
+      <table><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <div class="icon">📂</div>
+      <p>选择文件夹以查看资源</p>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div class="context-menu" id="contextMenu" style="display:none"></div>
+
+<script>
+// ===== State =====
+let folders = [];           // all folders from API
+let currentFolder = null;   // selected folder
+let currentResources = [];  // resources in current folder
+let selectedCodes = new Set();
+let contextTarget = null;   // {type, code} for context menu
+
+const CATEGORIES = [
+  {type:'video', label:'视频', icon:'🎬', exts:['.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], uploadLabel:'mp4 / mov / avi / mkv …'},
+  {type:'music', label:'音频', icon:'🎵', exts:['.mp3','.wav','.m4a','.aac','.flac','.ogg','.wma','.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], uploadLabel:'mp3 / wav / m4a / mp4 / mov …'},
+  {type:'article',label:'文章', icon:'📄', exts:['.txt','.md','.markdown'], uploadLabel:'txt / md'},
+];
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded',()=>{
+  setupUpload();
+  renderTree(); // render empty tree with 3 category nodes first
+  loadFolders(); // then async load folders to populate
+});
+
+function baseUrl(){ return window.location.origin; }
+
+// ===== API =====
+async function api(path,options={}){
+  const res=await fetch(baseUrl()+path,{...options,headers:{'Content-Type':'application/json',...options.headers}});
+  const data=await res.json();
+  if(!data.ok) throw new Error(data.message||'请求失败');
+  return data;
+}
+
+// ===== Folders =====
+async function loadFolders(){
+  try{
+    const data=await api('/api/folders');
+    folders=data.data||[];
+    renderTree();
+    if(currentFolder){
+      const found=folders.find(f=>f.code===currentFolder.code);
+      if(found) selectFolder(found);
+      else{ currentFolder=null; renderContent(); }
+    }
+  }catch(e){ console.error(e); }
+}
+
+async function createFolder(catType){
+  const name=prompt(`请输入${CATEGORIES.find(c=>c.type===catType)?.label||''}文件夹名称`,'');
+  if(!name||!name.trim()) return;
+  try{
+    await api('/api/folders',{method:'POST',body:JSON.stringify({name:name.trim(),type:'virtual',contentType:catType})});
+    await loadFolders();
+    // auto-select the new folder
+    const data=await api('/api/folders?contentType='+catType);
+    const newF=(data.data||[]).find(f=>f.name===name.trim());
+    if(newF) selectFolder(newF);
+  }catch(e){ alert('创建失败: '+e.message); }
+}
+
+async function deleteFolder(folderCode){
+  if(!confirm('确定要删除此文件夹及其所有资源吗？此操作不可恢复。')) return;
+  try{
+    await api('/api/folders/'+folderCode,{method:'DELETE'});
+    if(currentFolder&&currentFolder.code===folderCode){ currentFolder=null; }
+    await loadFolders();
+  }catch(e){ alert('删除失败: '+e.message); }
+}
+
+function getFolderIcon(type){
+  const c=CATEGORIES.find(c=>c.type===type);
+  return c?c.icon:'📁';
+}
+
+// ===== Tree =====
+function renderTree(){
+  const tree=document.getElementById('tree');
+  let html='';
+  for(const cat of CATEGORIES){
+    const children=folders.filter(f=>f.folderType===cat.type);
+    html+=`<div class="category">
+      <div class="cat-header">
+        <span class="cat-icon">${cat.icon}</span>
+        <span class="cat-label">${cat.label}</span>
+        <span class="cat-add" onclick="event.stopPropagation();createFolder('${cat.type}')" title="新建文件夹">+</span>
+      </div>
+      <div class="cat-children">`;
+    for(const f of children){
+      const active=currentFolder&&currentFolder.code===f.code?' active':'';
+      html+=`<div class="folder-item${active}" onclick="selectFolder(folders.find(ff=>ff.code==='${f.code}'))">
+        <span class="f-name">📁 ${f.name}</span>
+        <span class="f-del" onclick="event.stopPropagation();deleteFolder('${f.code}')" title="删除">✕</span>
+      </div>`;
+    }
+    html+=`</div></div>`;
+  }
+  tree.innerHTML=html;
+}
+
+// ===== Select Folder =====
+function selectFolder(folder){
+  currentFolder=folder;
+  selectedCodes.clear();
+  renderTree();
+  renderContent();
+}
+
+function getCategory(type){
+  return CATEGORIES.find(c=>c.type===type)||CATEGORIES[0];
+}
+
+// ===== Content =====
+async function renderContent(){
+  const header=document.getElementById('contentHeader');
+  const uploadArea=document.getElementById('uploadArea');
+  const articleCreate=document.getElementById('articleCreateArea');
+  const toolbar=document.getElementById('toolbar');
+  const tableWrap=document.getElementById('tableWrap');
+  const empty=document.getElementById('emptyState');
+
+  if(!currentFolder){
+    header.innerHTML='<div class="breadcrumb">请从左侧选择一个文件夹</div>';
+    uploadArea.style.display='none'; articleCreate.style.display='none'; toolbar.style.display='none'; tableWrap.style.display='none';
+    empty.style.display='flex'; empty.querySelector('p').textContent='选择文件夹以查看资源';
+    return;
+  }
+
+  const cat=getCategory(currentFolder.folderType);
+  header.innerHTML=`<div class="breadcrumb">当前分类：<strong>${cat.label}</strong> › ${currentFolder.name}</div>`;
+
+  // Upload zone
+  uploadArea.style.display='block';
+  document.getElementById('uploadText').textContent=`点击选择文件 或 拖拽到此处`;
+  document.getElementById('extHint').textContent=`仅支持：${cat.uploadLabel}`;
+
+  // Article create button
+  if(currentFolder.folderType==='article'){
+    articleCreate.style.display='block';
+  }else{
+    articleCreate.style.display='none';
+  }
+
+  // Load resources
+  await loadResources(currentFolder);
+  toolbar.style.display='flex';
+  tableWrap.style.display='block';
+  empty.style.display='none';
+  updateToolbar();
+  renderTable();
+}
+
+async function loadResources(folder){
+  try{
+    if(folder.folderType==='article'){
+      const data=await api('/api/folders/'+folder.code+'/articles');
+      currentResources=data.data||[];
+    }else{
+      const data=await api('/api/folders/'+folder.code+'/videos');
+      currentResources=data.data||[];
+    }
+  }catch(e){
+    currentResources=[];
+  }
+  // Unset any deleted codes
+  const validCodes=new Set(currentResources.map(r=>r.code));
+  for(const c of selectedCodes){ if(!validCodes.has(c)) selectedCodes.delete(c); }
+}
+
+function renderTable(){
+  const thead=document.getElementById('tableHead');
+  const tbody=document.getElementById('tableBody');
+
+  if(currentResources.length===0){
+    document.getElementById('tableWrap').style.display='none';
+    document.getElementById('emptyState').style.display='flex';
+    document.getElementById('emptyState').querySelector('p').textContent='暂无资源，请上传';
+    return;
+  }
+  document.getElementById('tableWrap').style.display='block';
+  document.getElementById('emptyState').style.display='none';
+
+  const cat=getCategory(currentFolder.folderType);
+  const isArticle=currentFolder.folderType==='article';
+
+  let headHtml='<tr><th class="check-col"></th>';
+  if(!isArticle){
+    headHtml+='<th class="thumb-col"></th><th>名称</th><th>时长</th><th>字幕</th>';
+  }else{
+    headHtml+='<th>标题</th><th>字数</th><th>章节</th>';
+  }
+  headHtml+='<th class="action-col"></th></tr>';
+  thead.innerHTML=headHtml;
+
+  let bodyHtml='';
+  for(const r of currentResources){
+    const checked=selectedCodes.has(r.code)?'checked':'';
+    bodyHtml+='<tr class="'+(checked?'selected':'')+'" id="row-'+r.code+'">';
+    bodyHtml+=`<td class="check-col"><input type="checkbox" ${checked} onchange="toggleRow('${r.code}')"/></td>`;
+    if(!isArticle){
+      // thumbnail
+      const coverUrl=baseUrl()+'/api/videos/'+r.code+'/cover';
+      const dur=formatDuration(r.duration);
+      const sub=r.hasSubtitles?'<span class="sub-yes">✔</span>':'<span class="sub-no" onclick="event.stopPropagation();uploadSubtitle(\''+r.code+'\')" title="点击上传字幕">✘</span>';
+      bodyHtml+=`<td class="thumb-col"><img class="thumb" src="${coverUrl}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.parentNode.innerHTML='<div class=\\'thumb-placeholder\\'>${cat.icon}</div>'"/></td>`;
+      bodyHtml+=`<td><span class="name-cell" onclick="renameResource('${r.code}','${escHtml(r.name)}')">${escHtml(r.name)}</span></td>`;
+      bodyHtml+=`<td>${dur}</td><td class="sub-col">${sub}</td>`;
+    }else{
+      bodyHtml+=`<td><span class="title-cell" onclick="renameResource('${r.code}','${escHtml(r.title||'')}')">${escHtml(r.title||'')}</span></td>`;
+      bodyHtml+=`<td class="word-col">${r.wordCount??0}</td><td class="chapter-col">${r.totalChapters??0}</td>`;
+    }
+    bodyHtml+=`<td class="action-col"><button class="action-btn" onclick="showContextMenu(event,'${r.code}','${isArticle?'article':'video'}')">···</button></td>`;
+    bodyHtml+='</tr>';
+  }
+  tbody.innerHTML=bodyHtml;
+}
+
+function escHtml(s){
+  if(!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+function formatDuration(ms){
+  if(!ms||ms<=0) return '--:--';
+  const s=Math.floor(ms/1000);
+  const m=Math.floor(s/60);
+  const sec=s%60;
+  return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+
+// ===== Upload =====
+function setupUpload(){
+  const zone=document.getElementById('uploadZone');
+  const input=document.getElementById('fileInput');
+  zone.addEventListener('click',()=>input.click());
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
+  input.addEventListener('change',()=>{if(input.files.length)handleFiles(input.files);input.value=''});
+}
+
+async function handleFiles(fileList){
+  if(!currentFolder){alert('请先选择文件夹');return}
+  const cat=getCategory(currentFolder.folderType);
+  const files=Array.from(fileList);
+
+  if(currentFolder.folderType==='article'){
+    for(const f of files){
+      const ext='.'+f.name.split('.').pop().toLowerCase();
+      if(!cat.exts.includes(ext)){alert('文章文件夹仅支持：'+cat.uploadLabel);continue}
+      const text=await f.text();
+      await uploadArticleContent(f.name,text);
+    }
+    await loadResources(currentFolder);
+    renderTable();
+    return;
+  }
+
+  // Video / Audio upload
+  for(const f of files){
+    const ext='.'+f.name.split('.').pop().toLowerCase();
+    if(!cat.exts.includes(ext)) continue;
+    await uploadFile(f);
+  }
+  await loadResources(currentFolder);
+  renderTable();
+}
+
+async function uploadFile(file){
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('PUT',baseUrl()+'/api/folders/'+currentFolder.code+'/upload?filename='+encodeURIComponent(file.name),true);
+    xhr.upload.onprogress=e=>{
+      if(e.lengthComputable){
+        document.getElementById('uploadText').textContent=`上传中 ${file.name} (${Math.round(e.loaded/e.lengthComputable*100)}%)`;
+      }
+    };
+    xhr.onload=()=>{
+      document.getElementById('uploadText').textContent='点击选择文件 或 拖拽到此处';
+      if(xhr.status>=200&&xhr.status<300) resolve();
+      else reject(new Error('上传失败'));
+    };
+    xhr.onerror=()=>reject(new Error('上传失败'));
+    xhr.send(file);
+  });
+}
+
+async function uploadArticleContent(filename,content){
+  const blob=new Blob([content],{type:'text/plain'});
+  const xhr=new XMLHttpRequest();
+  xhr.open('PUT',baseUrl()+'/api/folders/'+currentFolder.code+'/article?filename='+encodeURIComponent(filename),true);
+  xhr.onload=()=>{};
+  xhr.send(blob);
+}
+
+async function uploadSubtitle(videoCode){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.srt,.ass,.ssa,.vtt';
+  input.onchange=async()=>{
+    const f=input.files[0];
+    if(!f) return;
+    const xhr=new XMLHttpRequest();
+    xhr.open('PUT',baseUrl()+'/api/videos/'+videoCode+'/subtitle?filename='+encodeURIComponent(f.name),true);
+    xhr.onload=async()=>{
+      if(xhr.status>=200&&xhr.status<300){
+        await loadResources(currentFolder);
+        renderTable();
+      }
+    };
+    xhr.send(f);
+  };
+  input.click();
+}
+
+// ===== Selection =====
+function toggleRow(code){
+  if(selectedCodes.has(code)) selectedCodes.delete(code);
+  else selectedCodes.add(code);
+  updateToolbar();
+  const row=document.getElementById('row-'+code);
+  if(row) row.className=selectedCodes.has(code)?'selected':'';
+}
+
+function toggleSelectAll(){
+  const sel=document.getElementById('selectAll').checked;
+  for(const r of currentResources){
+    if(sel) selectedCodes.add(r.code); else selectedCodes.delete(r.code);
+  }
+  updateToolbar();
+  renderTable();
+}
+
+function updateToolbar(){
+  const selCount=document.getElementById('selectedCount');
+  selCount.textContent=selectedCodes.size>0?`已选 ${selectedCodes.size} 项`:'';
+  document.getElementById('deleteSelectedBtn').disabled=selectedCodes.size===0;
+  document.getElementById('selectAll').checked=currentResources.length>0&&selectedCodes.size===currentResources.length;
+}
+
+async function deleteSelected(){
+  if(selectedCodes.size===0) return;
+  if(!confirm(`确定删除选中的 ${selectedCodes.size} 个资源吗？`)) return;
+  const codes=Array.from(selectedCodes);
+  try{
+    const isArticle=currentFolder&&currentFolder.folderType==='article';
+    const endpoint=isArticle?'/api/articles/batch_delete':'/api/videos/batch_delete';
+    await api(endpoint,{method:'POST',body:JSON.stringify({codes})});
+    selectedCodes.clear();
+    await loadResources(currentFolder);
+    renderTable();
+  }catch(e){ alert('删除失败: '+e.message); }
+}
+
+// ===== Context Menu =====
+function showContextMenu(event,code,type){
+  event.stopPropagation();
+  closeContextMenu();
+  contextTarget={code,type};
+  const menu=document.getElementById('contextMenu');
+  let items='';
+  items+=`<button onclick="contextAction('rename')">✏️ 重命名</button>`;
+  if(type==='article'){
+    items+=`<button onclick="contextAction('edit')">📝 编辑内容</button>`;
+  }
+  items+=`<button onclick="contextAction('delete')" style="color:#f44336">🗑️ 删除</button>`;
+  menu.innerHTML=items;
+  menu.style.display='block';
+  const x=Math.min(event.clientX,document.documentElement.clientWidth-140);
+  const y=Math.min(event.clientY,document.documentElement.clientHeight-120);
+  menu.style.left=x+'px';menu.style.top=y+'px';
+  setTimeout(()=>document.addEventListener('click',closeContextMenu,{once:true}),10);
+}
+
+function closeContextMenu(){
+  document.getElementById('contextMenu').style.display='none';
+}
+
+async function contextAction(action){
+  closeContextMenu();
+  if(!contextTarget) return;
+  const{code,type}=contextTarget;
+  switch(action){
+    case 'rename': renameResource(code,''); break;
+    case 'edit':
+      if(type==='article') openArticleEditor(code);
+      break;
+    case 'delete':
+      if(!confirm('确定删除此资源吗？')) return;
+      try{
+        const endpoint=type==='article'?'/api/articles/'+code:'/api/videos/'+code;
+        await api(endpoint,{method:'DELETE'});
+        await loadResources(currentFolder);
+        renderTable();
+      }catch(e){alert('删除失败: '+e.message)}
+      break;
+  }
+}
+
+async function renameResource(code,currentName){
+  const name=prompt('重命名：',currentName||'');
+  if(!name||!name.trim()) return;
+  try{
+    const isArticle=currentFolder&&currentFolder.folderType==='article';
+    const endpoint=isArticle?'/api/articles/'+code:'/api/videos/'+code;
+    await api(endpoint,{method:'PATCH',body:JSON.stringify({name:name.trim()})});
+    await loadResources(currentFolder);
+    renderTable();
+  }catch(e){alert('重命名失败: '+e.message)}
+}
+
+// ===== Article Editor =====
+function openArticleEditor(editCode){
+  const overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  const existing=currentResources.find(r=>r.code===editCode);
+  const isEdit=!!editCode;
+  overlay.innerHTML=`
+    <div class="modal">
+      <div class="modal-header">
+        <h3>${isEdit?'编辑文章':'新建文章'}</h3>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="articleEditor" placeholder="在此编写 Markdown 内容…">${escHtml(existing?existing.contentMarkdown||'':'')}</textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">取消</button>
+        <button class="btn btn-primary" onclick="saveArticle('${editCode||''}')">保存</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function saveArticle(editCode){
+  const textarea=document.getElementById('articleEditor');
+  if(!textarea) return;
+  const content=textarea.value.trim();
+  if(!content){alert('内容不能为空');return}
+  try{
+    if(editCode){
+      // Update existing article - PATCH with content
+      await api('/api/articles/'+editCode,{method:'PATCH',body:JSON.stringify({contentMarkdown:content})});
+    }else{
+      // Create new
+      const filename='article_'+Date.now()+'.md';
+      const blob=new Blob([content],{type:'text/plain'});
+      const xhr=new XMLHttpRequest();
+      xhr.open('PUT',baseUrl()+'/api/folders/'+currentFolder.code+'/article?filename='+encodeURIComponent(filename),true);
+      xhr.onload=async()=>{
+        if(xhr.status>=200&&xhr.status<300){
+          document.querySelector('.modal-overlay')?.remove();
+          await loadResources(currentFolder);
+          renderTable();
+        }
+      };
+      xhr.send(blob);
+      return;
+    }
+    document.querySelector('.modal-overlay')?.remove();
+    await loadResources(currentFolder);
+    renderTable();
+  }catch(e){alert('保存失败: '+e.message)}
+}
+
+// ===== Patch article content endpoint =====
+// We need a PATCH /api/articles/:code endpoint that accepts contentMarkdown
+// Check if it exists, and if not we need to add it. But we can't modify backend now.
+// Let's add it.
+</script>
+</body>
+</html>

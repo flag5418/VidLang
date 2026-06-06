@@ -23,23 +23,25 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:vidlang/config.dart' as app_config;
-import 'package:vidlang/models/config.dart';
-import 'package:vidlang/models/error_log.dart';
-import 'package:vidlang/models/participle.dart';
-import 'package:vidlang/models/study_record.dart';
-import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_sentence.dart';
-import 'package:vidlang/models/word_book.dart';
+import 'package:vidlang/models/base_entity.dart';
+import 'package:vidlang/models/config.dart';
+import 'package:vidlang/models/error_log.dart';
+import 'package:vidlang/models/participle.dart';
 import 'package:vidlang/models/recording_record.dart';
+import 'package:vidlang/models/study_record.dart';
+import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/providers/user_provider.dart';
+import 'package:vidlang/models/word_book.dart';
+import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/login/index.dart';
+import 'package:vidlang/views/main/main_page.dart';
 
 /// 应用入口函数
 ///
@@ -47,7 +49,18 @@ import 'package:vidlang/views/login/index.dart';
 void main() async {
   // 确保Flutter绑定初始化
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
+  if (shortestSide >= 600) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  } else {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
 
   VscodeLogger.instance.init(appName: 'VidLang', minLevel: LogLevel.debug, printToConsole: true);
   FlutterError.onError = (details) {
@@ -98,7 +111,6 @@ void main() async {
   // 预热数据库并执行缺表迁移（含 study_record）
   try {
     await DatabaseService.database;
-    await ensureDefaultAdminSession();
   } catch (e, st) {
     logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
   }
@@ -157,8 +169,57 @@ class VidLangApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
 
           // 应用主页
-          home: const LoginPage(),
+          home: const _AppEntry(),
         );
+      },
+    );
+  }
+}
+
+class _AppEntry extends StatefulWidget {
+  const _AppEntry();
+
+  @override
+  State<_AppEntry> createState() => _AppEntryState();
+}
+
+class _AppEntryState extends State<_AppEntry> {
+  late final Future<Widget> _target = _resolveTarget();
+
+  Future<Widget> _resolveTarget() async {
+    final userCode = await DatabaseService.getCurrentUserCode();
+    if (userCode == null || userCode.isEmpty) return const LoginPage();
+
+    final user = await BaseEntityExtension.findByCode<User>(userCode, () => User());
+    if (user == null) return const LoginPage();
+
+    app_config.AppConfig.currentUser = user;
+
+    if (user.authProvider == 'supabase') {
+      final ok = await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: true);
+      if (!ok) {
+        return LoginPage(initialEmail: user.email ?? user.username);
+      }
+      return const MainPage();
+    }
+
+    await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: false);
+    return const MainPage();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Widget>(
+      future: _target,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            backgroundColor: AppColors.background,
+            body: SafeArea(child: Center(child: CircularProgressIndicator())),
+          );
+        }
+        if (snap.hasData) return snap.data!;
+        return const LoginPage();
       },
     );
   }

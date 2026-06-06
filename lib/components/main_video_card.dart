@@ -17,9 +17,11 @@ import 'package:vidlang/theme/theme.dart';
 class MainVideoCard extends StatelessWidget {
   final VideoInfo video;
   final VoidCallback? onPlay;
-  final VoidCallback onMoreTap;
+  final VoidCallback? onRename;
+  final VoidCallback? onImportSubtitle;
+  final VoidCallback? onDelete;
 
-  const MainVideoCard({super.key, required this.video, this.onPlay, required this.onMoreTap});
+  const MainVideoCard({super.key, required this.video, this.onPlay, this.onRename, this.onImportSubtitle, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +73,16 @@ class MainVideoCard extends StatelessWidget {
     );
   }
 
+  Widget _menuRow(IconData icon, String title, ColorScheme cs) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: cs.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14)),
+      ],
+    );
+  }
+
   Widget _placeholder(ColorScheme colorScheme) {
     return Container(
       color: AppColors.cardThumbnailBg,
@@ -82,8 +94,24 @@ class MainVideoCard extends StatelessWidget {
     return Positioned(
       top: 12,
       right: 12,
-      child: GestureDetector(
-        onTap: () => onMoreTap(),
+      child: PopupMenuButton<String>(
+        onSelected: (value) {
+          switch (value) {
+            case 'rename':
+              onRename?.call();
+              break;
+            case 'importSubtitle':
+              onImportSubtitle?.call();
+              break;
+            case 'delete':
+              onDelete?.call();
+              break;
+          }
+        },
+        offset: const Offset(-100, 0),
+        color: colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 6,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: Colors.black.withValues(alpha: 0.6)),
@@ -98,6 +126,19 @@ class MainVideoCard extends StatelessWidget {
             ],
           ),
         ),
+        itemBuilder: (context) {
+          final items = <PopupMenuEntry<String>>[
+            PopupMenuItem(value: 'rename', child: _menuRow(Icons.edit_outlined, '重命名', colorScheme)),
+          ];
+          if (!video.hasSubtitles && onImportSubtitle != null) {
+            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(Icons.closed_caption, '导入字幕', colorScheme)));
+          }
+          items.addAll([
+            const PopupMenuDivider(height: 1),
+            PopupMenuItem(value: 'delete', child: _menuRow(Icons.delete_outline, '删除', colorScheme)),
+          ]);
+          return items;
+        },
       ),
     );
   }

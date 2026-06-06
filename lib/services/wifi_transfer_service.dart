@@ -119,7 +119,7 @@ class WifiTransferService extends ChangeNotifier {
       return _replyJson(req.response, 204, {});
     }
     if (path == '/' && req.method == 'GET') {
-      return _replyHtml(req.response, _html());
+      return _replyHtml(req.response, await _html());
     }
     if (path == '/assets/empty.png' && req.method == 'GET') {
       final bytes = await _loadEmptyPng();
@@ -127,7 +127,8 @@ class WifiTransferService extends ChangeNotifier {
     }
 
     if (path == '/api/folders' && req.method == 'GET') {
-      final folders = await _listFolders();
+      final contentType = req.uri.queryParameters['contentType']?.trim();
+      final folders = await _listFolders(contentType: contentType);
       return _replyJson(req.response, 200, {'ok': true, 'data': folders});
     }
 
@@ -215,6 +216,19 @@ class WifiTransferService extends ChangeNotifier {
     }
 
     // Article cover (placeholder)
+    final articleRename = RegExp(r'^/api/articles/([a-zA-Z0-9]+)$').firstMatch(path);
+    if (articleRename != null && req.method == 'PATCH') {
+      final articleCode = articleRename.group(1)!;
+      final body = await _readJson(req);
+      final name = (body['name'] ?? '').toString().trim();
+      final contentMarkdown = (body['contentMarkdown'] ?? '').toString().trim();
+      if (name.isEmpty && contentMarkdown.isEmpty) {
+        return _replyJson(req.response, 400, {'ok': false, 'message': 'name 或 contentMarkdown 至少提供一个'});
+      }
+      final article = await _renameArticle(articleCode, name.isNotEmpty ? name : null, contentMarkdown: contentMarkdown.isNotEmpty ? contentMarkdown : null);
+      return _replyJson(req.response, 200, {'ok': true, 'data': _articleJson(article)});
+    }
+
     final articleCover = RegExp(r'^/api/articles/([a-zA-Z0-9]+)/cover$').firstMatch(path);
     if (articleCover != null && req.method == 'GET') {
       final bytes = await _loadEmptyPng();
@@ -254,6 +268,15 @@ class WifiTransferService extends ChangeNotifier {
       return _replyJson(req.response, 200, {'ok': true});
     }
 
+    if (path == '/api/articles/batch_delete' && req.method == 'POST') {
+      final body = await _readJson(req);
+      final codes = body['codes'];
+      if (codes is! List) return _replyJson(req.response, 400, {'ok': false, 'message': 'codes 不能为空'});
+      final list = codes.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+      await _batchDeleteArticles(list);
+      return _replyJson(req.response, 200, {'ok': true});
+    }
+
     final reorder = RegExp(r'^/api/folders/([a-zA-Z0-9]+)/reorder$').firstMatch(path);
     if (reorder != null && req.method == 'POST') {
       final folderCode = reorder.group(1)!;
@@ -268,10 +291,17 @@ class WifiTransferService extends ChangeNotifier {
     _replyJson(req.response, 404, {'ok': false, 'message': 'not found'});
   }
 
-  Future<List<Map<String, Object?>>> _listFolders() async {
+  Future<List<Map<String, Object?>>> _listFolders({String? contentType}) async {
+    String where = "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != ''";
+    List<Object?> args = [];
+    if (contentType != null && contentType.isNotEmpty) {
+      where += ' AND folder_type = ?';
+      args.add(contentType);
+    }
     final rows = await DatabaseService.findByCondition(
       () => VideoFolder(),
-      where: "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != ''",
+      where: where,
+      whereArgs: args,
       orderBy: 'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
     );
     return rows.map(_folderJson).toList();
@@ -557,6 +587,26 @@ class WifiTransferService extends ChangeNotifier {
     }
   }
 
+  Future<void> _batchDeleteArticles(List<String> codes) async {
+    final folderCodes = <String>{};
+    for (final c in codes) {
+      try {
+        final article = await _getArticleByCode(c);
+        if (article != null) {
+          folderCodes.add(article.folderCode);
+          await DatabaseService.softDelete(article);
+          final chapters = await DatabaseService.findByCondition(() => ArticleChapter(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [c]);
+          for (final ch in chapters) await DatabaseService.softDelete(ch);
+          final sentences = await DatabaseService.findByCondition(() => ArticleSentence(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [c]);
+          for (final s in sentences) await DatabaseService.softDelete(s);
+        }
+      } catch (_) {}
+    }
+    for (final fc in folderCodes) {
+      await FolderStatsService.refreshFolderStats(fc);
+    }
+  }
+
   Future<void> _reorderVideos(String folderCode, List<String> orderedCodes) async {
     if (orderedCodes.isEmpty) return;
 
@@ -581,6 +631,34 @@ class WifiTransferService extends ChangeNotifier {
 
     await _normalizeOrderIndex(folderCode);
     await FolderStatsService.refreshFolderStats(folderCode);
+  }
+
+  Future<Article> _renameArticle(String articleCode, String? name, {String? contentMarkdown}) async {
+    final article = await _getArticleByCode(articleCode);
+    if (article == null) throw Exception('文章不存在');
+    if (name != null) article.title = name;
+    if (contentMarkdown != null) {
+      article.contentMarkdown = contentMarkdown;
+      final lines = contentMarkdown.split('\n');
+      int totalChapters = 0;
+      for (final line in lines) {
+        if (line.trim().startsWith('#')) totalChapters++;
+      }
+      if (totalChapters == 0) totalChapters = 1;
+      article.totalChapters = totalChapters;
+      article.wordCount = contentMarkdown.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+      await _softDeleteArticleContent(articleCode);
+      await _parseArticleChaptersAndSentences(article);
+    }
+    await DatabaseService.update(article);
+    return article;
+  }
+
+  Future<void> _softDeleteArticleContent(String articleCode) async {
+    final chapters = await DatabaseService.findByCondition(() => ArticleChapter(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [articleCode]);
+    for (final ch in chapters) await DatabaseService.softDelete(ch);
+    final sentences = await DatabaseService.findByCondition(() => ArticleSentence(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [articleCode]);
+    for (final s in sentences) await DatabaseService.softDelete(s);
   }
 
   Future<void> _deleteFileIfExists(String path0) async {
@@ -612,8 +690,19 @@ class WifiTransferService extends ChangeNotifier {
     return rows.isEmpty ? null : rows.first;
   }
 
+  Future<Article?> _getArticleByCode(String code) async {
+    final rows = await DatabaseService.findByCondition(() => Article(), where: 'code = ? AND is_deleted = 0', whereArgs: [code], limit: 1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
   Map<String, Object?> _folderJson(VideoFolder f) {
-    return {'code': f.code, 'name': f.name, 'folderType': f.folderType.name, 'canUpload': f.type == VideoFolderType.real};
+    return {
+      'code': f.code,
+      'name': f.name,
+      'folderType': f.folderType.name,
+      'canUpload': f.type == VideoFolderType.real,
+      'parentCode': f.parentCode,
+    };
   }
 
   Map<String, Object?> _videoJson(VideoInfo v) {
@@ -884,15 +973,11 @@ class WifiTransferService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  String _html() {
-    return '''
-<!doctype html>
-<html lang="zh">
-<head><meta charset="utf-8"/><title>VidLang WiFi</title></head>
-<body style="background:#1a1a1a;color:white;font-family:sans-serif;padding:20px">
-<h2>VidLang WiFi 传输</h2>
-<p>请使用电脑浏览器访问此页面传输文件。</p>
-</body>
-''';
+  Future<String> _html() async {
+    try {
+      return await rootBundle.loadString('assets/app/wifi_transfer.html');
+    } catch (_) {
+      return '<!doctype html><html><body style="background:#000;color:#fff;padding:20px;font-family:sans-serif"><h2>VidLang WiFi</h2><p>HTML加载失败</p></body></html>';
+    }
   }
 }

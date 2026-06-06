@@ -63,6 +63,9 @@ dependencies:
   # Supabase - 后端服务（认证、数据库等）
   supabase_flutter: ^2.8.4
 
+  flutter_secure_storage: ^9.2.4
+  cryptography: ^2.7.0
+
   # WebSocket - 用于声通语音评测
   web_socket_channel: ^3.0.1
 
@@ -74,6 +77,9 @@ dependencies:
 
   # 录音 - 用于录制用户语音
   record: ^6.0.0
+
+  # 系统 TTS - 调用原生 TTS 引擎朗读字幕/单词
+  flutter_tts: ^4.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -96,3 +102,4 @@ flutter:
   assets:
     - assets/app/
     - assets/video_plays/
+    - assets/dictionary/

@@ -89,6 +89,11 @@ class FilePickerService {
     if (rawPath.startsWith('file://')) {
       return Uri.parse(rawPath).toFilePath();
     }
+    if (rawPath.contains('%')) {
+      try {
+        return Uri.decodeFull(rawPath);
+      } catch (_) {}
+    }
     return rawPath;
   }
 
@@ -304,31 +309,72 @@ class FilePickerService {
   /// [subtitlePath] 字幕文件路径（可选）
   static Future<_LocalVideoImportResult> _importLocalVideo(String videoPath, String folderCode, {String? subtitlePath}) async {
     try {
+      videoPath = normalizePath(videoPath);
+      if (subtitlePath != null && subtitlePath.isNotEmpty) {
+        subtitlePath = normalizePath(subtitlePath);
+      }
       final file = File(videoPath);
       if (!await file.exists()) {
         return const _LocalVideoImportResult.empty();
       }
 
-      final fileName = path.basename(videoPath);
-      final fileExtension = _getFileExtension(fileName);
+      final displayFileName = path.basename(videoPath);
+      final displayNameWithoutExt = _getFileNameWithoutExtension(displayFileName);
+      final fileExtension = _getFileExtension(displayFileName);
       if (!_isVideoFile(fileExtension)) {
         return const _LocalVideoImportResult.empty();
       }
 
-      // 检查是否已存在相同路径的视频（使用 filePath 而非文件名，允许同名不同路径）
-      final existingVideos = await DatabaseService.findByCondition(
-        () => VideoInfo(),
-        where: 'folder_code = ? AND file_path = ? AND is_deleted = 0',
-        whereArgs: [folderCode, videoPath],
-      );
+      // 自动检测同名字幕文件（当外部未传入 subtitlePath 时）
+      subtitlePath ??= _detectSubtitleFile(videoPath);
 
-      if (existingVideos.isNotEmpty) {
-        // 跳过已存在的视频
-        return const _LocalVideoImportResult.empty();
+      final isIosTmp = _isProbablyIosTmpPath(videoPath);
+      if (isIosTmp) {
+        final existingByName = await DatabaseService.findByCondition(
+          () => VideoInfo(),
+          where: 'folder_code = ? AND name = ? AND extension_name = ? AND is_deleted = 0',
+          whereArgs: [folderCode, displayNameWithoutExt, fileExtension],
+          limit: 1,
+        );
+        if (existingByName.isNotEmpty) {
+          final existing = existingByName.first;
+          if (subtitlePath != null &&
+              subtitlePath.isNotEmpty &&
+              (existing.subtitlePath == null || existing.subtitlePath!.isEmpty || existing.hasSubtitles == false)) {
+            existing.subtitlePath = subtitlePath;
+            existing.hasSubtitles = true;
+            await DatabaseService.update(existing);
+            final stats = await _importSubtitle(subtitlePath, folderCode, existing.code ?? '');
+            return _LocalVideoImportResult(
+              video: existing,
+              subtitlesInserted: stats.subtitlesInserted,
+              participlesInserted: stats.participlesInserted,
+            );
+          }
+          return const _LocalVideoImportResult.empty();
+        }
+      } else {
+        final existingVideos = await DatabaseService.findByCondition(
+          () => VideoInfo(),
+          where: 'folder_code = ? AND file_path = ? AND is_deleted = 0',
+          whereArgs: [folderCode, videoPath],
+          limit: 1,
+        );
+        if (existingVideos.isNotEmpty) {
+          return const _LocalVideoImportResult.empty();
+        }
       }
 
-      // 生成唯一标识
       final videoCode = const Uuid().v4().replaceAll('-', '');
+
+      final persisted = await _persistIosTmpFilesIfNeeded(
+        videoPath: videoPath,
+        subtitlePath: subtitlePath,
+        folderCode: folderCode,
+        videoCode: videoCode,
+      );
+      videoPath = persisted.videoPath;
+      subtitlePath = persisted.subtitlePath;
 
       final duration = await _getVideoDuration(videoPath, videoCode: videoCode);
 
@@ -380,7 +426,7 @@ class FilePickerService {
       final count = await DatabaseService.count(() => VideoInfo(), where: 'folder_code = ? AND is_deleted = 0', whereArgs: [folderCode]);
 
       final video = VideoInfo(
-        name: _getFileNameWithoutExtension(fileName),
+        name: displayNameWithoutExt,
         folderCode: folderCode,
         filePath: videoPath,
         fileType: 'virtual',
@@ -616,13 +662,14 @@ class FilePickerService {
   /// 返回选中的文件列表，用户取消返回空列表
   static Future<List<PlatformFile>> pickVideos() async {
     try {
+      // 使用 FileType.custom + allowedExtensions（无点前缀）
+      // 替代 FileType.video，确保在所有平台上
+      //（iOS Files、Android 文件管理器）都能正确弹窗选择文件
       final result = await FilePicker.pickFiles(
-        type: FileType.video,
+        type: FileType.custom,
         allowMultiple: true,
         withData: false,
-        // 允许访问设备上的所有视频文件，包括iCloud和本地存储
-        // iOS上需要确保启用了文件访问权限
-        allowedExtensions: supportedVideoExtensions,
+        allowedExtensions: supportedVideoExtensions.map((e) => e.startsWith('.') ? e.substring(1) : e).toList(),
         dialogTitle: '选择视频文件',
       );
 
@@ -654,6 +701,18 @@ class FilePickerService {
 
     await FolderStatsService.refreshFolderStats(folderCode);
     return completedCount;
+  }
+
+  /// 导入单个视频文件（可选字幕文件）
+  ///
+  /// [videoPath] 视频文件路径
+  /// [subtitlePath] 字幕文件路径（可选，传入 null 时自动检测）
+  /// [folderCode] 目标文件夹 code
+  static Future<bool> importVideoWithSubtitle(String videoPath, String? subtitlePath, String folderCode) async {
+    if (videoPath.isEmpty) return false;
+    final result = await _importLocalVideo(videoPath, folderCode, subtitlePath: subtitlePath);
+    await FolderStatsService.refreshFolderStats(folderCode);
+    return result.video != null;
   }
 
   /// 获取文件扩展名
@@ -694,6 +753,104 @@ class FilePickerService {
       return fileName.substring(0, lastDotIndex);
     }
     return fileName;
+  }
+
+  /// 根据视频文件路径自动检测同名字幕文件
+  ///
+  /// [videoPath] 视频文件路径
+  /// 返回第一个存在的同名字幕文件路径，未找到返回 null
+  static String? _detectSubtitleFile(String videoPath) {
+    final normalizedVideoPath = normalizePath(videoPath);
+    final dir = path.dirname(normalizedVideoPath);
+    final stem = path.basenameWithoutExtension(normalizedVideoPath);
+    if (stem.isEmpty) return null;
+
+    for (final ext in supportedSubtitleExtensions) {
+      final sp = path.join(dir, '$stem$ext');
+      if (FileSystemEntity.isFileSync(sp)) return sp;
+
+      final upper = path.join(dir, '$stem${ext.toUpperCase()}');
+      if (upper != sp && FileSystemEntity.isFileSync(upper)) return upper;
+    }
+
+    try {
+      final directory = Directory(dir);
+      final entities = directory.listSync(followLinks: false);
+      for (final entity in entities) {
+        if (entity is! File) continue;
+        final ext = _getFileExtension(entity.path);
+        if (!_isSubtitleFile(ext)) continue;
+        if (path.basenameWithoutExtension(entity.path) == stem) {
+          return entity.path;
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  static bool _isProbablyIosTmpPath(String filePath) {
+    if (!Platform.isIOS) return false;
+    final p = normalizePath(filePath);
+    if (!p.contains('/tmp/')) return false;
+    if (p.contains('/Containers/Data/Application/')) return true;
+    if (p.contains('/var/mobile/Containers/Data/Application/')) return true;
+    return false;
+  }
+
+  static Future<({String videoPath, String? subtitlePath})> _persistIosTmpFilesIfNeeded({
+    required String videoPath,
+    required String? subtitlePath,
+    required String folderCode,
+    required String videoCode,
+  }) async {
+    if (!_isProbablyIosTmpPath(videoPath)) {
+      return (videoPath: videoPath, subtitlePath: subtitlePath);
+    }
+
+    try {
+      subtitlePath ??= _detectSubtitleFile(videoPath);
+
+      final directory = await getApplicationDocumentsDirectory();
+      final videosDir = Directory('${directory.path}/videos/$folderCode');
+      if (!await videosDir.exists()) {
+        await videosDir.create(recursive: true);
+      }
+
+      final videoExt = _getFileExtension(videoPath);
+      final destVideoPath = '${videosDir.path}/$videoCode$videoExt';
+      final srcVideo = File(videoPath);
+      if (await srcVideo.exists()) {
+        try {
+          await srcVideo.rename(destVideoPath);
+        } catch (_) {
+          await srcVideo.copy(destVideoPath);
+          try {
+            await srcVideo.delete();
+          } catch (_) {}
+        }
+        videoPath = destVideoPath;
+      }
+
+      if (subtitlePath != null && subtitlePath.isNotEmpty && _isProbablyIosTmpPath(subtitlePath)) {
+        final srcSub = File(subtitlePath);
+        if (await srcSub.exists()) {
+          final subExt = _getFileExtension(subtitlePath);
+          final destSubPath = '${videosDir.path}/$videoCode$subExt';
+          try {
+            await srcSub.rename(destSubPath);
+          } catch (_) {
+            await srcSub.copy(destSubPath);
+            try {
+              await srcSub.delete();
+            } catch (_) {}
+          }
+          subtitlePath = destSubPath;
+        }
+      }
+    } catch (_) {}
+
+    return (videoPath: videoPath, subtitlePath: subtitlePath);
   }
 
   /// 获取视频时长

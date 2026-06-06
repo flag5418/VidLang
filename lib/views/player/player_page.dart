@@ -9,7 +9,10 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/dictionary_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:audioplayers/audioplayers.dart' as ap;
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
@@ -54,6 +57,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   ];
 
   // Word selection state
+  // TTS playback
+  final ap.AudioPlayer _aliAudioPlayer = ap.AudioPlayer();
+  bool _isTtsSpeaking = false;
+
   bool _showWordPopup = false;
   List<_WordItem> _selectedWords = [];
 
@@ -70,6 +77,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _shutdownTimer?.cancel();
+    _aliAudioPlayer.dispose();
     _unlockOrientation();
     super.dispose();
   }
@@ -78,8 +86,22 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   }
 
+  List<DeviceOrientation> _defaultOrientations() {
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
+    if (shortestSide >= 600) {
+      return [
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ];
+    }
+    return [DeviceOrientation.portraitUp];
+  }
+
   void _unlockOrientation() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setPreferredOrientations(_defaultOrientations());
   }
 
   Future<void> _loadSettings() async {
@@ -126,113 +148,131 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // Video fills screen
-          Positioned.fill(
-            child: Container(
-              color: Colors.black,
-              child: VideoWidget(player: notifier.player, fit: BoxFit.contain, backgroundColor: Colors.black),
-            ),
-          ),
 
-          // Top bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: isTablet ? 60 : 48,
-              padding: EdgeInsets.symmetric(horizontal: pageH(context)),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
-              ),
-              child: Row(
-                children: [
-                  _topBtn(Icons.arrow_back_ios_new_rounded, () {
-                    _unlockOrientation();
-                    Navigator.pop(context);
-                  }),
-                  const Spacer(),
-                  Flexible(
-                    child: Text(
-                      state.title,
-                      style: TextStyle(color: Colors.white, fontSize: isTablet ? 20 : 15, fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const Spacer(),
-                  _topBtn(
-                    Icons.format_list_bulleted_rounded,
-                    () => setState(() {
-                      _showVideoList = !_showVideoList;
-                      _showSettings = false;
-                      _showSpeedPicker = false;
-                    }),
-                    active: _showVideoList,
-                  ),
-                  SizedBox(width: isTablet ? 14 : 6),
-                  _topBtn(
-                    Icons.settings_rounded,
-                    () => setState(() {
-                      _showSettings = !_showSettings;
-                      _showVideoList = false;
-                      _showSpeedPicker = false;
-                    }),
-                    active: _showSettings,
-                  ),
-                ],
+      body: SafeArea(
+        top: true,
+        bottom: true,
+        left: true,
+        right: true,
+        child: Stack(
+          children: [
+            // Video fills screen
+            Positioned.fill(
+              child: Container(
+                color: Colors.black,
+                child: VideoWidget(player: notifier.player, fit: BoxFit.contain, backgroundColor: Colors.black),
               ),
             ),
-          ),
 
-          // Bottom area: subtitles + single-row controls
-          if (!drawerOpen)
+            // Top bar
             Positioned(
-              bottom: 0,
+              top: 0,
               left: 0,
               right: 0,
               child: Container(
+                height: isTablet ? 60 : 48,
+                padding: EdgeInsets.symmetric(horizontal: pageH(context)),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
                 ),
-                child: _buildBottomArea(state, notifier, subtitlesList, isTablet, hasSubtitles, idx, currentSub),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _topBtn(Icons.arrow_back_ios_new_rounded, () {
+                        _unlockOrientation();
+                        Navigator.pop(context);
+                      }),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 92),
+                      child: Text(
+                        state.title,
+                        style: TextStyle(color: Colors.white, fontSize: isTablet ? 20 : 15, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _topBtn(
+                            Icons.format_list_bulleted_rounded,
+                            () => setState(() {
+                              _showVideoList = !_showVideoList;
+                              _showSettings = false;
+                              _showSpeedPicker = false;
+                            }),
+                            active: _showVideoList,
+                          ),
+                          SizedBox(width: isTablet ? 14 : 6),
+                          _topBtn(
+                            Icons.settings_rounded,
+                            () => setState(() {
+                              _showSettings = !_showSettings;
+                              _showVideoList = false;
+                              _showSpeedPicker = false;
+                            }),
+                            active: _showSettings,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
-          // Drawer overlay
-          // Drawer overlay (tap outside to close)
-          if (drawerOpen && !_showWordPopup)
-            GestureDetector(
-              onTap: () => setState(() {
-                _showVideoList = false;
-                _showSettings = false;
-              }),
-              behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.black38),
-            ),
-
-          // Drawer panel (right edge)
-          if (drawerOpen && !_showWordPopup)
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: isTablet ? 500 : 340,
-                color: AppColors.surface,
-                child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
+            // Bottom area: subtitles + single-row controls
+            if (!drawerOpen)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
+                  ),
+                  child: _buildBottomArea(state, notifier, subtitlesList, isTablet, hasSubtitles, idx, currentSub),
+                ),
               ),
-            ),
 
-          // Word selection popup
-          if (_showWordPopup) _buildWordSelectionPopup(isTablet),
+            // Drawer overlay
+            // Drawer overlay (tap outside to close)
+            if (drawerOpen && !_showWordPopup)
+              GestureDetector(
+                onTap: () => setState(() {
+                  _showVideoList = false;
+                  _showSettings = false;
+                }),
+                behavior: HitTestBehavior.translucent,
+                child: Container(color: Colors.black38),
+              ),
 
-          // Read-aloud popup
-          if (_showReadAloud) _buildReadAloudPopup(state, notifier, currentSub, isTablet),
-        ],
+            // Drawer panel (right edge)
+            if (drawerOpen && !_showWordPopup)
+              Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: isTablet ? 500 : 340,
+                  color: AppColors.surface,
+                  child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
+                ),
+              ),
+
+            // Word selection popup
+            if (_showWordPopup) _buildWordSelectionPopup(isTablet),
+
+            // Read-aloud popup
+            if (_showReadAloud) _buildReadAloudPopup(state, notifier, currentSub, isTablet),
+          ],
+        ),
       ),
     );
   }
@@ -322,7 +362,20 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 t,
               ),
               const SizedBox(width: 8),
-              _featureTextBtn("跟读", s.slowToFastActive, () => setState(() => _showReadAloud = !_showReadAloud), t),
+              _featureTextBtn("跟读", _showReadAloud, () => setState(() => _showReadAloud = !_showReadAloud), t),
+              const SizedBox(width: 8),
+              _featureTextBtn("朗读", _isTtsSpeaking, () {
+                if (cs != null && !_isTtsSpeaking) {
+                  setState(() => _isTtsSpeaking = true);
+                  TtsService().speakClarity(
+                    text: cs.content,
+                    audioPlayer: _aliAudioPlayer,
+                    onComplete: () {
+                      if (mounted) setState(() => _isTtsSpeaking = false);
+                    },
+                  );
+                }
+              }, t),
               const SizedBox(width: 8),
               _featureTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible(), t),
               const SizedBox(width: 8),
@@ -415,55 +468,169 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   // ─── Word Selection Popup ──────────────────────
   Widget _buildWordSelectionPopup(bool t) {
     final selectedText = _selectedWords.map((w) => w.text).join(' ');
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          constraints: BoxConstraints(maxWidth: t ? 500 : 320),
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white12),
-            boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 8))],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                selectedText,
-                style: TextStyle(color: Colors.white, fontSize: t ? 28 : 22, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+    return FutureBuilder<DictEntry?>(
+      future: _lookupWord(selectedText),
+      builder: (ctx, snap) {
+        final entry = snap.data;
+        final loading = snap.connectionState == ConnectionState.waiting;
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              constraints: BoxConstraints(maxWidth: t ? 500 : 320),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
+                boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 8))],
               ),
-              const SizedBox(height: 8),
-              Text(
-                '查词功能待实现',
-                style: TextStyle(color: Colors.white54, fontSize: t ? 16 : 13),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => setState(() {
-                  _showWordPopup = false;
-                  _selectedWords = [];
-                }),
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-                  child: Text(
-                    '关闭',
-                    style: TextStyle(color: AppColors.primary, fontSize: t ? 16 : 13),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Word + speaker button
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          selectedText,
+                          style: TextStyle(color: Colors.white, fontSize: t ? 28 : 22, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      if (entry != null && entry.phonetic != null) ...[
+                        SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => TtsService().speakWord(selectedText),
+                          child: Icon(Icons.volume_up_rounded, color: AppColors.primary, size: t ? 24 : 20),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
+
+                  // Phonetic
+                  if (entry != null && entry.phonetic != null && entry.phonetic!.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        '/${entry.phonetic}/',
+                        style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: t ? 16 : 14, fontStyle: FontStyle.italic),
+                      ),
+                    ),
+
+                  // Part of speech
+                  if (entry != null && entry.posLabel.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Text(
+                        entry.posLabel,
+                        style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: t ? 14 : 12),
+                      ),
+                    ),
+
+                  // Translation
+                  if (entry != null && entry.translation != null && entry.translation!.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        entry.translation!.replaceAll('\n', '\n'),
+                        style: TextStyle(color: Colors.white, fontSize: t ? 15 : 13, height: 1.4),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                  // Tags (exam level)
+                  if (entry != null && entry.tag != null && entry.tag!.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        alignment: WrapAlignment.center,
+                        children: entry.tag!.split(' ').where((t) => t.isNotEmpty).map((tag) {
+                          return Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
+                            child: Text(
+                              _tagLabel(tag),
+                              style: TextStyle(color: AppColors.primary, fontSize: t ? 11 : 10),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                  // Loading state
+                  if (loading)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+                    ),
+
+                  // Not found
+                  if (!loading && entry == null)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        '暂未收录该词',
+                        style: TextStyle(color: Colors.white38, fontSize: t ? 14 : 12),
+                      ),
+                    ),
+
+                  SizedBox(height: 12),
+
+                  // Close button
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      _showWordPopup = false;
+                      _selectedWords = [];
+                    }),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                      child: Text(
+                        '关闭',
+                        style: TextStyle(color: Colors.white70, fontSize: t ? 15 : 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  // ─── Helper widgets ────────────────────────────
+  Future<DictEntry?> _lookupWord(String word) async {
+    return DictionaryService().lookup(word);
+  }
+
+  String _tagLabel(String tag) {
+    const labels = {
+      'zk': '中考',
+      'gk': '高考',
+      'cet4': '四级',
+      'cet6': '六级',
+      'ky': '考研',
+      'ielts': '雅思',
+      'toefl': '托福',
+      'gre': 'GRE',
+      'sat': 'SAT',
+      'gmat': 'GMAT',
+      'bec': 'BEC',
+      'pets': 'PETS',
+      'coca': 'COCA',
+      'bnc': 'BNC',
+      'tem4': '专四',
+      'tem8': '专八',
+    };
+    return labels[tag] ?? tag.toUpperCase();
+  }
+
+  // ─── Helper widgets ────────────────────────────  // ─── Helper widgets ────────────────────────────
   Widget _buildProgressBar(PlayerEngineState s, PlayerEngineNotifier n) {
     final p = s.duration.inMilliseconds > 0 ? s.position.inMilliseconds / s.duration.inMilliseconds : 0.0;
     return Padding(
@@ -799,6 +966,76 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Read aloud (system TTS)
+                  GestureDetector(
+                    onTap: () async {
+                      if (cs != null) {
+                        await TtsService().speakSubtitle(cs.content);
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.volume_up_rounded, color: AppColors.primary, size: t ? 22 : 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            '朗读字幕',
+                            style: TextStyle(color: AppColors.primary, fontSize: t ? 15 : 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Clear read-aloud (Aliyun TTS)
+                  GestureDetector(
+                    onTap: () async {
+                      if (cs != null && !_isTtsSpeaking) {
+                        setState(() => _isTtsSpeaking = true);
+                        await TtsService().speakClarity(
+                          text: cs.content,
+                          audioPlayer: _aliAudioPlayer,
+                          onComplete: () {
+                            if (mounted) setState(() => _isTtsSpeaking = false);
+                          },
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _isTtsSpeaking ? AppColors.success.withValues(alpha: 0.25) : AppColors.primary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isTtsSpeaking ? Icons.volume_up : Icons.record_voice_over_rounded,
+                            color: _isTtsSpeaking ? AppColors.success : AppColors.primary,
+                            size: t ? 22 : 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _isTtsSpeaking ? '播放中' : '清晰朗读',
+                            style: TextStyle(
+                              color: _isTtsSpeaking ? AppColors.success : AppColors.primary,
+                              fontSize: t ? 15 : 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
                   // Repeat current sentence
                   GestureDetector(
                     onTap: () {
