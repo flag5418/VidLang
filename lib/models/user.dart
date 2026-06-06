@@ -65,6 +65,9 @@ class User extends BaseEntity {
   /// 用于API请求认证和会话保持
   String? token;
 
+  String authProvider;
+  String? supabaseUserId;
+
   User({
     this.username = '',
     this.password = '',
@@ -75,6 +78,8 @@ class User extends BaseEntity {
     this.role = 'user',
     this.token,
     this.isPrimary = false,
+    this.authProvider = 'local',
+    this.supabaseUserId,
   });
 
   @override
@@ -93,6 +98,8 @@ class User extends BaseEntity {
       'phone': phone,
       'role': role,
       'token': token,
+      'auth_provider': authProvider,
+      'supabase_user_id': supabaseUserId,
       'is_primary': isPrimary ? 1 : 0,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -116,6 +123,8 @@ class User extends BaseEntity {
     phone = map['phone'];
     role = map['role'] ?? 'user';
     token = map['token'];
+    authProvider = map['auth_provider'] ?? 'local';
+    supabaseUserId = map['supabase_user_id'];
     isPrimary = map['is_primary'] == 1;
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;

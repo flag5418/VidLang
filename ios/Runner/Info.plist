@@ -26,6 +26,13 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
+	</array>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<!-- 文件访问权限配置 -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>需要访问照片库以选择视频文件</string>

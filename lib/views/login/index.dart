@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:vidlang/models/base_entity.dart';
+import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/views/main/main_page.dart';
@@ -8,7 +10,10 @@ import 'package:vidlang/views/main/main_page.dart';
 enum _AuthMode { login, register, verifyOtp }
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final bool requireSupabaseReauth;
+  final String? initialEmail;
+
+  const LoginPage({super.key, this.requireSupabaseReauth = false, this.initialEmail});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -30,6 +35,17 @@ class _LoginPageState extends State<LoginPage> {
 
   String? _pendingEmail;
   String? _pendingPassword;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty) {
+      _emailController.text = widget.initialEmail!.trim();
+    }
+    if (widget.requireSupabaseReauth) {
+      _mode = _AuthMode.login;
+    }
+  }
 
   @override
   void dispose() {
@@ -81,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 32),
                 if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else _buildAuthForm(),
                 const SizedBox(height: 24),
-                _buildToggleMode(),
+                if (!widget.requireSupabaseReauth) _buildToggleMode(),
               ],
             ),
           ),
@@ -94,20 +110,15 @@ class _LoginPageState extends State<LoginPage> {
     return Container(
       width: 72,
       height: 72,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withAlpha(30),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: AppColors.primary.withAlpha(30), borderRadius: BorderRadius.circular(20)),
       child: const Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: 40),
     );
   }
 
   Widget _buildTitle() {
-    final titles = {
-      _AuthMode.login: '欢迎回来',
-      _AuthMode.register: '创建账号',
-      _AuthMode.verifyOtp: '验证邮箱',
-    };
+    final titles = widget.requireSupabaseReauth
+        ? {_AuthMode.login: '验证主账号', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'}
+        : {_AuthMode.login: '欢迎回来', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'};
     return Text(
       titles[_mode]!,
       style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.onSurface),
@@ -116,11 +127,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildSubtitle() {
-    final subtitles = {
-      _AuthMode.login: '登录你的 VidLang 账号',
-      _AuthMode.register: '注册一个新账号开始学习',
-      _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail',
-    };
+    final subtitles = widget.requireSupabaseReauth
+        ? {_AuthMode.login: '请输入主账号密码以继续使用', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'}
+        : {_AuthMode.login: '登录你的 VidLang 账号', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'};
     return Text(
       subtitles[_mode]!,
       style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
@@ -136,10 +145,7 @@ class _LoginPageState extends State<LoginPage> {
         _buildEmailField(),
         const SizedBox(height: 16),
         _buildPasswordField(),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          _buildError(),
-        ],
+        if (_error != null) ...[const SizedBox(height: 12), _buildError()],
         const SizedBox(height: 24),
         _buildPrimaryButton(isLogin ? '登录' : '发送验证码', _submitAuth),
         const SizedBox(height: 12),
@@ -159,10 +165,7 @@ class _LoginPageState extends State<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildOtpField(),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          _buildError(),
-        ],
+        if (_error != null) ...[const SizedBox(height: 12), _buildError()],
         const SizedBox(height: 24),
         _buildPrimaryButton('验证并完成注册', _verifyOtp),
         const SizedBox(height: 12),
@@ -205,6 +208,7 @@ class _LoginPageState extends State<LoginPage> {
       textInputAction: TextInputAction.next,
       style: const TextStyle(color: AppColors.onSurface, fontSize: 15),
       decoration: _inputDecoration('邮箱地址', Icons.email_outlined),
+      readOnly: widget.requireSupabaseReauth && widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty,
       onSubmitted: (_) => _passwordFocus.requestFocus(),
     );
   }
@@ -234,10 +238,7 @@ class _LoginPageState extends State<LoginPage> {
       textInputAction: TextInputAction.done,
       style: const TextStyle(color: AppColors.onSurface, fontSize: 22, letterSpacing: 8, fontWeight: FontWeight.w600),
       textAlign: TextAlign.center,
-      decoration: _inputDecoration('请输入验证码', null).copyWith(
-        counterText: '',
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-      ),
+      decoration: _inputDecoration('请输入验证码', null).copyWith(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 16)),
       onSubmitted: (_) => _verifyOtp(),
     );
   }
@@ -251,8 +252,14 @@ class _LoginPageState extends State<LoginPage> {
       fillColor: AppColors.surfaceElevated,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
-      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.error, width: 1)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 1),
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
@@ -302,10 +309,7 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          isLogin ? '没有账号？' : '已有账号？',
-          style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceDisabled),
-        ),
+        Text(isLogin ? '没有账号？' : '已有账号？', style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceDisabled)),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -325,6 +329,15 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _submitAuth() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+
+    if (widget.requireSupabaseReauth) {
+      if (widget.initialEmail != null &&
+          widget.initialEmail!.trim().isNotEmpty &&
+          email.trim().toLowerCase() != widget.initialEmail!.trim().toLowerCase()) {
+        setState(() => _error = '请使用当前主账号邮箱验证');
+        return;
+      }
+    }
 
     if (email.isEmpty) {
       setState(() => _error = '请输入邮箱地址');
@@ -350,10 +363,30 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       if (_mode == _AuthMode.login) {
+        if (!widget.requireSupabaseReauth) {
+          final existing = await BaseEntityExtension.findByCondition<User>(
+            () => User(),
+            where: 'auth_provider = ? AND is_deleted = 0',
+            whereArgs: ['supabase'],
+            limit: 1,
+          );
+          if (existing.isNotEmpty) {
+            final existingEmail = (existing.first.email ?? existing.first.username).trim().toLowerCase();
+            final inputEmail = email.trim().toLowerCase();
+            if (existingEmail.isNotEmpty && existingEmail != inputEmail) {
+              final ok = await _confirmSwitchSupabase(existingEmail, inputEmail);
+              if (!ok) return;
+            }
+          }
+        }
         await AuthService.instance.signInWithEmail(email: email, password: password);
         if (!mounted) return;
         _navigateToMain();
       } else {
+        if (widget.requireSupabaseReauth) {
+          setState(() => _error = '请先验证主账号后再继续');
+          return;
+        }
         await AuthService.instance.signUpWithEmail(email: email, password: password);
         if (!mounted) return;
         _pendingEmail = email;
@@ -373,6 +406,28 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<bool> _confirmSwitchSupabase(String oldEmail, String newEmail) async {
+    final r = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            '切换主账号',
+            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
+          ),
+          content: Text('已存在主账号：$oldEmail\n即将切换为：$newEmail\n切换后计费体系将以新主账号为准，本地子用户不会删除。', style: TextStyle(color: cs.onSurfaceVariant)),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('继续')),
+          ],
+        );
+      },
+    );
+    return r ?? false;
+  }
+
   Future<void> _verifyOtp() async {
     final otp = _otpController.text.trim();
     setState(() {
@@ -381,7 +436,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      await AuthService.instance.verifySignUpOtp(email: _pendingEmail!, token: otp);
+      await AuthService.instance.verifySignUpOtp(email: _pendingEmail!, token: otp, password: _pendingPassword);
       if (!mounted) return;
       _navigateToMain();
     } on AuthException catch (e) {
@@ -410,10 +465,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _navigateToMain() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainPage()),
-      (route) => false,
-    );
+    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainPage()), (route) => false);
   }
 
   bool _isValidEmail(String email) {

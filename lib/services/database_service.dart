@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -67,9 +69,6 @@ class DatabaseService {
 
   /// 当前用户Code的配置键名
   static const String _currentUserCodeKey = 'current_user_code';
-
-  /// 当前Token的配置键名
-  static const String _currentTokenKey = 'current_token';
 
   /// 系统配置分类
   static const String _systemCategory = 'system';
@@ -282,6 +281,24 @@ class DatabaseService {
       BaseEntity entity = entry.value.creator();
       await _autoMigrateTable(db, entity, enableFTS: entry.value.enableFullTextSearch);
     }
+    await _migrateLocalUserPasswordHash(db);
+  }
+
+  static bool _looksLikeSha256(String value) => RegExp(r'^[a-f0-9]{64}$').hasMatch(value);
+
+  static Future<void> _migrateLocalUserPasswordHash(Database db) async {
+    try {
+      final rows = await db.rawQuery(
+        "SELECT id, password FROM user WHERE is_deleted = 0 AND (auth_provider IS NULL OR auth_provider = 'local') AND password IS NOT NULL AND password != ''",
+      );
+      for (final row in rows) {
+        final id = row['id'];
+        final password = row['password']?.toString() ?? '';
+        if (id == null || password.isEmpty || _looksLikeSha256(password)) continue;
+        final hashed = sha256.convert(utf8.encode(password)).toString();
+        await db.update('user', {'password': hashed}, where: 'id = ?', whereArgs: [id]);
+      }
+    } catch (_) {}
   }
 
   /// 创建数据表
@@ -925,34 +942,11 @@ class DatabaseService {
     return null;
   }
 
-  /// 获取当前登录Token
-  ///
-  /// 返回Token，未登录返回 null
-  static Future<String?> getCurrentToken() async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'config',
-      where: 'category = ? AND key = ? AND is_deleted = 0',
-      whereArgs: [_systemCategory, _currentTokenKey],
-    );
-    if (maps.isNotEmpty) {
-      return maps.first['value'] as String?;
-    }
-    return null;
-  }
-
   /// 设置当前用户Code
   ///
   /// [userCode] 用户code，null 表示清除
   static Future<void> setCurrentUserCode(String? userCode) async {
     await _setConfig(_currentUserCodeKey, userCode);
-  }
-
-  /// 设置当前Token
-  ///
-  /// [token] Token，null 表示清除
-  static Future<void> setCurrentToken(String? token) async {
-    await _setConfig(_currentTokenKey, token);
   }
 
   /// 设置系统配置
@@ -985,10 +979,9 @@ class DatabaseService {
 
   /// 清除当前用户信息
   ///
-  /// 退出登录时调用，清除用户code和token
+  /// 退出登录时调用，清除当前用户code
   static Future<void> clearCurrentUser() async {
     await setCurrentUserCode(null);
-    await setCurrentToken(null);
   }
 
   static Future<void> resetAllData({bool deleteCovers = true}) async {

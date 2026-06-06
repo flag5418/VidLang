@@ -19,14 +19,18 @@ class VideoCard extends StatelessWidget {
   final VideoInfo video;
   final bool isCurrentPlaying;
   final VoidCallback onTap;
-  final VoidCallback onMoreTap;
+  final VoidCallback? onRename;
+  final VoidCallback? onImportSubtitle;
+  final VoidCallback? onDelete;
 
   const VideoCard({
     super.key,
     required this.video,
     required this.isCurrentPlaying,
     required this.onTap,
-    required this.onMoreTap,
+    this.onRename,
+    this.onImportSubtitle,
+    this.onDelete,
   });
 
   @override
@@ -161,8 +165,24 @@ class VideoCard extends StatelessWidget {
     return Positioned(
       top: 6,
       right: 6,
-      child: GestureDetector(
-        onTap: onMoreTap,
+      child: PopupMenuButton<String>(
+        onSelected: (value) {
+          switch (value) {
+            case 'rename':
+              onRename?.call();
+              break;
+            case 'importSubtitle':
+              onImportSubtitle?.call();
+              break;
+            case 'delete':
+              onDelete?.call();
+              break;
+          }
+        },
+        offset: const Offset(-120, 0),
+        color: colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 6,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
@@ -174,7 +194,30 @@ class VideoCard extends StatelessWidget {
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
           ),
         ),
+        itemBuilder: (context) {
+          final items = <PopupMenuEntry<String>>[
+            PopupMenuItem(value: 'rename', child: _menuRow(Icons.edit_outlined, '重命名', colorScheme)),
+          ];
+          if (!video.hasSubtitles && onImportSubtitle != null) {
+            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(Icons.closed_caption, '导入字幕', colorScheme)));
+          }
+          items.addAll([
+            const PopupMenuDivider(height: 1),
+            PopupMenuItem(value: 'delete', child: _menuRow(Icons.delete_outline, '删除', colorScheme)),
+          ]);
+          return items;
+        },
       ),
+    );
+  }
+
+  Widget _menuRow(IconData icon, String title, ColorScheme cs) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: cs.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14)),
+      ],
     );
   }
 

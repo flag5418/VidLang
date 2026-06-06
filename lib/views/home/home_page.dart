@@ -87,12 +87,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           targetVideo ??= videos.first;
           await ref.read(fileProvider.notifier).loadVideos(code);
           if (!mounted) return;
-          Navigator.push(
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => PlayerPage(videoCode: targetVideo!.code!, folderVideos: videos),
             ),
           );
+          if (!mounted) return;
+          await _loadData();
           return;
         }
       } catch (_) {
@@ -104,7 +106,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (!mounted) return;
     await ref.read(fileProvider.notifier).loadVideos(code);
     if (!mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => FolderDetailPage(folderCode: code)));
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FolderDetailPage(folderCode: code)));
+    if (!mounted) return;
+    await _loadData();
   }
 
   @override

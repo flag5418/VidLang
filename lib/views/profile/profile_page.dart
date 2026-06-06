@@ -9,6 +9,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vidlang/config.dart';
+import 'package:vidlang/models/base_entity.dart';
+import 'package:vidlang/models/user.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -30,11 +33,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   Future<void> _checkUser() async {
-    // 检查是否有 Supabase token
-    final token = await DatabaseService.getCurrentToken();
+    var user = AppConfig.currentUser;
+    if (user == null) {
+      final code = await DatabaseService.getCurrentUserCode();
+      if (code != null && code.isNotEmpty) {
+        user = await BaseEntityExtension.findByCode<User>(code, () => User());
+        AppConfig.currentUser = user;
+      }
+    }
     if (!mounted) return;
     setState(() {
-      _isSupabaseUser = token != null && token.isNotEmpty;
+      _isSupabaseUser = user?.authProvider == 'supabase';
     });
   }
 

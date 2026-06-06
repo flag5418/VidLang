@@ -92,3 +92,23 @@ void main() {
   });
 }
 
+
+/// 集成测试辅助函数：确保有默认管理员会话
+Future<void> ensureDefaultAdminSession() async {
+  // 检查是否已有管理员用户，如无则创建一个
+  final users = await DatabaseService.findByCondition(
+    () => User(),
+    where: 'role = ?',
+    whereArgs: ['admin'],
+    limit: 1,
+  );
+  if (users.isEmpty) {
+    final user = User(
+      username: 'admin',
+      nickname: '管理员',
+      email: 'admin@test.local',
+      role: 'admin',
+    );
+    await DatabaseService.insert(user);
+  }
+}

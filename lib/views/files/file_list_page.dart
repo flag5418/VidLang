@@ -78,9 +78,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
               // 类型切换 + 搜索
               _buildTypeBar(colorScheme),
               SizedBox(height: AppSpacing.md),
-              // 综合测试按钮
-              _buildTestButton(colorScheme),
-              SizedBox(height: AppSpacing.sm),
+
               // 文件夹列表
               Expanded(
                 child: state.isLoading || _isImporting
@@ -127,18 +125,8 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
           ],
         ),
         Row(
+          spacing: AppSpacing.space2,
           children: [
-            // 综合测试入口
-            GestureDetector(
-              onTap: () => _showComprehensiveTest(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: Colors.green.withValues(alpha: 0.15)),
-                child: Icon(Icons.quiz, color: Colors.green, size: 20),
-              ),
-            ),
-            SizedBox(width: AppSpacing.space2),
             // WiFi 传输
             GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage())),
@@ -146,10 +134,10 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: AppColors.surfaceElevated),
-                child: AppIcons.getIcon(Icons.wifi_find, color: colorScheme.onSurfaceVariant, size: 20),
+                child: AppIcons.getIcon(Icons.wifi_tethering, color: colorScheme.onSurfaceVariant, size: 20),
               ),
             ),
-            SizedBox(width: AppSpacing.space2),
+
             // 添加按钮
             GestureDetector(
               onTap: _showAddMenu,
@@ -244,39 +232,6 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTestButton(ColorScheme colorScheme) {
-    return GestureDetector(
-      onTap: _showComprehensiveTest,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(colors: [Colors.green.withValues(alpha: 0.15), Colors.teal.withValues(alpha: 0.08)]),
-          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.quiz, color: Colors.green, size: 20),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '综合测试',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
-                  ),
-                  Text('综合测试', style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 20),
-          ],
-        ),
       ),
     );
   }
@@ -421,8 +376,10 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
     );
   }
 
-  void _navigateToDetail(VideoFolder folder) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => FolderDetailPage(folderCode: folder.code!)));
+  Future<void> _navigateToDetail(VideoFolder folder) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => FolderDetailPage(folderCode: folder.code!)));
+    if (!mounted) return;
+    await ref.read(fileProvider.notifier).loadFolders();
   }
 
   void _showFolderMenu(VideoFolder folder) {

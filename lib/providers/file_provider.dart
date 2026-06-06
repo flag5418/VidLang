@@ -15,6 +15,7 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
+import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 
 /// 文件管理 Provider
@@ -711,6 +712,31 @@ class FileNotifier extends StateNotifier<FileState> {
     try {
       video.code = const Uuid().v4().replaceAll('-', '');
       await DatabaseService.insert(video);
+      final folderCode = state.currentFolder?.code;
+      if (folderCode != null) {
+        await loadVideos(folderCode);
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// 为已存在的视频导入字幕文件
+  ///
+  /// [videoCode] 视频 code
+  /// [subtitlePath] 字幕文件路径
+  Future<void> importSubtitleForVideo(String videoCode, String subtitlePath) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      VideoInfo? video = await findVideoByCode(videoCode);
+      if (video == null) return;
+      video.subtitlePath = subtitlePath;
+      video.hasSubtitles = true;
+      await DatabaseService.update(video);
+
+      // 调用服务导入字幕内容
+      await FilePickerService.importSubtitleToDb(subtitlePath, video.folderCode, videoCode);
+
       final folderCode = state.currentFolder?.code;
       if (folderCode != null) {
         await loadVideos(folderCode);
