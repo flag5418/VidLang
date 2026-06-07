@@ -3,6 +3,7 @@ import UIKit
 import AVFoundation
 import Vision
 import Photos
+import NaturalLanguage
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -63,6 +64,10 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
         switch call.method {
         case "translate":
             handleTranslate(call: call, result: result)
+        case "lookUp":
+            handleLookUp(call: call, result: result)
+        case "segmentWords":
+            handleSegmentWords(call: call, result: result)
         case "speak":
             handleSpeak(call: call, result: result)
         case "stopSpeaking":
@@ -143,6 +148,7 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
         result(synthesizer.isSpeaking)
     }
     
+    // MARK: - 翻译（优先使用 iOS 17.4+ Translation 框架，降级到简单翻译）
     private func handleTranslate(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let text = args["text"] as? String else {
@@ -152,15 +158,54 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
         
         let sourceLang = args["sourceLanguage"] as? String ?? "en"
         let targetLang = args["targetLanguage"] as? String ?? "zh-Hans"
-        let translated = simpleTranslate(text, to: targetLang)
         
-        result([
-            "success": true,
-            "sourceText": text,
-            "translatedText": translated,
-            "sourceLanguage": sourceLang,
-            "targetLanguage": targetLang
-        ])
+        // 使用 NLTranslator (iOS 17.4+)
+        if #available(iOS 17.4, *) {
+            let sourceNLLang = NLLanguage(code: sourceLang) ?? .english
+            let targetNLLang = NLLanguage(code: targetLang) ?? .simplifiedChinese
+            
+            let configuration = NLTranslationConfiguration(
+                sourceLanguage: sourceNLLang,
+                targetLanguage: targetNLLang
+            )
+            let translator = NLTranslator(configuration: configuration)
+            
+            Task {
+                do {
+                    let translated = try await translator.translation(for: text)
+                    await MainActor.run {
+                        result([
+                            "success": true,
+                            "sourceText": text,
+                            "translatedText": translated ?? text,
+                            "sourceLanguage": sourceLang,
+                            "targetLanguage": targetLang
+                        ])
+                    }
+                } catch {
+                    // 降级到简单翻译
+                    let fallback = simpleTranslate(text, to: targetLang)
+                    await MainActor.run {
+                        result([
+                            "success": true,
+                            "sourceText": text,
+                            "translatedText": fallback,
+                            "sourceLanguage": sourceLang,
+                            "targetLanguage": targetLang
+                        ])
+                    }
+                }
+            }
+        } else {
+            let translated = simpleTranslate(text, to: targetLang)
+            result([
+                "success": true,
+                "sourceText": text,
+                "translatedText": translated,
+                "sourceLanguage": sourceLang,
+                "targetLanguage": targetLang
+            ])
+        }
     }
     
     private func simpleTranslate(_ text: String, to targetLang: String) -> String {
@@ -178,6 +223,64 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
             "beautiful": "美丽"
         ]
         return translations[text] ?? text
+    }
+    
+    // MARK: - 词典查询（使用 iOS 系统词典）
+    private func handleLookUp(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let word = args["word"] as? String else {
+            result(["success": false, "error": "Invalid arguments"])
+            return
+        }
+        
+        // 使用 UIReferenceLibraryViewController 查询系统词典
+        let hasDict = UIReferenceLibraryViewController.dictionaryHasDefinition(forTerm: word)
+        
+        if hasDict {
+            // 有词典定义，返回基本信息
+            // 注意：UIReferenceLibraryViewController 只能展示 UI，无法直接获取文本
+            // 所以我们返回"有词典"状态，Flutter 端可以调用 showLookUp 来展示
+            result([
+                "success": true,
+                "word": word,
+                "hasDefinition": true,
+                "definition": "请使用 showLookUp 查看完整词典定义"
+            ])
+        } else {
+            result([
+                "success": true,
+                "word": word,
+                "hasDefinition": false,
+                "definition": ""
+            ])
+        }
+    }
+    
+    // MARK: - 使用 NLTokenizer 进行英文分词
+    private func handleSegmentWords(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let text = args["text"] as? String else {
+            result(["success": false, "words": [], "error": "Invalid arguments"])
+            return
+        }
+        
+        let tokenizer = NLTokenizer(unit: .word)
+        tokenizer.string = text
+        tokenizer.setLanguage(.english)
+        
+        var words: [String] = []
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { tokenRange, _ in
+            let word = String(text[tokenRange])
+            if !word.trimmingCharacters(in: .whitespaces).isEmpty {
+                words.append(word)
+            }
+            return true
+        }
+        
+        result([
+            "success": true,
+            "words": words
+        ])
     }
     
     private func handleExtractTextFromImage(call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -451,6 +554,31 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
             PHPhotoLibrary.requestAuthorization { status in
                 result(status == .authorized)
             }
+        }
+    }
+}
+
+// MARK: - NLLanguage 扩展：将 BCP-47 语言代码映射到 NLLanguage
+extension NLLanguage {
+    init?(code: String) {
+        let normalized = code.lowercased().replacingOccurrences(of: "_", with: "-")
+        switch normalized {
+        case "en": self = .english
+        case "zh", "zh-hans", "zh-cn": self = .simplifiedChinese
+        case "zh-hant", "zh-tw", "zh-hk": self = .traditionalChinese
+        case "ja": self = .japanese
+        case "ko": self = .korean
+        case "fr": self = .french
+        case "de": self = .german
+        case "es": self = .spanish
+        case "it": self = .italian
+        case "pt": self = .portuguese
+        case "ru": self = .russian
+        case "ar": self = .arabic
+        case "hi": self = .hindi
+        case "th": self = .thai
+        case "vi": self = .vietnamese
+        default: return nil
         }
     }
 }

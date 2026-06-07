@@ -83,25 +83,51 @@ class TtsService {
     ap.AudioPlayer? audioPlayer,
     FutureOr<void> Function()? onComplete,
   }) async {
-    if (text.isEmpty) return;
+    if (text.isEmpty) {
+      if (onComplete != null) onComplete();
+      return;
+    }
 
-    if (hasAliyunConfig && audioPlayer != null) {
-      // 阿里云 TTS：下载并播放
-      final path = await _aliTts.getAudioPath(text);
-      if (path != null && await File(path).exists()) {
-        await audioPlayer.stop();
-        await audioPlayer.play(ap.DeviceFileSource(path));
-        if (onComplete != null) {
-          audioPlayer.onPlayerComplete.first.then((_) => onComplete());
+    try {
+      if (hasAliyunConfig && audioPlayer != null) {
+        // 阿里云 TTS：下载并播放
+        final path = await _aliTts.getAudioPath(text);
+        if (path != null && await File(path).exists()) {
+          await audioPlayer.stop();
+          await audioPlayer.play(ap.DeviceFileSource(path));
+          if (onComplete != null) {
+            audioPlayer.onPlayerComplete.first.then((_) => onComplete());
+          }
+          return;
         }
-      } else {
-        // 下载失败，降级到系统 TTS
-        await speakSubtitle(text);
-        if (onComplete != null) onComplete();
+        // 下载失败，降级到系统 TTS（走下方逻辑）
       }
-    } else {
-      // 系统 TTS
+
+      // 系统 TTS：等待朗读真正结束后再触发 onComplete
+      await initialize();
+      if (_flutterTts == null) {
+        if (onComplete != null) onComplete();
+        return;
+      }
+
+      final completer = Completer<void>();
+      _flutterTts!.setCompletionHandler(() {
+        _isSpeaking = false;
+        if (!completer.isCompleted) completer.complete();
+      });
+      _flutterTts!.setErrorHandler((_) {
+        _isSpeaking = false;
+        if (!completer.isCompleted) completer.complete();
+      });
+      _flutterTts!.setCancelHandler(() {
+        _isSpeaking = false;
+        if (!completer.isCompleted) completer.complete();
+      });
+
       await speakSubtitle(text);
+      await completer.future;
+      if (onComplete != null) onComplete();
+    } catch (_) {
       if (onComplete != null) onComplete();
     }
   }

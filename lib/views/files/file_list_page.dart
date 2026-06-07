@@ -17,6 +17,7 @@ import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 
@@ -111,7 +112,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
           children: [
             Text(
               '资源',
-              style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeLarge), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
             SizedBox(width: AppSpacing.sm),
             Container(
@@ -119,7 +120,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
               decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
               child: Text(
                 '${_filteredFolders(ref.watch(fileProvider).folders).length}',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colorScheme.primary),
+                style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600, color: colorScheme.primary),
               ),
             ),
           ],
@@ -131,10 +132,10 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage())),
               child: Container(
-                width: 40,
-                height: 40,
+                width: ResponsiveSize.toolbarBtn(context),
+                height: ResponsiveSize.toolbarBtn(context),
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: AppColors.surfaceElevated),
-                child: AppIcons.getIcon(Icons.wifi_tethering, color: colorScheme.onSurfaceVariant, size: 20),
+                child: AppIcons.getIcon(Icons.wifi_tethering, color: colorScheme.onSurfaceVariant, size: ResponsiveSize.icon(context)),
               ),
             ),
 
@@ -142,10 +143,10 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             GestureDetector(
               onTap: _showAddMenu,
               child: Container(
-                width: 40,
-                height: 40,
+                width: ResponsiveSize.toolbarBtn(context),
+                height: ResponsiveSize.toolbarBtn(context),
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: colorScheme.primary),
-                child: AppIcons.getIcon(AppIcons.add, color: colorScheme.onPrimary, size: 22),
+                child: AppIcons.getIcon(AppIcons.add, color: colorScheme.onPrimary, size: ResponsiveSize.icon(context)),
               ),
             ),
           ],
@@ -186,7 +187,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
                           Text(
                             _resourceLabels[index],
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: ResponsiveSize.fontSize(context, 13),
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                               color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
                             ),
@@ -205,18 +206,18 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             child: TextField(
               controller: _searchController,
               onChanged: (v) => setState(() => _searchQuery = v),
-              style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall),
+              style: TextStyle(color: colorScheme.onSurface, fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeSmall)),
               decoration: InputDecoration(
                 hintText: '搜索${_resourceLabels[_currentTab]}...',
-                hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: AppTypography.fontSizeSmall),
-                prefixIcon: AppIcons.getIcon(AppIcons.search, size: 18, color: AppColors.onSurfaceDisabled),
+                hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeSmall)),
+                prefixIcon: AppIcons.getIcon(AppIcons.search, size: ResponsiveSize.fontSize(context, 18), color: AppColors.onSurfaceDisabled),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? GestureDetector(
                         onTap: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
                         },
-                        child: Icon(Icons.clear, size: 18, color: AppColors.onSurfaceDisabled),
+                        child: Icon(Icons.clear, size: ResponsiveSize.fontSize(context, 18), color: AppColors.onSurfaceDisabled),
                       )
                     : null,
                 filled: true,
@@ -259,10 +260,10 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(isSearch ? Icons.search_off : Icons.folder_outlined, size: 64, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+          Icon(isSearch ? Icons.search_off : Icons.folder_outlined, size: ResponsiveSize.icon(context) * 2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
           SizedBox(height: AppSpacing.md),
-          Text(isSearch ? '没有匹配的文件夹' : '暂无${_resourceLabels[_currentTab]}', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-          if (!isSearch) ...[SizedBox(height: AppSpacing.sm), Text('点击右上角 + 创建第一个文件夹', style: TextStyle(fontSize: 13, color: colorScheme.outline))],
+          Text(isSearch ? '没有匹配的文件夹' : '暂无${_resourceLabels[_currentTab]}', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: colorScheme.onSurfaceVariant)),
+          if (!isSearch) ...[SizedBox(height: AppSpacing.sm), Text('点击右上角 + 创建第一个文件夹', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.outline))],
         ],
       ),
     );
@@ -312,12 +313,12 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.onSurfaceDisabled, width: 2),
               ),
-              child: Icon(Icons.add, size: 22, color: AppColors.onSurfaceDisabled),
+              child: Icon(Icons.add, size: ResponsiveSize.icon(context), color: AppColors.onSurfaceDisabled),
             ),
             SizedBox(height: AppSpacing.sm),
             Text(
               '新建',
-              style: TextStyle(fontSize: 13, color: AppColors.onSurfaceDisabled, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceDisabled, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -410,7 +411,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             ListTile(
               leading: Icon(Icons.quiz_outlined, color: Colors.green),
               title: Text('单元测试', style: TextStyle(color: colorScheme.onSurface)),
-              subtitle: Text('测试文件夹内所有资源', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+              subtitle: Text('测试文件夹内所有资源', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showUnitTest(folder);

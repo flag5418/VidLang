@@ -29,6 +29,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 
@@ -111,17 +112,17 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: ResponsiveSize.toolbarBtn(context),
+                  height: ResponsiveSize.toolbarBtn(context),
                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: AppColors.surfaceElevated),
-                  child: Icon(Icons.arrow_back, size: 20, color: colorScheme.onSurface),
+                  child: Icon(Icons.arrow_back, size: ResponsiveSize.icon(context), color: colorScheme.onSurface),
                 ),
               ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeLarge), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -135,10 +136,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               GestureDetector(
                 onTap: _showSettings,
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: ResponsiveSize.toolbarBtn(context),
+                  height: ResponsiveSize.toolbarBtn(context),
                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: AppColors.surfaceElevated),
-                  child: Icon(Icons.settings, size: 18, color: colorScheme.onSurfaceVariant),
+                  child: Icon(Icons.settings, size: ResponsiveSize.icon(context), color: colorScheme.onSurfaceVariant),
                 ),
               ),
 
@@ -150,10 +151,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 8,
               child: Container(
-                width: 36,
-                height: 36,
+                width: ResponsiveSize.toolbarBtn(context),
+                height: ResponsiveSize.toolbarBtn(context),
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: colorScheme.primary),
-                child: Icon(Icons.add, size: 18, color: colorScheme.onPrimary),
+                child: Icon(Icons.add, size: ResponsiveSize.icon(context), color: colorScheme.onPrimary),
               ),
               itemBuilder: (context) => [
                 PopupMenuItem(value: 'import', child: _popupMenuItem(Icons.add_circle_outline, '选择导入（可多选）', colorScheme)),
@@ -188,7 +189,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           SizedBox(height: AppSpacing.md),
           Text('暂无${_typeLabel(folderType)}', style: TextStyle(color: colorScheme.onSurfaceVariant)),
           SizedBox(height: AppSpacing.sm),
-          Text('点击 + 导入资源', style: TextStyle(fontSize: 13, color: colorScheme.outline)),
+          Text('点击 + 导入资源', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.outline)),
         ],
       ),
     );
@@ -203,7 +204,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           SizedBox(height: AppSpacing.md),
           Text(
             '加载失败',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 18), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
           ),
           SizedBox(height: AppSpacing.sm),
           Padding(
@@ -211,7 +212,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.onSurfaceVariant),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
@@ -287,9 +288,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Widget _popupMenuItem(IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: cs.onSurfaceVariant),
+        Icon(icon, size: ResponsiveSize.fontSize(context, 20), color: cs.onSurfaceVariant),
         SizedBox(width: 10),
-        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14)),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: ResponsiveSize.fontSize(context, 14))),
       ],
     );
   }

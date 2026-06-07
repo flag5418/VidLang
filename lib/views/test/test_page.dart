@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:vidlang/services/deepseek_api.dart';
+import 'package:vidlang/config.dart';
+import 'package:vidlang/services/qwen_api.dart';
 import 'package:vidlang/services/ios_native_features.dart';
 
 class TestPage extends StatefulWidget {
@@ -53,10 +54,9 @@ class _TestPageState extends State<TestPage> with SingleTickerProviderStateMixin
     });
 
     try {
-      final api = DeepSeekApi(config: DeepSeekConfig(
-        apiKey: 'sk-4ba1162a5227487f88e5e6c963f89ff9',
-        model: 'deepseek-chat',
-        baseUrl: 'https://api.deepseek.com/v1',
+      final api = QwenApi(config: QwenConfig(
+        model: AppConfig.qwenModel,
+        baseUrl: AppConfig.qwenBaseUrl,
       ));
 
       final stream = api.translateWordStream(
@@ -232,7 +232,7 @@ class _TestPageState extends State<TestPage> with SingleTickerProviderStateMixin
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _isLoading ? null : _testDeepseek,
-            child: const Text('调用 DeepSeek API'),
+            child: const Text('调用千问 API'),
           ),
           const SizedBox(height: 16),
           if (_isPhase1Done || _isPhase2Done || _isPhase3Done)
@@ -416,7 +416,7 @@ class _TestPageState extends State<TestPage> with SingleTickerProviderStateMixin
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'DeepSeek'),
+            Tab(text: '千问'),
             Tab(text: '系统翻译'),
             Tab(text: '系统发音'),
             Tab(text: 'OCR识别'),

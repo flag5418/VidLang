@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
 import 'package:vidlang/views/home/home_page.dart';
 import 'package:vidlang/views/profile/profile_page.dart';
@@ -48,8 +49,8 @@ class MainPage extends ConsumerWidget {
           backgroundColor: colorScheme.surface,
           selectedItemColor: AppColors.iconActive,
           unselectedItemColor: AppColors.iconDefault,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
+          selectedFontSize: ResponsiveSize.navFontSize(context),
+          unselectedFontSize: ResponsiveSize.navFontSize(context),
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           type: BottomNavigationBarType.fixed,
           items: navigationItems.map((item) {
@@ -58,10 +59,12 @@ class MainPage extends ConsumerWidget {
               icon: Icon(
                 item.icon,
                 color: isActive ? AppColors.iconActive : AppColors.iconDefault,
+                size: ResponsiveSize.navIcon(context),
               ),
               activeIcon: Icon(
                 item.activeIcon,
                 color: AppColors.iconActive,
+                size: ResponsiveSize.navIcon(context),
               ),
               label: item.label,
             );
