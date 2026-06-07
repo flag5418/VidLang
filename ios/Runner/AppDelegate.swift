@@ -148,7 +148,7 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
         result(synthesizer.isSpeaking)
     }
     
-    // MARK: - 翻译（优先使用 iOS 17.4+ Translation 框架，降级到简单翻译）
+    // MARK: - 翻译
     private func handleTranslate(call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let text = args["text"] as? String else {
@@ -158,54 +158,21 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
         
         let sourceLang = args["sourceLanguage"] as? String ?? "en"
         let targetLang = args["targetLanguage"] as? String ?? "zh-Hans"
-        
-        // 使用 NLTranslator (iOS 17.4+)
-        if #available(iOS 17.4, *) {
-            let sourceNLLang = NLLanguage(code: sourceLang) ?? .english
-            let targetNLLang = NLLanguage(code: targetLang) ?? .simplifiedChinese
-            
-            let configuration = NLTranslationConfiguration(
-                sourceLanguage: sourceNLLang,
-                targetLanguage: targetNLLang
-            )
-            let translator = NLTranslator(configuration: configuration)
-            
-            Task {
-                do {
-                    let translated = try await translator.translation(for: text)
-                    await MainActor.run {
-                        result([
-                            "success": true,
-                            "sourceText": text,
-                            "translatedText": translated ?? text,
-                            "sourceLanguage": sourceLang,
-                            "targetLanguage": targetLang
-                        ])
-                    }
-                } catch {
-                    // 降级到简单翻译
-                    let fallback = simpleTranslate(text, to: targetLang)
-                    await MainActor.run {
-                        result([
-                            "success": true,
-                            "sourceText": text,
-                            "translatedText": fallback,
-                            "sourceLanguage": sourceLang,
-                            "targetLanguage": targetLang
-                        ])
-                    }
-                }
-            }
+
+        let translated: String
+        if targetLang.lowercased().hasPrefix("zh") {
+            translated = simpleTranslate(text, to: targetLang)
         } else {
-            let translated = simpleTranslate(text, to: targetLang)
-            result([
-                "success": true,
-                "sourceText": text,
-                "translatedText": translated,
-                "sourceLanguage": sourceLang,
-                "targetLanguage": targetLang
-            ])
+            translated = text
         }
+
+        result([
+            "success": true,
+            "sourceText": text,
+            "translatedText": translated,
+            "sourceLanguage": sourceLang,
+            "targetLanguage": targetLang
+        ])
     }
     
     private func simpleTranslate(_ text: String, to targetLang: String) -> String {
@@ -554,31 +521,6 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate, UINavigationCon
             PHPhotoLibrary.requestAuthorization { status in
                 result(status == .authorized)
             }
-        }
-    }
-}
-
-// MARK: - NLLanguage 扩展：将 BCP-47 语言代码映射到 NLLanguage
-extension NLLanguage {
-    init?(code: String) {
-        let normalized = code.lowercased().replacingOccurrences(of: "_", with: "-")
-        switch normalized {
-        case "en": self = .english
-        case "zh", "zh-hans", "zh-cn": self = .simplifiedChinese
-        case "zh-hant", "zh-tw", "zh-hk": self = .traditionalChinese
-        case "ja": self = .japanese
-        case "ko": self = .korean
-        case "fr": self = .french
-        case "de": self = .german
-        case "es": self = .spanish
-        case "it": self = .italian
-        case "pt": self = .portuguese
-        case "ru": self = .russian
-        case "ar": self = .arabic
-        case "hi": self = .hindi
-        case "th": self = .thai
-        case "vi": self = .vietnamese
-        default: return nil
         }
     }
 }
