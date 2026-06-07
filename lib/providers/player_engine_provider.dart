@@ -121,6 +121,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   DateTime? _lastProgressSavedAt;
   int? _lastPausedSubtitleIndex;
+  int? _currentSentenceIdx; // 正在播放的句子索引，用于单句暂停精确控制
 
   bool _slowToFastActive = false;
   bool _slowToFastTransitioning = false;
@@ -154,6 +155,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _folder = folder;
     _lastProgressSavedAt = null;
     _lastPausedSubtitleIndex = null;
+    _currentSentenceIdx = null;
 
     final speed = await SettingsService.getPlayerPlaybackSpeed();
     if (_closed || op != _opSeq) return;
@@ -245,6 +247,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         final sub = _subtitles[idx];
         await _player.seek(Duration(milliseconds: sub.startPosition.toInt()));
         _lastPausedSubtitleIndex = null;
+        _currentSentenceIdx = null;
       }
     }
     await _player.play();
@@ -284,6 +287,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     final v = !state.singleSentencePause;
     _setStateSafely(state.copyWith(singleSentencePause: v));
     _lastPausedSubtitleIndex = null;
+    _currentSentenceIdx = null;
     await SettingsService.setPlayerSingleSentencePause(v);
   }
 
@@ -506,6 +510,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     final s = _subtitles[i];
     _setStateSafely(state.copyWith(currentSubtitleIndex: i));
     _lastPausedSubtitleIndex = null;
+    _currentSentenceIdx = null;
     await _player.seek(Duration(milliseconds: s.startPosition.toInt()));
     if (restartSlowToFast && _slowToFastActive) {
       await _startSlowToFast();
@@ -520,32 +525,24 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     if (state.playerState != PlayerState.playing) return;
     if (_subtitles.isEmpty) return;
 
-    // 获取当前字幕索引（基于实际位置，而不是缓存的 state）
     final actualIdx = _indexForPosition(positionMs);
     if (actualIdx == null) return;
 
-    // 获取这个字幕的结束时间
-    final end = _subtitles[actualIdx].endPosition.toInt();
+    // 开始跟踪当前正在播放的句子
+    _currentSentenceIdx ??= actualIdx;
 
-    // 如果位置已经走到了当前字幕的结束范围
-    // 用 end - 50 作为缓冲，避免在边缘反复触发
-    if (positionMs >= end - 50) {
-      if (_lastPausedSubtitleIndex == actualIdx) return;
-      _lastPausedSubtitleIndex = actualIdx;
-      unawaited(_player.pause());
-      return;
-    }
+    final trackedIdx = _currentSentenceIdx!;
+    if (trackedIdx >= _subtitles.length) return;
 
-    // 如果位置已经进入了下一个字幕（实际idx变了），但 state 还没同步
-    // 检查上一个字幕是否已经结束且未暂停
-    final stateIdx = state.currentSubtitleIndex;
-    if (stateIdx != null && stateIdx != actualIdx && stateIdx >= 0 && stateIdx < _subtitles.length) {
-      final prevEnd = _subtitles[stateIdx].endPosition.toInt();
-      if (positionMs >= prevEnd && _lastPausedSubtitleIndex != stateIdx) {
-        _lastPausedSubtitleIndex = stateIdx;
-        unawaited(_player.pause());
-      }
-    }
+    // 等待句子真正播放完（位置超过其结束时间）
+    final trackedEnd = _subtitles[trackedIdx].endPosition.toInt();
+    if (positionMs < trackedEnd) return;
+
+    // 句子已完整播放完，暂停
+    if (_lastPausedSubtitleIndex == trackedIdx) return;
+    _lastPausedSubtitleIndex = trackedIdx;
+    _currentSentenceIdx = null;
+    unawaited(_player.pause());
   }
 
   Future<void> _startSlowToFast() async {
@@ -670,11 +667,13 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
   void setSingleSentencePause(bool value) {
     _setStateSafely(state.copyWith(singleSentencePause: value));
     _lastPausedSubtitleIndex = null;
+    _currentSentenceIdx = null;
     SettingsService.setPlayerSingleSentencePause(value);
   }
 
   /// Reset the pause flag (used when user manually clicks play)
   void resetPauseFlag() {
     _lastPausedSubtitleIndex = null;
+    _currentSentenceIdx = null;
   }
 }

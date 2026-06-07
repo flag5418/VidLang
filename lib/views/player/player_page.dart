@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +13,6 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/dictionary_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
-import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/responsive_size.dart';
@@ -90,12 +90,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
     final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
     if (shortestSide >= 600) {
-      return [
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ];
+      return [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight];
     }
     return [DeviceOrientation.portraitUp];
   }
@@ -149,7 +144,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        top: true, bottom: true, left: true, right: true,
+        top: true,
+        bottom: true,
+        left: true,
+        right: true,
         child: Stack(
           children: [
             // Video fills screen
@@ -162,7 +160,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
             // Top bar
             Positioned(
-              top: 0, left: 0, right: 0,
+              top: 0,
+              left: 0,
+              right: 0,
               child: Container(
                 height: ResponsiveSize.playerTopBtn(context),
                 padding: EdgeInsets.symmetric(horizontal: pageH(context)),
@@ -184,7 +184,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                       child: Text(
                         state.title,
                         style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 15), fontWeight: FontWeight.w600),
-                        maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                       ),
                     ),
                     Align(
@@ -194,13 +196,21 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         children: [
                           _topBtn(
                             Icons.format_list_bulleted_rounded,
-                            () => setState(() { _showVideoList = !_showVideoList; _showSettings = false; _showSpeedPicker = false; }),
+                            () => setState(() {
+                              _showVideoList = !_showVideoList;
+                              _showSettings = false;
+                              _showSpeedPicker = false;
+                            }),
                             active: _showVideoList,
                           ),
                           SizedBox(width: isTablet ? 14 : 6),
                           _topBtn(
                             Icons.settings_rounded,
-                            () => setState(() { _showSettings = !_showSettings; _showVideoList = false; _showSpeedPicker = false; }),
+                            () => setState(() {
+                              _showSettings = !_showSettings;
+                              _showVideoList = false;
+                              _showSpeedPicker = false;
+                            }),
                             active: _showSettings,
                           ),
                         ],
@@ -214,7 +224,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             // Bottom area
             if (!drawerOpen)
               Positioned(
-                bottom: 0, left: 0, right: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
                 child: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
@@ -226,7 +238,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             // Drawer overlay
             if (drawerOpen && !_showWordPopup)
               GestureDetector(
-                onTap: () => setState(() { _showVideoList = false; _showSettings = false; }),
+                onTap: () => setState(() {
+                  _showVideoList = false;
+                  _showSettings = false;
+                }),
                 behavior: HitTestBehavior.translucent,
                 child: Container(color: Colors.black38),
               ),
@@ -234,7 +249,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             // Drawer panel
             if (drawerOpen && !_showWordPopup)
               Positioned(
-                top: 0, right: 0, bottom: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
                 child: Container(
                   width: isTablet ? 500 : 340,
                   color: AppColors.surface,
@@ -246,7 +263,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             if (_showWordPopup) ...[
               // Tap-outside barrier
               GestureDetector(
-                onTap: () => setState(() { _showWordPopup = false; _selectedWords = []; }),
+                onTap: () => setState(() {
+                  _showWordPopup = false;
+                  _selectedWords = [];
+                }),
                 behavior: HitTestBehavior.opaque,
                 child: Container(color: Colors.black45),
               ),
@@ -291,11 +311,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           child: Row(
             children: [
               // 时间显示（始终可见，纯白）
-              Text(_fmtDuration(s.position),
-                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.playerTimeFontSize(context))),
-              Text(' / ', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.playerTimeFontSize(context))),
-              Text(_fmtDuration(s.duration),
-                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.playerTimeFontSize(context))),
+              Text(
+                _fmtDuration(s.position),
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.playerTimeFontSize(context)),
+              ),
+              Text(
+                ' / ',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.playerTimeFontSize(context)),
+              ),
+              Text(
+                _fmtDuration(s.duration),
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.playerTimeFontSize(context)),
+              ),
               const SizedBox(width: 6),
               // 上一句（仅字幕可用时显示）
               if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
@@ -307,7 +334,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 child: IconButton(
                   icon: Icon(
                     s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: Colors.white, size: ResponsiveSize.playerCtrlIcon(context),
+                    color: Colors.white,
+                    size: ResponsiveSize.playerCtrlIcon(context),
                   ),
                   padding: EdgeInsets.zero,
                   onPressed: () => n.togglePlayPause(),
@@ -319,20 +347,42 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               // 以下功能按钮：仅字幕可用时显示，无字幕时完全隐藏
               if (hs) ...[
                 const SizedBox(width: 8),
-                _featureTextBtn("跟读", _showReadAloud,
-                  () => setState(() { _showReadAloud = !_showReadAloud; }), t),
+                _featureTextBtn(
+                  "跟读",
+                  _showReadAloud,
+                  () => setState(() {
+                    _showReadAloud = !_showReadAloud;
+                  }),
+                  t,
+                ),
               ],
               const SizedBox(width: 8),
               // 清晰朗读：始终可见，仅字幕存在时可点击
               _featureTextBtn(
                 "清晰朗读",
                 hs ? _isTtsSpeaking : false,
-                (hs && !_isTtsSpeaking) ? () {
-                  setState(() => _isTtsSpeaking = true);
-                  TtsService().speakClarity(text: cs!.content, audioPlayer: _aliAudioPlayer, onComplete: () {
-                    if (mounted) setState(() => _isTtsSpeaking = false);
-                  });
-                } : null,
+                (hs && !_isTtsSpeaking)
+                    ? () {
+                        final wasPlaying = s.playerState == PlayerState.playing;
+                        setState(() => _isTtsSpeaking = true);
+                        // TTS 朗读时暂停视频，避免字幕跳句导致状态不一致
+                        if (wasPlaying) {
+                          n.player.pause();
+                        }
+                        TtsService().speakClarity(
+                          text: cs!.content,
+                          audioPlayer: _aliAudioPlayer,
+                          onComplete: () {
+                            if (!mounted) return;
+                            setState(() => _isTtsSpeaking = false);
+                            // TTS 完成后恢复视频播放（仅当之前是播放中且未开启单句暂停）
+                            if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+                              n.player.play();
+                            }
+                          },
+                        );
+                      }
+                    : null,
                 t,
                 highlightBg: true,
               ),
@@ -348,8 +398,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               ],
               const SizedBox(width: 8),
               // 速度按钮：始终可见，放在功能按钮最后
-              _featureTextBtn("${s.speed.toStringAsFixed(1)}X", s.speed != 1.0,
-                () => setState(() { _showSpeedPicker = !_showSpeedPicker; }), t),
+              _featureTextBtn(
+                "${s.speed.toStringAsFixed(1)}X",
+                s.speed != 1.0,
+                () => setState(() {
+                  _showSpeedPicker = !_showSpeedPicker;
+                }),
+                t,
+              ),
             ],
           ),
         ),
@@ -364,12 +420,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   Widget _smallCtrl(IconData icon, VoidCallback? onTap, bool t) {
     return IconButton(
-      icon: Icon(icon, color: onTap != null ? Colors.white : Colors.white24,
-        size: ResponsiveSize.playerCtrlIcon(context)),
-      onPressed: onTap, padding: EdgeInsets.zero,
-      constraints: BoxConstraints(
-        minWidth: ResponsiveSize.playerCtrlBtn(context),
-        minHeight: ResponsiveSize.playerCtrlBtn(context)),
+      icon: Icon(icon, color: onTap != null ? Colors.white : Colors.white24, size: ResponsiveSize.playerCtrlIcon(context)),
+      onPressed: onTap,
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints(minWidth: ResponsiveSize.playerCtrlBtn(context), minHeight: ResponsiveSize.playerCtrlBtn(context)),
     );
   }
 
@@ -377,22 +431,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: (highlightBg && active)
-            ? EdgeInsets.symmetric(horizontal: 10, vertical: 5)
-            : EdgeInsets.zero,
+        padding: (highlightBg && active) ? EdgeInsets.symmetric(horizontal: 10, vertical: 5) : EdgeInsets.zero,
         decoration: (highlightBg && active)
-            ? BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              )
+            ? BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(14))
             : null,
-        child: Text(label, style: TextStyle(
-          color: onTap == null
-              ? Colors.white24
-              : (active ? AppColors.primary : Colors.white),
-          fontSize: ResponsiveSize.playerFeatureFontSize(context),
-          fontWeight: active ? FontWeight.bold : FontWeight.normal,
-        )),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: onTap == null ? Colors.white24 : (active ? AppColors.primary : Colors.white),
+            fontSize: ResponsiveSize.playerFeatureFontSize(context),
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
@@ -412,7 +462,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               fontSize: _subtitleFontSize,
               fontColor: Colors.white,
               selectedBgColor: AppColors.primary.withValues(alpha: 0.7),
-              onStartSelection: () { setState(() { _showWordPopup = false; }); },
+              onStartSelection: () {
+                setState(() {
+                  _showWordPopup = false;
+                });
+              },
               onSelectionChanged: (words) {
                 setState(() {
                   if (words.isNotEmpty) {
@@ -468,7 +522,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Flexible(
-                        child: Text(selectedText,
+                        child: Text(
+                          selectedText,
                           style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 22), fontWeight: FontWeight.bold),
                           textAlign: TextAlign.center,
                         ),
@@ -487,8 +542,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   if (dictEntry != null && dictEntry.phonetic != null && dictEntry.phonetic!.isNotEmpty)
                     Padding(
                       padding: EdgeInsets.only(top: 4),
-                      child: Text('/${dictEntry.phonetic}/',
-                        style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: ResponsiveSize.fontSize(context, 14), fontStyle: FontStyle.italic),
+                      child: Text(
+                        '/${dictEntry.phonetic}/',
+                        style: TextStyle(
+                          color: AppColors.playerSubtitleTranslate,
+                          fontSize: ResponsiveSize.fontSize(context, 14),
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ),
 
@@ -496,7 +556,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   if (dictEntry != null && dictEntry.posLabel.isNotEmpty)
                     Padding(
                       padding: EdgeInsets.only(top: 2),
-                      child: Text(dictEntry.posLabel,
+                      child: Text(
+                        dictEntry.posLabel,
                         style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: ResponsiveSize.fontSize(context, 12)),
                       ),
                     ),
@@ -507,11 +568,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                       padding: EdgeInsets.only(top: 8),
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(translation,
+                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                        child: Text(
+                          translation,
                           style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 14), height: 1.4),
                           textAlign: TextAlign.center,
                         ),
@@ -522,7 +581,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   if (dictEntry != null && dictEntry.translation != null && dictEntry.translation!.isNotEmpty && translation == null)
                     Padding(
                       padding: EdgeInsets.only(top: 8),
-                      child: Text(dictEntry.translation!.replaceAll('\n', '\n'),
+                      child: Text(
+                        dictEntry.translation!.replaceAll('\n', '\n'),
                         style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 13), height: 1.4),
                         textAlign: TextAlign.center,
                       ),
@@ -533,12 +593,17 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     Padding(
                       padding: EdgeInsets.only(top: 6),
                       child: Wrap(
-                        spacing: 4, runSpacing: 2, alignment: WrapAlignment.center,
+                        spacing: 4,
+                        runSpacing: 2,
+                        alignment: WrapAlignment.center,
                         children: dictEntry.tag!.split(' ').where((t) => t.isNotEmpty).map((tag) {
                           return Container(
                             padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
-                            child: Text(_tagLabel(tag), style: TextStyle(color: AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 10))),
+                            child: Text(
+                              _tagLabel(tag),
+                              style: TextStyle(color: AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 10)),
+                            ),
                           );
                         }).toList(),
                       ),
@@ -555,9 +620,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   if (!loading && dictEntry == null && translation == null)
                     Padding(
                       padding: EdgeInsets.only(top: 8),
-                      child: Text('暂未收录该词', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 12))),
+                      child: Text(
+                        '暂未收录该词',
+                        style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 12)),
+                      ),
                     ),
-
                 ],
               ),
             ),
@@ -584,18 +651,27 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       translation = translationResult.translatedText;
     }
 
-    return {
-      'translation': translation,
-      'dictEntry': dictEntry,
-      'hasNativeDefinition': lookUpResult.hasDefinition,
-    };
+    return {'translation': translation, 'dictEntry': dictEntry, 'hasNativeDefinition': lookUpResult.hasDefinition};
   }
 
   String _tagLabel(String tag) {
     const labels = {
-      'zk': '中考', 'gk': '高考', 'cet4': '四级', 'cet6': '六级', 'ky': '考研',
-      'ielts': '雅思', 'toefl': '托福', 'gre': 'GRE', 'sat': 'SAT', 'gmat': 'GMAT',
-      'bec': 'BEC', 'pets': 'PETS', 'coca': 'COCA', 'bnc': 'BNC', 'tem4': '专四', 'tem8': '专八',
+      'zk': '中考',
+      'gk': '高考',
+      'cet4': '四级',
+      'cet6': '六级',
+      'ky': '考研',
+      'ielts': '雅思',
+      'toefl': '托福',
+      'gre': 'GRE',
+      'sat': 'SAT',
+      'gmat': 'GMAT',
+      'bec': 'BEC',
+      'pets': 'PETS',
+      'coca': 'COCA',
+      'bnc': 'BNC',
+      'tem4': '专四',
+      'tem8': '专八',
     };
     return labels[tag] ?? tag.toUpperCase();
   }
@@ -624,7 +700,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(10)),
       child: Wrap(
-        spacing: 6, runSpacing: 6,
+        spacing: 6,
+        runSpacing: 6,
         children: _speedOptions.map((sp) {
           final active = _playbackSpeed == sp;
           return GestureDetector(
@@ -636,10 +713,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(color: active ? AppColors.primary : AppColors.surfaceHighest, borderRadius: BorderRadius.circular(8)),
-              child: Text('${sp}X', style: TextStyle(
-                color: active ? Colors.white : Colors.white, fontSize: ResponsiveSize.fontSize(context, 13),
-                fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              )),
+              child: Text(
+                '${sp}X',
+                style: TextStyle(
+                  color: active ? Colors.white : Colors.white,
+                  fontSize: ResponsiveSize.fontSize(context, 13),
+                  fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
             ),
           );
         }).toList(),
@@ -653,26 +734,45 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       children: [
         Container(
           padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.surfaceElevated, border: Border(bottom: BorderSide(color: Colors.white12))),
-          child: Row(children: [
-            Text('视频列表', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 17), fontWeight: FontWeight.bold)),
-            const Spacer(),
-            Text('共 ${list.length} 集', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 14))),
-          ]),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            border: Border(bottom: BorderSide(color: Colors.white12)),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '视频列表',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 17), fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Text(
+                '共 ${list.length} 集',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 14)),
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: list.isEmpty
               ? Center(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.video_library_outlined, size: 48, color: Colors.white24),
-                    const SizedBox(height: 8),
-                    Text('暂无可播视频', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 14))),
-                  ]),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.video_library_outlined, size: 48, color: Colors.white24),
+                      const SizedBox(height: 8),
+                      Text(
+                        '暂无可播视频',
+                        style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 14)),
+                      ),
+                    ],
+                  ),
                 )
               : ListView.builder(
-                  padding: EdgeInsets.all(12), itemCount: list.length,
+                  padding: EdgeInsets.all(12),
+                  itemCount: list.length,
                   itemBuilder: (_, i) => _VideoListItem(
-                    video: list[i], isCurrent: list[i].code == s.videoCode,
+                    video: list[i],
+                    isCurrent: list[i].code == s.videoCode,
                     onTap: () {
                       final code = list[i].code;
                       if (code != null && code != s.videoCode) {
@@ -692,10 +792,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       children: [
         Container(
           padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.surfaceElevated, border: Border(bottom: BorderSide(color: Colors.white12))),
-          child: Row(children: [
-            Text('播放设置', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 17), fontWeight: FontWeight.bold)),
-          ]),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            border: Border(bottom: BorderSide(color: Colors.white12)),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '播放设置',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 17), fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: SingleChildScrollView(
@@ -710,7 +818,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 }),
                 _divider(),
                 _secTitle('定时关闭'),
-                _toggleGroup(_timerOptions.map((m) => m['label'] as String).toList(), _timerOptions.indexWhere((m) => (m['value'] as int) == _timerSeconds),
+                _toggleGroup(
+                  _timerOptions.map((m) => m['label'] as String).toList(),
+                  _timerOptions.indexWhere((m) => (m['value'] as int) == _timerSeconds),
                   (i) => _setTimer(_timerOptions[i]['value'] as int),
                 ),
                 _divider(),
@@ -737,10 +847,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   Widget _secTitle(String text) => Padding(
     padding: EdgeInsets.only(bottom: 10),
-    child: Text(text, style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.bold)),
+    child: Text(
+      text,
+      style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.bold),
+    ),
   );
 
-  Widget _divider() => Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Colors.white12, height: 1));
+  Widget _divider() => Padding(
+    padding: EdgeInsets.symmetric(vertical: 16),
+    child: Divider(color: Colors.white12, height: 1),
+  );
 
   Widget _toggleGroup(List<String> opts, int si, void Function(int) onTap) {
     return Container(
@@ -755,8 +871,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(color: a ? AppColors.primary : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-                child: Text(opts[i], textAlign: TextAlign.center,
-                  style: TextStyle(color: a ? Colors.white : Colors.white, fontSize: ResponsiveSize.fontSize(context, 14), fontWeight: a ? FontWeight.bold : FontWeight.normal),
+                child: Text(
+                  opts[i],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: a ? Colors.white : Colors.white,
+                    fontSize: ResponsiveSize.fontSize(context, 14),
+                    fontWeight: a ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
               ),
             ),
@@ -770,20 +892,38 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(10)),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('小', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 13))),
-          Text('${_subtitleFontSize.toInt()}', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          Text('大', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 13))),
-        ]),
-        SliderTheme(
-          data: SliderThemeData(
-            trackHeight: 3, activeTrackColor: AppColors.primary, inactiveTrackColor: Colors.white12,
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8), overlayShape: RoundSliderOverlayShape(overlayRadius: 12), thumbColor: AppColors.primary,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '小',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 13)),
+              ),
+              Text(
+                '${_subtitleFontSize.toInt()}',
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '大',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 13)),
+              ),
+            ],
           ),
-          child: Slider(value: _subtitleFontSize, min: 12, max: 40, onChanged: (v) => setState(() => _subtitleFontSize = v)),
-        ),
-      ]),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 3,
+              activeTrackColor: AppColors.primary,
+              inactiveTrackColor: Colors.white12,
+              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
+              thumbColor: AppColors.primary,
+            ),
+            child: Slider(value: _subtitleFontSize, min: 12, max: 40, onChanged: (v) => setState(() => _subtitleFontSize = v)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -791,17 +931,29 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(10)),
-      child: Row(children: [
-        Icon(icon, color: AppColors.primary, size: 20),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 15))),
-            if (sub != null) Text(sub, style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 12))),
-          ]),
-        ),
-        Switch(value: v, onChanged: onChanged, activeThumbColor: AppColors.primary, activeTrackColor: AppColors.primary.withValues(alpha: 0.5)),
-      ]),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 15)),
+                ),
+                if (sub != null)
+                  Text(
+                    sub,
+                    style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 12)),
+                  ),
+              ],
+            ),
+          ),
+          Switch(value: v, onChanged: onChanged, activeThumbColor: AppColors.primary, activeTrackColor: AppColors.primary.withValues(alpha: 0.5)),
+        ],
+      ),
     );
   }
 
@@ -832,28 +984,37 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           constraints: BoxConstraints(maxWidth: t ? 600 : 360),
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(16),
+            color: AppColors.surfaceElevated,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white12),
             boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 8))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('跟读', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 18), fontWeight: FontWeight.bold)),
+              Text(
+                '跟读',
+                style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 18), fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               if (cs != null)
                 Container(
-                  width: double.infinity, padding: EdgeInsets.all(12),
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(color: AppColors.surfaceHighest, borderRadius: BorderRadius.circular(10)),
-                  child: Text(cs.content,
-                    style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.w500), textAlign: TextAlign.center,
+                  child: Text(
+                    cs.content,
+                    style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.w500),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               if (cs != null && cs.contentTranslate != null && cs.contentTranslate!.isNotEmpty)
                 Padding(
                   padding: EdgeInsets.only(top: 8),
-                  child: Text(cs.contentTranslate!,
-                    style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: ResponsiveSize.fontSize(context, 13)), textAlign: TextAlign.center,
+                  child: Text(
+                    cs.contentTranslate!,
+                    style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: ResponsiveSize.fontSize(context, 13)),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               const SizedBox(height: 16),
@@ -861,15 +1022,23 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    onTap: () async { if (cs != null) await TtsService().speakSubtitle(cs.content); },
+                    onTap: () async {
+                      if (cs != null) await TtsService().speakSubtitle(cs.content);
+                    },
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.volume_up_rounded, color: AppColors.primary, size: ResponsiveSize.icon(context)),
-                        const SizedBox(width: 6),
-                        Text('朗读字幕', style: TextStyle(color: AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600)),
-                      ]),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.volume_up_rounded, color: AppColors.primary, size: ResponsiveSize.icon(context)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '朗读字幕',
+                            style: TextStyle(color: AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -877,9 +1046,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     onTap: () async {
                       if (cs != null && !_isTtsSpeaking) {
                         setState(() => _isTtsSpeaking = true);
-                        await TtsService().speakClarity(text: cs.content, audioPlayer: _aliAudioPlayer, onComplete: () {
-                          if (mounted) setState(() => _isTtsSpeaking = false);
-                        });
+                        await TtsService().speakClarity(
+                          text: cs.content,
+                          audioPlayer: _aliAudioPlayer,
+                          onComplete: () {
+                            if (mounted) setState(() => _isTtsSpeaking = false);
+                          },
+                        );
                       }
                     },
                     child: Container(
@@ -888,28 +1061,49 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         color: _isTtsSpeaking ? AppColors.success.withValues(alpha: 0.25) : AppColors.primary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(_isTtsSpeaking ? Icons.volume_up : Icons.record_voice_over_rounded,
-                          color: _isTtsSpeaking ? AppColors.success : AppColors.primary, size: ResponsiveSize.icon(context),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(_isTtsSpeaking ? '播放中' : '清晰朗读',
-                          style: TextStyle(color: _isTtsSpeaking ? AppColors.success : AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600),
-                        ),
-                      ]),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isTtsSpeaking ? Icons.volume_up : Icons.record_voice_over_rounded,
+                            color: _isTtsSpeaking ? AppColors.success : AppColors.primary,
+                            size: ResponsiveSize.icon(context),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _isTtsSpeaking ? '播放中' : '清晰朗读',
+                            style: TextStyle(
+                              color: _isTtsSpeaking ? AppColors.success : AppColors.primary,
+                              fontSize: ResponsiveSize.fontSize(context, 12),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
-                    onTap: () { if (cs != null) { n.seekToMs(cs.startPosition.toInt()); n.togglePlayPause(); } },
+                    onTap: () {
+                      if (cs != null) {
+                        n.seekToMs(cs.startPosition.toInt());
+                        n.togglePlayPause();
+                      }
+                    },
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.replay_rounded, color: AppColors.primary, size: ResponsiveSize.icon(context)),
-                        const SizedBox(width: 6),
-                        Text('重播本句', style: TextStyle(color: AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600)),
-                      ]),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.replay_rounded, color: AppColors.primary, size: ResponsiveSize.icon(context)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '重播本句',
+                            style: TextStyle(color: AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -921,15 +1115,25 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         color: _isRecording ? Colors.red.withValues(alpha: 0.3) : AppColors.primary.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(_isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                          color: _isRecording ? Colors.red : AppColors.primary, size: ResponsiveSize.icon(context),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(_isRecording ? '停止录音' : '开始录音',
-                          style: TextStyle(color: _isRecording ? Colors.red : AppColors.primary, fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600),
-                        ),
-                      ]),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                            color: _isRecording ? Colors.red : AppColors.primary,
+                            size: ResponsiveSize.icon(context),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _isRecording ? '停止录音' : '开始录音',
+                            style: TextStyle(
+                              color: _isRecording ? Colors.red : AppColors.primary,
+                              fontSize: ResponsiveSize.fontSize(context, 12),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -940,7 +1144,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text('关闭', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 12))),
+                  child: Text(
+                    '关闭',
+                    style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 12)),
+                  ),
                 ),
               ),
             ],
@@ -969,7 +1176,10 @@ class _VideoListItem extends ConsumerStatefulWidget {
 class _VideoListItemState extends ConsumerState<_VideoListItem> {
   String? _resolvedCoverPath;
   @override
-  void initState() { super.initState(); _resolveCover(); }
+  void initState() {
+    super.initState();
+    _resolveCover();
+  }
 
   @override
   void didUpdateWidget(_VideoListItem old) {
@@ -1022,30 +1232,47 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(v.name,
-                          style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 14), fontWeight: cur ? FontWeight.bold : FontWeight.w500),
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                        Text(
+                          v.name,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: ResponsiveSize.fontSize(context, 14),
+                            fontWeight: cur ? FontWeight.bold : FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: 4),
-                        Row(children: [
-                          Icon(Icons.schedule, size: 12, color: Colors.white),
-                          SizedBox(width: 3),
-                          Text(v.durationString, style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 11))),
-                          if (v.hasSubtitles) ...[
-                            SizedBox(width: 8),
-                            Icon(Icons.subtitles, size: 12, color: AppColors.primary.withValues(alpha: 0.7)),
+                        Row(
+                          children: [
+                            Icon(Icons.schedule, size: 12, color: Colors.white),
                             SizedBox(width: 3),
-                            Text('字幕', style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: t ? 12 : 10)),
-                          ],
-                          if (cur) ...[
-                            SizedBox(width: 8),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
-                              child: Text('播放中', style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 10), fontWeight: FontWeight.w600)),
+                            Text(
+                              v.durationString,
+                              style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 11)),
                             ),
+                            if (v.hasSubtitles) ...[
+                              SizedBox(width: 8),
+                              Icon(Icons.subtitles, size: 12, color: AppColors.primary.withValues(alpha: 0.7)),
+                              SizedBox(width: 3),
+                              Text(
+                                '字幕',
+                                style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: t ? 12 : 10),
+                              ),
+                            ],
+                            if (cur) ...[
+                              SizedBox(width: 8),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
+                                child: Text(
+                                  '播放中',
+                                  style: TextStyle(color: Colors.white, fontSize: ResponsiveSize.fontSize(context, 10), fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
                           ],
-                        ]),
+                        ),
                       ],
                     ),
                   ),
@@ -1059,5 +1286,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
     );
   }
 
-  Widget _placeholder(bool t) => Center(child: Icon(Icons.movie_outlined, size: ResponsiveSize.icon(context) * 1.2, color: Colors.white24));
+  Widget _placeholder(bool t) => Center(
+    child: Icon(Icons.movie_outlined, size: ResponsiveSize.icon(context) * 1.2, color: Colors.white24),
+  );
 }
