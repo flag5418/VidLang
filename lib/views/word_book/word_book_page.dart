@@ -13,6 +13,7 @@ import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 
 /// 生词本页面
 class WordBookPage extends ConsumerStatefulWidget {
@@ -103,7 +104,7 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
                 children: [
                   Text(
                     '生词本',
-                    style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeLarge), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                   ),
                   SizedBox(width: AppSpacing.sm),
                   Container(
@@ -111,7 +112,7 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
                     decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                     child: Text(
                       '${_words.length}',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colorScheme.primary),
+                      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600, color: colorScheme.primary),
                     ),
                   ),
                 ],
@@ -238,7 +239,7 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: small ? 12 : 13,
+            fontSize: ResponsiveSize.fontSize(context, small ? 12 : 13),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
           ),
@@ -252,11 +253,11 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.menu_book, size: 64, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+          Icon(Icons.menu_book, size: ResponsiveSize.icon(context) * 2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
           SizedBox(height: AppSpacing.md),
-          Text('暂无收藏的生词', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+          Text('暂无收藏的生词', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: colorScheme.onSurfaceVariant)),
           SizedBox(height: 4),
-          Text('在字幕里长按划词即可加入生词本', style: TextStyle(fontSize: 13, color: colorScheme.outline)),
+          Text('在字幕里长按划词即可加入生词本', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.outline)),
         ],
       ),
     );
@@ -300,13 +301,13 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
                 children: [
                   Text(
                     word.word,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                   ),
                   SizedBox(height: 2),
                   if (word.phoneticUk != null || word.phoneticUs != null)
                     Text(
                       '英: ${word.phoneticUk ?? '-'}  美: ${word.phoneticUs ?? '-'}',
-                      style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -315,11 +316,11 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: colorScheme.surfaceContainerHighest),
-              child: Text(_sourceLabel(word.sourceType), style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
+              child: Text(_sourceLabel(word.sourceType), style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 11), color: colorScheme.onSurfaceVariant)),
             ),
             SizedBox(width: 8),
             // 复习次数
-            Text('复习 ${word.reviewCount} 次', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+            Text('复习 ${word.reviewCount} 次', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant)),
           ],
         ),
       ),
@@ -367,26 +368,26 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
               SizedBox(height: 20),
               Text(
                 word.word,
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 28), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
               if (word.phoneticUk != null || word.phoneticUs != null) ...[
                 SizedBox(height: 8),
                 Text(
                   '英: /${word.phoneticUk ?? '-'}/  美: /${word.phoneticUs ?? '-'}/',
-                  style: TextStyle(fontSize: 16, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 16), color: colorScheme.onSurfaceVariant),
                 ),
               ],
               SizedBox(height: 16),
               if (word.contextSentence != null && word.contextSentence!.isNotEmpty) ...[
                 Text(
                   '上下文',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
                 ),
                 SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: colorScheme.surfaceContainerHighest),
-                  child: Text(word.contextSentence!, style: TextStyle(fontSize: 14, color: colorScheme.onSurface)),
+                  child: Text(word.contextSentence!, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: colorScheme.onSurface)),
                 ),
               ],
               SizedBox(height: 16),
@@ -406,7 +407,7 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
               Text(
                 '掌握度：${_masteryLabel(word.masteryLevel)}',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: ResponsiveSize.fontSize(context, 14),
                   fontWeight: FontWeight.w600,
                   color: word.masteryLevel == 'mastered'
                       ? Colors.green
@@ -426,7 +427,7 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: colorScheme.surfaceContainerHighest),
-      child: Text(label, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+      child: Text(label, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant)),
     );
   }
 }

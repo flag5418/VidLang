@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 
 class VideoCard extends StatelessWidget {
   final VideoInfo video;
@@ -36,8 +37,6 @@ class VideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 600;
 
     return GestureDetector(
       onTap: onTap,
@@ -53,10 +52,10 @@ class VideoCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               _buildThumbnail(context, colorScheme),
-              _buildBottomOverlay(colorScheme, isTablet),
-              _buildSubtitleBadge(colorScheme),
-              _buildMoreButton(colorScheme),
-              if (isCurrentPlaying) _buildPlayingBadge(colorScheme),
+              _buildBottomOverlay(context, colorScheme),
+              _buildSubtitleBadge(context, colorScheme),
+              _buildMoreButton(context, colorScheme),
+              if (isCurrentPlaying) _buildPlayingBadge(context, colorScheme),
             ],
           ),
         ),
@@ -76,26 +75,27 @@ class VideoCard extends StatelessWidget {
             return Image.file(
               File(path),
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _placeholder(colorScheme),
+              errorBuilder: (_, _, _) => _placeholder(context, colorScheme),
             );
           }
-          return _placeholder(colorScheme);
+          return _placeholder(context, colorScheme);
         },
       );
     }
-    return _placeholder(colorScheme);
+    return _placeholder(context, colorScheme);
   }
 
-  Widget _placeholder(ColorScheme colorScheme) {
+  Widget _placeholder(BuildContext context, ColorScheme colorScheme) {
     return Container(
       color: AppColors.cardThumbnailBg,
       child: Center(
-        child: Icon(Icons.movie_outlined, size: 28, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+        child: Icon(Icons.movie_outlined, size: ResponsiveSize.icon(context), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
       ),
     );
   }
 
-  Widget _buildBottomOverlay(ColorScheme colorScheme, bool isTablet) {
+  Widget _buildBottomOverlay(BuildContext context, ColorScheme colorScheme) {
+    final isTablet = ResponsiveSize.isTablet(context);
     return Positioned(
       bottom: 0,
       left: 0,
@@ -116,7 +116,7 @@ class VideoCard extends StatelessWidget {
             Text(
               video.name,
               style: TextStyle(
-                fontSize: isTablet ? 14.0 : 12.0,
+                fontSize: ResponsiveSize.fontSize(context, 12),
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
                 letterSpacing: 0.2,
@@ -128,11 +128,11 @@ class VideoCard extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.schedule, size: isTablet ? 12.0 : 10.0, color: Colors.white70),
+                Icon(Icons.schedule, size: ResponsiveSize.fontSize(context, 10), color: Colors.white70),
                 const SizedBox(width: 4),
                 Text(
                   '${video.currentPositionString} / ${video.durationString}',
-                  style: TextStyle(fontSize: isTablet ? 12.0 : 10.0, color: Colors.white70, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 10), color: Colors.white70, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -142,7 +142,7 @@ class VideoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSubtitleBadge(ColorScheme colorScheme) {
+  Widget _buildSubtitleBadge(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       top: 6,
       left: 6,
@@ -154,14 +154,14 @@ class VideoCard extends StatelessWidget {
         ),
         child: Icon(
           Icons.subtitles,
-          size: 12,
+          size: ResponsiveSize.fontSize(context, 12),
           color: video.hasSubtitles ? Colors.white : Colors.white38,
         ),
       ),
     );
   }
 
-  Widget _buildMoreButton(ColorScheme colorScheme) {
+  Widget _buildMoreButton(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       top: 6,
       right: 6,
@@ -191,19 +191,19 @@ class VideoCard extends StatelessWidget {
           ),
           child: Text(
             '···',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
+            style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
           ),
         ),
         itemBuilder: (context) {
           final items = <PopupMenuEntry<String>>[
-            PopupMenuItem(value: 'rename', child: _menuRow(Icons.edit_outlined, '重命名', colorScheme)),
+            PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme)),
           ];
           if (!video.hasSubtitles && onImportSubtitle != null) {
-            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(Icons.closed_caption, '导入字幕', colorScheme)));
+            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
           }
           items.addAll([
             const PopupMenuDivider(height: 1),
-            PopupMenuItem(value: 'delete', child: _menuRow(Icons.delete_outline, '删除', colorScheme)),
+            PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
           ]);
           return items;
         },
@@ -211,17 +211,17 @@ class VideoCard extends StatelessWidget {
     );
   }
 
-  Widget _menuRow(IconData icon, String title, ColorScheme cs) {
+  Widget _menuRow(BuildContext context, IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: cs.onSurfaceVariant),
+        Icon(icon, size: ResponsiveSize.fontSize(context, 18), color: cs.onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14)),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: ResponsiveSize.fontSize(context, 14))),
       ],
     );
   }
 
-  Widget _buildPlayingBadge(ColorScheme colorScheme) {
+  Widget _buildPlayingBadge(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       bottom: 6,
       right: 6,
@@ -234,9 +234,9 @@ class VideoCard extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.play_arrow, size: 10, color: Colors.white),
+            Icon(Icons.play_arrow, size: ResponsiveSize.fontSize(context, 10), color: Colors.white),
             const SizedBox(width: 3),
-            Text('播放中', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white)),
+            Text('播放中', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 9), fontWeight: FontWeight.w600, color: Colors.white)),
           ],
         ),
       ),

@@ -15,6 +15,7 @@ import 'package:vidlang/models/user.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -63,7 +64,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               // 标题
               Text(
                 '我的',
-                style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeLarge), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
               ),
               SizedBox(height: AppSpacing.md),
 
@@ -124,11 +125,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             children: [
               Row(
                 children: [
-                  Icon(isPremium ? Icons.workspace_premium : Icons.person, color: isPremium ? Colors.amber : colorScheme.primary, size: 24),
+                  Icon(isPremium ? Icons.workspace_premium : Icons.person, color: isPremium ? Colors.amber : colorScheme.primary, size: ResponsiveSize.icon(context)),
                   SizedBox(width: 10),
                   Text(
                     isPremium ? '会员模式' : '免费模式',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                   ),
                 ],
               ),
@@ -199,11 +200,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(enabled ? Icons.check_circle : Icons.cancel, size: 16, color: enabled ? Colors.green : colorScheme.outline),
+          Icon(enabled ? Icons.check_circle : Icons.cancel, size: ResponsiveSize.fontSize(context, 16), color: enabled ? Colors.green : colorScheme.outline),
           SizedBox(width: 8),
-          Text(label, style: TextStyle(fontSize: 13, color: colorScheme.onSurface)),
+          Text(label, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.onSurface)),
           SizedBox(width: 8),
-          Text(description, style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
+          Text(description, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 11), color: colorScheme.onSurfaceVariant)),
         ],
       ),
     );
@@ -216,7 +217,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Row(
         children: [
           CircleAvatar(
-            radius: 24,
+            radius: ResponsiveSize.icon(context) * 0.7,
             backgroundColor: colorScheme.primary.withValues(alpha: 0.2),
             child: Icon(Icons.person, color: colorScheme.primary),
           ),
@@ -229,7 +230,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   '本地用户',
                   style: TextStyle(fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                 ),
-                Text(_isSupabaseUser ? '已连接Supabase' : '本地模式', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+                Text(_isSupabaseUser ? '已连接Supabase' : '本地模式', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
@@ -248,7 +249,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         title,
-        style: TextStyle(fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
+        style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeSmall), fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -257,9 +258,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: isDestructive ? colorScheme.error : colorScheme.onSurfaceVariant),
-      title: Text(title, style: TextStyle(fontSize: 14, color: isDestructive ? colorScheme.error : colorScheme.onSurface)),
-      subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)) : null,
-      trailing: Icon(Icons.chevron_right, size: 18, color: colorScheme.onSurfaceVariant),
+      title: Text(title, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: isDestructive ? colorScheme.error : colorScheme.onSurface)),
+      subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant)) : null,
+      trailing: Icon(Icons.chevron_right, size: ResponsiveSize.fontSize(context, 18), color: colorScheme.onSurfaceVariant),
       onTap: onTap,
     );
   }

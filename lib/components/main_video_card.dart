@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 
 class MainVideoCard extends StatelessWidget {
   final VideoInfo video;
@@ -48,13 +49,13 @@ class MainVideoCard extends StatelessWidget {
                 builder: (context, snapshot) {
                   final path = snapshot.data;
                   if (path != null && File(path).existsSync()) {
-                    return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(colorScheme));
+                    return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(context, colorScheme));
                   }
-                  return _placeholder(colorScheme);
+                  return _placeholder(context, colorScheme);
                 },
               )
             else
-              _placeholder(colorScheme),
+              _placeholder(context, colorScheme),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -64,33 +65,33 @@ class MainVideoCard extends StatelessWidget {
                 ),
               ),
             ),
-            _buildTopContent(colorScheme),
-            _buildBottomSection(colorScheme),
-            _buildPlayButton(colorScheme),
+            _buildTopContent(context, colorScheme),
+            _buildBottomSection(context, colorScheme),
+            _buildPlayButton(context, colorScheme),
           ],
         ),
       ),
     );
   }
 
-  Widget _menuRow(IconData icon, String title, ColorScheme cs) {
+  Widget _menuRow(BuildContext context, IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: cs.onSurfaceVariant),
+        Icon(icon, size: ResponsiveSize.fontSize(context, 18), color: cs.onSurfaceVariant),
         const SizedBox(width: 8),
-        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14)),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: ResponsiveSize.fontSize(context, 14))),
       ],
     );
   }
 
-  Widget _placeholder(ColorScheme colorScheme) {
+  Widget _placeholder(BuildContext context, ColorScheme colorScheme) {
     return Container(
       color: AppColors.cardThumbnailBg,
-      child: Center(child: Icon(Icons.movie_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3))),
+      child: Center(child: Icon(Icons.movie_outlined, size: ResponsiveSize.icon(context) * 1.5, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3))),
     );
   }
 
-  Widget _buildTopContent(ColorScheme colorScheme) {
+  Widget _buildTopContent(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       top: 12,
       right: 12,
@@ -118,24 +119,24 @@ class MainVideoCard extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (video.hasSubtitles) ...[Icon(Icons.subtitles, size: 14, color: colorScheme.primary), const SizedBox(width: 6)],
+              if (video.hasSubtitles) ...[Icon(Icons.subtitles, size: ResponsiveSize.fontSize(context, 14), color: colorScheme.primary), const SizedBox(width: 6)],
               Text(
                 '${video.currentPositionString} / ${video.durationString}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white),
+                style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w500, color: Colors.white),
               ),
             ],
           ),
         ),
         itemBuilder: (context) {
           final items = <PopupMenuEntry<String>>[
-            PopupMenuItem(value: 'rename', child: _menuRow(Icons.edit_outlined, '重命名', colorScheme)),
+            PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme)),
           ];
           if (!video.hasSubtitles && onImportSubtitle != null) {
-            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(Icons.closed_caption, '导入字幕', colorScheme)));
+            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
           }
           items.addAll([
             const PopupMenuDivider(height: 1),
-            PopupMenuItem(value: 'delete', child: _menuRow(Icons.delete_outline, '删除', colorScheme)),
+            PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
           ]);
           return items;
         },
@@ -143,7 +144,7 @@ class MainVideoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomSection(ColorScheme colorScheme) {
+  Widget _buildBottomSection(BuildContext context, ColorScheme colorScheme) {
     final progress = video.duration > 0 ? video.currentPosition / video.duration : 0.0;
     return Positioned(
       bottom: 0,
@@ -172,7 +173,7 @@ class MainVideoCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     video.name,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
+                    style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 15), fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -185,17 +186,17 @@ class MainVideoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlayButton(ColorScheme colorScheme) {
+  Widget _buildPlayButton(BuildContext context, ColorScheme colorScheme) {
     return Center(
       child: Container(
-        width: 60,
-        height: 60,
+        width: ResponsiveSize.playerCtrlBtn(context) * 1.15,
+        height: ResponsiveSize.playerCtrlBtn(context) * 1.15,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.92),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        child: Icon(Icons.play_arrow_rounded, size: 34, color: AppColors.primary),
+        child: Icon(Icons.play_arrow_rounded, size: ResponsiveSize.playerCtrlIcon(context) * 1.2, color: AppColors.primary),
       ),
     );
   }

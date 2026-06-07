@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:vidlang/config.dart';
+
 enum PronunciationPriority {
   ukFirst,
   usFirst,
@@ -501,43 +503,46 @@ class TranslationConfig {
   }
 }
 
-class DeepSeekResponse {
+class QwenResponse {
   final String content;
   final String? error;
   final bool success;
 
-  DeepSeekResponse({
+  QwenResponse({
     required this.content,
     this.error,
     required this.success,
   });
 }
 
-class DeepSeekConfig {
-  final String apiKey;
+class QwenConfig {
+  final String? apiKey;
   final String model;
   final String baseUrl;
   final double temperature;
   final int maxTokens;
   final int timeoutMs;
 
-  const DeepSeekConfig({
-    required this.apiKey,
-    this.model = 'deepseek-chat',
-    this.baseUrl = 'https://api.deepseek.com/v1',
+  const QwenConfig({
+    this.apiKey,
+    this.model = 'qwen-plus',
+    this.baseUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     this.temperature = 0.3,
     this.maxTokens = 4096,
     this.timeoutMs = 30000,
   });
+
+  /// 获取实际使用的 API Key，优先使用传入的，否则使用 AppConfig 中的 aliDashScopeApiKey
+  String get effectiveApiKey => apiKey ?? AppConfig.aliDashScopeApiKey;
 }
 
-class DeepSeekApi {
-  final DeepSeekConfig config;
+class QwenApi {
+  final QwenConfig config;
   final List<Map<String, String>> _history = [];
   static const int _maxHistorySize = 10;
-  CancelableCompleter<DeepSeekResponse?>? _currentRequest;
+  CancelableCompleter<QwenResponse?>? _currentRequest;
 
-  DeepSeekApi({required this.config});
+  QwenApi({required this.config});
 
   String get _systemPrompt {
     return '''
@@ -609,9 +614,18 @@ class DeepSeekApi {
     return list;
   }
 
-  Future<DeepSeekResponse> _sendRequest(List<Map<String, String>> messages) async {
+  Future<QwenResponse> _sendRequest(List<Map<String, String>> messages) async {
     cancelRequest();
-    _currentRequest = CancelableCompleter<DeepSeekResponse?>();
+    _currentRequest = CancelableCompleter<QwenResponse?>();
+
+    final effectiveApiKey = config.effectiveApiKey;
+    if (effectiveApiKey.isEmpty) {
+      return QwenResponse(
+        content: '',
+        error: 'API Key 未设置，请在 config.dart 中设置 aliDashScopeApiKey',
+        success: false,
+      );
+    }
 
     try {
       final uri = Uri.parse('${config.baseUrl}/chat/completions');
@@ -620,7 +634,7 @@ class DeepSeekApi {
 
       final request = await client.postUrl(uri);
       request.headers.set('Content-Type', 'application/json; charset=utf-8');
-      request.headers.set('Authorization', 'Bearer ${config.apiKey}');
+      request.headers.set('Authorization', 'Bearer $effectiveApiKey');
 
       final body = jsonEncode({
         'model': config.model,
@@ -642,7 +656,7 @@ class DeepSeekApi {
       if (response.statusCode != 200) {
         final body = await response.transform(utf8.decoder).join();
         client.close();
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '请求失败: ${response.statusCode} - $body',
           success: false,
@@ -653,7 +667,7 @@ class DeepSeekApi {
       client.close();
 
       if (responseBody.isEmpty) {
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '响应为空',
           success: false,
@@ -662,18 +676,17 @@ class DeepSeekApi {
 
       final dynamic parsedResponse = jsonDecode(responseBody);
       if (parsedResponse is! Map<String, dynamic>) {
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '响应格式不正确',
           success: false,
         );
       }
 
-      final jsonResponse = parsedResponse as Map<String, dynamic>;
-      final choices = jsonResponse['choices'];
+      final choices = parsedResponse['choices'];
 
       if (choices is! List<dynamic> || choices.isEmpty) {
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '未获取到响应',
           success: false,
@@ -682,7 +695,7 @@ class DeepSeekApi {
 
       final firstChoice = choices[0];
       if (firstChoice is! Map<String, dynamic>) {
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '响应格式不正确',
           success: false,
@@ -691,7 +704,7 @@ class DeepSeekApi {
 
       final message = firstChoice['message'];
       if (message is! Map<String, dynamic>) {
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '响应格式不正确',
           success: false,
@@ -700,7 +713,7 @@ class DeepSeekApi {
 
       final content = message['content'];
       if (content is! String) {
-        return DeepSeekResponse(
+        return QwenResponse(
           content: '',
           error: '响应内容为空或格式不正确',
           success: false,
@@ -712,14 +725,14 @@ class DeepSeekApi {
         _history.removeRange(0, _history.length - _maxHistorySize);
       }
 
-      return DeepSeekResponse(content: content, success: true);
+      return QwenResponse(content: content, success: true);
 
     } on TimeoutException {
-      return DeepSeekResponse(content: '', error: '请求超时', success: false);
+      return QwenResponse(content: '', error: '请求超时', success: false);
     } on CancelException {
-      return DeepSeekResponse(content: '', error: '请求已取消', success: false);
+      return QwenResponse(content: '', error: '请求已取消', success: false);
     } catch (e) {
-      return DeepSeekResponse(content: '', error: '请求异常: $e', success: false);
+      return QwenResponse(content: '', error: '请求异常: $e', success: false);
     } finally {
       _currentRequest?.complete(null);
       _currentRequest = null;
@@ -887,18 +900,18 @@ class DeepSeekApi {
   }
 }
 
-class DeepSeekService {
-  static DeepSeekApi? _instance;
+class QwenService {
+  static QwenApi? _instance;
 
-  static DeepSeekApi init({
-    required String apiKey,
-    String model = 'deepseek-chat',
-    String baseUrl = 'https://api.deepseek.com/v1',
+  static QwenApi init({
+    String? apiKey,
+    String model = 'qwen-plus',
+    String baseUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     double temperature = 0.3,
     int maxTokens = 4096,
     int timeoutMs = 30000,
   }) {
-    final config = DeepSeekConfig(
+    final config = QwenConfig(
       apiKey: apiKey,
       model: model,
       baseUrl: baseUrl,
@@ -906,11 +919,11 @@ class DeepSeekService {
       maxTokens: maxTokens,
       timeoutMs: timeoutMs,
     );
-    _instance = DeepSeekApi(config: config);
+    _instance = QwenApi(config: config);
     return _instance!;
   }
 
-  static DeepSeekApi? get instance => _instance;
+  static QwenApi? get instance => _instance;
 }
 
 class CancelException implements Exception {

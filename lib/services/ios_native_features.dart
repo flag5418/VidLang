@@ -13,8 +13,7 @@ bool _isMacOS() => defaultTargetPlatform == TargetPlatform.macOS;
 /// 检查是否是 Apple 平台（iOS 或 macOS）
 bool _isApplePlatform() => _isIOS() || _isMacOS();
 
-/// 当前是否已实现原生功能（iOS端代码是否已实现）
-/// iOS平台已实现原生代码，其他平台返回false
+/// 当前是否已实现原生功能（iOS端代码已实现原生代码，其他平台返回false）
 bool _nativeFeaturesImplemented() => _isIOS();
 
 Object? _normalizePlatformValue(Object? value) {
@@ -184,58 +183,125 @@ class TranslationResult {
   }
 }
 
+/// 词典查询结果
+class LookUpResult {
+  final String word;
+  final bool hasDefinition;
+  final String definition;
+  final bool success;
+  final String? error;
+
+  LookUpResult({
+    required this.word,
+    required this.hasDefinition,
+    required this.definition,
+    required this.success,
+    this.error,
+  });
+
+  factory LookUpResult.fromJson(Map<String, dynamic> json) {
+    return LookUpResult(
+      word: json['word'] as String? ?? '',
+      hasDefinition: json['hasDefinition'] as bool? ?? false,
+      definition: json['definition'] as String? ?? '',
+      success: json['success'] as bool? ?? false,
+      error: json['error'] as String?,
+    );
+  }
+}
+
+/// 分词结果
+class SegmentWordsResult {
+  final List<String> words;
+  final bool success;
+  final String? error;
+
+  SegmentWordsResult({required this.words, required this.success, this.error});
+
+  factory SegmentWordsResult.fromJson(Map<String, dynamic> json) {
+    return SegmentWordsResult(
+      words: (json['words'] as List?)?.cast<String>() ?? [],
+      success: json['success'] as bool? ?? false,
+      error: json['error'] as String?,
+    );
+  }
+}
+
 class IosNativeFeatures {
   static const MethodChannel _channel = MethodChannel('com.yzh.vidlang/ios_features');
 
+  /// 翻译文本（iOS 17.4+ 使用系统 NLTranslation，降级到简单翻译）
   static Future<TranslationResult> translate({required String text, String sourceLanguage = 'en', String targetLanguage = 'zh-Hans'}) async {
     if (!_nativeFeaturesImplemented()) {
       return TranslationResult(
-        sourceText: text,
-        translatedText: '',
-        sourceLanguage: sourceLanguage,
-        targetLanguage: targetLanguage,
-        success: false,
-        error: '系统翻译功能尚未实现，请先完成iOS原生代码开发',
+        sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
+        success: false, error: '系统翻译功能尚未实现，请先完成iOS原生代码开发',
       );
     }
     try {
       final result = await _channel.invokeMethod('translate', {'text': text, 'sourceLanguage': sourceLanguage, 'targetLanguage': targetLanguage});
       if (result == null) {
         return TranslationResult(
-          sourceText: text,
-          translatedText: '',
-          sourceLanguage: sourceLanguage,
-          targetLanguage: targetLanguage,
-          success: false,
-          error: '未获取到翻译结果',
+          sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
+          success: false, error: '未获取到翻译结果',
         );
       }
       return TranslationResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return TranslationResult(
-        sourceText: text,
-        translatedText: '',
-        sourceLanguage: sourceLanguage,
-        targetLanguage: targetLanguage,
-        success: false,
-        error: e.message ?? '翻译失败',
+        sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
+        success: false, error: e.message ?? '翻译失败',
       );
     } catch (e) {
       return TranslationResult(
-        sourceText: text,
-        translatedText: '',
-        sourceLanguage: sourceLanguage,
-        targetLanguage: targetLanguage,
-        success: false,
-        error: '翻译异常: $e',
+        sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
+        success: false, error: '翻译异常: $e',
       );
     }
   }
 
-  static Future<bool> speak({required String text, String language = 'en-US', double rate = 0.5, double pitch = 1.0, double volume = 1.0}) async {
+  /// 查询单词词典定义（使用 iOS 系统词典 UIReferenceLibraryViewController）
+  static Future<LookUpResult> lookUp({required String word}) async {
     if (!_nativeFeaturesImplemented()) {
-      return false;
+      return LookUpResult(
+        word: word, hasDefinition: false, definition: '', success: false,
+        error: '词典功能仅在 iOS 上可用',
+      );
     }
+    try {
+      final result = await _channel.invokeMethod('lookUp', {'word': word});
+      if (result == null) {
+        return LookUpResult(word: word, hasDefinition: false, definition: '', success: false, error: '未获取到词典结果');
+      }
+      return LookUpResult.fromJson(_asStringKeyMap(result));
+    } on PlatformException catch (e) {
+      return LookUpResult(word: word, hasDefinition: false, definition: '', success: false, error: e.message ?? '词典查询失败');
+    } catch (e) {
+      return LookUpResult(word: word, hasDefinition: false, definition: '', success: false, error: '词典查询异常: $e');
+    }
+  }
+
+  /// 使用 iOS NLTokenizer 进行英文分词
+  /// 适用于单词粘连的文本（如 "Whoeatsachip" → ["Who", "eats", "a", "chip"]）
+  static Future<SegmentWordsResult> segmentWords({required String text}) async {
+    if (!_nativeFeaturesImplemented()) {
+      return SegmentWordsResult(words: text.split(RegExp(r'\s+')), success: false, error: '分词功能仅在 iOS 上可用');
+    }
+    try {
+      final result = await _channel.invokeMethod('segmentWords', {'text': text});
+      if (result == null) {
+        return SegmentWordsResult(words: text.split(RegExp(r'\s+')), success: false, error: '未获取到分词结果');
+      }
+      return SegmentWordsResult.fromJson(_asStringKeyMap(result));
+    } on PlatformException catch (e) {
+      return SegmentWordsResult(words: text.split(RegExp(r'\s+')), success: false, error: e.message ?? '分词失败');
+    } catch (e) {
+      return SegmentWordsResult(words: text.split(RegExp(r'\s+')), success: false, error: '分词异常: $e');
+    }
+  }
+
+  static Future<bool> speak({required String text, String language = 'en-US', double rate = 0.5, double pitch = 1.0, double volume = 1.0}) async {
+    if (!_nativeFeaturesImplemented()) return false;
     try {
       final result = await _channel.invokeMethod('speak', {'text': text, 'language': language, 'rate': rate, 'pitch': pitch, 'volume': volume});
       return result as bool? ?? false;
@@ -269,9 +335,7 @@ class IosNativeFeatures {
     }
     try {
       final result = await _channel.invokeMethod('extractTextFromImage', {'imagePath': imagePath, 'recognizeMultipleLines': recognizeMultipleLines});
-      if (result == null) {
-        return OcrResult(text: '', lines: [], success: false, error: '未获取到识别结果');
-      }
+      if (result == null) return OcrResult(text: '', lines: [], success: false, error: '未获取到识别结果');
       return OcrResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return OcrResult(text: '', lines: [], success: false, error: e.message ?? '识别失败');
@@ -286,9 +350,7 @@ class IosNativeFeatures {
     }
     try {
       final result = await _channel.invokeMethod('extractTextFromCamera');
-      if (result == null) {
-        return OcrResult(text: '', lines: [], success: false, error: '未获取到识别结果');
-      }
+      if (result == null) return OcrResult(text: '', lines: [], success: false, error: '未获取到识别结果');
       return OcrResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return OcrResult(text: '', lines: [], success: false, error: e.message ?? '识别失败');
@@ -299,20 +361,11 @@ class IosNativeFeatures {
 
   static Future<ImageAnalysisResult> analyzeImage({required String imagePath}) async {
     if (!_nativeFeaturesImplemented()) {
-      return ImageAnalysisResult(
-        description: '',
-        chineseDescription: '',
-        labels: [],
-        chineseLabels: [],
-        success: false,
-        error: '图片分析功能尚未实现，请先完成iOS原生代码开发',
-      );
+      return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '图片分析功能尚未实现，请先完成iOS原生代码开发');
     }
     try {
       final result = await _channel.invokeMethod('analyzeImage', {'imagePath': imagePath});
-      if (result == null) {
-        return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
-      }
+      if (result == null) return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
       return ImageAnalysisResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: e.message ?? '分析失败');
@@ -323,20 +376,11 @@ class IosNativeFeatures {
 
   static Future<ImageAnalysisResult> analyzeImageFromCamera() async {
     if (!_nativeFeaturesImplemented()) {
-      return ImageAnalysisResult(
-        description: '',
-        chineseDescription: '',
-        labels: [],
-        chineseLabels: [],
-        success: false,
-        error: '图片分析功能尚未实现，请先完成iOS原生代码开发',
-      );
+      return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '图片分析功能尚未实现，请先完成iOS原生代码开发');
     }
     try {
       final result = await _channel.invokeMethod('analyzeImageFromCamera');
-      if (result == null) {
-        return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
-      }
+      if (result == null) return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
       return ImageAnalysisResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: e.message ?? '分析失败');
@@ -345,23 +389,13 @@ class IosNativeFeatures {
     }
   }
 
-  static Future<SubtitleExtractionResult> extractSubtitles({
-    required String videoPath,
-    int frameInterval = 1000,
-    double confidenceThreshold = 0.8,
-  }) async {
+  static Future<SubtitleExtractionResult> extractSubtitles({required String videoPath, int frameInterval = 1000, double confidenceThreshold = 0.8}) async {
     if (!_nativeFeaturesImplemented()) {
       return SubtitleExtractionResult(frames: [], fullText: '', success: false, error: '字幕提取功能尚未实现，请先完成iOS原生代码开发');
     }
     try {
-      final result = await _channel.invokeMethod('extractSubtitles', {
-        'videoPath': videoPath,
-        'frameInterval': frameInterval,
-        'confidenceThreshold': confidenceThreshold,
-      });
-      if (result == null) {
-        return SubtitleExtractionResult(frames: [], fullText: '', success: false, error: '未获取到字幕结果');
-      }
+      final result = await _channel.invokeMethod('extractSubtitles', {'videoPath': videoPath, 'frameInterval': frameInterval, 'confidenceThreshold': confidenceThreshold});
+      if (result == null) return SubtitleExtractionResult(frames: [], fullText: '', success: false, error: '未获取到字幕结果');
       return SubtitleExtractionResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return SubtitleExtractionResult(frames: [], fullText: '', success: false, error: e.message ?? '字幕提取失败');

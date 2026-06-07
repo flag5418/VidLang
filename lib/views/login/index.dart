@@ -6,6 +6,7 @@ import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/views/main/main_page.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 
 enum _AuthMode { login, register, verifyOtp }
 
@@ -108,10 +109,10 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildLogo() {
     return Container(
-      width: 72,
-      height: 72,
+      width: ResponsiveSize.toolbarBtn(context) * 1.8,
+      height: ResponsiveSize.toolbarBtn(context) * 1.8,
       decoration: BoxDecoration(color: AppColors.primary.withAlpha(30), borderRadius: BorderRadius.circular(20)),
-      child: const Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: 40),
+      child: Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: ResponsiveSize.icon(context) * 1.8),
     );
   }
 
@@ -121,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
         : {_AuthMode.login: '欢迎回来', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'};
     return Text(
       titles[_mode]!,
-      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.onSurface),
+      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 26), fontWeight: FontWeight.bold, color: AppColors.onSurface),
       textAlign: TextAlign.center,
     );
   }
@@ -132,7 +133,7 @@ class _LoginPageState extends State<LoginPage> {
         : {_AuthMode.login: '登录你的 VidLang 账号', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'};
     return Text(
       subtitles[_mode]!,
-      style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: AppColors.onSurfaceVariant),
       textAlign: TextAlign.center,
     );
   }
@@ -152,8 +153,8 @@ class _LoginPageState extends State<LoginPage> {
         if (isLogin)
           GestureDetector(
             onTap: () {},
-            child: const Center(
-              child: Text('忘记密码？', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceDisabled)),
+            child: Center(
+              child: Text('忘记密码？', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceDisabled)),
             ),
           ),
       ],
@@ -174,14 +175,14 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Text(
               _countdownSeconds > 0 ? '${_countdownSeconds}s 后可重新发送' : '没收到验证码？',
-              style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceDisabled),
+              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceDisabled),
             ),
             GestureDetector(
               onTap: _countdownSeconds == 0 && !_loading ? _resendOtp : null,
               child: Text(
                 ' 重新发送',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: ResponsiveSize.fontSize(context, 13),
                   color: _countdownSeconds == 0 ? AppColors.primary : AppColors.onSurfaceDisabled,
                   fontWeight: FontWeight.w600,
                 ),
@@ -192,8 +193,8 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 8),
         GestureDetector(
           onTap: () => setState(() => _mode = _AuthMode.register),
-          child: const Center(
-            child: Text('返回修改邮箱', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant)),
+          child: Center(
+            child: Text('返回修改邮箱', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceVariant)),
           ),
         ),
       ],
@@ -206,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      style: const TextStyle(color: AppColors.onSurface, fontSize: 15),
+      style: TextStyle(color: AppColors.onSurface, fontSize: ResponsiveSize.fontSize(context, 15)),
       decoration: _inputDecoration('邮箱地址', Icons.email_outlined),
       readOnly: widget.requireSupabaseReauth && widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty,
       onSubmitted: (_) => _passwordFocus.requestFocus(),
@@ -219,10 +220,10 @@ class _LoginPageState extends State<LoginPage> {
       focusNode: _passwordFocus,
       obscureText: _obscurePassword,
       textInputAction: _mode == _AuthMode.login ? TextInputAction.done : TextInputAction.next,
-      style: const TextStyle(color: AppColors.onSurface, fontSize: 15),
+      style: TextStyle(color: AppColors.onSurface, fontSize: ResponsiveSize.fontSize(context, 15)),
       decoration: _inputDecoration('密码', Icons.lock_outlined).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: 20),
+          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: ResponsiveSize.fontSize(context, 20)),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
       ),
@@ -236,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
       focusNode: _otpFocus,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
-      style: const TextStyle(color: AppColors.onSurface, fontSize: 22, letterSpacing: 8, fontWeight: FontWeight.w600),
+      style: TextStyle(color: AppColors.onSurface, fontSize: ResponsiveSize.fontSize(context, 22), letterSpacing: 8, fontWeight: FontWeight.w600),
       textAlign: TextAlign.center,
       decoration: _inputDecoration('请输入验证码', null).copyWith(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 16)),
       onSubmitted: (_) => _verifyOtp(),
@@ -246,8 +247,8 @@ class _LoginPageState extends State<LoginPage> {
   InputDecoration _inputDecoration(String hint, IconData? icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.onSurfaceDisabled, fontSize: 14),
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.onSurfaceDisabled, size: 20) : null,
+      hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: ResponsiveSize.fontSize(context, 14)),
+      prefixIcon: icon != null ? Icon(icon, color: AppColors.onSurfaceDisabled, size: ResponsiveSize.fontSize(context, 20)) : null,
       filled: true,
       fillColor: AppColors.surfaceElevated,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -266,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
     return SizedBox(
-      height: 50,
+      height: ResponsiveSize.pillHeight(context) * 1.47,
       child: ElevatedButton(
         onPressed: _loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
@@ -279,7 +280,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: _loading
             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary))
-            : Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            : Text(label, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -294,10 +295,10 @@ class _LoginPageState extends State<LoginPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-          const SizedBox(width: 8),
+          Icon(Icons.error_outline, color: AppColors.error, size: ResponsiveSize.fontSize(context, 18)),
+          SizedBox(width: 8),
           Expanded(
-            child: Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+            child: Text(_error!, style: TextStyle(color: AppColors.error, fontSize: ResponsiveSize.fontSize(context, 13))),
           ),
         ],
       ),
@@ -309,7 +310,7 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(isLogin ? '没有账号？' : '已有账号？', style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceDisabled)),
+        Text(isLogin ? '没有账号？' : '已有账号？', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: AppColors.onSurfaceDisabled)),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -319,7 +320,7 @@ class _LoginPageState extends State<LoginPage> {
           },
           child: Text(
             isLogin ? ' 立即注册' : ' 去登录',
-            style: const TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: AppColors.primary, fontWeight: FontWeight.w600),
           ),
         ),
       ],

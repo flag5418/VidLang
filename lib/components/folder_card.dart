@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/responsive_size.dart';
 
 class FolderCard extends StatelessWidget {
   final VideoFolder folder;
@@ -24,8 +25,6 @@ class FolderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 600;
 
     return GestureDetector(
       onTap: onTap,
@@ -42,8 +41,8 @@ class FolderCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               _buildThumbnail(context, colorScheme),
-              _buildBottomOverlay(colorScheme, isTablet),
-              _buildBadge(colorScheme),
+              _buildBottomOverlay(context, colorScheme),
+              _buildBadge(context, colorScheme),
             ],
           ),
         ),
@@ -60,24 +59,25 @@ class FolderCard extends StatelessWidget {
           return Image.file(
             File(path),
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _placeholder(colorScheme),
+            errorBuilder: (_, _, _) => _placeholder(context, colorScheme),
           );
         }
-        return _placeholder(colorScheme);
+        return _placeholder(context, colorScheme);
       },
     );
   }
 
-  Widget _placeholder(ColorScheme colorScheme) {
+  Widget _placeholder(BuildContext context, ColorScheme colorScheme) {
     return Container(
       color: AppColors.cardThumbnailBg,
       child: Center(
-        child: Icon(Icons.play_circle_outline, size: 40, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+        child: Icon(Icons.play_circle_outline, size: ResponsiveSize.icon(context) * 1.5, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
       ),
     );
   }
 
-  Widget _buildBottomOverlay(ColorScheme colorScheme, bool isTablet) {
+  Widget _buildBottomOverlay(BuildContext context, ColorScheme colorScheme) {
+    final isTablet = ResponsiveSize.isTablet(context);
     return Positioned(
       bottom: 0,
       left: 0,
@@ -94,7 +94,7 @@ class FolderCard extends StatelessWidget {
         child: Text(
           folder.name,
           style: TextStyle(
-            fontSize: isTablet ? 14 : 12,
+            fontSize: ResponsiveSize.fontSize(context, 12),
             fontWeight: FontWeight.w600,
             color: Colors.white,
             letterSpacing: 0.2,
@@ -106,7 +106,7 @@ class FolderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge(ColorScheme colorScheme) {
+  Widget _buildBadge(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       top: 8,
       right: 8,
@@ -119,11 +119,11 @@ class FolderCard extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, size: 10, color: colorScheme.primary),
+            Icon(Icons.check_circle, size: ResponsiveSize.fontSize(context, 10), color: colorScheme.primary),
             const SizedBox(width: 4),
             Text(
               '${folder.completedCount}/${folder.videoCount}',
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
+              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 11), fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),
