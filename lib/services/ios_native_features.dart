@@ -87,6 +87,27 @@ class OcrWord {
   }
 }
 
+/// 语音识别结果（跟读）
+class SpeechRecognitionResult {
+  final String text;
+  final bool isFinal;
+  final bool partial;
+  final bool success;
+  final String? error;
+
+  const SpeechRecognitionResult({required this.text, required this.isFinal, required this.partial, required this.success, this.error});
+
+  factory SpeechRecognitionResult.fromJson(Map<String, dynamic> json) {
+    return SpeechRecognitionResult(
+      text: json['text'] as String? ?? '',
+      isFinal: json['isFinal'] as bool? ?? false,
+      partial: json['partial'] as bool? ?? false,
+      success: json['success'] as bool? ?? false,
+      error: json['error'] as String?,
+    );
+  }
+}
+
 class ImageAnalysisResult {
   final String description;
   final String chineseDescription;
@@ -191,13 +212,7 @@ class LookUpResult {
   final bool success;
   final String? error;
 
-  LookUpResult({
-    required this.word,
-    required this.hasDefinition,
-    required this.definition,
-    required this.success,
-    this.error,
-  });
+  LookUpResult({required this.word, required this.hasDefinition, required this.definition, required this.success, this.error});
 
   factory LookUpResult.fromJson(Map<String, dynamic> json) {
     return LookUpResult(
@@ -230,32 +245,61 @@ class SegmentWordsResult {
 class IosNativeFeatures {
   static const MethodChannel _channel = MethodChannel('com.yzh.vidlang/ios_features');
 
+  /// 获取 iOS 设备类型（"pad" 或 "phone"）
+  ///
+  /// 仅 iOS 平台有效，其他平台返回 null。
+  static Future<String?> getDeviceIdiom() async {
+    if (!_nativeFeaturesImplemented()) return null;
+    try {
+      final result = await _channel.invokeMethod<String>('getDeviceIdiom');
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 翻译文本（iOS 17.4+ 使用系统 NLTranslation，降级到简单翻译）
   static Future<TranslationResult> translate({required String text, String sourceLanguage = 'en', String targetLanguage = 'zh-Hans'}) async {
     if (!_nativeFeaturesImplemented()) {
       return TranslationResult(
-        sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
-        success: false, error: '系统翻译功能尚未实现，请先完成iOS原生代码开发',
+        sourceText: text,
+        translatedText: '',
+        sourceLanguage: sourceLanguage,
+        targetLanguage: targetLanguage,
+        success: false,
+        error: '系统翻译功能尚未实现，请先完成iOS原生代码开发',
       );
     }
     try {
       final result = await _channel.invokeMethod('translate', {'text': text, 'sourceLanguage': sourceLanguage, 'targetLanguage': targetLanguage});
       if (result == null) {
         return TranslationResult(
-          sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
-          success: false, error: '未获取到翻译结果',
+          sourceText: text,
+          translatedText: '',
+          sourceLanguage: sourceLanguage,
+          targetLanguage: targetLanguage,
+          success: false,
+          error: '未获取到翻译结果',
         );
       }
       return TranslationResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return TranslationResult(
-        sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
-        success: false, error: e.message ?? '翻译失败',
+        sourceText: text,
+        translatedText: '',
+        sourceLanguage: sourceLanguage,
+        targetLanguage: targetLanguage,
+        success: false,
+        error: e.message ?? '翻译失败',
       );
     } catch (e) {
       return TranslationResult(
-        sourceText: text, translatedText: '', sourceLanguage: sourceLanguage, targetLanguage: targetLanguage,
-        success: false, error: '翻译异常: $e',
+        sourceText: text,
+        translatedText: '',
+        sourceLanguage: sourceLanguage,
+        targetLanguage: targetLanguage,
+        success: false,
+        error: '翻译异常: $e',
       );
     }
   }
@@ -263,10 +307,7 @@ class IosNativeFeatures {
   /// 查询单词词典定义（使用 iOS 系统词典 UIReferenceLibraryViewController）
   static Future<LookUpResult> lookUp({required String word}) async {
     if (!_nativeFeaturesImplemented()) {
-      return LookUpResult(
-        word: word, hasDefinition: false, definition: '', success: false,
-        error: '词典功能仅在 iOS 上可用',
-      );
+      return LookUpResult(word: word, hasDefinition: false, definition: '', success: false, error: '词典功能仅在 iOS 上可用');
     }
     try {
       final result = await _channel.invokeMethod('lookUp', {'word': word});
@@ -361,11 +402,19 @@ class IosNativeFeatures {
 
   static Future<ImageAnalysisResult> analyzeImage({required String imagePath}) async {
     if (!_nativeFeaturesImplemented()) {
-      return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '图片分析功能尚未实现，请先完成iOS原生代码开发');
+      return ImageAnalysisResult(
+        description: '',
+        chineseDescription: '',
+        labels: [],
+        chineseLabels: [],
+        success: false,
+        error: '图片分析功能尚未实现，请先完成iOS原生代码开发',
+      );
     }
     try {
       final result = await _channel.invokeMethod('analyzeImage', {'imagePath': imagePath});
-      if (result == null) return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
+      if (result == null)
+        return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
       return ImageAnalysisResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: e.message ?? '分析失败');
@@ -376,11 +425,19 @@ class IosNativeFeatures {
 
   static Future<ImageAnalysisResult> analyzeImageFromCamera() async {
     if (!_nativeFeaturesImplemented()) {
-      return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '图片分析功能尚未实现，请先完成iOS原生代码开发');
+      return ImageAnalysisResult(
+        description: '',
+        chineseDescription: '',
+        labels: [],
+        chineseLabels: [],
+        success: false,
+        error: '图片分析功能尚未实现，请先完成iOS原生代码开发',
+      );
     }
     try {
       final result = await _channel.invokeMethod('analyzeImageFromCamera');
-      if (result == null) return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
+      if (result == null)
+        return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
       return ImageAnalysisResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: e.message ?? '分析失败');
@@ -389,12 +446,20 @@ class IosNativeFeatures {
     }
   }
 
-  static Future<SubtitleExtractionResult> extractSubtitles({required String videoPath, int frameInterval = 1000, double confidenceThreshold = 0.8}) async {
+  static Future<SubtitleExtractionResult> extractSubtitles({
+    required String videoPath,
+    int frameInterval = 1000,
+    double confidenceThreshold = 0.8,
+  }) async {
     if (!_nativeFeaturesImplemented()) {
       return SubtitleExtractionResult(frames: [], fullText: '', success: false, error: '字幕提取功能尚未实现，请先完成iOS原生代码开发');
     }
     try {
-      final result = await _channel.invokeMethod('extractSubtitles', {'videoPath': videoPath, 'frameInterval': frameInterval, 'confidenceThreshold': confidenceThreshold});
+      final result = await _channel.invokeMethod('extractSubtitles', {
+        'videoPath': videoPath,
+        'frameInterval': frameInterval,
+        'confidenceThreshold': confidenceThreshold,
+      });
       if (result == null) return SubtitleExtractionResult(frames: [], fullText: '', success: false, error: '未获取到字幕结果');
       return SubtitleExtractionResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
@@ -452,5 +517,72 @@ class IosNativeFeatures {
     } catch (_) {
       return false;
     }
+  }
+
+  // ─────── 语音识别（跟读）───────
+
+  /// 检查语音识别权限
+  static Future<bool> hasSpeechPermission() async {
+    if (!_nativeFeaturesImplemented()) return false;
+    try {
+      final result = await _channel.invokeMethod('hasSpeechPermission');
+      return result as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 请求语音识别权限
+  static Future<bool> requestSpeechPermission() async {
+    if (!_nativeFeaturesImplemented()) return false;
+    try {
+      final result = await _channel.invokeMethod('requestSpeechPermission');
+      return result as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 语音识别是否可用
+  static Future<bool> isSpeechRecognitionAvailable() async {
+    if (!_nativeFeaturesImplemented()) return false;
+    try {
+      final result = await _channel.invokeMethod('isSpeechRecognitionAvailable');
+      return result as bool? ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 开始语音识别（实时返回部分结果）
+  /// 通过 Stream 持续通知 Flutter 端
+  static final _speechController = StreamController<SpeechRecognitionResult>.broadcast();
+
+  static Stream<SpeechRecognitionResult> get onSpeechResult => _speechController.stream;
+
+  static Future<void> startSpeechRecognition() async {
+    if (!_nativeFeaturesImplemented()) {
+      _speechController.add(SpeechRecognitionResult(text: '', isFinal: false, partial: false, success: false, error: '语音识别仅在 iOS 上可用'));
+      return;
+    }
+    try {
+      final result = await _channel.invokeMethod('startSpeechRecognition');
+      if (result == null) return;
+      final map = _asStringKeyMap(result);
+      final sr = SpeechRecognitionResult.fromJson(map);
+      _speechController.add(sr);
+      // 如果 result 里有 partial=true，持续监听后续回调
+      // 但 SFSpeechRecognizer 是通过单次 result 返回的，partial 由 Native 端逐个发回
+    } catch (e) {
+      _speechController.add(SpeechRecognitionResult(text: '', isFinal: true, partial: false, success: false, error: '语音识别启动失败: $e'));
+    }
+  }
+
+  /// 停止语音识别
+  static Future<void> stopSpeechRecognition() async {
+    if (!_nativeFeaturesImplemented()) return;
+    try {
+      await _channel.invokeMethod('stopSpeechRecognition');
+    } catch (_) {}
   }
 }

@@ -8,12 +8,14 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/components/main_video_card.dart';
 import 'package:vidlang/components/playback_settings_sheet.dart';
 import 'package:vidlang/components/video_card.dart';
@@ -29,7 +31,6 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 
@@ -112,17 +113,17 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
-                  width: ResponsiveSize.toolbarBtn(context),
-                  height: ResponsiveSize.toolbarBtn(context),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: AppColors.surfaceElevated),
-                  child: Icon(Icons.arrow_back, size: ResponsiveSize.icon(context), color: colorScheme.onSurface),
+                  width: 40.r,
+                  height: 40.r,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: AppColors.surfaceElevated),
+                  child: Icon(Icons.arrow_back, size: 18.sp, color: colorScheme.onSurface),
                 ),
               ),
               SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeLarge), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  style: TextStyle(fontSize: AppTypography.fontSizeLarge.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -136,10 +137,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               GestureDetector(
                 onTap: _showSettings,
                 child: Container(
-                  width: ResponsiveSize.toolbarBtn(context),
-                  height: ResponsiveSize.toolbarBtn(context),
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: AppColors.surfaceElevated),
-                  child: Icon(Icons.settings, size: ResponsiveSize.icon(context), color: colorScheme.onSurfaceVariant),
+                  width: 40.r,
+                  height: 40.r,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: AppColors.surfaceElevated),
+                  child: Icon(Icons.settings, size: 18.sp, color: colorScheme.onSurfaceVariant),
                 ),
               ),
 
@@ -151,10 +152,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 8,
               child: Container(
-                width: ResponsiveSize.toolbarBtn(context),
-                height: ResponsiveSize.toolbarBtn(context),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), color: colorScheme.primary),
-                child: Icon(Icons.add, size: ResponsiveSize.icon(context), color: colorScheme.onPrimary),
+                width: 40.r,
+                height: 40.r,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: colorScheme.primary),
+                child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
               ),
               itemBuilder: (context) => [
                 PopupMenuItem(value: 'import', child: _popupMenuItem(Icons.add_circle_outline, '选择导入（可多选）', colorScheme)),
@@ -189,7 +190,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           SizedBox(height: AppSpacing.md),
           Text('暂无${_typeLabel(folderType)}', style: TextStyle(color: colorScheme.onSurfaceVariant)),
           SizedBox(height: AppSpacing.sm),
-          Text('点击 + 导入资源', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.outline)),
+          Text(
+            '点击 + 导入资源',
+            style: TextStyle(fontSize: 13.sp, color: colorScheme.outline),
+          ),
         ],
       ),
     );
@@ -204,7 +208,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           SizedBox(height: AppSpacing.md),
           Text(
             '加载失败',
-            style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 18), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
           ),
           SizedBox(height: AppSpacing.sm),
           Padding(
@@ -212,7 +216,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
@@ -228,26 +232,33 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 
   Widget _buildContent(FileState state, FolderContentType folderType) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth >= 900 ? 4 : (screenWidth >= 600 ? 3 : 2);
+    final crossAxisCount = DeviceUtils.getGridColumns(context);
+    final gridSpacing = DeviceUtils.getGridSpacing(context);
     final mainVideo = state.currentVideo ?? (state.videos.isNotEmpty ? state.videos.first : null);
     final gridVideos = mainVideo == null ? state.videos : state.videos.where((v) => v.code != mainVideo.code).toList();
 
-    return CustomScrollView(
-      slivers: [
+    return ListView(
+      children: [
         if (mainVideo != null)
-          SliverToBoxAdapter(
-            child: MainVideoCard(
-              video: mainVideo,
-              onPlay: () => _playVideo(mainVideo),
-              onRename: () => _showVideoRenameDialog(mainVideo),
-              onImportSubtitle: () => _importSubtitleForVideo(mainVideo),
-              onDelete: () => _confirmDeleteVideo(mainVideo),
-            ),
+          MainVideoCard(
+            video: mainVideo,
+            onPlay: () => _playVideo(mainVideo),
+            onRename: () => _showVideoRenameDialog(mainVideo),
+            onImportSubtitle: () => _importSubtitleForVideo(mainVideo),
+            onDelete: () => _confirmDeleteVideo(mainVideo),
           ),
-        if (mainVideo != null) SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-        SliverGrid(
-          delegate: SliverChildBuilderDelegate((context, index) {
+        if (mainVideo != null) SizedBox(height: AppSpacing.md),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: gridSpacing,
+            mainAxisSpacing: gridSpacing,
+            childAspectRatio: 16 / 9,
+          ),
+          itemCount: gridVideos.length,
+          itemBuilder: (context, index) {
             final video = gridVideos[index];
             return VideoCard(
               video: video,
@@ -257,15 +268,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               onImportSubtitle: () => _importSubtitleForVideo(video),
               onDelete: () => _confirmDeleteVideo(video),
             );
-          }, childCount: gridVideos.length),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 16 / 9,
-          ),
+          },
         ),
-        SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
+        SizedBox(height: AppSpacing.md),
       ],
     );
   }
@@ -288,9 +293,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Widget _popupMenuItem(IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: ResponsiveSize.fontSize(context, 20), color: cs.onSurfaceVariant),
+        Icon(icon, size: 20.sp, color: cs.onSurfaceVariant),
         SizedBox(width: 10),
-        Text(title, style: TextStyle(color: cs.onSurface, fontSize: ResponsiveSize.fontSize(context, 14))),
+        Text(
+          title,
+          style: TextStyle(color: cs.onSurface, fontSize: 14.sp),
+        ),
       ],
     );
   }

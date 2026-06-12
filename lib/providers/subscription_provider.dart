@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 /// 订阅模式
 enum SubscriptionMode {
@@ -60,55 +61,29 @@ class SubscriptionState {
   /// 功能可用性（由 mode + platform 计算得出）
   FeatureAvailability get features {
     if (mode == SubscriptionMode.premium) {
-      return const FeatureAvailability(
-        canTranslate: true,
-        canTts: true,
-        canOcr: true,
-        canScoring: true,
-        canAiAnalysis: true,
-        canCloudSync: true,
-      );
+      return const FeatureAvailability(canTranslate: true, canTts: true, canOcr: true, canScoring: true, canAiAnalysis: true, canCloudSync: true);
     }
 
     // 免费模式：iOS有原生功能，Android没有
     if (isIOS) {
       return const FeatureAvailability(
-        canTranslate: true,   // iOS 原生翻译
-        canTts: true,         // AVSpeechSynthesizer
-        canOcr: true,         // Vision 框架
-        canScoring: false,    // 需要声通
+        canTranslate: true, // iOS 原生翻译
+        canTts: true, // AVSpeechSynthesizer
+        canOcr: true, // Vision 框架
+        canScoring: false, // 需要声通
         canAiAnalysis: false, // 需要DeepSeek
         canCloudSync: false,
       );
     }
 
     // Android 免费：几乎只有基础播放
-    return const FeatureAvailability(
-      canTranslate: false,
-      canTts: false,
-      canOcr: false,
-      canScoring: false,
-      canAiAnalysis: false,
-      canCloudSync: false,
-    );
+    return const FeatureAvailability(canTranslate: false, canTts: false, canOcr: false, canScoring: false, canAiAnalysis: false, canCloudSync: false);
   }
 
-  const SubscriptionState({
-    this.mode = SubscriptionMode.free,
-    this.balance = 0,
-    this.isIOS = false,
-  });
+  const SubscriptionState({this.mode = SubscriptionMode.free, this.balance = 0, this.isIOS = false});
 
-  SubscriptionState copyWith({
-    SubscriptionMode? mode,
-    double? balance,
-    bool? isIOS,
-  }) {
-    return SubscriptionState(
-      mode: mode ?? this.mode,
-      balance: balance ?? this.balance,
-      isIOS: isIOS ?? this.isIOS,
-    );
+  SubscriptionState copyWith({SubscriptionMode? mode, double? balance, bool? isIOS}) {
+    return SubscriptionState(mode: mode ?? this.mode, balance: balance ?? this.balance, isIOS: isIOS ?? this.isIOS);
   }
 }
 
@@ -137,5 +112,17 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     if (state.balance < amount) return false;
     state = state.copyWith(balance: state.balance - amount);
     return true;
+  }
+
+  /// 刷新余额（从 Supabase user_wallet 拉取）
+  Future<void> refreshBalance() async {
+    try {
+      final client = sb.Supabase.instance.client;
+      final data = await client.from('user_wallet').select('balance_cny').single();
+      final balance = (data['balance_cny'] as num?)?.toDouble() ?? state.balance;
+      state = state.copyWith(balance: balance);
+    } catch (_) {
+      // 静默失败，保持当前余额
+    }
   }
 }

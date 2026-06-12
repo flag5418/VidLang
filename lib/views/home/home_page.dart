@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/components/folder_card.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
@@ -18,7 +19,6 @@ import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 
@@ -118,36 +118,34 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBanner(colorScheme),
-                    SizedBox(height: AppSpacing.md),
-                    _buildResourceSection(colorScheme, 'video', '🎬 视频', Icons.videocam),
-                    SizedBox(height: AppSpacing.md),
-                    _buildResourceSection(colorScheme, 'article', '📄 文章', Icons.article),
-                    SizedBox(height: AppSpacing.md),
-                    _buildResourceSection(colorScheme, 'music', '🎵 音频', Icons.headphones),
-                    SizedBox(height: AppSpacing.lg),
-                    _buildStatsSection(colorScheme),
-                    SizedBox(height: AppSpacing.md),
-                  ],
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _loadData,
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Column(
+                    spacing: AppSpacing.md.h,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBanner(colorScheme),
+                      _buildStatsSection(colorScheme),
+                      _buildResourceSection(colorScheme, 'video', '视频', Icons.movie),
+                      _buildResourceSection(colorScheme, 'music', '音频', Icons.music_note),
+                      _buildResourceSection(colorScheme, 'article', '文章', Icons.article),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
 
   Widget _buildBanner(ColorScheme colorScheme) {
     return Container(
-      height: 160,
+      height: 160.h,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -161,13 +159,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.school, size: ResponsiveSize.icon(context) * 1.5, color: colorScheme.primary.withValues(alpha: 0.6)),
+            Icon(Icons.school, size: 32.w, color: colorScheme.primary.withValues(alpha: 0.6)),
             SizedBox(height: AppSpacing.sm),
             Text(
               'VidLang',
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 24), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
             ),
-            Text('通过沉浸式学习语言', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.onSurfaceVariant)),
+            Text(
+              '看视频、听英语，快乐学英语',
+              style: TextStyle(fontSize: 10.sp, color: colorScheme.onSurfaceVariant),
+            ),
           ],
         ),
       ),
@@ -186,11 +187,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             Text(
               title,
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeBase), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
             TextButton(
               onPressed: () => _goToResources(type),
-              child: Text('更多', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.primary)),
+              child: Text(
+                '更多',
+                style: TextStyle(fontSize: 13.sp, color: colorScheme.primary),
+              ),
             ),
           ],
         ),
@@ -217,11 +221,17 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         child: Column(
           children: [
-            Icon(icon, size: ResponsiveSize.icon(context) * 1.2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            Icon(icon, size: 22.w * 1.2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
             SizedBox(height: AppSpacing.sm),
-            Text('暂无$typeName', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: ResponsiveSize.fontSize(context, 14))),
+            Text(
+              '暂无$typeName',
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14.sp),
+            ),
             SizedBox(height: 4),
-            Text('点击进入资源页创建第一个$typeName', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.outline)),
+            Text(
+              '点击进入资源页创建第一个$typeName',
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+            ),
           ],
         ),
       ),
@@ -230,7 +240,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildFolderRow(ColorScheme colorScheme, List<VideoFolder> folders) {
     return SizedBox(
-      height: 120,
+      height: 160.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: folders.length,
@@ -240,34 +250,36 @@ class _HomePageState extends ConsumerState<HomePage> {
           final isPlaying = index == 0 && folder.lastPlayDate != null;
 
           return SizedBox(
-            width: 160,
+            width: 160.w,
+            height: 140.h,
             child: Stack(
               children: [
                 FolderCard(folder: folder, onTap: () => _openFolder(folder), onLongPress: () {}),
-                if (isPlaying)
-                  Positioned(
-                    left: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.play_arrow_rounded, size: 12, color: colorScheme.primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            '播放中',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colorScheme.primary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+
+                // if (isPlaying)
+                //   Positioned(
+                //     left: 8,
+                //     top: 8,
+                //     child: Container(
+                //       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                //       decoration: BoxDecoration(
+                //         color: Colors.black.withValues(alpha: 0.65),
+                //         borderRadius: BorderRadius.circular(6),
+                //         border: Border.all(color: colorScheme.primary.withValues(alpha: 0.5)),
+                //       ),
+                //       child: Row(
+                //         mainAxisSize: MainAxisSize.min,
+                //         children: [
+                //           Icon(Icons.play_arrow_rounded, size: 12, color: colorScheme.primary),
+                //           const SizedBox(width: 4),
+                //           Text(
+                //             '播放中',
+                //             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: colorScheme.primary),
+                //           ),
+                //         ],
+                //       ),
+                //     ),
+                //   ),
               ],
             ),
           );
@@ -296,7 +308,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           Text(
             '学习数据',
-            style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeBase), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
           ),
           SizedBox(height: AppSpacing.md),
           Row(
@@ -304,14 +316,17 @@ class _HomePageState extends ConsumerState<HomePage> {
               return Expanded(
                 child: Column(
                   children: [
-                    Icon(item.icon, size: ResponsiveSize.icon(context), color: item.color),
+                    Icon(item.icon, size: 22.w, color: item.color),
                     SizedBox(height: 4),
                     Text(
                       item.value,
-                      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                     ),
                     SizedBox(height: 2),
-                    Text(item.label, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 11), color: colorScheme.onSurfaceVariant)),
+                    Text(
+                      item.label,
+                      style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+                    ),
                   ],
                 ),
               );

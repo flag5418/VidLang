@@ -45,6 +45,8 @@ class AuthService {
 
   String? get currentEmail => currentUser?.email;
 
+  // ==================== Supabase 认证 ====================
+
   Future<void> syncCurrentSessionToLocal() async {
     await _syncSupabaseSessionToLocal(setAsCurrent: true);
   }
@@ -67,14 +69,9 @@ class AuthService {
   }
 
   /// 邮箱注册 —— 发送验证码到邮箱
-  ///
-  /// 注意：需要在 Supabase Dashboard → Authentication → Email Templates
-  /// 中将 Confirm signup 模板里的 {{ .ConfirmationURL }} 改为 {{ .Token }}，
-  /// 这样用户收到的邮件里就会是一个 6 位数字验证码。
   Future<void> signUpWithEmail({required String email, required String password}) async {
     try {
       final response = await _client.auth.signUp(email: email.trim().toLowerCase(), password: password);
-
       if (response.user == null) {
         throw AuthException('注册请求失败，请稍后重试');
       }
@@ -129,7 +126,40 @@ class AuthService {
     }
   }
 
-  /// 登出
+  /// Supabase 用户修改密码（调用 Supabase API）
+  Future<void> changeSupabasePassword({required String newPassword}) async {
+    try {
+      await _client.auth.updateUser(sb.UserAttributes(password: newPassword));
+      // 更新安全存储中的密码
+      final credential = await _loadSupabaseCredential();
+      if (credential != null) {
+        await _saveSupabaseCredential(email: credential.email, password: newPassword);
+      }
+      // 更新本地用户表中的密码哈希
+      final existingSupabaseAdmin = await BaseEntityExtension.findByCondition<local.User>(
+        () => local.User(),
+        where: 'auth_provider = ? AND is_deleted = 0',
+        whereArgs: ['supabase'],
+        limit: 1,
+      );
+      if (existingSupabaseAdmin.isNotEmpty) {
+        final user = existingSupabaseAdmin.first;
+        user.password = _hashPassword(newPassword);
+        await DatabaseService.update(user);
+        if (AppConfig.currentUser?.code == user.code) {
+          AppConfig.currentUser = user;
+        }
+      }
+    } on sb.AuthApiException catch (e) {
+      throw AuthException(_mapSupabaseError(e.message));
+    } on SocketException {
+      throw AuthException('网络异常，请检查网络后重试');
+    } catch (e) {
+      throw AuthException('修改密码失败: $e');
+    }
+  }
+
+  /// Supabase 完全登出（清除安全存储 + 本地当前用户）
   Future<void> signOut() async {
     await _client.auth.signOut();
     await _secureStorage.delete(key: _kSupabaseCredBoxV1);
@@ -140,8 +170,161 @@ class AuthService {
     AppConfig.currentUser = null;
   }
 
+  // ==================== 本地用户认证 ====================
+
+  /// 本地用户登录（用户名 + 密码）
+  ///
+  /// [username]: 本地用户名（不能是邮箱格式）
+  /// [password]: 明文密码
+  Future<local.User> signInLocal({required String username, required String password}) async {
+    final users = await BaseEntityExtension.findByCondition<local.User>(
+      () => local.User(),
+      where: 'username = ? AND auth_provider = ? AND is_deleted = 0',
+      whereArgs: [username.trim(), 'local'],
+      limit: 1,
+    );
+
+    if (users.isEmpty) {
+      throw AuthException('用户不存在');
+    }
+
+    final user = users.first;
+    final hashedInput = _hashPassword(password);
+
+    if (user.password != hashedInput) {
+      throw AuthException('密码错误');
+    }
+
+    // 设置当前用户
+    await DatabaseService.setCurrentUserCode(user.code);
+    AppConfig.currentUser = user;
+    return user;
+  }
+
+  /// 创建本地子用户（由 Supabase 管理员操作）
+  ///
+  /// [username]: 用户名（不能是邮箱格式，不能重复）
+  /// [password]: 明文密码
+  /// [nickname]: 昵称
+  Future<local.User> createLocalUser({
+    required String username,
+    required String password,
+    String? nickname,
+  }) async {
+    // 校验用户名不能是邮箱格式
+    if (_isValidEmail(username)) {
+      throw AuthException('本地用户名不能使用邮箱格式');
+    }
+
+    // 校验用户名唯一性
+    final existing = await BaseEntityExtension.findByCondition<local.User>(
+      () => local.User(),
+      where: 'username = ? AND is_deleted = 0',
+      whereArgs: [username.trim()],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      throw AuthException('用户名已存在');
+    }
+
+    final user = local.User(
+      username: username.trim(),
+      password: _hashPassword(password),
+      nickname: (nickname != null && nickname.trim().isNotEmpty) ? nickname.trim() : username.trim(),
+      role: 'user',
+      authProvider: 'local',
+      isPrimary: false,
+    );
+    await DatabaseService.insert(user);
+    return user;
+  }
+
+  /// 本地用户修改密码
+  ///
+  /// [userCode]: 用户 code
+  /// [oldPassword]: 旧密码（用于验证）
+  /// [newPassword]: 新密码
+  Future<void> changeLocalPassword({
+    required String userCode,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final user = await BaseEntityExtension.findByCode<local.User>(userCode, () => local.User());
+    if (user == null) {
+      throw AuthException('用户不存在');
+    }
+
+    // 验证旧密码
+    final hashedOld = _hashPassword(oldPassword);
+    if (user.password != hashedOld) {
+      throw AuthException('旧密码错误');
+    }
+
+    user.password = _hashPassword(newPassword);
+    await DatabaseService.update(user);
+
+    // 如果修改的是当前用户，更新内存
+    if (AppConfig.currentUser?.code == userCode) {
+      AppConfig.currentUser = user;
+    }
+  }
+
+  /// 切换到指定本地用户
+  Future<void> switchToLocalUser({required String userCode}) async {
+    final user = await BaseEntityExtension.findByCode<local.User>(userCode, () => local.User());
+    if (user == null) {
+      throw AuthException('用户不存在');
+    }
+    await DatabaseService.setCurrentUserCode(user.code);
+    AppConfig.currentUser = user;
+  }
+
+  /// 退出当前用户（不删除用户数据，仅清除当前会话）
+  Future<void> logoutCurrentUser() async {
+    final currentUser = AppConfig.currentUser;
+    if (currentUser != null && currentUser.authProvider == 'supabase') {
+      // Supabase 用户退出：清除 Supabase 会话 + 安全存储
+      await signOut();
+    } else {
+      // 本地用户退出：仅清除当前用户标记
+      await DatabaseService.clearCurrentUser();
+      AppConfig.currentUser = null;
+    }
+  }
+
+  /// 获取所有本地用户列表（用于用户管理页面）
+  Future<List<local.User>> getAllUsers() async {
+    return await BaseEntityExtension.findByCondition<local.User>(
+      () => local.User(),
+      where: 'is_deleted = 0',
+      orderBy: 'created_at ASC',
+    );
+  }
+
+  /// 删除本地子用户
+  Future<void> deleteLocalUser({required String userCode}) async {
+    final user = await BaseEntityExtension.findByCode<local.User>(userCode, () => local.User());
+    if (user == null) return;
+    if (user.authProvider == 'supabase') {
+      throw AuthException('不能删除主账号');
+    }
+    // 如果删除的是当前用户，先退出
+    final currentUserCode = await DatabaseService.getCurrentUserCode();
+    if (currentUserCode == userCode) {
+      await DatabaseService.clearCurrentUser();
+      AppConfig.currentUser = null;
+    }
+    await DatabaseService.delete(user);
+  }
+
+  // ==================== 内部工具方法 ====================
+
   String _hashPassword(String password) {
     return sha256.convert(utf8.encode(password)).toString();
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
   }
 
   Future<void> _saveSupabaseCredential({required String email, required String password}) async {
@@ -272,6 +455,9 @@ class AuthService {
     }
     if (lower.contains('token is invalid')) {
       return '验证码错误，请检查后重新输入';
+    }
+    if (lower.contains('password') && lower.contains('weak')) {
+      return '密码强度不够，请使用更复杂的密码';
     }
     return message;
   }
