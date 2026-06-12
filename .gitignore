@@ -36,3 +36,6 @@ web/firebase-messaging-sw.js
 # Env
 .env
 .env.local
+
+# Supabase CLI local traces / telemetry
+.supabase_cli/

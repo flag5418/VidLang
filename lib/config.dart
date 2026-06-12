@@ -37,17 +37,13 @@ class AppConfig {
   /// 阿里云 TTS API 地址
   static const String aliTtsBaseUrl = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
 
-  /// 阿里云 TTS 默认模型
-  static const String aliTtsModel = 'qwen-tts-vc-custom-voice-20260302151023899-2d6b';
+  /// 阿里云 TTS 默认模型（千问3 TTS Flash，非流式合成）
+  static const String aliTtsModel = 'qwen3-tts-flash';
 
-  /// 阿里云 TTS 备用模型列表（循环切换）
-  static const List<String> aliTtsModelList = [
-    'qwen-tts-vc-custom-voice-20260302151023899-2d6b',
-    'qwen-tts-vc-custom-voice-20260302153008560-8ae1',
-    'qwen-tts-vc-custom-voice-20260302153319489-b008',
-  ];
+  /// 阿里云 TTS 备用模型列表
+  static const List<String> aliTtsModelList = ['qwen3-tts-flash'];
 
-  /// 默认音色
+  /// 默认音色（qwen3-tts-flash 支持: Cherry, Aiden, Stella, Bella 等）
   static const String aliTtsDefaultVoice = 'Aiden';
 
   /// TTS 采样率

@@ -25,24 +25,19 @@ class AppColors {
 
   // ─── 强调色（日落渐变：珊瑚红 → 暖橙） ────
   /// 主色：珊瑚红
-  static const Color primary = Color(0xFFFF6B6B);
+  static const Color primary = Color(0xFF4284FC);
+
   /// 辅色/渐变终点：暖橙
   static const Color secondary = Color(0xFFFF8E53);
   static const Color primaryContainer = Color(0xFF552020);
   static const Color onPrimary = Color(0xFFFFFFFF);
 
   // ─── 日落渐变（用于按钮、进度条等强调元素）────
-  static const LinearGradient sunsetGradient = LinearGradient(
-    colors: [primary, secondary],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
+  static const LinearGradient sunsetGradient = LinearGradient(colors: [primary, secondary], begin: Alignment.centerLeft, end: Alignment.centerRight);
 
   /// 用日落渐变装饰的 BoxDecoration（圆角按钮/胶囊）
-  static BoxDecoration sunsetBoxDecoration({double radius = 20}) => BoxDecoration(
-    gradient: sunsetGradient,
-    borderRadius: BorderRadius.circular(radius),
-  );
+  static BoxDecoration sunsetBoxDecoration({double radius = 20}) =>
+      BoxDecoration(gradient: sunsetGradient, borderRadius: BorderRadius.circular(radius));
 
   // ─── 语义色 ────────────────────────────────────
   static const Color error = Color(0xFFFF453A);
@@ -70,7 +65,7 @@ class AppColors {
 
   // ─── 图标/导航 ──────────────────────────────────
   static const Color iconDefault = Color(0xFF8A8A8A);
-  static const Color iconActive = Color(0xFFFF6B6B);
+  static const Color iconActive = Color(0xFF4284FC);
 
   // ─── ColorScheme（供 TDesign / Material3 兼容） ─────
   static ColorScheme get darkColorScheme => const ColorScheme(

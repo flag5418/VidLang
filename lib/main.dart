@@ -40,6 +40,7 @@ import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
 
@@ -115,6 +116,9 @@ void main() async {
     logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
   }
 
+  // 初始化设备类型（iOS 通过原生 UIDevice 精确判断）
+  await DeviceUtils.init();
+
   // ============================================================
   // 运行应用
   // ============================================================
@@ -147,7 +151,7 @@ class VidLangApp extends StatelessWidget {
     // - height: 812 (iPhone标准高度)
     // - allowFontScaling: true (允许字体根据系统设置缩放)
     return ScreenUtilInit(
-      designSize: const Size(375, 812), // 设计稿标准尺寸（iPhone）
+      designSize: const Size(393, 852), // 设计稿标准尺寸（iPhone）
       builder: (context, child) {
         return MaterialApp(
           // 应用名称
@@ -167,6 +171,11 @@ class VidLangApp extends StatelessWidget {
           themeMode: ThemeMode.dark,
           // 是否显示调试标记
           debugShowCheckedModeBanner: false,
+
+          // 路由注册
+          routes: {
+            '/login': (_) => const LoginPage(),
+          },
 
           // 应用主页
           home: const _AppEntry(),

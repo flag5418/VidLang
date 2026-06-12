@@ -1,9 +1,10 @@
 library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/utils/responsive_size.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
 import 'package:vidlang/views/home/home_page.dart';
 import 'package:vidlang/views/profile/profile_page.dart';
@@ -24,18 +25,10 @@ class MainPage extends ConsumerWidget {
     final currentIndex = ref.watch(navigationIndexProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
-    final pages = [
-      const HomePage(),
-      const FileListPage(),
-      const WordBookPage(),
-      const ProfilePage(),
-    ];
+    final pages = [const HomePage(), const FileListPage(), const WordBookPage(), const ProfilePage()];
 
     return Scaffold(
-      body: IndexedStack(
-        index: currentIndex,
-        children: pages,
-      ),
+      body: IndexedStack(index: currentIndex, children: pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2))),
@@ -49,23 +42,14 @@ class MainPage extends ConsumerWidget {
           backgroundColor: colorScheme.surface,
           selectedItemColor: AppColors.iconActive,
           unselectedItemColor: AppColors.iconDefault,
-          selectedFontSize: ResponsiveSize.navFontSize(context),
-          unselectedFontSize: ResponsiveSize.navFontSize(context),
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          selectedLabelStyle: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: TextStyle(fontSize: 10.sp),
           type: BottomNavigationBarType.fixed,
           items: navigationItems.map((item) {
             final isActive = currentIndex == navigationItems.indexOf(item);
             return BottomNavigationBarItem(
-              icon: Icon(
-                item.icon,
-                color: isActive ? AppColors.iconActive : AppColors.iconDefault,
-                size: ResponsiveSize.navIcon(context),
-              ),
-              activeIcon: Icon(
-                item.activeIcon,
-                color: AppColors.iconActive,
-                size: ResponsiveSize.navIcon(context),
-              ),
+              icon: Icon(item.icon, color: isActive ? AppColors.iconActive : AppColors.iconDefault, size: 24.w),
+              activeIcon: Icon(item.activeIcon, color: AppColors.iconActive, size: 24.w),
               label: item.label,
             );
           }).toList(),

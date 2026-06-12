@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/views/main/main_page.dart';
-import 'package:vidlang/utils/responsive_size.dart';
 
 enum _AuthMode { login, register, verifyOtp }
+enum _LoginTab { supabase, local }
 
 class LoginPage extends StatefulWidget {
   final bool requireSupabaseReauth;
@@ -22,14 +23,21 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   _AuthMode _mode = _AuthMode.login;
+  _LoginTab _tab = _LoginTab.supabase;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
+  // 本地用户登录
+  final _localUsernameController = TextEditingController();
+  final _localPasswordController = TextEditingController();
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _otpFocus = FocusNode();
+  final _localUsernameFocus = FocusNode();
+  final _localPasswordFocus = FocusNode();
   bool _loading = false;
   bool _obscurePassword = true;
+  bool _obscureLocalPassword = true;
   String? _error;
   Timer? _countdownTimer;
   int _countdownSeconds = 0;
@@ -53,9 +61,13 @@ class _LoginPageState extends State<LoginPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _otpController.dispose();
+    _localUsernameController.dispose();
+    _localPasswordController.dispose();
     _emailFocus.dispose();
     _passwordFocus.dispose();
     _otpFocus.dispose();
+    _localUsernameFocus.dispose();
+    _localPasswordFocus.dispose();
     _countdownTimer?.cancel();
     super.dispose();
   }
@@ -95,10 +107,17 @@ class _LoginPageState extends State<LoginPage> {
                 _buildTitle(),
                 const SizedBox(height: 8),
                 _buildSubtitle(),
-                const SizedBox(height: 32),
-                if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else _buildAuthForm(),
                 const SizedBox(height: 24),
-                if (!widget.requireSupabaseReauth) _buildToggleMode(),
+                if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
+                const SizedBox(height: 16),
+                if (_mode == _AuthMode.verifyOtp)
+                  _buildOtpForm()
+                else if (_tab == _LoginTab.local)
+                  _buildLocalForm()
+                else
+                  _buildAuthForm(),
+                const SizedBox(height: 24),
+                if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
               ],
             ),
           ),
@@ -109,31 +128,45 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildLogo() {
     return Container(
-      width: ResponsiveSize.toolbarBtn(context) * 1.8,
-      height: ResponsiveSize.toolbarBtn(context) * 1.8,
+      width: 40.w * 1.8,
+      height: 40.w * 1.8,
       decoration: BoxDecoration(color: AppColors.primary.withAlpha(30), borderRadius: BorderRadius.circular(20)),
-      child: Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: ResponsiveSize.icon(context) * 1.8),
+      child: Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: 22.w * 1.8),
     );
   }
 
   Widget _buildTitle() {
+    if (_tab == _LoginTab.local && _mode != _AuthMode.verifyOtp) {
+      return Text(
+        '本地登录',
+        style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: AppColors.onSurface),
+        textAlign: TextAlign.center,
+      );
+    }
     final titles = widget.requireSupabaseReauth
         ? {_AuthMode.login: '验证主账号', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'}
         : {_AuthMode.login: '欢迎回来', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'};
     return Text(
       titles[_mode]!,
-      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 26), fontWeight: FontWeight.bold, color: AppColors.onSurface),
+      style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: AppColors.onSurface),
       textAlign: TextAlign.center,
     );
   }
 
   Widget _buildSubtitle() {
+    if (_tab == _LoginTab.local && _mode != _AuthMode.verifyOtp) {
+      return Text(
+        '使用本地账号登录',
+        style: TextStyle(fontSize: 14.sp, color: AppColors.onSurfaceVariant),
+        textAlign: TextAlign.center,
+      );
+    }
     final subtitles = widget.requireSupabaseReauth
         ? {_AuthMode.login: '请输入主账号密码以继续使用', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'}
         : {_AuthMode.login: '登录你的 VidLang 账号', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'};
     return Text(
       subtitles[_mode]!,
-      style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: AppColors.onSurfaceVariant),
+      style: TextStyle(fontSize: 14.sp, color: AppColors.onSurfaceVariant),
       textAlign: TextAlign.center,
     );
   }
@@ -154,7 +187,7 @@ class _LoginPageState extends State<LoginPage> {
           GestureDetector(
             onTap: () {},
             child: Center(
-              child: Text('忘记密码？', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceDisabled)),
+              child: Text('忘记密码？', style: TextStyle(fontSize: 13.sp, color: AppColors.onSurfaceDisabled)),
             ),
           ),
       ],
@@ -175,14 +208,14 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Text(
               _countdownSeconds > 0 ? '${_countdownSeconds}s 后可重新发送' : '没收到验证码？',
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceDisabled),
+              style: TextStyle(fontSize: 13.sp, color: AppColors.onSurfaceDisabled),
             ),
             GestureDetector(
               onTap: _countdownSeconds == 0 && !_loading ? _resendOtp : null,
               child: Text(
                 ' 重新发送',
                 style: TextStyle(
-                  fontSize: ResponsiveSize.fontSize(context, 13),
+                  fontSize: 13.sp,
                   color: _countdownSeconds == 0 ? AppColors.primary : AppColors.onSurfaceDisabled,
                   fontWeight: FontWeight.w600,
                 ),
@@ -194,7 +227,7 @@ class _LoginPageState extends State<LoginPage> {
         GestureDetector(
           onTap: () => setState(() => _mode = _AuthMode.register),
           child: Center(
-            child: Text('返回修改邮箱', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceVariant)),
+            child: Text('返回修改邮箱', style: TextStyle(fontSize: 13.sp, color: AppColors.onSurfaceVariant)),
           ),
         ),
       ],
@@ -207,7 +240,7 @@ class _LoginPageState extends State<LoginPage> {
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      style: TextStyle(color: AppColors.onSurface, fontSize: ResponsiveSize.fontSize(context, 15)),
+      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('邮箱地址', Icons.email_outlined),
       readOnly: widget.requireSupabaseReauth && widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty,
       onSubmitted: (_) => _passwordFocus.requestFocus(),
@@ -220,10 +253,10 @@ class _LoginPageState extends State<LoginPage> {
       focusNode: _passwordFocus,
       obscureText: _obscurePassword,
       textInputAction: _mode == _AuthMode.login ? TextInputAction.done : TextInputAction.next,
-      style: TextStyle(color: AppColors.onSurface, fontSize: ResponsiveSize.fontSize(context, 15)),
+      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('密码', Icons.lock_outlined).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: ResponsiveSize.fontSize(context, 20)),
+          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: 20.sp),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
       ),
@@ -237,7 +270,7 @@ class _LoginPageState extends State<LoginPage> {
       focusNode: _otpFocus,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
-      style: TextStyle(color: AppColors.onSurface, fontSize: ResponsiveSize.fontSize(context, 22), letterSpacing: 8, fontWeight: FontWeight.w600),
+      style: TextStyle(color: AppColors.onSurface, fontSize: 22.sp, letterSpacing: 8, fontWeight: FontWeight.w600),
       textAlign: TextAlign.center,
       decoration: _inputDecoration('请输入验证码', null).copyWith(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 16)),
       onSubmitted: (_) => _verifyOtp(),
@@ -247,8 +280,8 @@ class _LoginPageState extends State<LoginPage> {
   InputDecoration _inputDecoration(String hint, IconData? icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: ResponsiveSize.fontSize(context, 14)),
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.onSurfaceDisabled, size: ResponsiveSize.fontSize(context, 20)) : null,
+      hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: 14.sp),
+      prefixIcon: icon != null ? Icon(icon, color: AppColors.onSurfaceDisabled, size: 20.sp) : null,
       filled: true,
       fillColor: AppColors.surfaceElevated,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -267,7 +300,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
     return SizedBox(
-      height: ResponsiveSize.pillHeight(context) * 1.47,
+      height: 34.h * 1.47,
       child: ElevatedButton(
         onPressed: _loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
@@ -280,7 +313,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: _loading
             ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary))
-            : Text(label, style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 16), fontWeight: FontWeight.w600)),
+            : Text(label, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -295,10 +328,10 @@ class _LoginPageState extends State<LoginPage> {
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: AppColors.error, size: ResponsiveSize.fontSize(context, 18)),
+          Icon(Icons.error_outline, color: AppColors.error, size: 18.sp),
           SizedBox(width: 8),
           Expanded(
-            child: Text(_error!, style: TextStyle(color: AppColors.error, fontSize: ResponsiveSize.fontSize(context, 13))),
+            child: Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 13.sp)),
           ),
         ],
       ),
@@ -307,10 +340,12 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildToggleMode() {
     final isLogin = _mode == _AuthMode.login;
+    // 本地用户模式下不显示注册/登录切换
+    if (_tab == _LoginTab.local) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(isLogin ? '没有账号？' : '已有账号？', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: AppColors.onSurfaceDisabled)),
+        Text(isLogin ? '没有账号？' : '已有账号？', style: TextStyle(fontSize: 14.sp, color: AppColors.onSurfaceDisabled)),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -320,12 +355,137 @@ class _LoginPageState extends State<LoginPage> {
           },
           child: Text(
             isLogin ? ' 立即注册' : ' 去登录',
-            style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: AppColors.primary, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 14.sp, color: AppColors.primary, fontWeight: FontWeight.w600),
           ),
         ),
       ],
     );
   }
+
+  // ==================== Tab 切换 ====================
+
+  Widget _buildTabSwitcher() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          _tabButton('账号登录', _LoginTab.supabase),
+          _tabButton('本地登录', _LoginTab.local),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton(String label, _LoginTab tab) {
+    final isActive = _tab == tab;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _tab = tab;
+            _error = null;
+            _mode = _AuthMode.login;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: isActive ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==================== 本地用户登录表单 ====================
+
+  Widget _buildLocalForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildLocalUsernameField(),
+        const SizedBox(height: 16),
+        _buildLocalPasswordField(),
+        if (_error != null) ...[const SizedBox(height: 12), _buildError()],
+        const SizedBox(height: 24),
+        _buildPrimaryButton('登录', _submitLocalLogin),
+      ],
+    );
+  }
+
+  Widget _buildLocalUsernameField() {
+    return TextField(
+      controller: _localUsernameController,
+      focusNode: _localUsernameFocus,
+      textInputAction: TextInputAction.next,
+      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
+      decoration: _inputDecoration('用户名', Icons.person_outlined),
+      onSubmitted: (_) => _localPasswordFocus.requestFocus(),
+    );
+  }
+
+  Widget _buildLocalPasswordField() {
+    return TextField(
+      controller: _localPasswordController,
+      focusNode: _localPasswordFocus,
+      obscureText: _obscureLocalPassword,
+      textInputAction: TextInputAction.done,
+      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
+      decoration: _inputDecoration('密码', Icons.lock_outlined).copyWith(
+        suffixIcon: IconButton(
+          icon: Icon(_obscureLocalPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: 20.sp),
+          onPressed: () => setState(() => _obscureLocalPassword = !_obscureLocalPassword),
+        ),
+      ),
+      onSubmitted: (_) => _submitLocalLogin(),
+    );
+  }
+
+  Future<void> _submitLocalLogin() async {
+    final username = _localUsernameController.text.trim();
+    final password = _localPasswordController.text;
+
+    if (username.isEmpty) {
+      setState(() => _error = '请输入用户名');
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() => _error = '请输入密码');
+      return;
+    }
+
+    setState(() {
+      _error = null;
+      _loading = true;
+    });
+
+    try {
+      await AuthService.instance.signInLocal(username: username, password: password);
+      if (!mounted) return;
+      _navigateToMain();
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // ==================== Supabase 认证 ====================
 
   Future<void> _submitAuth() async {
     final email = _emailController.text.trim();

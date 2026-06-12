@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/components/folder_card.dart';
 import 'package:vidlang/models/base_entity.dart';
@@ -17,7 +18,7 @@ import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
-import 'package:vidlang/utils/responsive_size.dart';
+import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 
@@ -69,16 +70,16 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: EdgeInsets.all(AppSpacing.md.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 顶部标题 + 按钮
               _buildHeader(colorScheme),
-              SizedBox(height: AppSpacing.sm),
+              SizedBox(height: AppSpacing.sm.h),
               // 类型切换 + 搜索
               _buildTypeBar(colorScheme),
-              SizedBox(height: AppSpacing.md),
+              SizedBox(height: AppSpacing.md.h),
 
               // 文件夹列表
               Expanded(
@@ -106,47 +107,47 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
 
   Widget _buildHeader(ColorScheme colorScheme) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '资源',
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeLarge), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: AppTypography.fontSizeLarge.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
-            SizedBox(width: AppSpacing.sm),
+            SizedBox(width: AppSpacing.sm.w),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10.r)),
               child: Text(
                 '${_filteredFolders(ref.watch(fileProvider).folders).length}',
-                style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), fontWeight: FontWeight.w600, color: colorScheme.primary),
+                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
               ),
             ),
           ],
         ),
+
+        Spacer(),
         Row(
-          spacing: AppSpacing.space2,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // WiFi 传输
             GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage())),
               child: Container(
-                width: ResponsiveSize.toolbarBtn(context),
-                height: ResponsiveSize.toolbarBtn(context),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: AppColors.surfaceElevated),
-                child: AppIcons.getIcon(Icons.wifi_tethering, color: colorScheme.onSurfaceVariant, size: ResponsiveSize.icon(context)),
+                width: 40.r,
+                height: 40.r,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(40.r), color: AppColors.surfaceElevated),
+                child: Icon(Icons.wifi_tethering, size: 18.sp, color: colorScheme.onSurfaceVariant),
               ),
             ),
-
-            // 添加按钮
+            SizedBox(width: AppSpacing.space2.w),
             GestureDetector(
               onTap: _showAddMenu,
               child: Container(
-                width: ResponsiveSize.toolbarBtn(context),
-                height: ResponsiveSize.toolbarBtn(context),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: colorScheme.primary),
-                child: AppIcons.getIcon(AppIcons.add, color: colorScheme.onPrimary, size: ResponsiveSize.icon(context)),
+                width: 40.r,
+                height: 40.r,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(40.r), color: colorScheme.primary),
+                child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
               ),
             ),
           ],
@@ -159,12 +160,13 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
     final currentTab = _currentTab;
 
     return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: AppColors.surfaceElevated),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r), color: AppColors.surfaceElevated),
       child: Column(
+        spacing: 10.h,
         children: [
           // 类型切换
           Padding(
-            padding: const EdgeInsets.all(4),
+            padding: EdgeInsets.all(4.w),
             child: Row(
               children: List.generate(_resourceTypes.length, (index) {
                 final isSelected = index == currentTab;
@@ -187,7 +189,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
                           Text(
                             _resourceLabels[index],
                             style: TextStyle(
-                              fontSize: ResponsiveSize.fontSize(context, 13),
+                              fontSize: 13.sp,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                               color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
                             ),
@@ -206,18 +208,18 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             child: TextField(
               controller: _searchController,
               onChanged: (v) => setState(() => _searchQuery = v),
-              style: TextStyle(color: colorScheme.onSurface, fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeSmall)),
+              style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall.sp),
               decoration: InputDecoration(
                 hintText: '搜索${_resourceLabels[_currentTab]}...',
-                hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: ResponsiveSize.fontSize(context, AppTypography.fontSizeSmall)),
-                prefixIcon: AppIcons.getIcon(AppIcons.search, size: ResponsiveSize.fontSize(context, 18), color: AppColors.onSurfaceDisabled),
+                hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: AppTypography.fontSizeSmall.sp),
+                prefixIcon: Icon(AppIcons.search, size: 18.sp, color: AppColors.onSurfaceDisabled),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? GestureDetector(
                         onTap: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
                         },
-                        child: Icon(Icons.clear, size: ResponsiveSize.fontSize(context, 18), color: AppColors.onSurfaceDisabled),
+                        child: Icon(Icons.clear, size: 18.sp, color: AppColors.onSurfaceDisabled),
                       )
                     : null,
                 filled: true,
@@ -260,26 +262,34 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(isSearch ? Icons.search_off : Icons.folder_outlined, size: ResponsiveSize.icon(context) * 2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+          Icon(isSearch ? Icons.search_off : Icons.folder_outlined, size: 22.w * 2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
           SizedBox(height: AppSpacing.md),
-          Text(isSearch ? '没有匹配的文件夹' : '暂无${_resourceLabels[_currentTab]}', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 14), color: colorScheme.onSurfaceVariant)),
-          if (!isSearch) ...[SizedBox(height: AppSpacing.sm), Text('点击右上角 + 创建第一个文件夹', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: colorScheme.outline))],
+          Text(
+            isSearch ? '没有匹配的文件夹' : '暂无${_resourceLabels[_currentTab]}',
+            style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
+          ),
+          if (!isSearch) ...[
+            SizedBox(height: AppSpacing.sm),
+            Text(
+              '点击右上角 + 创建第一个文件夹',
+              style: TextStyle(fontSize: 13.sp, color: colorScheme.outline),
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildFolderGrid(List<VideoFolder> folders) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = screenWidth > 600 ? 4 : (screenWidth > 400 ? 3 : 2);
-    final aspectRatio = crossAxisCount == 2 ? 1.3 : (crossAxisCount == 3 ? 1.15 : 1.0);
+    final crossAxisCount = DeviceUtils.getGridColumns(context);
+    final gridSpacing = DeviceUtils.getGridSpacing(context);
 
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: aspectRatio,
+        crossAxisSpacing: gridSpacing,
+        mainAxisSpacing: gridSpacing,
+        childAspectRatio: crossAxisCount == 2 ? 1.3 : 1.15,
       ),
       itemCount: folders.length + 1,
       itemBuilder: (context, index) {
@@ -307,18 +317,18 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 44.r,
+              height: 44.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.onSurfaceDisabled, width: 2),
               ),
-              child: Icon(Icons.add, size: ResponsiveSize.icon(context), color: AppColors.onSurfaceDisabled),
+              child: Icon(Icons.add, size: 18.sp, color: AppColors.onSurfaceDisabled),
             ),
             SizedBox(height: AppSpacing.sm),
             Text(
               '新建',
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 13), color: AppColors.onSurfaceDisabled, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 10.sp, color: AppColors.onSurfaceDisabled, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -411,7 +421,10 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
             ListTile(
               leading: Icon(Icons.quiz_outlined, color: Colors.green),
               title: Text('单元测试', style: TextStyle(color: colorScheme.onSurface)),
-              subtitle: Text('测试文件夹内所有资源', style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 12), color: colorScheme.onSurfaceVariant)),
+              subtitle: Text(
+                '测试文件夹内所有资源',
+                style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 _showUnitTest(folder);

@@ -9,10 +9,10 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/responsive_size.dart';
 
 class FolderCard extends StatelessWidget {
   final VideoFolder folder;
@@ -26,27 +26,31 @@ class FolderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: AppColors.cardThumbnailBg,
-          border: isSelected ? Border.all(color: colorScheme.primary, width: 2.5) : null,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(isSelected ? 7.5 : 10),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _buildThumbnail(context, colorScheme),
-              _buildBottomOverlay(context, colorScheme),
-              _buildBadge(context, colorScheme),
-            ],
+    return Builder(
+      builder: (context) {
+        var maxWidth = MediaQuery.of(context).size.width;
+        var maxHeight = MediaQuery.of(context).size.height;
+        return GestureDetector(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Container(
+            width: maxWidth,
+            height: maxHeight,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: AppColors.cardThumbnailBg,
+              border: isSelected ? Border.all(color: colorScheme.primary, width: 2.5) : null,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(isSelected ? 7.5 : 10),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [_buildThumbnail(context, colorScheme), _buildBottomOverlay(context, colorScheme), _buildBadge(context, colorScheme)],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -56,11 +60,7 @@ class FolderCard extends StatelessWidget {
       builder: (context, snapshot) {
         final path = snapshot.data;
         if (path != null && File(path).existsSync()) {
-          return Image.file(
-            File(path),
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _placeholder(context, colorScheme),
-          );
+          return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(context, colorScheme));
         }
         return _placeholder(context, colorScheme);
       },
@@ -71,13 +71,13 @@ class FolderCard extends StatelessWidget {
     return Container(
       color: AppColors.cardThumbnailBg,
       child: Center(
-        child: Icon(Icons.play_circle_outline, size: ResponsiveSize.icon(context) * 1.5, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+        child: Icon(Icons.play_circle_outline, size: 22.w * 1.5, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
       ),
     );
   }
 
   Widget _buildBottomOverlay(BuildContext context, ColorScheme colorScheme) {
-    final isTablet = ResponsiveSize.isTablet(context);
+    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     return Positioned(
       bottom: 0,
       left: 0,
@@ -93,12 +93,7 @@ class FolderCard extends StatelessWidget {
         ),
         child: Text(
           folder.name,
-          style: TextStyle(
-            fontSize: ResponsiveSize.fontSize(context, 12),
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 0.2,
-          ),
+          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.2),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -112,18 +107,15 @@ class FolderCard extends StatelessWidget {
       right: 8,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(4),
-        ),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(4)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, size: ResponsiveSize.fontSize(context, 10), color: colorScheme.primary),
+            Icon(Icons.check_circle, size: 10.sp, color: colorScheme.primary),
             const SizedBox(width: 4),
             Text(
               '${folder.completedCount}/${folder.videoCount}',
-              style: TextStyle(fontSize: ResponsiveSize.fontSize(context, 11), fontWeight: FontWeight.w600, color: Colors.white),
+              style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),
