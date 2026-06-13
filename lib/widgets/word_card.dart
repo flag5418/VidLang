@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_card_data.dart';
+import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/widgets/recharge_dialog.dart';
@@ -13,18 +15,51 @@ class WordCard extends StatefulWidget {
   final VoidCallback? onGoRecharge;
   final VoidCallback? onSpeak;
 
-  const WordCard({super.key, required this.data, required this.onClose, this.compact = false, this.onGoRecharge, this.onSpeak});
+  /// 收藏回调，返回是否成功
+  final Future<bool> Function()? onSaveWord;
+
+  /// 是否为可收藏的单个单词
+  final bool canSave;
+
+  /// 是否已收藏
+  final bool isSaved;
+
+  const WordCard({
+    super.key,
+    required this.data,
+    required this.onClose,
+    this.compact = false,
+    this.onGoRecharge,
+    this.onSpeak,
+    this.onSaveWord,
+    this.canSave = false,
+    this.isSaved = false,
+  });
 
   @override
   State<WordCard> createState() => _WordCardState();
 }
 
+extension WordBookWordCardMapper on WordBook {
+  WordCardData toWordCardData() {
+    return WordCardData(
+      word: word,
+      phonetic: phoneticUk ?? phoneticUs,
+      definitions: WordBookService.parseDefinitions(definitionsJson),
+      source: 'native',
+    );
+  }
+}
+
 class _WordCardState extends State<WordCard> {
   bool _rechargeShown = false;
+  bool _saving = false;
+  bool _saved = false;
 
   @override
   void initState() {
     super.initState();
+    _saved = widget.isSaved;
     // 余额不足时，延迟显示充值弹窗
     if (widget.data.isInsufficientBalance && !_rechargeShown) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -71,7 +106,10 @@ class _WordCardState extends State<WordCard> {
               if (!widget.compact && widget.data.examples.isNotEmpty) _buildExamples(context),
               if (widget.data.translation != null && widget.data.translation!.isNotEmpty) _buildTranslation(context),
               if (widget.data.costCny != null && widget.data.success) _buildCost(context),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              // 收藏按钮：仅单个单词可收藏
+              _buildSaveButton(context),
+              const SizedBox(height: 8),
               GestureDetector(
                 onTap: widget.onClose,
                 child: Container(
@@ -219,6 +257,83 @@ class _WordCardState extends State<WordCard> {
         widget.data.error!,
         style: TextStyle(color: Colors.redAccent, fontSize: 13),
         textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(BuildContext context) {
+    // 不可收藏（多词选择或查询失败）：不显示收藏按钮
+    if (!widget.canSave || !widget.data.success) {
+      return const SizedBox.shrink();
+    }
+
+    final isSaved = _saved;
+    final isSaving = _saving;
+
+    return GestureDetector(
+      onTap: isSaving || isSaved
+          ? null
+          : () async {
+              if (widget.onSaveWord == null) return;
+              setState(() => _saving = true);
+              try {
+                final ok = await widget.onSaveWord!();
+                if (!mounted) return;
+                setState(() {
+                  _saving = false;
+                  if (ok) _saved = true;
+                });
+                if (ok) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('已收藏「${widget.data.word}」'),
+                      duration: Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (_) {
+                if (mounted) setState(() => _saving = false);
+              }
+            },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSaved
+              ? AppColors.primary.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSaved ? AppColors.primary : Colors.white24,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSaving)
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+              )
+            else
+              Icon(
+                isSaved ? Icons.star_rounded : Icons.star_border_rounded,
+                size: 16,
+                color: isSaved ? AppColors.primary : Colors.white54,
+              ),
+            SizedBox(width: 6),
+            Text(
+              isSaving ? '收藏中...' : (isSaved ? '已收藏' : '收藏到生词本'),
+              style: TextStyle(
+                color: isSaved ? AppColors.primary : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSaved ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
