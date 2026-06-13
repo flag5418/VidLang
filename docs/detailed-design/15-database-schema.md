@@ -20,6 +20,8 @@ resource_folder (扩展 video_folder)
 
 study_record (扩展：支持 resource_type + resource_code)
 word_book (新增：跨来源单词本)
+word_tag (新增：单词标签)
+word_book_tag (新增：单词-标签关联)
 recording_record (新增：跟读录音记录)
 participle (保留，向后兼容)
 
@@ -311,7 +313,7 @@ class ArticleSentence extends BaseEntity {
 
 ### 3.4 word_book（单词本）
 
-替代/扩展 `participle`，支持跨来源收藏。
+替代/扩展 `participle`，支持跨来源收藏。两档记忆体系：learning（生词）/ mastered（已掌握）。
 
 ```dart
 class WordBook extends BaseEntity {
@@ -333,7 +335,10 @@ class WordBook extends BaseEntity {
   /// 上下文句子原文
   String? contextSentence;
 
-  /// DeepSeek 查询结果缓存（JSON）
+  /// 截图路径（视频/音频收藏时截取当前画面）
+  String? screenshotPath;
+
+  /// 词典查询结果缓存（JSON，含词性、释义、例句）
   String? definitionsJson;
 
   /// 英式音标
@@ -341,6 +346,12 @@ class WordBook extends BaseEntity {
 
   /// 美式音标
   String? phoneticUs;
+
+  /// 词形变化 JSON（比较级、最高级、名词形式等）
+  String? morphologyJson;
+
+  /// 助记方法（词根词缀拆解等）
+  String? mnemonic;
 
   /// 难度 1-5
   int difficulty;
@@ -357,15 +368,102 @@ class WordBook extends BaseEntity {
   /// 下次复习时间（间隔重复）
   DateTime? nextReviewAt;
 
-  /// 掌握程度：learning / reviewing / mastered
+  /// 掌握程度：'learning'（生词）/ 'mastered'（已掌握）
+  /// 两档制：认识→mastered，不认识→learning，可双向切换
   String masteryLevel;
+
+  /// 掌握时间（masteryLevel 变为 mastered 时记录）
+  DateTime? masteredAt;
 
   @override
   String get tableName => 'word_book';
 }
 ```
 
-### 3.5 recording_record（跟读录音记录）
+**状态流转：**
+```
+收藏单词 → masteryLevel = 'learning'
+点击认识 → masteryLevel = 'mastered'，记录 masteredAt
+已掌握点击不认识 → masteryLevel = 'learning'，清空 masteredAt
+已掌握点击删除 → isDeleted = true（软删除，不再显示）
+```
+
+**复习计数规则：**
+- 单词参与一次测试，累计一次 `reviewCount`
+- 同一场测试内同一单词多题只记一次复习
+- 单词答对时累计一次 `correctCount`
+- `lastReviewAt` 在测试完成后更新
+- `nextReviewAt` 首期仅用于推荐，不作为状态门槛
+
+### 3.5 word_tag（单词标签）
+
+```dart
+class WordTag extends BaseEntity {
+  /// 标签名称（建议 ≤ 10 字符，导航显示截断为 4 字符）
+  String name;
+
+  /// 排序索引
+  int orderIndex;
+
+  @override
+  String get tableName => 'word_tag';
+}
+```
+
+**SQL：**
+```sql
+CREATE TABLE IF NOT EXISTS word_tag (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL,
+  user_code TEXT,
+  name TEXT NOT NULL DEFAULT '',
+  order_index INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT,
+  updated_at TEXT,
+  deleted_at TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT,
+  updated_by TEXT,
+  deleted_by TEXT
+);
+```
+
+### 3.6 word_book_tag（单词-标签关联）
+
+多对多关联表：一个单词可挂多个标签，一个标签可包含多个单词。
+
+```dart
+class WordBookTag extends BaseEntity {
+  /// 单词本记录 code（关联 word_book.code）
+  String wordBookCode;
+
+  /// 标签 code（关联 word_tag.code）
+  String tagCode;
+
+  @override
+  String get tableName => 'word_book_tag';
+}
+```
+
+**SQL：**
+```sql
+CREATE TABLE IF NOT EXISTS word_book_tag (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL,
+  user_code TEXT,
+  word_book_code TEXT NOT NULL,
+  tag_code TEXT NOT NULL,
+  created_at TEXT,
+  updated_at TEXT,
+  deleted_at TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT,
+  updated_by TEXT,
+  deleted_by TEXT
+);
+```
+
+### 3.7 recording_record（跟读录音记录）
 
 ```dart
 class RecordingRecord extends BaseEntity {
@@ -428,7 +526,9 @@ class RecordingRecord extends BaseEntity {
 | `article` | **新增** | → `video_folder.code` | 文章主表 |
 | `article_chapter` | **新增** | → `article.code` | 文章章节 |
 | `article_sentence` | **新增**（FTS） | → `article.code` | 文章句子 |
-| `word_book` | **新增** | 跨表 | 单词本 |
+| `word_book` | **新增** | 跨表 | 单词本（两档：learning/mastered）|
+| `word_tag` | **新增** | — | 单词标签 |
+| `word_book_tag` | **新增** | → `word_book.code` + `word_tag.code` | 单词-标签多对多关联 |
 | `recording_record` | **新增** | 跨表 | 跟读录音 |
 | `study_record` | **修改** | → 跨表 | 学习记录 |
 | `participle` | **保留**（不动） | → `video_info.code` | 旧分词表（向后兼容） |
@@ -457,6 +557,8 @@ DatabaseService.registerEntities({
   'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表'),
   'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
   'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
+  'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
+  'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
   'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
 });
 ```
@@ -468,3 +570,84 @@ DatabaseService.registerEntities({
 **保持 `_databaseVersion = 1` 不变。**
 
 `DatabaseService._ensureTable` 在每次 `onOpen` 时自动检测缺表并创建。新增的列（`folder_type`、`type`）通过 `ALTER TABLE ADD COLUMN` 自动迁移。无需升级版本号。
+
+---
+
+## 七、Supabase 计费中心数据口径（新增）
+
+说明：本章节对应云端账单体系，不属于本地 SQLite 主表；其目标是支撑“计费明细”模块的统一消费展示。
+
+### 7.1 pricing_rule（价格表）
+
+职责：
+
+- 定义某个业务动作是否收费
+- 定义单价、状态、模型配置
+- 不直接承担用户账单展示
+
+建议规则：
+
+- `ai_test_plan`：默认免费（`price_cny = 0`）
+- `ai_definition`：默认免费
+- `ai_translate`：默认免费
+- `ai_translate_conversation`：默认免费
+- `ai_tts`：默认免费
+- `ai_conversation_question`：收费
+- `ai_conversation_answer`：收费
+- `st_pron_score`：收费
+
+### 7.2 usage_event（真实账单源头）
+
+`usage_event` 继续作为唯一的消费事件真相源头，但其 `meta` 字段必须补充资源绑定信息。
+
+#### 建议字段（meta JSON）
+
+```json
+{
+  "action_key": "ai_conversation",
+  "action_label": "AI 对话",
+  "resource_type": "video",
+  "resource_code": "video_xxx",
+  "resource_title": "Friends S01E01",
+  "folder_code": "folder_xxx",
+  "folder_title": "老友记",
+  "source_page": "conversation_page",
+  "action_name": "answer",
+  "is_chargeable": true
+}
+```
+
+#### 字段说明
+
+- `action_key`：用户侧一级分类键，按业务动作统计
+- `action_label`：用户侧一级分类名称
+- `resource_type`：`video` / `music` / `article` / `word_book`
+- `resource_code`：具体资源 code
+- `resource_title`：资源展示标题
+- `folder_code`：文件夹 code
+- `folder_title`：文件夹标题
+- `source_page`：触发页面，仅用于账单详情和排查
+- `action_name`：页面内具体动作，例如 `question` / `answer` / `tap_word`
+- `is_chargeable`：该次调用是否真实扣费
+
+### 7.3 账单统计层级
+
+统一按以下层级做聚合：
+
+1. 业务动作汇总
+2. 资源大类汇总
+3. 文件夹汇总
+4. 具体资源汇总
+5. 单笔消费明细
+
+### 7.4 生词本来源归类规则
+
+- 优先归到原始来源资源
+- 若缺失原始来源，再归到 `word_book`
+
+### 7.5 前端展示原则
+
+- 所有业务页不再展示费用文案
+- 费用信息统一由“计费明细”模块展示
+- 首页只展示汇总、趋势和分类入口
+- 单笔扣费信息仅在最后一级明细页展示
