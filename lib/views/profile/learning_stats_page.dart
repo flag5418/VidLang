@@ -60,7 +60,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(4),
@@ -92,7 +92,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
             style: TextStyle(
               fontSize: 13.sp,
               fontWeight: FontWeight.w600,
-              color: isActive ? AppColors.onPrimary : colorScheme.onSurfaceVariant,
+              color: isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -151,7 +151,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: AppColors.surfaceElevated,
+          color: colorScheme.surfaceContainerHighest,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/views/main/main_page.dart';
 
 enum _AuthMode { login, register, verifyOtp }
@@ -50,9 +50,28 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     if (widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty) {
       _emailController.text = widget.initialEmail!.trim();
+    } else {
+      _loadLastLogin();
     }
     if (widget.requireSupabaseReauth) {
       _mode = _AuthMode.login;
+    }
+  }
+
+  /// 从本地缓存加载上次登录名
+  Future<void> _loadLastLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('last_login_name') ?? '';
+    final tab = prefs.getString('last_login_tab') ?? 'supabase';
+    if (!mounted) return;
+    if (name.isNotEmpty) {
+      if (tab == 'local') {
+        _localUsernameController.text = name;
+        setState(() => _tab = _LoginTab.local);
+      } else {
+        _emailController.text = name;
+        setState(() => _tab = _LoginTab.supabase);
+      }
     }
   }
 
@@ -92,22 +111,21 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
+          child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildLogo(),
                 const SizedBox(height: 40),
-                _buildTitle(),
-                const SizedBox(height: 8),
-                _buildSubtitle(),
-                const SizedBox(height: 24),
+                // _buildTitle(),
+                // const SizedBox(height: 8),
+                // _buildSubtitle(),
+                // const SizedBox(height: 24),
                 if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
                 const SizedBox(height: 16),
                 if (_mode == _AuthMode.verifyOtp)
@@ -120,26 +138,38 @@ class _LoginPageState extends State<LoginPage> {
                 if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
               ],
             ),
-          ),
+          
         ),
       ),
     );
   }
 
   Widget _buildLogo() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      width: 40.w * 1.8,
-      height: 40.w * 1.8,
-      decoration: BoxDecoration(color: AppColors.primary.withAlpha(30), borderRadius: BorderRadius.circular(20)),
-      child: Icon(Icons.play_circle_fill_rounded, color: AppColors.primary, size: 22.w * 1.8),
+       padding: EdgeInsets.only(
+        top: 20,
+        bottom: 20,
+       ),
+      child:
+      Column(
+children: [
+  Icon(Icons.school, color: colorScheme.primary, size: 22.w * 1.8),
+  Text('VidLang', style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+  Text('看视频、听英语、读文章、轻松学英语', style: TextStyle(fontSize:12.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurfaceVariant)),
+  
+],
+      )
+       
     );
   }
 
   Widget _buildTitle() {
+    final colorScheme = Theme.of(context).colorScheme;
     if (_tab == _LoginTab.local && _mode != _AuthMode.verifyOtp) {
       return Text(
         '本地登录',
-        style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: AppColors.onSurface),
+        style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
         textAlign: TextAlign.center,
       );
     }
@@ -148,16 +178,17 @@ class _LoginPageState extends State<LoginPage> {
         : {_AuthMode.login: '欢迎回来', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'};
     return Text(
       titles[_mode]!,
-      style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: AppColors.onSurface),
+      style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
       textAlign: TextAlign.center,
     );
   }
 
   Widget _buildSubtitle() {
+    final colorScheme = Theme.of(context).colorScheme;
     if (_tab == _LoginTab.local && _mode != _AuthMode.verifyOtp) {
       return Text(
         '使用本地账号登录',
-        style: TextStyle(fontSize: 14.sp, color: AppColors.onSurfaceVariant),
+        style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
         textAlign: TextAlign.center,
       );
     }
@@ -166,12 +197,13 @@ class _LoginPageState extends State<LoginPage> {
         : {_AuthMode.login: '登录你的 VidLang 账号', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'};
     return Text(
       subtitles[_mode]!,
-      style: TextStyle(fontSize: 14.sp, color: AppColors.onSurfaceVariant),
+      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
       textAlign: TextAlign.center,
     );
   }
 
   Widget _buildAuthForm() {
+    final colorScheme = Theme.of(context).colorScheme;
     final isLogin = _mode == _AuthMode.login;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -187,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
           GestureDetector(
             onTap: () {},
             child: Center(
-              child: Text('忘记密码？', style: TextStyle(fontSize: 13.sp, color: AppColors.onSurfaceDisabled)),
+              child: Text('忘记密码？', style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
             ),
           ),
       ],
@@ -195,6 +227,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildOtpForm() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -208,7 +241,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Text(
               _countdownSeconds > 0 ? '${_countdownSeconds}s 后可重新发送' : '没收到验证码？',
-              style: TextStyle(fontSize: 13.sp, color: AppColors.onSurfaceDisabled),
+              style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
             ),
             GestureDetector(
               onTap: _countdownSeconds == 0 && !_loading ? _resendOtp : null,
@@ -216,7 +249,7 @@ class _LoginPageState extends State<LoginPage> {
                 ' 重新发送',
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: _countdownSeconds == 0 ? AppColors.primary : AppColors.onSurfaceDisabled,
+                  color: _countdownSeconds == 0 ? colorScheme.primary : colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -227,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
         GestureDetector(
           onTap: () => setState(() => _mode = _AuthMode.register),
           child: Center(
-            child: Text('返回修改邮箱', style: TextStyle(fontSize: 13.sp, color: AppColors.onSurfaceVariant)),
+            child: Text('返回修改邮箱', style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
           ),
         ),
       ],
@@ -235,12 +268,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildEmailField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _emailController,
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('邮箱地址', Icons.email_outlined),
       readOnly: widget.requireSupabaseReauth && widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty,
       onSubmitted: (_) => _passwordFocus.requestFocus(),
@@ -248,15 +282,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildPasswordField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _passwordController,
       focusNode: _passwordFocus,
       obscureText: _obscurePassword,
       textInputAction: _mode == _AuthMode.login ? TextInputAction.done : TextInputAction.next,
-      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('密码', Icons.lock_outlined).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: 20.sp),
+          icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: colorScheme.onSurfaceVariant, size: 20.sp),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
       ),
@@ -265,12 +300,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildOtpField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _otpController,
       focusNode: _otpFocus,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
-      style: TextStyle(color: AppColors.onSurface, fontSize: 22.sp, letterSpacing: 8, fontWeight: FontWeight.w600),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: 22.sp, letterSpacing: 8, fontWeight: FontWeight.w600),
       textAlign: TextAlign.center,
       decoration: _inputDecoration('请输入验证码', null).copyWith(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 16)),
       onSubmitted: (_) => _verifyOtp(),
@@ -278,60 +314,63 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   InputDecoration _inputDecoration(String hint, IconData? icon) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: 14.sp),
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.onSurfaceDisabled, size: 20.sp) : null,
+      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14.sp),
+      prefixIcon: icon != null ? Icon(icon, color: colorScheme.onSurfaceVariant, size: 20.sp) : null,
       filled: true,
-      fillColor: AppColors.surfaceElevated,
+      fillColor: colorScheme.surfaceContainerHighest,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.error, width: 1),
+        borderSide: BorderSide(color: colorScheme.error, width: 1),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       height: 34.h * 1.47,
       child: ElevatedButton(
         onPressed: _loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
-          disabledBackgroundColor: AppColors.primary.withAlpha(100),
-          disabledForegroundColor: AppColors.onPrimary.withAlpha(150),
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          disabledBackgroundColor: colorScheme.primary.withAlpha(100),
+          disabledForegroundColor: colorScheme.onPrimary.withAlpha(150),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 0,
         ),
         child: _loading
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary))
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
             : Text(label, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
       ),
     );
   }
 
   Widget _buildError() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.error.withAlpha(25),
+        color: colorScheme.error.withAlpha(25),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withAlpha(60)),
+        border: Border.all(color: colorScheme.error.withAlpha(60)),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: AppColors.error, size: 18.sp),
+          Icon(Icons.error_outline, color: colorScheme.error, size: 18.sp),
           SizedBox(width: 8),
           Expanded(
-            child: Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 13.sp)),
+            child: Text(_error!, style: TextStyle(color: colorScheme.error, fontSize: 13.sp)),
           ),
         ],
       ),
@@ -339,13 +378,14 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildToggleMode() {
+    final colorScheme = Theme.of(context).colorScheme;
     final isLogin = _mode == _AuthMode.login;
     // 本地用户模式下不显示注册/登录切换
     if (_tab == _LoginTab.local) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(isLogin ? '没有账号？' : '已有账号？', style: TextStyle(fontSize: 14.sp, color: AppColors.onSurfaceDisabled)),
+        Text(isLogin ? '没有账号？' : '已有账号？', style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant)),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -355,7 +395,7 @@ class _LoginPageState extends State<LoginPage> {
           },
           child: Text(
             isLogin ? ' 立即注册' : ' 去登录',
-            style: TextStyle(fontSize: 14.sp, color: AppColors.primary, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 14.sp, color: colorScheme.primary, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -365,9 +405,10 @@ class _LoginPageState extends State<LoginPage> {
   // ==================== Tab 切换 ====================
 
   Widget _buildTabSwitcher() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(4),
@@ -381,6 +422,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _tabButton(String label, _LoginTab tab) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isActive = _tab == tab;
     return Expanded(
       child: GestureDetector(
@@ -394,7 +436,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.primary : Colors.transparent,
+            color: isActive ? colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -403,7 +445,7 @@ class _LoginPageState extends State<LoginPage> {
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w600,
-              color: isActive ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+              color: isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -428,26 +470,28 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLocalUsernameField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _localUsernameController,
       focusNode: _localUsernameFocus,
       textInputAction: TextInputAction.next,
-      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('用户名', Icons.person_outlined),
       onSubmitted: (_) => _localPasswordFocus.requestFocus(),
     );
   }
 
   Widget _buildLocalPasswordField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _localPasswordController,
       focusNode: _localPasswordFocus,
       obscureText: _obscureLocalPassword,
       textInputAction: TextInputAction.done,
-      style: TextStyle(color: AppColors.onSurface, fontSize: 15.sp),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('密码', Icons.lock_outlined).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(_obscureLocalPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.onSurfaceDisabled, size: 20.sp),
+          icon: Icon(_obscureLocalPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: colorScheme.onSurfaceVariant, size: 20.sp),
           onPressed: () => setState(() => _obscureLocalPassword = !_obscureLocalPassword),
         ),
       ),
@@ -573,7 +617,7 @@ class _LoginPageState extends State<LoginPage> {
       builder: (context) {
         final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: cs.surface,
           title: Text(
             '切换主账号',
             style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),

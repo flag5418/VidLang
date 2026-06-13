@@ -113,7 +113,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: AppColors.surfaceElevated),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: colorScheme.surfaceContainerHighest),
           child: Text(
             value,
             style: TextStyle(fontSize: 15.sp, color: colorScheme.onSurface.withValues(alpha: 0.6)),

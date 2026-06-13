@@ -415,10 +415,14 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
                   ? null
                   : () async {
                       if (_selectionAction == 'review') {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('批量复习入口稍后接入，当前可在详情里进行认识/不认识')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('批量复习入口稍后接入，当前可在详情里进行认识/不认识')),
+                        );
                         return;
                       }
-                      final selectedWords = _words.where((word) => word.code != null && _selectedWordCodes.contains(word.code)).toList();
+                      final selectedWords = _words
+                          .where((word) => word.code != null && _selectedWordCodes.contains(word.code))
+                          .toList();
                       final changed = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
@@ -426,7 +430,11 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
                             videoTitle: '生词本测试',
                             seedWords: selectedWords
                                 .map(
-                                  (word) => {'word': word.word, 'context_sentence': word.contextSentence ?? word.word, 'word_book_code': word.code},
+                                  (word) => {
+                                    'word': word.word,
+                                    'context_sentence': word.contextSentence ?? word.word,
+                                    'word_book_code': word.code,
+                                  },
                                 )
                                 .toList(),
                           ),

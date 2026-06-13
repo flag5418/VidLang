@@ -15,7 +15,6 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
-import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/components/main_video_card.dart';
 import 'package:vidlang/components/playback_settings_sheet.dart';
 import 'package:vidlang/components/video_card.dart';
@@ -27,12 +26,16 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
+import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/device_utils.dart';
+import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
+import 'package:vidlang/views/test/test_page.dart';
 
 /// 文件夹详情页面
 class FolderDetailPage extends ConsumerStatefulWidget {
@@ -115,7 +118,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: Container(
                   width: 40.r,
                   height: 40.r,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: AppColors.surfaceElevated),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: colorScheme.surfaceContainerHighest),
                   child: Icon(Icons.arrow_back, size: 18.sp, color: colorScheme.onSurface),
                 ),
               ),
@@ -139,7 +142,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: Container(
                   width: 40.r,
                   height: 40.r,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: AppColors.surfaceElevated),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: colorScheme.surfaceContainerHighest),
                   child: Icon(Icons.settings, size: 18.sp, color: colorScheme.onSurfaceVariant),
                 ),
               ),
@@ -165,6 +168,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 PopupMenuItem(value: 'wifi', child: _popupMenuItem(Icons.wifi_rounded, 'WiFi 导入', colorScheme)),
                 PopupMenuItem(value: 'rename', child: _popupMenuItem(Icons.edit_outlined, '重命名', colorScheme)),
                 PopupMenuItem(value: 'test', child: _popupMenuItem(Icons.quiz_outlined, '综合测试', colorScheme)),
+                if (folderType == FolderContentType.video)
+                  PopupMenuItem(value: 'aiConversation', child: _popupMenuItem(Icons.forum_outlined, 'AI 对话', colorScheme)),
                 PopupMenuDivider(height: 1),
                 PopupMenuItem(value: 'deleteAll', child: _popupMenuItem(Icons.delete_forever_rounded, '全部删除', colorScheme)),
               ],
@@ -245,6 +250,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             onPlay: () => _playVideo(mainVideo),
             onRename: () => _showVideoRenameDialog(mainVideo),
             onImportSubtitle: () => _importSubtitleForVideo(mainVideo),
+            onAiConversation: () => _openAiConversationForVideo(mainVideo),
+            onUnitTest: () => _showUnitTestForVideo(mainVideo),
             onDelete: () => _confirmDeleteVideo(mainVideo),
           ),
         if (mainVideo != null) SizedBox(height: AppSpacing.md),
@@ -266,6 +273,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               onTap: () => _playVideo(video),
               onRename: () => _showVideoRenameDialog(video),
               onImportSubtitle: () => _importSubtitleForVideo(video),
+              onAiConversation: () => _openAiConversationForVideo(video),
+              onUnitTest: () => _showUnitTestForVideo(video),
               onDelete: () => _confirmDeleteVideo(video),
             );
           },
@@ -356,10 +365,54 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       case 'test':
         _showComprehensiveTest();
         break;
+      case 'aiConversation':
+        _openAiConversation();
+        break;
       case 'deleteAll':
         _confirmDeleteAll();
         break;
     }
+  }
+
+  void _openAiConversation() {
+    final state = ref.read(fileProvider);
+    final current = state.currentVideo ?? (state.videos.isNotEmpty ? state.videos.first : null);
+    if (current == null || (current.code ?? '').isEmpty) {
+      _showMessage('暂无可对话的视频', theme: MessageTheme.warning);
+      return;
+    }
+    if (!current.hasSubtitles) {
+      _showMessage('请先为该视频导入字幕', theme: MessageTheme.warning);
+      return;
+    }
+    _openAiConversationForVideo(current);
+  }
+
+  void _openAiConversationForVideo(VideoInfo video) {
+    if ((video.code ?? '').isEmpty) {
+      _showMessage('暂无可对话的视频', theme: MessageTheme.warning);
+      return;
+    }
+    Future.microtask(() async {
+      final videoCode = video.code!;
+      final subs = await DatabaseService.findByCondition(
+        () => Subtitles(),
+        where: 'video_code = ? AND is_deleted = 0',
+        whereArgs: [videoCode],
+        limit: 1,
+      );
+      if (subs.isEmpty) {
+        _showMessage('字幕文件已绑定，但字幕内容未入库，请重新导入字幕', theme: MessageTheme.warning);
+        return;
+      }
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ConversationPage(sourceType: 'subtitle', sourceCode: videoCode, sourceTitle: video.name),
+        ),
+      );
+    });
   }
 
   /// 根据当前文件夹类型导入资源
@@ -553,7 +606,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     // 按句号/问号/感叹号分割句子
     final sentenceParts = fullText.split(RegExp(r'(?<=[.!?])\s+'));
     final chapterSentences = <String>[];
-    int wordCount = 0;
     int sentenceCount = 0;
 
     for (final part in sentenceParts) {
@@ -561,7 +613,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       if (trimmed.isEmpty) continue;
       chapterSentences.add(trimmed);
       final ws = trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-      wordCount += ws;
       sentenceCount++;
 
       sentences.add(
@@ -737,6 +788,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     for (final s in subtitles) {
       await DatabaseService.insert(s);
     }
+
+    await ConversationService.uploadSubtitlesToCloud(videoCode);
   }
 
   /// SRT 时间格式转毫秒
@@ -901,9 +954,37 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 
   Future<void> _showComprehensiveTest() async {
-    final folder = ref.read(fileProvider).currentFolder;
-    final typeLabel = _typeLabel(folder?.folderType ?? FolderContentType.video);
-    _showMessage('$typeLabel 综合测试功能开发中', theme: MessageTheme.info);
+    final state = ref.read(fileProvider);
+    final videos = state.videos;
+    if (videos.isEmpty) {
+      _showMessage('暂无可测试的视频', theme: MessageTheme.warning);
+      return;
+    }
+
+    // 检查当前文件夹下是否有任何视频包含字幕
+    final hasAnySubtitle = videos.any((v) => v.hasSubtitles);
+    if (!hasAnySubtitle) {
+      _showMessage('当前文件夹下所有视频均没有字幕，无法进行综合测试', theme: MessageTheme.warning);
+      return;
+    }
+
+    // 优先选择当前播放的视频，否则选第一个有字幕的视频
+    final current = state.currentVideo;
+    final target = (current != null && current.hasSubtitles) ? current : videos.firstWhere((v) => v.hasSubtitles);
+
+    final videoCode = target.code ?? '';
+    if (videoCode.isEmpty) {
+      _showMessage('视频标识为空，无法测试', theme: MessageTheme.warning);
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TestPage(videoCode: videoCode, videoTitle: target.name),
+      ),
+    );
   }
 
   void _showSettings() {
@@ -916,6 +997,25 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       onSave: (settings) async {
         await ref.read(fileProvider.notifier).updateFolderPlaybackSettings(folder.code!, settings);
       },
+    );
+  }
+
+  /// 单个视频的单元测试
+  void _showUnitTestForVideo(dynamic video) {
+    if (!video.hasSubtitles) {
+      _showMessage('该视频没有字幕，无法进行单元测试', theme: MessageTheme.warning);
+      return;
+    }
+    final videoCode = video.code ?? '';
+    if (videoCode.isEmpty) {
+      _showMessage('视频标识为空，无法测试', theme: MessageTheme.warning);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TestPage(videoCode: videoCode, videoTitle: video.name ?? 'Video'),
+      ),
     );
   }
 

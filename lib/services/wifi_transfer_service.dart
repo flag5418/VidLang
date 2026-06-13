@@ -10,14 +10,14 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
+import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/article_chapter.dart';
+import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/error_log.dart';
 import 'package:vidlang/models/participle.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/models/article.dart';
-import 'package:vidlang/models/article_chapter.dart';
-import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
@@ -197,7 +197,6 @@ class WifiTransferService extends ChangeNotifier {
       return _replyJson(req.response, 200, {'ok': true, 'data': _videoJson(video)});
     }
 
-
     // === Article routes ===
     final listArticles = RegExp(r'^/api/folders/([a-zA-Z0-9]+)/articles$').firstMatch(path);
     if (listArticles != null && req.method == 'GET') {
@@ -225,7 +224,11 @@ class WifiTransferService extends ChangeNotifier {
       if (name.isEmpty && contentMarkdown.isEmpty) {
         return _replyJson(req.response, 400, {'ok': false, 'message': 'name 或 contentMarkdown 至少提供一个'});
       }
-      final article = await _renameArticle(articleCode, name.isNotEmpty ? name : null, contentMarkdown: contentMarkdown.isNotEmpty ? contentMarkdown : null);
+      final article = await _renameArticle(
+        articleCode,
+        name.isNotEmpty ? name : null,
+        contentMarkdown: contentMarkdown.isNotEmpty ? contentMarkdown : null,
+      );
       return _replyJson(req.response, 200, {'ok': true, 'data': _articleJson(article)});
     }
 
@@ -316,8 +319,15 @@ class WifiTransferService extends ChangeNotifier {
     final groupCode = await SettingsService.ensureDefaultGroupCode();
     final folderType = type == 'virtual' ? VideoFolderType.virtual : VideoFolderType.real;
     final folderContentType = FolderContentType.values.firstWhere((e) => e.name == contentType, orElse: () => FolderContentType.video);
-    final folder = VideoFolder(name: name, type: folderType, parentCode: groupCode, videoCount: 0, completedCount: 0, lastPlayDuration: 0, folderType: folderContentType)
-      ..code = const Uuid().v4().replaceAll('-', '');
+    final folder = VideoFolder(
+      name: name,
+      type: folderType,
+      parentCode: groupCode,
+      videoCount: 0,
+      completedCount: 0,
+      lastPlayDuration: 0,
+      folderType: folderContentType,
+    )..code = const Uuid().v4().replaceAll('-', '');
     await SettingsService.applyGlobalDefaultsToFolder(folder);
     await DatabaseService.insert(folder);
     return folder;
@@ -595,9 +605,17 @@ class WifiTransferService extends ChangeNotifier {
         if (article != null) {
           folderCodes.add(article.folderCode);
           await DatabaseService.softDelete(article);
-          final chapters = await DatabaseService.findByCondition(() => ArticleChapter(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [c]);
+          final chapters = await DatabaseService.findByCondition(
+            () => ArticleChapter(),
+            where: 'article_code = ? AND is_deleted = 0',
+            whereArgs: [c],
+          );
           for (final ch in chapters) await DatabaseService.softDelete(ch);
-          final sentences = await DatabaseService.findByCondition(() => ArticleSentence(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [c]);
+          final sentences = await DatabaseService.findByCondition(
+            () => ArticleSentence(),
+            where: 'article_code = ? AND is_deleted = 0',
+            whereArgs: [c],
+          );
           for (final s in sentences) await DatabaseService.softDelete(s);
         }
       } catch (_) {}
@@ -655,9 +673,17 @@ class WifiTransferService extends ChangeNotifier {
   }
 
   Future<void> _softDeleteArticleContent(String articleCode) async {
-    final chapters = await DatabaseService.findByCondition(() => ArticleChapter(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [articleCode]);
+    final chapters = await DatabaseService.findByCondition(
+      () => ArticleChapter(),
+      where: 'article_code = ? AND is_deleted = 0',
+      whereArgs: [articleCode],
+    );
     for (final ch in chapters) await DatabaseService.softDelete(ch);
-    final sentences = await DatabaseService.findByCondition(() => ArticleSentence(), where: 'article_code = ? AND is_deleted = 0', whereArgs: [articleCode]);
+    final sentences = await DatabaseService.findByCondition(
+      () => ArticleSentence(),
+      where: 'article_code = ? AND is_deleted = 0',
+      whereArgs: [articleCode],
+    );
     for (final s in sentences) await DatabaseService.softDelete(s);
   }
 
@@ -696,13 +722,7 @@ class WifiTransferService extends ChangeNotifier {
   }
 
   Map<String, Object?> _folderJson(VideoFolder f) {
-    return {
-      'code': f.code,
-      'name': f.name,
-      'folderType': f.folderType.name,
-      'canUpload': f.type == VideoFolderType.real,
-      'parentCode': f.parentCode,
-    };
+    return {'code': f.code, 'name': f.name, 'folderType': f.folderType.name, 'canUpload': f.type == VideoFolderType.real, 'parentCode': f.parentCode};
   }
 
   Map<String, Object?> _videoJson(VideoInfo v) {
@@ -745,7 +765,6 @@ class WifiTransferService extends ChangeNotifier {
     );
     return rows.map(_articleJson).toList();
   }
-
 
   Future<Article> _uploadArticle(HttpRequest req, {required String folderCode, required String filename}) async {
     final folder = await _getFolderByCode(folderCode);
@@ -809,15 +828,17 @@ class WifiTransferService extends ChangeNotifier {
       if (line.startsWith('#')) {
         // Save previous chapter
         if (chapterSentences.isNotEmpty) {
-          chapters.add(ArticleChapter(
-            articleCode: article.code!,
-            title: currentChapterTitle,
-            chapterIndex: chapterIndex,
-            sentenceCount: chapterSentences.length,
-            plainText: chapterSentences.join(' '),
-            startSentenceIndex: chapterStartSentence,
-            endSentenceIndex: sentenceIndex - 1,
-          )..code = const Uuid().v4().replaceAll('-', ''));
+          chapters.add(
+            ArticleChapter(
+              articleCode: article.code!,
+              title: currentChapterTitle,
+              chapterIndex: chapterIndex,
+              sentenceCount: chapterSentences.length,
+              plainText: chapterSentences.join(' '),
+              startSentenceIndex: chapterStartSentence,
+              endSentenceIndex: sentenceIndex - 1,
+            )..code = const Uuid().v4().replaceAll('-', ''),
+          );
         }
         chapterIndex++;
         final headerText = line.replaceAll(RegExp(r'^#+\s+'), '');
@@ -849,15 +870,17 @@ class WifiTransferService extends ChangeNotifier {
           sentenceIndex++;
           final ws = s.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
           final chapterCode = chapters.isNotEmpty ? chapters.last.code : null;
-          sentences.add(ArticleSentence(
-            articleCode: article.code!,
-            chapterCode: chapterCode,
-            content: s,
-            sentenceIndex: sentenceIndex,
-            wordCount: ws,
-            startPositionMs: (sentenceIndex - 1) * 3000,
-            endPositionMs: sentenceIndex * 3000,
-          )..code = const Uuid().v4().replaceAll('-', ''));
+          sentences.add(
+            ArticleSentence(
+              articleCode: article.code!,
+              chapterCode: chapterCode,
+              content: s,
+              sentenceIndex: sentenceIndex,
+              wordCount: ws,
+              startPositionMs: (sentenceIndex - 1) * 3000,
+              endPositionMs: sentenceIndex * 3000,
+            )..code = const Uuid().v4().replaceAll('-', ''),
+          );
           chapterSentences.add(s);
         }
       } else {
@@ -868,15 +891,17 @@ class WifiTransferService extends ChangeNotifier {
           sentenceIndex++;
           final ws = s.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
           final chapterCode = chapters.isNotEmpty ? chapters.last.code : null;
-          sentences.add(ArticleSentence(
-            articleCode: article.code!,
-            chapterCode: chapterCode,
-            content: s,
-            sentenceIndex: sentenceIndex,
-            wordCount: ws,
-            startPositionMs: (sentenceIndex - 1) * 3000,
-            endPositionMs: sentenceIndex * 3000,
-          )..code = const Uuid().v4().replaceAll('-', ''));
+          sentences.add(
+            ArticleSentence(
+              articleCode: article.code!,
+              chapterCode: chapterCode,
+              content: s,
+              sentenceIndex: sentenceIndex,
+              wordCount: ws,
+              startPositionMs: (sentenceIndex - 1) * 3000,
+              endPositionMs: sentenceIndex * 3000,
+            )..code = const Uuid().v4().replaceAll('-', ''),
+          );
           chapterSentences.add(s);
         }
       }
@@ -884,15 +909,17 @@ class WifiTransferService extends ChangeNotifier {
 
     // Save last chapter
     if (chapterSentences.isNotEmpty || chapterIndex == 0) {
-      chapters.add(ArticleChapter(
-        articleCode: article.code!,
-        title: currentChapterTitle,
-        chapterIndex: chapterIndex,
-        sentenceCount: chapterSentences.length,
-        plainText: chapterSentences.join(' '),
-        startSentenceIndex: chapterStartSentence,
-        endSentenceIndex: sentenceIndex - 1,
-      )..code = const Uuid().v4().replaceAll('-', ''));
+      chapters.add(
+        ArticleChapter(
+          articleCode: article.code!,
+          title: currentChapterTitle,
+          chapterIndex: chapterIndex,
+          sentenceCount: chapterSentences.length,
+          plainText: chapterSentences.join(' '),
+          startSentenceIndex: chapterStartSentence,
+          endSentenceIndex: sentenceIndex - 1,
+        )..code = const Uuid().v4().replaceAll('-', ''),
+      );
     }
 
     // Batch insert
@@ -908,7 +935,6 @@ class WifiTransferService extends ChangeNotifier {
     article.totalSentences = sentenceIndex;
     await DatabaseService.update(article);
   }
-
 
   Future<Map<String, dynamic>> _readJson(HttpRequest req) async {
     final body = await utf8.decoder.bind(req).join();

@@ -101,21 +101,26 @@ ALTER TABLE public.user_wallet ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 
 -- pricing_rule: 所有人可读
+DROP POLICY IF EXISTS "Anyone can read pricing_rule" ON public.pricing_rule;
 CREATE POLICY "Anyone can read pricing_rule" ON public.pricing_rule
   FOR SELECT USING (true);
 
 -- usage_event: 只能读自己的
+DROP POLICY IF EXISTS "Users read own usage" ON public.usage_event;
 CREATE POLICY "Users read own usage" ON public.usage_event
   FOR SELECT USING (auth.uid() = user_id);
 
 -- wallet_ledger: 只能读自己的
+DROP POLICY IF EXISTS "Users read own ledger" ON public.wallet_ledger;
 CREATE POLICY "Users read own ledger" ON public.wallet_ledger
   FOR SELECT USING (auth.uid() = user_id);
 
 -- user_wallet: 只能读/更新自己（Edge Function 使用 service_role 写入）
+DROP POLICY IF EXISTS "Users read own wallet" ON public.user_wallet;
 CREATE POLICY "Users read own wallet" ON public.user_wallet
   FOR SELECT USING (auth.uid() = user_id);
 
 -- app_settings: 所有人可读
+DROP POLICY IF EXISTS "Anyone can read app_settings" ON public.app_settings;
 CREATE POLICY "Anyone can read app_settings" ON public.app_settings
   FOR SELECT USING (true);

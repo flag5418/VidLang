@@ -140,6 +140,9 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   OmniPlayer get player => _player;
 
+  /// 当前正在播放的视频信息（用于单词截图等场景）
+  VideoInfo? get currentVideo => _video;
+
   Future<void> openVideoByCode(String videoCode) async {
     final op = ++_opSeq;
     await _ensureInitialized();

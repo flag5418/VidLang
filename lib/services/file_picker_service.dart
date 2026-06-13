@@ -12,6 +12,7 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
@@ -500,6 +501,7 @@ class FilePickerService {
         '[IMPORT_SUBTITLE][DONE] videoCode=$videoCode subtitleFile=$subtitlePath '
         'parsed=${subtitles.length} inserted=$subtitlesInserted participles=$participlesInserted',
       );
+      await ConversationService.uploadSubtitlesToCloud(videoCode);
       return _SubtitleImportStats(subtitlesInserted: subtitlesInserted, participlesInserted: participlesInserted);
     } catch (e) {
       debugPrint('[IMPORT_SUBTITLE][ERROR] videoCode=$videoCode subtitleFile=$subtitlePath error=$e');

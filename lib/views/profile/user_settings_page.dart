@@ -116,7 +116,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: AppColors.surfaceElevated,
+        color: colorScheme.surfaceContainerHighest,
         border: isCurrent ? Border.all(color: colorScheme.primary.withValues(alpha: 0.4)) : null,
       ),
       child: Row(

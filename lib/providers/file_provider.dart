@@ -12,10 +12,11 @@ import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
+import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
-import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 
 /// 文件管理 Provider
@@ -252,10 +253,7 @@ class FileNotifier extends StateNotifier<FileState> {
       }
 
       final groupCode = parentCode ?? await SettingsService.ensureDefaultGroupCode();
-      final folderContentType = FolderContentType.values.firstWhere(
-        (e) => e.name == contentType,
-        orElse: () => FolderContentType.video,
-      );
+      final folderContentType = FolderContentType.values.firstWhere((e) => e.name == contentType, orElse: () => FolderContentType.video);
       VideoFolder folder = VideoFolder(
         name: name,
         type: VideoFolderType.virtual,
@@ -336,6 +334,7 @@ class FileNotifier extends StateNotifier<FileState> {
 
           final videoCode = v.code;
           if (videoCode != null && videoCode.isNotEmpty) {
+            ConversationService.deleteSubtitlesFromCloud(videoCode);
             final subtitles = await DatabaseService.findByCondition(
               () => Subtitles(),
               where: 'video_code = ? AND is_deleted = 0',
@@ -671,6 +670,7 @@ class FileNotifier extends StateNotifier<FileState> {
 
         final videoCode = video.code;
         if (videoCode != null && videoCode.isNotEmpty) {
+          ConversationService.deleteSubtitlesFromCloud(videoCode);
           await ThumbnailService.deleteVideoScreenshots(videoCode);
           final subtitles = await DatabaseService.findByCondition(
             () => Subtitles(),
@@ -797,5 +797,4 @@ class FileNotifier extends StateNotifier<FileState> {
     List<VideoInfo> videos = await DatabaseService.findByCondition(() => VideoInfo(), where: 'code = ? AND is_deleted = 0', whereArgs: [code]);
     return videos.isNotEmpty ? videos.first : null;
   }
-
 }

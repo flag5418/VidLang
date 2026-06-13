@@ -2,13 +2,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
-import {
-  checkIdempotent,
-  deduct,
-  getBalance,
-  getPricingRule,
-  getUserId,
-} from '../ai-proxy/billing.ts'
+import { checkIdempotent, deduct, getBalance, getPricingRule, getUserId } from '../ai-proxy/billing.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -88,34 +82,28 @@ function buildSentenceCandidates(subtitles: any[]): string[] {
 
 /** 根据难度调整句子和单词筛选参数 */
 interface DifficultyParams {
-  minWords: number // 组句题最小单词数
-  maxWords: number // 组句题最大单词数
+  minWords: number   // 组句题最小单词数
+  maxWords: number   // 组句题最大单词数
   minWordLen: number // 拼写/选择题最小单词长度
   maxWordLen: number // 拼写/选择题最大单词长度
 }
 
 const DIFFICULTY_PARAMS: Record<string, DifficultyParams> = {
-  beginner: { minWords: 3, maxWords: 7, minWordLen: 3, maxWordLen: 5 },
-  elementary: { minWords: 3, maxWords: 10, minWordLen: 3, maxWordLen: 7 },
-  intermediate: { minWords: 3, maxWords: 14, minWordLen: 3, maxWordLen: 14 },
-  advanced: { minWords: 5, maxWords: 18, minWordLen: 4, maxWordLen: 14 },
-  professional: { minWords: 6, maxWords: 22, minWordLen: 5, maxWordLen: 16 },
+  beginner:     { minWords: 3,  maxWords: 7,  minWordLen: 3, maxWordLen: 5  },
+  elementary:   { minWords: 3,  maxWords: 10, minWordLen: 3, maxWordLen: 7  },
+  intermediate: { minWords: 3,  maxWords: 14, minWordLen: 3, maxWordLen: 14 },
+  advanced:     { minWords: 5,  maxWords: 18, minWordLen: 4, maxWordLen: 14 },
+  professional: { minWords: 6,  maxWords: 22, minWordLen: 5, maxWordLen: 16 },
 }
 
 function getDifficultyParams(difficulty: string): DifficultyParams {
   return DIFFICULTY_PARAMS[difficulty] ?? DIFFICULTY_PARAMS['intermediate']
 }
 
-function pickReorderItems(
-  sentences: string[],
-  count: number,
-  params: DifficultyParams,
-): any[] {
+function pickReorderItems(sentences: string[], count: number, params: DifficultyParams): any[] {
   const candidates = sentences
     .map((s) => ({ s, w: tokenizeWords(s) }))
-    .filter(
-      (x) => x.w.length >= params.minWords && x.w.length <= params.maxWords,
-    )
+    .filter((x) => x.w.length >= params.minWords && x.w.length <= params.maxWords)
 
   const picked = shuffle(candidates).slice(0, count)
   return picked.map((x) => {
@@ -132,10 +120,7 @@ function pickReorderItems(
   })
 }
 
-function extractWordPool(
-  sentences: string[],
-  params: DifficultyParams,
-): string[] {
+function extractWordPool(sentences: string[], params: DifficultyParams): string[] {
   const words: string[] = []
   for (const s of sentences) {
     for (const w of tokenizeWords(s)) {
@@ -148,24 +133,14 @@ function extractWordPool(
   return unique(words)
 }
 
-function maskWord(
-  sentence: string,
-  word: string,
-): { masked: string; ok: boolean } {
-  const re = new RegExp(
-    `\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
-    'i',
-  )
+function maskWord(sentence: string, word: string): { masked: string; ok: boolean } {
+  const re = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
   if (!re.test(sentence)) return { masked: sentence, ok: false }
   const masked = sentence.replace(re, '_____')
   return { masked, ok: true }
 }
 
-function pickSpellingItems(
-  sentences: string[],
-  wordPool: string[],
-  count: number,
-): any[] {
+function pickSpellingItems(sentences: string[], wordPool: string[], count: number): any[] {
   const items: any[] = []
   const shuffledWords = shuffle(wordPool)
   for (const w of shuffledWords) {
@@ -204,11 +179,7 @@ function pickSpellingItems(
   return items
 }
 
-function pickMcqItems(
-  sentences: string[],
-  wordPool: string[],
-  count: number,
-): any[] {
+function pickMcqItems(sentences: string[], wordPool: string[], count: number): any[] {
   const items: any[] = []
   const pool = shuffle(wordPool)
   for (const w of pool) {
@@ -248,22 +219,12 @@ function normalizeWordBookSeeds(seedWords: any[]): Array<{
   contextSentence: string
   wordBookCode: string
 }> {
-  const out: Array<{
-    word: string
-    contextSentence: string
-    wordBookCode: string
-  }> = []
+  const out: Array<{ word: string; contextSentence: string; wordBookCode: string }> = []
   const seen = new Set<string>()
   for (const item of seedWords) {
-    const word = String(item?.word ?? '')
-      .trim()
-      .toLowerCase()
-    const contextSentence = String(
-      item?.context_sentence ?? item?.contextSentence ?? word,
-    ).trim()
-    const wordBookCode = String(
-      item?.word_book_code ?? item?.wordBookCode ?? '',
-    ).trim()
+    const word = String(item?.word ?? '').trim().toLowerCase()
+    const contextSentence = String(item?.context_sentence ?? item?.contextSentence ?? word).trim()
+    const wordBookCode = String(item?.word_book_code ?? item?.wordBookCode ?? '').trim()
     const uniqueKey = wordBookCode || word
     if (!word || !uniqueKey || seen.has(uniqueKey)) continue
     seen.add(uniqueKey)
@@ -313,9 +274,7 @@ function pickWordBookMcqItems(
     if (items.length >= count) break
     const maskedResult = maskWord(seed.contextSentence || seed.word, seed.word)
     if (!maskedResult.ok) continue
-    const distractors = shuffle(
-      wordPool.filter((word) => word !== seed.word),
-    ).slice(0, 3)
+    const distractors = shuffle(wordPool.filter((word) => word !== seed.word)).slice(0, 3)
     if (distractors.length < 3) continue
     const options = shuffle([seed.word, ...distractors])
     items.push({
@@ -334,10 +293,8 @@ function pickWordBookMcqItems(
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS')
-    return new Response('ok', { headers: corsHeaders })
-  if (req.method !== 'POST')
-    return json({ ok: false, error: 'method_not_allowed' }, 405)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405)
 
   const userId = await getUserId(req)
   if (!userId) return json({ ok: false, error: 'unauthorized' }, 401)
@@ -396,25 +353,17 @@ Deno.serve(async (req: Request) => {
     resourceCode = 'word_book'
     const seeds = normalizeWordBookSeeds(seedWords)
     if (seeds.length === 0) return json({ ok: false, error: 'no_content' }, 400)
-    spellingItems =
-      spellingCount > 0 ? pickWordBookSpellingItems(seeds, spellingCount) : []
+    spellingItems = spellingCount > 0 ? pickWordBookSpellingItems(seeds, spellingCount) : []
     mcqItems = mcqCount > 0 ? pickWordBookMcqItems(seeds, mcqCount) : []
   } else {
     const storage = await fetchSubtitlesFromStorage(userId, videoCode)
     if (!storage) return json({ ok: false, error: 'no_content' }, 400)
     title = storage.title
     sentences = buildSentenceCandidates(storage.subtitles)
-    if (sentences.length === 0)
-      return json({ ok: false, error: 'no_content' }, 400)
+    if (sentences.length === 0) return json({ ok: false, error: 'no_content' }, 400)
     const wordPool = extractWordPool(sentences, diffParams)
-    reorderItems =
-      reorderCount > 0
-        ? pickReorderItems(sentences, reorderCount, diffParams)
-        : []
-    spellingItems =
-      spellingCount > 0
-        ? pickSpellingItems(sentences, wordPool, spellingCount)
-        : []
+    reorderItems = reorderCount > 0 ? pickReorderItems(sentences, reorderCount, diffParams) : []
+    spellingItems = spellingCount > 0 ? pickSpellingItems(sentences, wordPool, spellingCount) : []
     mcqItems = mcqCount > 0 ? pickMcqItems(sentences, wordPool, mcqCount) : []
   }
 
@@ -445,12 +394,7 @@ Deno.serve(async (req: Request) => {
           is_chargeable: pricing.priceCny > 0,
           video_code: videoCode,
           title,
-          config: {
-            reorder_count: reorderCount,
-            spelling_count: spellingCount,
-            mcq_count: mcqCount,
-            difficulty,
-          },
+          config: { reorder_count: reorderCount, spelling_count: spellingCount, mcq_count: mcqCount, difficulty },
           item_count: items.length,
         },
       )

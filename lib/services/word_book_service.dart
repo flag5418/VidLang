@@ -30,7 +30,11 @@ class WordBookService {
     return RegExp(r"^[a-zA-Z][a-zA-Z']*$").hasMatch(trimmed);
   }
 
-  static WordBook applyMastery(WordBook word, {required bool recognized, DateTime? reviewedAt}) {
+  static WordBook applyMastery(
+    WordBook word, {
+    required bool recognized,
+    DateTime? reviewedAt,
+  }) {
     final now = reviewedAt ?? DateTime.now();
     word.masteryLevel = recognized ? 'mastered' : 'learning';
     word.masteredAt = recognized ? now : null;
@@ -38,7 +42,12 @@ class WordBookService {
     return word;
   }
 
-  static WordBook mergeTestResult(WordBook word, {required bool reviewed, required bool correct, DateTime? reviewedAt}) {
+  static WordBook mergeTestResult(
+    WordBook word, {
+    required bool reviewed,
+    required bool correct,
+    DateTime? reviewedAt,
+  }) {
     if (!reviewed) return word;
     word.reviewCount += 1;
     if (correct) {
@@ -143,7 +152,11 @@ class WordBookService {
       wb.phoneticUs = wordCardData.phonetic;
       // 缓存 definitions 为 JSON
       if (wordCardData.definitions.isNotEmpty) {
-        final defsJson = wordCardData.definitions.map((d) => {'partOfSpeech': d.partOfSpeech, 'meaning': d.meaning, 'example': d.example}).toList();
+        final defsJson = wordCardData.definitions.map((d) => {
+          'partOfSpeech': d.partOfSpeech,
+          'meaning': d.meaning,
+          'example': d.example,
+        }).toList();
         wb.definitionsJson = jsonEncode(defsJson);
       }
     }
@@ -151,7 +164,12 @@ class WordBookService {
     // 视频/音频类型：截取当前画面截图
     if ((sourceType == 'video' || sourceType == 'music') && videoPath != null && positionMs != null) {
       try {
-        final screenshotPath = await ThumbnailService.generateWordScreenshot(videoPath, sourceCode, positionMs: positionMs, wordCode: wb.code!);
+        final screenshotPath = await ThumbnailService.generateWordScreenshot(
+          videoPath,
+          sourceCode,
+          positionMs: positionMs,
+          wordCode: wb.code!,
+        );
         wb.screenshotPath = screenshotPath;
       } catch (e) {
         logger.warning('截图失败，继续保存: $e', tag: 'WordBook');
@@ -188,7 +206,11 @@ class WordBookService {
   }
 
   /// 检查单词是否已收藏
-  static Future<bool> isWordSaved({required String word, required String sourceType, required String sourceCode}) async {
+  static Future<bool> isWordSaved({
+    required String word,
+    required String sourceType,
+    required String sourceCode,
+  }) async {
     final count = await DatabaseService.count(
       () => WordBook(),
       where: 'word = ? AND source_type = ? AND source_code = ? AND is_deleted = 0',
@@ -205,7 +227,10 @@ class WordBookService {
     final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[WordBook.normalizeMasteryLevel(filter.status)];
-    final where = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?'];
+    final where = <String>[
+      'wb.is_deleted = 0',
+      'wb.mastery_level = ?',
+    ];
 
     if (userCode != null) {
       where.add('wb.user_code = ?');
@@ -229,9 +254,12 @@ class WordBookService {
       args.addAll([keywordLike, keywordLike, keywordLike]);
     }
 
-    final joinClause = filter.tagCode != null && filter.tagCode!.isNotEmpty ? 'INNER JOIN word_book_tag wbt ON wbt.word_book_code = wb.code' : '';
+    final joinClause = filter.tagCode != null && filter.tagCode!.isNotEmpty
+        ? 'INNER JOIN word_book_tag wbt ON wbt.word_book_code = wb.code'
+        : '';
 
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT DISTINCT wb.*
       FROM word_book wb
       $joinClause
@@ -240,7 +268,9 @@ class WordBookService {
         CASE WHEN wb.next_review_at IS NULL THEN 1 ELSE 0 END,
         wb.next_review_at ASC,
         wb.created_at DESC
-      ''', args);
+      ''',
+      args,
+    );
 
     return rows.map((row) => WordBook().fromMap(row) as WordBook).toList();
   }
@@ -250,18 +280,24 @@ class WordBookService {
     final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[normalizedStatus];
-    final baseWhere = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?'];
+    final baseWhere = <String>[
+      'wb.is_deleted = 0',
+      'wb.mastery_level = ?',
+    ];
 
     if (userCode != null) {
       baseWhere.add('wb.user_code = ?');
       args.add(userCode);
     }
 
-    final totalRows = await db.rawQuery('''
+    final totalRows = await db.rawQuery(
+      '''
       SELECT COUNT(*) AS count
       FROM word_book wb
       WHERE ${baseWhere.join(' AND ')}
-      ''', args);
+      ''',
+      args,
+    );
     final totalCount = (totalRows.first['count'] as int?) ?? 0;
 
     final tagRows = await db.rawQuery(
@@ -289,7 +325,12 @@ class WordBookService {
     );
 
     return [
-      WordBookNavItem(code: '${normalizedStatus}_all', label: '全部', count: totalCount, status: normalizedStatus),
+      WordBookNavItem(
+        code: '${normalizedStatus}_all',
+        label: '全部',
+        count: totalCount,
+        status: normalizedStatus,
+      ),
       ...tagRows.map(
         (row) => WordBookNavItem(
           code: row['tag_code']?.toString() ?? '',
@@ -302,7 +343,10 @@ class WordBookService {
     ];
   }
 
-  static Future<bool> updateMastery({required String wordBookCode, required bool recognized}) async {
+  static Future<bool> updateMastery({
+    required String wordBookCode,
+    required bool recognized,
+  }) async {
     try {
       final word = await findWordByCode(wordBookCode);
       if (word == null) return false;
@@ -345,7 +389,12 @@ class WordBookService {
     for (final result in merged.values) {
       final word = await findWordByCode(result.wordBookCode);
       if (word == null) continue;
-      mergeTestResult(word, reviewed: true, correct: result.correct, reviewedAt: result.reviewedAt);
+      mergeTestResult(
+        word,
+        reviewed: true,
+        correct: result.correct,
+        reviewedAt: result.reviewedAt,
+      );
       await word.save();
     }
   }

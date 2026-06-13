@@ -166,7 +166,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
             ),
             Text(
-              '看视频、听英语，快乐学英语',
+              '看视频、听英语，读文章、轻松学英语',
               style: TextStyle(fontSize: 10.sp, color: colorScheme.onSurfaceVariant),
             ),
           ],
@@ -216,7 +216,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: AppColors.surfaceElevated,
+          color: colorScheme.surfaceContainerHighest,
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
         ),
         child: Column(
@@ -300,7 +300,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: AppColors.surfaceElevated,
+        color: colorScheme.surfaceContainerHighest,
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
       ),
       child: Column(

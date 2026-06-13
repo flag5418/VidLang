@@ -89,6 +89,47 @@ class AppColors {
     shadow: Color(0x00000000),
   );
 
+  // ─── 亮色主题背景层级 ─────────────────────────────
+  static const Color lightBackground = Color(0xFFF5F5F5);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceElevated = Color(0xFFF0F0F0);
+  static const Color lightSurfaceHighest = Color(0xFFE8E8E8);
+
+  // ─── 亮色主题前景/文字 ────────────────────────────
+  static const Color lightOnSurface = Color(0xFF1A1A1A);
+  static const Color lightOnSurfaceVariant = Color(0xFF666666);
+  static const Color lightOnSurfaceDisabled = Color(0xFFAAAAAA);
+
+  // ─── 亮色主题功能性 ──────────────────────────────
+  static const Color lightOutline = Color(0xFFDDDDDD);
+  static const Color lightOutlineVariant = Color(0xFFCCCCCC);
+  static const Color lightDivider = Color(0x1A000000);
+
+  // ─── 亮色主题图标/导航 ────────────────────────────
+  static const Color lightIconDefault = Color(0xFF888888);
+  static const Color lightIconActive = Color(0xFF4284FC);
+
+  static ColorScheme get lightColorScheme => const ColorScheme(
+    brightness: Brightness.light,
+    primary: primary,
+    onPrimary: Color(0xFFFFFFFF),
+    primaryContainer: Color(0xFFDCE6FF),
+    secondary: secondary,
+    onSecondary: Color(0xFFFFFFFF),
+    surface: lightSurface,
+    onSurface: lightOnSurface,
+    surfaceContainerHighest: lightSurfaceHighest,
+    onSurfaceVariant: lightOnSurfaceVariant,
+    surfaceContainerLow: Color(0xFFFAFAFA),
+    surfaceContainer: Color(0xFFF5F5F5),
+    surfaceContainerHigh: Color(0xFFEEEEEE),
+    outline: lightOutline,
+    outlineVariant: lightOutlineVariant,
+    error: error,
+    onError: Color(0xFFFFFFFF),
+    shadow: Color(0x00000000),
+  );
+
   // ─── 卡片/封面专用 ──────────────────────────────
   /// 卡片缩略图区域的背景色（深灰，近似视频加载前的底色）
   static const Color cardThumbnailBg = Color(0xFF1A1A1A);

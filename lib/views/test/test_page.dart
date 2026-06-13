@@ -12,7 +12,12 @@ class TestPage extends StatefulWidget {
   final String videoTitle;
   final List<Map<String, dynamic>> seedWords;
 
-  const TestPage({super.key, this.videoCode, required this.videoTitle, this.seedWords = const []});
+  const TestPage({
+    super.key,
+    this.videoCode,
+    required this.videoTitle,
+    this.seedWords = const [],
+  });
 
   bool get isWordBookMode => videoCode == null;
 
@@ -50,12 +55,27 @@ class _TestPageState extends State<TestPage> {
       final requestId = _uuid.v4();
       final prefs = await SharedPreferences.getInstance();
       final difficulty = prefs.getString('app_difficulty_level') ?? 'intermediate';
-      final config = {'reorder_count': widget.isWordBookMode ? 0 : _reorderCount, 'spelling_count': _spellingCount, 'mcq_count': _mcqCount};
+      final config = {
+        'reorder_count': widget.isWordBookMode ? 0 : _reorderCount,
+        'spelling_count': _spellingCount,
+        'mcq_count': _mcqCount,
+      };
       final res = await client.functions.invoke(
         'ai-test-plan',
         body: widget.isWordBookMode
-            ? {'request_id': requestId, 'source_type': 'word_book', 'difficulty': difficulty, 'config': config, 'seed_words': widget.seedWords}
-            : {'request_id': requestId, 'video_code': widget.videoCode, 'difficulty': difficulty, 'config': config},
+            ? {
+                'request_id': requestId,
+                'source_type': 'word_book',
+                'difficulty': difficulty,
+                'config': config,
+                'seed_words': widget.seedWords,
+              }
+            : {
+                'request_id': requestId,
+                'video_code': widget.videoCode,
+                'difficulty': difficulty,
+                'config': config,
+              },
       );
 
       final data = res.data;
@@ -238,7 +258,12 @@ class _TestRunPage extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final bool isWordBookMode;
 
-  const _TestRunPage({required this.videoTitle, required this.billing, required this.items, required this.isWordBookMode});
+  const _TestRunPage({
+    required this.videoTitle,
+    required this.billing,
+    required this.items,
+    required this.isWordBookMode,
+  });
 
   @override
   State<_TestRunPage> createState() => _TestRunPageState();
@@ -303,7 +328,15 @@ class _TestRunPageState extends State<_TestRunPage> {
       final navigator = Navigator.of(context);
       if (widget.isWordBookMode && _wordResults.isNotEmpty) {
         await WordBookService.recordTestResults(
-          _wordResults.entries.map((entry) => WordBookTestResult(wordBookCode: entry.key, correct: entry.value, reviewedAt: DateTime.now())).toList(),
+          _wordResults.entries
+              .map(
+                (entry) => WordBookTestResult(
+                  wordBookCode: entry.key,
+                  correct: entry.value,
+                  reviewedAt: DateTime.now(),
+                ),
+              )
+              .toList(),
         );
       }
       if (!mounted) return;

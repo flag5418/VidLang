@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:uuid/uuid.dart';
 import 'package:vidlang/config.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart' as local;
@@ -24,6 +26,15 @@ class AuthException implements Exception {
   String toString() => message;
 }
 
+/// 排他性登录异常：当前会话已被其他设备顶替
+class SessionHijackedException implements Exception {
+  final String message;
+  SessionHijackedException([this.message = '您的账号在其他设备上已登录，请重新登录']);
+
+  @override
+  String toString() => message;
+}
+
 class AuthService {
   AuthService._();
 
@@ -35,6 +46,8 @@ class AuthService {
   static const _kSupabaseCredKeyV1 = 'supabase_cred_key_v1';
   static const _kSupabaseCredBoxV1 = 'supabase_cred_box_v1';
 
+  static const _uuid = Uuid();
+
   sb.SupabaseClient get _client => sb.Supabase.instance.client;
 
   Stream<sb.AuthState> get authStateChanges => sb.Supabase.instance.client.auth.onAuthStateChange;
@@ -44,6 +57,150 @@ class AuthService {
   bool get isLoggedIn => currentUser != null;
 
   String? get currentEmail => currentUser?.email;
+
+  // ==================== 排他性登录 ====================
+
+  /// 当前设备本地生成的 session ID（登录后生成，登出时清除）
+  String? _localSessionId;
+
+  /// 从 Realtime 缓存的服务端最新活跃 session ID
+  String? _cachedServerSessionId;
+
+  /// Realtime 订阅通道
+  sb.RealtimeChannel? _sessionChannel;
+
+  /// 被顶号事件流（UI 层监听后弹出提示并跳转登录页）
+  final StreamController<SessionHijackedException> _forceLogoutController =
+      StreamController<SessionHijackedException>.broadcast();
+
+  /// 被顶号事件流（供 UI 层订阅）
+  Stream<SessionHijackedException> get forceLogoutStream => _forceLogoutController.stream;
+
+  /// 注册当前设备的 session 并启动 Realtime 监听
+  ///
+  /// 必须在 Supabase 登录成功后调用。
+  /// 生成新的本地 session ID → 调用 Edge Function UPSERT → 拉取最新 → 订阅 Realtime。
+  Future<void> registerSessionAndWatch() async {
+    // 1. 生成新的 session ID
+    _localSessionId = _uuid.v4();
+
+    // 2. 调用 register-session Edge Function（UPSERT 覆盖旧 session）
+    try {
+      await _client.functions.invoke(
+        'register-session',
+        body: {'session_id': _localSessionId},
+      );
+    } catch (e) {
+      // 注册失败不阻塞登录流程，但排他性检测会降级
+      // ignore: avoid_print
+    }
+
+    // 3. 拉取服务端最新 session（双重保险）
+    await _fetchLatestSession();
+
+    // 4. 启动 Realtime 订阅
+    _startSessionWatch();
+  }
+
+  /// 拉取服务端最新活跃 session ID 到缓存
+  Future<void> _fetchLatestSession() async {
+    final userId = currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      final response = await _client
+          .from('user_active_session')
+          .select('session_id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response != null) {
+        _cachedServerSessionId = response['session_id'] as String?;
+      }
+    } catch (_) {}
+  }
+
+  /// 启动 Realtime 订阅，监听 user_active_session 表变更
+  void _startSessionWatch() {
+    _stopSessionWatch(); // 先清理旧的
+
+    final userId = currentUser?.id;
+    if (userId == null) return;
+
+    _sessionChannel = _client.channel('user_active_session_watch');
+    _sessionChannel!
+        .onPostgresChanges(
+          event: sb.PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_active_session',
+          filter: sb.PostgresChangeFilter(
+            type: sb.PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: _onSessionRealtimeEvent,
+        )
+        .subscribe();
+  }
+
+  /// 停止 Realtime 订阅
+  void _stopSessionWatch() {
+    if (_sessionChannel != null) {
+      _client.removeChannel(_sessionChannel!);
+      _sessionChannel = null;
+    }
+  }
+
+  /// Realtime 事件回调：检测 session_id 是否被其他设备覆盖
+  void _onSessionRealtimeEvent(sb.PostgresChangePayload payload) {
+    final newRecord = payload.newRecord;
+    final newSessionId = newRecord['session_id'] as String?;
+
+    if (newSessionId != null &&
+        newSessionId != _localSessionId &&
+        _localSessionId != null) {
+      // 被顶号！
+      _cachedServerSessionId = newSessionId;
+      _triggerForceLogout();
+    } else if (newSessionId != null) {
+      _cachedServerSessionId = newSessionId;
+    }
+  }
+
+  /// 触发被顶号事件，通知 UI 层
+  ///
+  /// 同时清理本地 Supabase 凭据，防止自动重登。
+  Future<void> _triggerForceLogout() async {
+    if (_localSessionId == null) return; // 防止重复触发
+    _localSessionId = null;
+    _stopSessionWatch();
+    // 清理 Supabase 凭据，防止下次启动自动重登
+    try {
+      await _secureStorage.delete(key: _kSupabaseCredBoxV1);
+      await _secureStorage.delete(key: _kSupabaseCredKeyV1);
+    } catch (_) {}
+    _forceLogoutController.add(SessionHijackedException());
+  }
+
+  /// 主动校验：当前设备 session 是否仍是活跃 session
+  ///
+  /// 在每次调用 Supabase Edge Function 或表操作前调用。
+  /// 不一致时抛出 [SessionHijackedException]。
+  void ensureActiveSession() {
+    // 本地用户（非 Supabase）不校验
+    if (AppConfig.currentUser?.authProvider != 'supabase') return;
+
+    // 尚未注册 session（如刚刚登录还未完成注册）则跳过
+    if (_localSessionId == null) return;
+
+    // 缓存为空（还没拉到服务端数据）则跳过，等 Realtime 填充
+    if (_cachedServerSessionId == null) return;
+
+    if (_localSessionId != _cachedServerSessionId) {
+      _triggerForceLogout();
+      throw SessionHijackedException();
+    }
+  }
 
   // ==================== Supabase 认证 ====================
 
@@ -57,6 +214,10 @@ class AuthService {
     try {
       await _client.auth.signInWithPassword(email: credential.email, password: credential.password);
       await _syncSupabaseSessionToLocal(password: credential.password, setAsCurrent: setAsCurrent);
+      // 仅当前用户才注册排他性 session
+      if (setAsCurrent) {
+        await registerSessionAndWatch();
+      }
       return true;
     } on sb.AuthApiException catch (_) {
       try {
@@ -96,6 +257,8 @@ class AuthService {
           await _saveSupabaseCredential(email: email.trim().toLowerCase(), password: password);
         } catch (_) {}
       }
+      // 排他性登录：注册 session 并启动监听
+      await registerSessionAndWatch();
     } on AuthException {
       rethrow;
     } on sb.AuthApiException catch (e) {
@@ -115,6 +278,8 @@ class AuthService {
       try {
         await _saveSupabaseCredential(email: email.trim().toLowerCase(), password: password);
       } catch (_) {}
+      // 排他性登录：注册 session 并启动监听
+      await registerSessionAndWatch();
     } on AuthException {
       rethrow;
     } on sb.AuthApiException catch (e) {
@@ -128,6 +293,9 @@ class AuthService {
 
   /// Supabase 用户修改密码（调用 Supabase API）
   Future<void> changeSupabasePassword({required String newPassword}) async {
+    // 排他性校验
+    ensureActiveSession();
+
     try {
       await _client.auth.updateUser(sb.UserAttributes(password: newPassword));
       // 更新安全存储中的密码
@@ -150,6 +318,8 @@ class AuthService {
           AppConfig.currentUser = user;
         }
       }
+    } on SessionHijackedException {
+      rethrow;
     } on sb.AuthApiException catch (e) {
       throw AuthException(_mapSupabaseError(e.message));
     } on SocketException {
@@ -159,8 +329,11 @@ class AuthService {
     }
   }
 
-  /// Supabase 完全登出（清除安全存储 + 本地当前用户）
+  /// Supabase 完全登出（清除安全存储 + 本地当前用户 + 停止 Realtime）
   Future<void> signOut() async {
+    _stopSessionWatch();
+    _localSessionId = null;
+    _cachedServerSessionId = null;
     await _client.auth.signOut();
     await _secureStorage.delete(key: _kSupabaseCredBoxV1);
     await _secureStorage.delete(key: _kSupabaseCredKeyV1);
@@ -211,6 +384,9 @@ class AuthService {
     required String password,
     String? nickname,
   }) async {
+    // 排他性校验（创建子用户是 Supabase 管理员操作）
+    ensureActiveSession();
+
     // 校验用户名不能是邮箱格式
     if (_isValidEmail(username)) {
       throw AuthException('本地用户名不能使用邮箱格式');
@@ -283,7 +459,7 @@ class AuthService {
   Future<void> logoutCurrentUser() async {
     final currentUser = AppConfig.currentUser;
     if (currentUser != null && currentUser.authProvider == 'supabase') {
-      // Supabase 用户退出：清除 Supabase 会话 + 安全存储
+      // Supabase 用户退出：清除 Supabase 会话 + 安全存储 + 停止 Realtime
       await signOut();
     } else {
       // 本地用户退出：仅清除当前用户标记

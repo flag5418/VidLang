@@ -22,6 +22,8 @@ class VideoCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onRename;
   final VoidCallback? onImportSubtitle;
+  final VoidCallback? onAiConversation;
+  final VoidCallback? onUnitTest;
   final VoidCallback? onDelete;
 
   const VideoCard({
@@ -31,6 +33,8 @@ class VideoCard extends StatelessWidget {
     required this.onTap,
     this.onRename,
     this.onImportSubtitle,
+    this.onAiConversation,
+    this.onUnitTest,
     this.onDelete,
   });
 
@@ -161,6 +165,12 @@ class VideoCard extends StatelessWidget {
             case 'importSubtitle':
               onImportSubtitle?.call();
               break;
+            case 'aiConversation':
+              onAiConversation?.call();
+              break;
+            case 'unitTest':
+              onUnitTest?.call();
+              break;
             case 'delete':
               onDelete?.call();
               break;
@@ -182,6 +192,12 @@ class VideoCard extends StatelessWidget {
           final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
           if (!video.hasSubtitles && onImportSubtitle != null) {
             items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
+          }
+          if (video.hasSubtitles && onAiConversation != null) {
+            items.add(PopupMenuItem(value: 'aiConversation', child: _menuRow(context, Icons.forum_outlined, 'AI 对话', colorScheme)));
+          }
+          if (onUnitTest != null) {
+            items.add(PopupMenuItem(value: 'unitTest', child: _menuRow(context, Icons.quiz_outlined, '单元测试', colorScheme)));
           }
           items.addAll([
             const PopupMenuDivider(height: 1),

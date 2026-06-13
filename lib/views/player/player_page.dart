@@ -18,6 +18,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/native_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
@@ -302,29 +303,29 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           ),
         _buildProgressBar(s, n),
         Padding(
-          padding: EdgeInsets.fromLTRB(pageH(context), 0, pageH(context), 6),
+          padding: EdgeInsets.fromLTRB(pageH(context), 0, pageH(context), 6.w),
           child: Row(
             children: [
               // 时间显示（始终可见，纯白）
               Text(
                 _fmtDuration(s.position),
-                style: TextStyle(color: Colors.white, fontSize: 8.sp),
+                style: TextStyle(color: Colors.white, fontSize: 6.sp),
               ),
               Text(
                 ' / ',
-                style: TextStyle(color: Colors.white, fontSize: 8.sp),
+                style: TextStyle(color: Colors.white, fontSize: 6.sp),
               ),
               Text(
                 _fmtDuration(s.duration),
-                style: TextStyle(color: Colors.white, fontSize: 8.sp),
+                style: TextStyle(color: Colors.white, fontSize: 6.sp),
               ),
               const SizedBox(width: 6),
               // 上一句（仅字幕可用时显示）
               if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
               // 播放/暂停（始终可见，日落渐变）
               Container(
-                width: 36.r,
-                height: 36.r,
+                width: 12.sp,
+                height: 12.sp,
                 decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.sunsetGradient),
                 child: IconButton(
                   icon: Icon(s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 8.sp),
@@ -415,10 +416,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   Widget _smallCtrl(IconData icon, VoidCallback? onTap, bool t) {
     return IconButton(
-      icon: Icon(icon, color: onTap != null ? Colors.white : Colors.white24, size: 18.w),
+      icon: Icon(icon, color: onTap != null ? Colors.white : Colors.white24, size: 12.sp),
       onPressed: onTap,
       padding: EdgeInsets.zero,
-      constraints: BoxConstraints(minWidth: 34.w, minHeight: 34.w),
+      
     );
   }
 
@@ -434,7 +435,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           label,
           style: TextStyle(
             color: onTap == null ? Colors.white24 : (active ? AppColors.primary : Colors.white),
-            fontSize: 8.sp,
+            fontSize: 6.sp,
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -490,6 +491,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final selectedText = _selectedWords.map((w) => w.text).join(' ');
     final subState = ref.watch(subscriptionProvider);
     final isPremium = subState.mode == SubscriptionMode.premium;
+    final canSave = WordBookService.isSingleWord(selectedText);
 
     // 付费模式下调用 AI，免费模式调用原生
     final future = isPremium ? _lookupWordPremium(selectedText) : _lookupWordFree(selectedText);
@@ -517,9 +519,44 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           }),
           onGoRecharge: _navigateToProfile,
           onSpeak: () => _speakSelectedWord(data.word),
+          canSave: canSave,
+          onSaveWord: canSave ? () => _handleSaveWord(data) : null,
         );
       },
     );
+  }
+
+  /// 收藏单词到生词本
+  Future<bool> _handleSaveWord(WordCardData data) async {
+    final notifier = ref.read(playerEngineProvider.notifier);
+    final state = ref.read(playerEngineProvider);
+    final video = notifier.currentVideo;
+    final currentSub = _getCurrentSubtitle();
+
+    final result = await WordBookService.saveWord(
+      word: data.word,
+      sourceType: 'video',
+      sourceCode: widget.videoCode,
+      sourceTitle: state.title,
+      contextSentence: currentSub?.content,
+      segmentCode: currentSub?.code,
+      wordCardData: data,
+      videoPath: video?.filePath,
+      positionMs: state.position.inMilliseconds,
+    );
+    return result != null;
+  }
+
+  /// 获取当前字幕
+  Subtitles? _getCurrentSubtitle() {
+    final notifier = ref.read(playerEngineProvider.notifier);
+    final state = ref.read(playerEngineProvider);
+    final subtitlesList = notifier.subtitles;
+    final idx = state.currentSubtitleIndex;
+    if (idx != null && idx >= 0 && idx < subtitlesList.length) {
+      return subtitlesList[idx];
+    }
+    return null;
   }
 
   /// 免费模式：原生翻译 + 本地词典
@@ -598,7 +635,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   Widget _buildProgressBar(PlayerEngineState s, PlayerEngineNotifier n) {
     final p = s.duration.inMilliseconds > 0 ? s.position.inMilliseconds / s.duration.inMilliseconds : 0.0;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: pageH(context)),
+      padding: EdgeInsets.symmetric(horizontal: 6.w),
       child: SliderTheme(
         data: SliderThemeData(
           trackHeight: 4,
@@ -636,7 +673,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 '${sp}X',
                 style: TextStyle(
                   color: active ? Colors.white : Colors.white,
-                  fontSize: 13.sp,
+                  fontSize: 6.sp,
                   fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -661,12 +698,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             children: [
               Text(
                 '视频列表',
-                style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
                 '共 ${list.length} 集',
-                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                style: TextStyle(color: Colors.white, fontSize: 9.sp),
               ),
             ],
           ),
@@ -719,7 +756,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             children: [
               Text(
                 '播放设置',
-                style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -768,7 +805,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     padding: EdgeInsets.only(bottom: 10),
     child: Text(
       text,
-      style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+      style: TextStyle(color: Colors.white, fontSize: 7.sp, fontWeight: FontWeight.bold),
     ),
   );
 
@@ -793,7 +830,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 child: Text(
                   opts[i],
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: a ? Colors.white : Colors.white, fontSize: 14.sp, fontWeight: a ? FontWeight.bold : FontWeight.normal),
+                  style: TextStyle(color: a ? Colors.white : Colors.white, fontSize: 6.sp, fontWeight: a ? FontWeight.bold : FontWeight.normal),
                 ),
               ),
             ),
@@ -814,7 +851,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             children: [
               Text(
                 '小',
-                style: TextStyle(color: Colors.white, fontSize: 13.sp),
+                style: TextStyle(color: Colors.white, fontSize: 6.sp),
               ),
               Text(
                 '${_subtitleFontSize.toInt()}',
@@ -822,7 +859,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               ),
               Text(
                 '大',
-                style: TextStyle(color: Colors.white, fontSize: 13.sp),
+                style: TextStyle(color: Colors.white, fontSize: 6.sp),
               ),
             ],
           ),
@@ -856,17 +893,26 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Colors.white, fontSize: 15.sp),
+                  style: TextStyle(color: Colors.white, fontSize: 6.sp),
                 ),
                 if (sub != null)
                   Text(
                     sub,
-                    style: TextStyle(color: Colors.white, fontSize: 12.sp),
+                    style: TextStyle(color: Colors.white, fontSize: 6.sp),
                   ),
               ],
             ),
           ),
-          Switch(value: v, onChanged: onChanged, activeThumbColor: AppColors.primary, activeTrackColor: AppColors.primary.withValues(alpha: 0.5)),
+          Transform.scale(
+            scale: 0.7,
+            child: Switch(
+              value: v,
+              onChanged: onChanged,
+              activeThumbColor: AppColors.primary,
+              activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
         ],
       ),
     );
@@ -1145,7 +1191,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                       children: [
                         Text(
                           v.name,
-                          style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: cur ? FontWeight.bold : FontWeight.w500),
+                          style: TextStyle(color: Colors.white, fontSize: 8.sp, fontWeight: cur ? FontWeight.bold : FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1156,7 +1202,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                             SizedBox(width: 3),
                             Text(
                               v.durationString,
-                              style: TextStyle(color: Colors.white, fontSize: 11.sp),
+                              style: TextStyle(color: Colors.white, fontSize:6.sp),
                             ),
                             if (v.hasSubtitles) ...[
                               SizedBox(width: 8),
@@ -1174,7 +1220,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                                 decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
                                 child: Text(
                                   '播放中',
-                                  style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w600),
+                                  style: TextStyle(color: Colors.white, fontSize: 6.sp, fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],

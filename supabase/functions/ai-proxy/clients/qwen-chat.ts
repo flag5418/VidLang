@@ -122,3 +122,20 @@ export async function wordLink(
     return { word, raw_output: raw }
   }
 }
+
+/** AI 对话翻译：翻译对话中的英文回复为中文 */
+export async function translateConversationResponse(
+  apiKey: string,
+  baseUrl: string,
+  text: string,
+): Promise<string> {
+  const prompt = `你是一个专业的英语翻译助手。请将以下英文翻译成中文，要求翻译自然流畅、口语化，适合英语学习者理解。只返回译文，不要有任何解释：\n\n${text}`
+
+  const raw = await qwenChat(apiKey, baseUrl, {
+    prompt,
+    temperature: 0.3,
+    maxTokens: 2000,
+  })
+
+  return raw.trim()
+}

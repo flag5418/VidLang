@@ -14,7 +14,6 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
@@ -136,7 +135,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
               child: Container(
                 width: 40.r,
                 height: 40.r,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(40.r), color: AppColors.surfaceElevated),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(40.r), color: colorScheme.surfaceContainerHighest),
                 child: Icon(Icons.wifi_tethering, size: 18.sp, color: colorScheme.onSurfaceVariant),
               ),
             ),
@@ -160,7 +159,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
     final currentTab = _currentTab;
 
     return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r), color: AppColors.surfaceElevated),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r), color: colorScheme.surfaceContainerHighest),
       child: Column(
         spacing: 10.h,
         children: [
@@ -211,15 +210,15 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
               style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall.sp),
               decoration: InputDecoration(
                 hintText: '搜索${_resourceLabels[_currentTab]}...',
-                hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: AppTypography.fontSizeSmall.sp),
-                prefixIcon: Icon(AppIcons.search, size: 18.sp, color: AppColors.onSurfaceDisabled),
+                hintStyle: TextStyle(color: colorScheme.outline, fontSize: AppTypography.fontSizeSmall.sp),
+                prefixIcon: Icon(AppIcons.search, size: 18.sp, color: colorScheme.outline),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? GestureDetector(
                         onTap: () {
                           _searchController.clear();
                           setState(() => _searchQuery = '');
                         },
-                        child: Icon(Icons.clear, size: 18.sp, color: AppColors.onSurfaceDisabled),
+                        child: Icon(Icons.clear, size: 18.sp, color: colorScheme.outline),
                       )
                     : null,
                 filled: true,
@@ -310,7 +309,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: AppColors.surfaceElevated,
+          color: colorScheme.surfaceContainerHighest,
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
         ),
         child: Column(
@@ -321,14 +320,14 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
               height: 44.r,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.onSurfaceDisabled, width: 2),
+                border: Border.all(color: colorScheme.outline, width: 2),
               ),
-              child: Icon(Icons.add, size: 18.sp, color: AppColors.onSurfaceDisabled),
+              child: Icon(Icons.add, size: 18.sp, color: colorScheme.outline),
             ),
             SizedBox(height: AppSpacing.sm),
             Text(
               '新建',
-              style: TextStyle(fontSize: 10.sp, color: AppColors.onSurfaceDisabled, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 10.sp, color: colorScheme.outline, fontWeight: FontWeight.w500),
             ),
           ],
         ),

@@ -153,6 +153,72 @@ class ThumbnailService {
     }
   }
 
+  /// 生成单词收藏截图（在视频当前播放位置截取）
+  ///
+  /// [videoPath] 视频文件路径
+  /// [videoCode] 视频code（用于组织存储）
+  /// [positionMs] 当前播放位置（毫秒）
+  /// [wordCode] 单词收藏的code（用于唯一命名）
+  ///
+  /// 存储路径：{appDocDir}/screenshot/{videoCode}/word_{wordCode}.png
+  ///
+  /// 返回缩略图的相对路径，生成失败返回null
+  static Future<String?> generateWordScreenshot(String videoPath, String videoCode, {required int positionMs, required String wordCode}) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final screenshotDir = Directory('${directory.path}/screenshot/$videoCode');
+
+      if (!await screenshotDir.exists()) {
+        await screenshotDir.create(recursive: true);
+      }
+
+      final thumbnailPath = '${screenshotDir.path}/word_$wordCode.png';
+      final targetFile = File(thumbnailPath);
+
+      logger.info(
+        'thumbnail start',
+        tag: 'THUMB',
+        extra: {'video': videoPath, 'videoCode': videoCode, 'target': thumbnailPath, 'positionMs': positionMs, 'type': 'word'},
+      );
+
+      final bytes = await VideoThumbnail.thumbnailData(
+        video: videoPath,
+        imageFormat: ImageFormat.PNG,
+        maxHeight: 300,
+        quality: 80,
+        timeMs: positionMs,
+      );
+
+      if (bytes != null && bytes.isNotEmpty) {
+        await targetFile.writeAsBytes(bytes, flush: true);
+        logger.info('thumbnail done', tag: 'THUMB', extra: {'output': thumbnailPath, 'size': bytes.length, 'type': 'word'});
+        return _getRelativePath(thumbnailPath);
+      }
+      logger.warning(
+        'thumbnail fail',
+        tag: 'THUMB',
+        extra: {'video': videoPath, 'videoCode': videoCode, 'target': thumbnailPath, 'type': 'word'},
+      );
+      return null;
+    } catch (e, st) {
+      logger.error(
+        'thumbnail error',
+        tag: 'THUMB',
+        error: e,
+        stackTrace: st,
+        extra: {'video': videoPath, 'videoCode': videoCode, 'positionMs': positionMs, 'type': 'word'},
+      );
+      await _tryPersistErrorLog(
+        tag: 'THUMB',
+        message: '单词截图失败',
+        error: e,
+        stackTrace: st,
+        extra: {'video': videoPath, 'videoCode': videoCode, 'positionMs': positionMs, 'type': 'word'},
+      );
+      return null;
+    }
+  }
+
   /// 获取相对路径
   ///
   /// [fullPath] 完整文件路径
