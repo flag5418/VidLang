@@ -8,6 +8,7 @@ import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/word_tag_service.dart';
+import 'package:vidlang/views/test/test_page.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_nav_panel.dart';
 
@@ -412,8 +413,28 @@ class _WordBookPageState extends ConsumerState<WordBookPage> {
             FilledButton(
               onPressed: _selectedWordCodes.isEmpty
                   ? null
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_selectionAction == 'review' ? '复习入口下一步接入' : '测试入口下一步接入')));
+                  : () async {
+                      if (_selectionAction == 'review') {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('批量复习入口稍后接入，当前可在详情里进行认识/不认识')));
+                        return;
+                      }
+                      final selectedWords = _words.where((word) => word.code != null && _selectedWordCodes.contains(word.code)).toList();
+                      final changed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TestPage(
+                            videoTitle: '生词本测试',
+                            seedWords: selectedWords
+                                .map(
+                                  (word) => {'word': word.word, 'context_sentence': word.contextSentence ?? word.word, 'word_book_code': word.code},
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      );
+                      if (changed == true && mounted) {
+                        await _reload();
+                      }
                     },
               child: Text(_selectionAction == 'review' ? '开始复习' : '开始测试'),
             ),
