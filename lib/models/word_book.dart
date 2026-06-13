@@ -3,7 +3,7 @@ import 'package:vidlang/models/base_entity.dart';
 /// 单词本实体类
 ///
 /// 替代/扩展 participle，支持跨来源（视频/文章/歌曲）收藏和复习。
-/// 使用间隔重复算法（SM-2）安排复习计划。
+/// 主状态仅保留 learning / mastered 两档。
 class WordBook extends BaseEntity {
   /// 单词
   String word;
@@ -22,6 +22,9 @@ class WordBook extends BaseEntity {
 
   /// 上下文句子原文
   String? contextSentence;
+
+  /// 截图路径（视频/音频收藏时截取当前画面）
+  String? screenshotPath;
 
   /// DeepSeek 查询结果缓存（JSON）
   String? definitionsJson;
@@ -47,8 +50,17 @@ class WordBook extends BaseEntity {
   /// 下次复习时间（间隔重复）
   DateTime? nextReviewAt;
 
-  /// 掌握程度：learning / reviewing / mastered
+  /// 掌握程度：learning / mastered
   String masteryLevel;
+
+  /// 掌握时间
+  DateTime? masteredAt;
+
+  /// 词形变化缓存 JSON
+  String? morphologyJson;
+
+  /// 助记缓存
+  String? mnemonic;
 
   WordBook({
     this.word = '',
@@ -57,6 +69,7 @@ class WordBook extends BaseEntity {
     this.sourceTitle,
     this.segmentCode,
     this.contextSentence,
+    this.screenshotPath,
     this.definitionsJson,
     this.phoneticUk,
     this.phoneticUs,
@@ -66,7 +79,19 @@ class WordBook extends BaseEntity {
     this.lastReviewAt,
     this.nextReviewAt,
     this.masteryLevel = 'learning',
+    this.masteredAt,
+    this.morphologyJson,
+    this.mnemonic,
   });
+
+  bool get isLearning => masteryLevel == 'learning';
+
+  bool get isMastered => masteryLevel == 'mastered';
+
+  static String normalizeMasteryLevel(String? raw) {
+    if (raw == 'mastered') return 'mastered';
+    return 'learning';
+  }
 
   @override
   String get tableName => 'word_book';
@@ -83,6 +108,7 @@ class WordBook extends BaseEntity {
       'source_title': sourceTitle,
       'segment_code': segmentCode,
       'context_sentence': contextSentence,
+      'screenshot_path': screenshotPath,
       'definitions_json': definitionsJson,
       'phonetic_uk': phoneticUk,
       'phonetic_us': phoneticUs,
@@ -91,7 +117,10 @@ class WordBook extends BaseEntity {
       'correct_count': correctCount,
       'last_review_at': lastReviewAt?.toIso8601String(),
       'next_review_at': nextReviewAt?.toIso8601String(),
-      'mastery_level': masteryLevel,
+      'mastery_level': normalizeMasteryLevel(masteryLevel),
+      'mastered_at': masteredAt?.toIso8601String(),
+      'morphology_json': morphologyJson,
+      'mnemonic': mnemonic,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'deleted_at': deletedAt?.toIso8601String(),
@@ -113,6 +142,7 @@ class WordBook extends BaseEntity {
     sourceTitle = map['source_title'];
     segmentCode = map['segment_code'];
     contextSentence = map['context_sentence'];
+    screenshotPath = map['screenshot_path'];
     definitionsJson = map['definitions_json'];
     phoneticUk = map['phonetic_uk'];
     phoneticUs = map['phonetic_us'];
@@ -121,7 +151,10 @@ class WordBook extends BaseEntity {
     correctCount = map['correct_count'] ?? 0;
     lastReviewAt = map['last_review_at'] != null ? DateTime.parse(map['last_review_at']) : null;
     nextReviewAt = map['next_review_at'] != null ? DateTime.parse(map['next_review_at']) : null;
-    masteryLevel = map['mastery_level'] ?? 'learning';
+    masteryLevel = normalizeMasteryLevel(map['mastery_level'] as String?);
+    masteredAt = map['mastered_at'] != null ? DateTime.parse(map['mastered_at']) : null;
+    morphologyJson = map['morphology_json'];
+    mnemonic = map['mnemonic'];
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;

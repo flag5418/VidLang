@@ -14,6 +14,7 @@
 /// - 所有样式使用DesignTokens定义，确保一致性
 library;
 
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -37,12 +38,18 @@ import 'package:vidlang/models/user.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/models/word_book.dart';
+import 'package:vidlang/models/word_book_tag.dart';
+import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
+
+/// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 /// 应用入口函数
 ///
@@ -106,6 +113,8 @@ void main() async {
     'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表'),
     'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
     'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
+    'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
+    'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
     'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
   });
 
@@ -131,9 +140,54 @@ void main() async {
 
 /// VidLang应用根组件
 ///
-/// 配置应用的主题、语言、路由等全局设置
-class VidLangApp extends StatelessWidget {
+/// 配置应用的主题、语言、路由等全局设置。
+/// 同时监听排他性登录被顶号事件，弹出提示并跳转登录页。
+class VidLangApp extends StatefulWidget {
   const VidLangApp({super.key});
+
+  @override
+  State<VidLangApp> createState() => _VidLangAppState();
+}
+
+class _VidLangAppState extends State<VidLangApp> {
+  late final StreamSubscription<SessionHijackedException> _forceLogoutSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _forceLogoutSub = AuthService.instance.forceLogoutStream.listen((_) {
+      _handleForceLogout();
+    });
+  }
+
+  @override
+  void dispose() {
+    _forceLogoutSub.cancel();
+    super.dispose();
+  }
+
+  void _handleForceLogout() {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('提示'),
+        content: const Text('您的账号在其他设备上已登录，请重新登录'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              navigatorKey.currentState?.popUntil((r) => r.isFirst);
+              navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (r) => false);
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,32 +207,21 @@ class VidLangApp extends StatelessWidget {
     return ScreenUtilInit(
       designSize: const Size(393, 852), // 设计稿标准尺寸（iPhone）
       builder: (context, child) {
-        return MaterialApp(
-          // 应用名称
-          title: 'VidLang',
-
-          // ============================================================
-          // 主题配置
-          // ============================================================
-          //
-          // lightTheme: 亮色主题
-          // darkTheme: 暗色主题
-          // themeMode: 跟随系统主题切换
-          //
-          // 使用DesignTokens确保样式一致性
-          theme: AppTheme.darkTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.dark,
-          // 是否显示调试标记
-          debugShowCheckedModeBanner: false,
-
-          // 路由注册
-          routes: {
-            '/login': (_) => const LoginPage(),
+        return Consumer(
+          builder: (context, ref, _) {
+            return MaterialApp(
+              title: 'VidLang',
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: ref.watch(themeModeProvider).themeMode,
+              debugShowCheckedModeBanner: false,
+              routes: {
+                '/login': (_) => const LoginPage(),
+              },
+              navigatorKey: navigatorKey,
+              home: const _AppEntry(),
+            );
           },
-
-          // 应用主页
-          home: const _AppEntry(),
         );
       },
     );
@@ -222,8 +265,8 @@ class _AppEntryState extends State<_AppEntry> {
       future: _target,
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
             body: SafeArea(child: Center(child: CircularProgressIndicator())),
           );
         }
