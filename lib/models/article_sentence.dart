@@ -4,16 +4,19 @@ import 'package:vidlang/models/base_entity.dart';
 ///
 /// 从 Markdown 解析出的最小学习单位。
 /// 支持全文检索（FTS5），用于单词搜索和跨文章查询。
-/// 每个句子包含时间轴字段（毫秒），用于文章逐句播放模式。
+/// 每个句子包含时间轴字段（毫秒），用于文章逐句 TTS 播放模式。
 class ArticleSentence extends BaseEntity {
   /// 所属文章 code（关联 article.code）
   String articleCode;
 
-  /// 所属章节 code（关联 article_chapter.code）
-  String? chapterCode;
+  /// 所属段落索引（从 0 开始）
+  int paragraphIndex;
 
-  /// 句子在文章中的序号（从 1 开始）
+  /// 句子在文章中的全局序号（从 0 开始）
   int sentenceIndex;
+
+  /// 句子内容
+  String content;
 
   /// 翻译文本
   String? contentTranslate;
@@ -30,19 +33,16 @@ class ArticleSentence extends BaseEntity {
   /// 是否被用户标记为重点句
   bool isKeySentence;
 
-  /// 句子内容
-  String content;
-
   ArticleSentence({
     this.articleCode = '',
-    this.chapterCode,
+    this.paragraphIndex = 0,
     this.sentenceIndex = 0,
+    this.content = '',
     this.contentTranslate,
     this.startPositionMs = 0,
     this.endPositionMs = 0,
     this.wordCount = 0,
     this.isKeySentence = false,
-    this.content = '',
   });
 
   @override
@@ -55,7 +55,7 @@ class ArticleSentence extends BaseEntity {
       'code': code,
       'user_code': userCode,
       'article_code': articleCode,
-      'chapter_code': chapterCode,
+      'paragraph_index': paragraphIndex,
       'sentence_index': sentenceIndex,
       'content': content,
       'content_translate': contentTranslate,
@@ -79,7 +79,7 @@ class ArticleSentence extends BaseEntity {
     code = map['code'];
     userCode = map['user_code'];
     articleCode = map['article_code'] ?? '';
-    chapterCode = map['chapter_code'];
+    paragraphIndex = map['paragraph_index'] ?? 0;
     sentenceIndex = map['sentence_index'] ?? 0;
     content = map['content'] ?? '';
     contentTranslate = map['content_translate'];

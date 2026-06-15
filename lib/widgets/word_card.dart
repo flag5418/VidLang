@@ -1,340 +1,331 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_book.dart';
-import 'package:vidlang/models/word_card_data.dart';
-import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/models/word_detail.dart';
+import 'package:vidlang/providers/display_config_provider.dart';
+import 'package:vidlang/services/ai_service.dart';
+import 'package:vidlang/services/dictionary_service.dart';
+import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/tts_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/widgets/recharge_dialog.dart';
+import 'package:vidlang/widgets/word_detail_panel.dart';
 
-/// 单词/翻译弹窗组件（免费/付费共用）
-/// 余额不足时自动弹出 RechargeDialog
-class WordCard extends StatefulWidget {
-  final WordCardData data;
-  final VoidCallback onClose;
-  final bool compact;
-  final VoidCallback? onGoRecharge;
-  final VoidCallback? onSpeak;
-
-  /// 收藏回调，返回是否成功
-  final Future<bool> Function()? onSaveWord;
-
-  /// 是否为可收藏的单个单词
-  final bool canSave;
-
-  /// 是否已收藏
-  final bool isSaved;
-
-  const WordCard({
-    super.key,
-    required this.data,
-    required this.onClose,
-    this.compact = false,
-    this.onGoRecharge,
-    this.onSpeak,
-    this.onSaveWord,
-    this.canSave = false,
-    this.isSaved = false,
-  });
-
-  @override
-  State<WordCard> createState() => _WordCardState();
-}
-
+/// WordBook → WordDetail 映射扩展
 extension WordBookWordCardMapper on WordBook {
-  WordCardData toWordCardData() {
-    return WordCardData(
+  WordDetail toWordDetail() {
+    final defs = WordBookService.parseDefinitions(definitionsJson);
+    return WordDetail(
       word: word,
-      phonetic: phoneticUk ?? phoneticUs,
-      definitions: WordBookService.parseDefinitions(definitionsJson),
+      pronounce: PronounceInfo(
+        ukPhonetic: phoneticUk,
+        usPhonetic: phoneticUs,
+      ),
+      definitions: defs.map((d) => WordDefinition(
+        partOfSpeech: d.partOfSpeech,
+        chineseMeaning: d.meaning,
+      )).toList(),
+      contextSentence: contextSentence,
+      difficulty: DifficultyLevelX.fromString(null),
+      success: true,
       source: 'native',
     );
   }
 }
 
-class _WordCardState extends State<WordCard> {
-  bool _rechargeShown = false;
+/// 单词查词弹窗 — 分段加载模式
+///
+/// 用法：
+/// ```dart
+/// WordCard.show(
+///   context,
+///   word: 'example',
+///   contextSentence: 'This is an example sentence.',
+///   isPaidMode: ref.read(subscriptionProvider).isPremium,
+///   onSpeak: () => doSomething(),
+///   onSaveWord: (word, contextSentence, sourceType, sourceCode, sourceTitle) async { ... },
+///   sourceType: 'video',
+///   sourceCode: 'xxx',
+///   sourceTitle: 'xxx',
+/// );
+/// ```
+class WordCard extends ConsumerStatefulWidget {
+  final String word;
+  final String? contextSentence;
+  final bool isPaidMode;
+  final VoidCallback? onSpeak;
+
+  /// 收藏回调
+  final Future<bool> Function({
+    required String word,
+    String? contextSentence,
+    required String sourceType,
+    required String sourceCode,
+    String? sourceTitle,
+  })? onSaveWord;
+
+  final String sourceType;
+  final String sourceCode;
+  final String? sourceTitle;
+  final String? segmentCode;
+
+  const WordCard._internal({
+    required this.word,
+    this.contextSentence,
+    this.isPaidMode = false,
+    this.onSpeak,
+    this.onSaveWord,
+    this.sourceType = 'video',
+    this.sourceCode = '',
+    this.sourceTitle,
+    this.segmentCode,
+  });
+
+  /// 以 Dialog 方式展示 WordCard
+  ///
+  /// 注：showDialog 在新版 Flutter 中使用了 Windowing API，
+  /// Android 不支持，因此改用 DialogUtils。
+  static Future<void> show(
+    BuildContext context, {
+    required String word,
+    String? contextSentence,
+    bool isPaidMode = false,
+    VoidCallback? onSpeak,
+    Future<bool> Function({
+      required String word,
+      String? contextSentence,
+      required String sourceType,
+      required String sourceCode,
+      String? sourceTitle,
+    })? onSaveWord,
+    String sourceType = 'video',
+    String sourceCode = '',
+    String? sourceTitle,
+    String? segmentCode,
+  }) {
+    return DialogUtils.show<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      builder: (ctx) => WordCard._internal(
+        word: word,
+        contextSentence: contextSentence,
+        isPaidMode: isPaidMode,
+        onSpeak: onSpeak,
+        onSaveWord: onSaveWord,
+        sourceType: sourceType,
+        sourceCode: sourceCode,
+        sourceTitle: sourceTitle,
+        segmentCode: segmentCode,
+      ),
+    );
+  }
+
+  @override
+  ConsumerState<WordCard> createState() => _WordCardState();
+}
+
+enum _LoadState { loading, loaded, error }
+
+class _WordCardState extends ConsumerState<WordCard> {
+  WordDetail? _detail;
+  _LoadState _state = _LoadState.loading;
+
   bool _saving = false;
   bool _saved = false;
+  bool _rechargeShown = false;
 
   @override
   void initState() {
     super.initState();
-    _saved = widget.isSaved;
-    // 余额不足时，延迟显示充值弹窗
-    if (widget.data.isInsufficientBalance && !_rechargeShown) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showRechargeDialog();
+    // 立即 TTS 发音
+    TtsService().speakWord(widget.word);
+    _fetchDefinition();
+  }
+
+  Future<void> _fetchDefinition() async {
+    try {
+      WordDetail detail;
+
+      if (widget.isPaidMode) {
+        // 付费用户走 AI
+        detail = await AiService.getDefinition(
+          word: widget.word,
+          contextSentence: widget.contextSentence,
+        );
+      } else {
+        // 免费用户：先用本地词典 placeholder，实际可接入本地词典
+        detail = await _localFallback(widget.word);
+      }
+
+      if (!mounted) return;
+
+      // 余额不足时弹出充值弹窗
+      if (detail.isInsufficientBalance && !_rechargeShown) {
+        _rechargeShown = true;
+        RechargeDialog.show(
+          context,
+          requiredCny: detail.costCny ?? 0.01,
+          balanceCny: detail.balanceAfter ?? 0,
+          featureName: 'AI释义',
+        );
+        Navigator.of(context).pop();
+        return;
+      }
+
+      setState(() {
+        _detail = detail;
+        _state = _LoadState.loaded;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _detail = WordDetail.error(widget.word, '查询失败: $e');
+        _state = _LoadState.error;
       });
     }
   }
 
-  void _showRechargeDialog() {
-    if (_rechargeShown) return;
-    _rechargeShown = true;
-    RechargeDialog.show(
-      context,
-      requiredCny: widget.data.costCny ?? 0.01,
-      balanceCny: widget.data.balanceAfter ?? 0,
-      featureName: 'AI释义',
-      onGoRecharge: widget.onGoRecharge,
+  /// 本地词典兆底查询
+  Future<WordDetail> _localFallback(String word) async {
+    try {
+      // 并行查询本地词典 + 系统翻译
+      final results = await Future.wait([
+        DictionaryService().lookup(word),
+        IosNativeFeatures.translate(text: word),
+      ]);
+  
+      final dictEntry = results[0] as DictEntry?;
+      final translationResult = results[1] as TranslationResult;
+  
+      // 解析释义
+      final definitions = <WordDefinition>[];
+      if (dictEntry != null && dictEntry.translation != null && dictEntry.translation!.isNotEmpty) {
+        for (final line in dictEntry.translation!.split('\n')) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty) continue;
+          final match = RegExp(r'^([a-z]+\.)\s*(.+)$').firstMatch(trimmed);
+          if (match != null) {
+            definitions.add(WordDefinition(
+              partOfSpeech: match.group(1),
+              chineseMeaning: match.group(2)!,
+            ));
+          } else {
+            definitions.add(WordDefinition(chineseMeaning: trimmed));
+          }
+        }
+      }
+  
+      // 系统翻译作为补充
+      String? translation;
+      if (translationResult.success && translationResult.translatedText.isNotEmpty && translationResult.translatedText != word) {
+        translation = translationResult.translatedText;
+      }
+  
+      if (definitions.isNotEmpty || translation != null) {
+        // 如果没有解析出 definitions，用翻译填充
+        if (definitions.isEmpty && translation != null) {
+          definitions.add(WordDefinition(chineseMeaning: translation));
+        }
+  
+        return WordDetail(
+          word: word,
+          pronounce: PronounceInfo(
+            ukPhonetic: dictEntry?.phonetic,
+          ),
+          definitions: definitions,
+          contextSentence: widget.contextSentence,
+          success: true,
+          source: 'local',
+        );
+      }
+    } catch (_) {}
+  
+    // 最终兆底
+    return WordDetail(
+      word: word,
+      definitions: [
+        WordDefinition(
+          chineseMeaning: '暂无本地释义，请升级付费版使用 AI 释义',
+        ),
+      ],
+      success: true,
+      source: 'local',
     );
-    widget.onClose();
+  }
+
+  Future<void> _handleSave() async {
+    if (_saving || _saved || widget.onSaveWord == null) return;
+    setState(() => _saving = true);
+    try {
+      final ok = await widget.onSaveWord!(
+        word: widget.word,
+        contextSentence: widget.contextSentence,
+        sourceType: widget.sourceType,
+        sourceCode: widget.sourceCode,
+        sourceTitle: widget.sourceTitle,
+      );
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        if (ok) _saved = true;
+      });
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已收藏「${widget.word}」'),
+            duration: const Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = MediaQuery.of(context).size.width >= 768;
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          constraints: BoxConstraints(maxWidth: t ? 500 : 320),
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white12),
-            boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 8))],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHeader(context, t),
-              if (widget.data.error != null && !widget.data.isInsufficientBalance) _buildError(context),
-              if (!widget.compact && widget.data.phonetic != null) _buildPhonetic(context),
-              if (!widget.compact && widget.data.definitions.isNotEmpty) _buildDefinitions(context),
-              if (!widget.compact && widget.data.examples.isNotEmpty) _buildExamples(context),
-              if (widget.data.translation != null && widget.data.translation!.isNotEmpty) _buildTranslation(context),
-              if (widget.data.costCny != null && widget.data.success) _buildCost(context),
-              const SizedBox(height: 12),
-              // 收藏按钮：仅单个单词可收藏
-              _buildSaveButton(context),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: widget.onClose,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text('关闭', style: TextStyle(color: Colors.white, fontSize: 12)),
-                ),
-              ),
-            ],
-          ),
+    final config = ref.watch(displayConfigProvider).config;
+
+    // loading 状态时使用占位 WordDetail
+    if (_state == _LoadState.loading) {
+      return WordDetailPanel(
+        data: WordDetail(
+          word: widget.word,
+          pronounce: PronounceInfo(),
+          definitions: [],
+          standaloneExamples: [],
+          success: true,
+          source: 'loading',
         ),
-      ),
-    );
-  }
+        config: config,
+        onSpeak: () => TtsService().speakWord(widget.word),
+        onClose: () => Navigator.of(context).pop(),
+        isLoading: true,
+        onSaveWord: widget.onSaveWord != null && WordBookService.isSingleWord(widget.word)
+            ? _handleSave
+            : null,
+        isSaved: _saved,
+        saving: _saving,
+      );
+    }
 
-  Widget _buildHeader(BuildContext context, bool t) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Flexible(
-          child: Text(
-            widget.data.word,
-            style: TextStyle(color: Colors.white, fontSize: widget.compact ? 18 : 22, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        if (!widget.compact || widget.data.phonetic != null) SizedBox(width: 8),
-        GestureDetector(
-          onTap: widget.onSpeak ?? () => TtsService().speakWord(widget.data.word),
-          child: Icon(Icons.volume_up_rounded, color: AppColors.primary, size: 20),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPhonetic(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 4),
-      child: Text('/${widget.data.phonetic}/', style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: 14)),
-    );
-  }
-
-  Widget _buildDefinitions(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 12),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: widget.data.definitions.map((d) {
-            return Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (d.partOfSpeech != null)
-                    Container(
-                      margin: EdgeInsets.only(right: 6, top: 2),
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                      child: Text(
-                        d.partOfSpeech!,
-                        style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(d.meaning, style: TextStyle(color: Colors.white, fontSize: 14)),
-                        if (d.example != null) Text(d.example!, style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExamples(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 12),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '例句',
-              style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-            ...widget.data.examples.map(
-              (e) => Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(e.english, style: TextStyle(color: Colors.white, fontSize: 13)),
-                    if (e.chinese != null) Text(e.chinese!, style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: 12)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTranslation(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 12),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(widget.data.translation!, style: TextStyle(color: Colors.white, fontSize: 14)),
-      ),
-    );
-  }
-
-  Widget _buildCost(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.monetization_on_outlined, size: 14, color: AppColors.playerSubtitleTranslate),
-          SizedBox(width: 4),
-          Text(
-            '-¥${widget.data.costCny!.toStringAsFixed(2)}  |  余额 ¥${widget.data.balanceAfter?.toStringAsFixed(2) ?? '--'}',
-            style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildError(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(top: 12),
-      child: Text(
-        widget.data.error!,
-        style: TextStyle(color: Colors.redAccent, fontSize: 13),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildSaveButton(BuildContext context) {
-    // 不可收藏（多词选择或查询失败）：不显示收藏按钮
-    if (!widget.canSave || !widget.data.success) {
+    if (_detail == null) {
       return const SizedBox.shrink();
     }
 
-    final isSaved = _saved;
-    final isSaving = _saving;
-
-    return GestureDetector(
-      onTap: isSaving || isSaved
-          ? null
-          : () async {
-              if (widget.onSaveWord == null) return;
-              setState(() => _saving = true);
-              try {
-                final ok = await widget.onSaveWord!();
-                if (!mounted) return;
-                setState(() {
-                  _saving = false;
-                  if (ok) _saved = true;
-                });
-                if (ok) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('已收藏「${widget.data.word}」'),
-                      duration: Duration(seconds: 1),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              } catch (_) {
-                if (mounted) setState(() => _saving = false);
-              }
-            },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSaved
-              ? AppColors.primary.withValues(alpha: 0.2)
-              : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSaved ? AppColors.primary : Colors.white24,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isSaving)
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-              )
-            else
-              Icon(
-                isSaved ? Icons.star_rounded : Icons.star_border_rounded,
-                size: 16,
-                color: isSaved ? AppColors.primary : Colors.white54,
-              ),
-            SizedBox(width: 6),
-            Text(
-              isSaving ? '收藏中...' : (isSaved ? '已收藏' : '收藏到生词本'),
-              style: TextStyle(
-                color: isSaved ? AppColors.primary : Colors.white70,
-                fontSize: 12,
-                fontWeight: isSaved ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return WordDetailPanel(
+      data: _detail!,
+      config: config,
+      onSpeak: widget.onSpeak ?? () => TtsService().speakWord(widget.word),
+      onClose: () => Navigator.of(context).pop(),
+      onSaveWord: widget.onSaveWord != null && WordBookService.isSingleWord(widget.word)
+          ? _handleSave
+          : null,
+      isSaved: _saved,
+      saving: _saving,
     );
   }
 }

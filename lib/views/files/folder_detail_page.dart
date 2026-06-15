@@ -12,6 +12,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/utils/dialog_utils.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
@@ -21,6 +23,7 @@ import 'package:vidlang/components/video_card.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_sentence.dart';
+import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/playback_settings.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -30,10 +33,13 @@ import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
+import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
+import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 import 'package:vidlang/views/test/test_page.dart';
 
@@ -50,15 +56,40 @@ class FolderDetailPage extends ConsumerStatefulWidget {
 class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   bool _isImporting = false;
   String? _pageError;
+  List<Article> _articles = [];
+  bool _articlesLoading = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.folderCode.trim().isEmpty) {
-      _pageError = '视频集标识为空，无法加载详情';
+      _pageError = '资源集标识为空，无法加载详情';
       return;
     }
-    Future.microtask(() => ref.read(fileProvider.notifier).loadVideos(widget.folderCode));
+    Future.microtask(() async {
+      await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
+      _loadArticlesIfNeeded();
+    });
+  }
+
+  Future<void> _loadArticlesIfNeeded() async {
+    final folder = ref.read(fileProvider).currentFolder;
+    if (folder == null || folder.folderType != FolderContentType.article) return;
+
+    setState(() => _articlesLoading = true);
+    try {
+      final articles = await BaseEntityExtension.findByCondition<Article>(
+        () => Article(),
+        where: 'folder_code = ? AND is_deleted = 0',
+        whereArgs: [widget.folderCode],
+        orderBy: 'order_index ASC, created_at DESC',
+      );
+      logger.debug('_loadArticlesIfNeeded: found ${articles.length} articles for folder ${widget.folderCode}');
+      if (mounted) setState(() { _articles = articles; _articlesLoading = false; });
+    } catch (e) {
+      logger.error('_loadArticlesIfNeeded failed', error: e);
+      if (mounted) setState(() => _articlesLoading = false);
+    }
   }
 
   String _typeLabel(FolderContentType type) {
@@ -96,7 +127,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     : state.error != null && state.videos.isEmpty
                     ? _buildErrorState(colorScheme, state.error!)
                     : state.videos.isEmpty
-                    ? _buildEmptyState(colorScheme, folderType)
+                    ? (folderType == FolderContentType.article ? _buildContent(state, folderType) : _buildEmptyState(colorScheme, folderType))
                     : _buildContent(state, folderType),
               ),
             ],
@@ -237,6 +268,49 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 
   Widget _buildContent(FileState state, FolderContentType folderType) {
+    if (folderType == FolderContentType.article) {
+      return _buildArticleList(state);
+    }
+    return _buildVideoList(state);
+  }
+
+  Widget _buildArticleList(FileState state) {
+    if (_articlesLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_articles.isEmpty) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return RefreshIndicator(
+        onRefresh: _loadArticlesIfNeeded,
+        child: ListView(children: [SizedBox(height: MediaQuery.of(context).size.height * 0.6, child: _buildEmptyState(colorScheme, FolderContentType.article))]),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadArticlesIfNeeded,
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+        itemCount: _articles.length,
+        itemBuilder: (context, index) {
+          final article = _articles[index];
+          return _ArticleCard(
+            article: article,
+            onTap: () => _openArticle(article),
+            onDelete: () => _confirmDeleteArticle(article),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openArticle(Article article) {
+    if (article.code == null || article.code!.isEmpty) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ArticleReaderPage(articleCode: article.code!)),
+    );
+  }
+
+  Widget _buildVideoList(FileState state) {
     final crossAxisCount = DeviceUtils.getGridColumns(context);
     final gridSpacing = DeviceUtils.getGridSpacing(context);
     final mainVideo = state.currentVideo ?? (state.videos.isNotEmpty ? state.videos.first : null);
@@ -290,10 +364,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     final state = ref.read(fileProvider);
     await ref.read(fileProvider.notifier).selectVideo(code);
     if (!mounted) return;
+    final folder = state.currentFolder;
+    final isMusic = folder?.folderType == FolderContentType.music;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PlayerPage(videoCode: code, folderVideos: state.videos),
+        builder: (_) => isMusic
+            ? AudioPlayerPage(videoCode: code, folderVideos: state.videos, audioType: 'music')
+            : PlayerPage(videoCode: code, folderVideos: state.videos),
       ),
     );
   }
@@ -316,26 +394,15 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Future<void> _confirmDeleteAll() async {
     final folder = ref.read(fileProvider).currentFolder;
     if (folder == null) return;
-    final colorScheme = Theme.of(context).colorScheme;
     final typeLabel = _typeLabel(folder.folderType);
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('删除确认', style: TextStyle(color: colorScheme.onSurface)),
-        content: Text('确定要删除当前$typeLabel文件夹及其所有资源吗？\n此操作不可恢复。', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('确认删除', style: TextStyle(color: colorScheme.error)),
-          ),
-        ],
-      ),
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: '删除确认',
+      content: '确定要删除当前$typeLabel文件夹及其所有资源吗？\n此操作不可恢复。',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      destructive: true,
     );
 
     if (confirmed == true && mounted) {
@@ -343,7 +410,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       if (result == null && mounted) {
         Navigator.pop(context);
       } else if (result != null) {
-        _showMessage('删除失败: $result', theme: MessageTheme.error);
+        _showMessage('删除失败: $result');
       }
     }
   }
@@ -586,7 +653,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     }
 
     // 更新文章统计
-    article.totalChapters = chapters.length;
+    article.totalParagraphs = chapters.length;
     article.totalSentences = sentences.length;
     await DatabaseService.update(article);
   }
@@ -618,7 +685,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       sentences.add(
         ArticleSentence(
           articleCode: article.code!,
-          chapterCode: null, // 稍后设置
+          paragraphIndex: chapterIndex,
           content: trimmed,
           sentenceIndex: startSentenceIndex + sentences.length,
           wordCount: ws,
@@ -639,11 +706,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
     chapter.code = const Uuid().v4().replaceAll('-', '');
     chapters.add(chapter);
-
-    // 更新句子的 chapterCode
-    for (int i = sentences.length - sentenceCount; i < sentences.length; i++) {
-      sentences[i].chapterCode = chapter.code;
-    }
   }
 
   /// 导入音频文件
@@ -822,7 +884,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     final controller = TextEditingController(text: folder.name);
-    await showDialog(
+    await DialogUtils.show(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colorScheme.surface,
@@ -868,7 +930,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Future<void> _showVideoRenameDialog(dynamic video) async {
     final colorScheme = Theme.of(context).colorScheme;
     final controller = TextEditingController(text: video.name ?? '');
-    await showDialog(
+    await DialogUtils.show(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colorScheme.surface,
@@ -923,24 +985,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
   /// 确认删除视频
   Future<void> _confirmDeleteVideo(dynamic video) async {
-    final colorScheme = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('删除确认', style: TextStyle(color: colorScheme.onSurface)),
-        content: Text('确定要删除「${video.name ?? ''}」吗？\n此操作不可恢复。', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text('确认删除', style: TextStyle(color: colorScheme.error)),
-          ),
-        ],
-      ),
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: '删除确认',
+      content: '确定要删除「${video.name ?? ''}」吗？\n此操作不可恢复。',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      destructive: true,
     );
 
     if (confirmed == true && mounted) {
@@ -948,7 +999,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         await ref.read(fileProvider.notifier).deleteVideo(video.code ?? '');
         _showMessage('删除成功');
       } catch (e) {
-        _showMessage('删除失败: $e', theme: MessageTheme.error);
+        _showMessage('删除失败: $e');
       }
     }
   }
@@ -1020,6 +1071,70 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 
   void _showMessage(String content, {MessageTheme theme = MessageTheme.info}) {
-    TDMessage.showMessage(context: context, content: content, visible: true, icon: true, theme: theme, duration: 3000);
+    final type = switch (theme) {
+      MessageTheme.error => ToastType.error,
+      MessageTheme.warning => ToastType.warning,
+      MessageTheme.success => ToastType.success,
+      MessageTheme.info => ToastType.info,
+    };
+    AppToast.show(context, content, type: type);
+  }
+
+  Future<void> _confirmDeleteArticle(Article article) async {
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: '删除确认',
+      content: '确定要删除文章「${article.title}」吗？',
+      confirmText: '删除',
+      cancelText: '取消',
+      destructive: true,
+    );
+    if (confirmed == true && mounted) {
+      article.isDeleted = true;
+      await DatabaseService.update(article);
+      setState(() => _articles.removeWhere((a) => a.code == article.code));
+    }
+  }
+}
+
+class _ArticleCard extends StatelessWidget {
+  final Article article;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _ArticleCard({required this.article, required this.onTap, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm / 2),
+      child: ListTile(
+        leading: Container(
+          width: 44,
+          height: 56,
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(Icons.menu_book, color: colorScheme.primary),
+        ),
+        title: Text(
+          article.title,
+          style: TextStyle(fontWeight: FontWeight.w500),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          '${article.totalParagraphs} 章',
+          style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+        ),
+        trailing: IconButton(
+          icon: Icon(Icons.delete_outline, color: colorScheme.error),
+          onPressed: onDelete,
+        ),
+        onTap: onTap,
+      ),
+    );
   }
 }

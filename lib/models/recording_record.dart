@@ -44,6 +44,24 @@ class RecordingRecord extends BaseEntity {
   /// 声通原始返回 JSON
   String? rawResultJson;
 
+  /// 评测语言 ('en'|'fr'|'ja'|'ko'|...)
+  String? language;
+
+  /// 参考文本（当前字幕行的 content）
+  String? refText;
+
+  /// 字幕行索引（scope='sentence' 时使用）
+  int? subtitleIndex;
+
+  /// 跟读时原音音量 (0.0-1.0)
+  double? originalVolume;
+
+  /// 是否使用耳机模式
+  bool? headphoneMode;
+
+  /// 跟读时播放速度
+  double? speed;
+
   /// 录音时间
   DateTime recordedAt;
 
@@ -61,6 +79,12 @@ class RecordingRecord extends BaseEntity {
     this.completenessScore,
     this.wordScoresJson,
     this.rawResultJson,
+    this.language,
+    this.refText,
+    this.subtitleIndex,
+    this.originalVolume,
+    this.headphoneMode,
+    this.speed,
     DateTime? recordedAt,
   }) : recordedAt = recordedAt ?? DateTime.now();
 
@@ -86,6 +110,12 @@ class RecordingRecord extends BaseEntity {
       'completeness_score': completenessScore,
       'word_scores_json': wordScoresJson,
       'raw_result_json': rawResultJson,
+      'language': language,
+      'ref_text': refText,
+      'subtitle_index': subtitleIndex,
+      'original_volume': originalVolume,
+      'headphone_mode': headphoneMode == true ? 1 : 0,
+      'speed': speed,
       'recorded_at': recordedAt.toIso8601String(),
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -115,6 +145,12 @@ class RecordingRecord extends BaseEntity {
     completenessScore = (map['completeness_score'] as num?)?.toDouble();
     wordScoresJson = map['word_scores_json'];
     rawResultJson = map['raw_result_json'];
+    language = map['language'];
+    refText = map['ref_text'];
+    subtitleIndex = map['subtitle_index'];
+    originalVolume = (map['original_volume'] as num?)?.toDouble();
+    headphoneMode = map['headphone_mode'] == 1;
+    speed = (map['speed'] as num?)?.toDouble();
     recordedAt = map['recorded_at'] != null ? DateTime.parse(map['recorded_at']) : DateTime.now();
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;

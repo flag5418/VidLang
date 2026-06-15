@@ -12,6 +12,16 @@
 | 06 | [06-test-system.md](./06-test-system.md) | 双层测试体系（单资源 + 文件夹综合） |
 | 07 | [07-homepage-nav.md](./07-homepage-nav.md) | 首页与导航设计（Learn/Words/Profile） |
 | 08 | [08-business-model.md](./08-business-model.md) | 商业模式（Freemium + AI 计费）+ 数据同步 |
+| 09 | [09-article-prototype.md](./09-article-prototype.md) | 文章原型与交互设计 |
+| 10 | [10-mtv-update.md](./10-mtv-update.md) | MTV 学习方案更新 |
+| 11 | [11-outline-reader-prototype.md](./11-outline-reader-prototype.md) | 大纲阅读器原型 |
+| 12 | [12-article-import-pain-points.md](./12-article-import-pain-points.md) | 文章导入痛点分析 |
+| 13 | [13-article-collection-workspace.md](./13-article-collection-workspace.md) | 文章收藏与工作区 |
+| 14 | [14-article-editor.md](./14-article-editor.md) | 文章编辑器设计 |
+| 15 | [15-database-schema.md](./15-database-schema.md) | 数据库表结构设计 |
+| 16 | [16-ai-conversation.md](./16-ai-conversation.md) | AI 对话功能设计 |
+| 17 | [17-billing-redesign.md](./17-billing-redesign.md) | 计费体系重新设计 |
+| 18 | [18-learning-stats.md](./18-learning-stats.md) | **学习统计体系**（学习天数/时长/日历打卡/成就系统/测试错误分析/AI 学习建议） |
 
 ## 核心设计决策速查
 
@@ -54,4 +64,17 @@ MTV 学习 = 带歌词时间轴的视频学习
 免费：iOS原生能力（OCR/TTS/翻译）+ 本地录音+本地测试
 付费：DeepSeek AI + 声通评分 + 云同步
 订阅制 / AI Credits 按量计费
+```
+
+### 学习统计体系
+
+```
+统一活动日志 learning_activity 表
+├── 学习天数：任意学习行为即计为"已学习"
+├── 学习时长：按资源类型细分（视频/音频/文章/其他）
+├── 日历打卡：按月视图展示每日学习情况
+├── 学习记录排序：按最后学习时间倒序
+├── 成就系统：5 大类 30+ 成就
+├── 测试错误分析：按题型/高频错误词聚合
+└── AI 学习建议：基于错误统计生成针对性建议
 ```

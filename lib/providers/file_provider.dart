@@ -580,13 +580,22 @@ class FileNotifier extends StateNotifier<FileState> {
 
   /// 创建学习记录
   ///
-  /// [videoCode] 视频code
+  /// [resourceCode] 资源 code（视频/文章/音频 code）
+  /// [resourceType] 资源类型：video / article / music
+  /// [folderCode] 所属文件夹 code（可选）
   /// [startTime] 学习开始时间
   ///
   /// 在用户开始学习时创建一条记录
-  Future<void> createStudyRecord(String videoCode, DateTime startTime) async {
+  Future<void> createStudyRecord(String resourceCode, String resourceType, String? folderCode, DateTime startTime) async {
     try {
-      StudyRecord record = StudyRecord(videoCode: videoCode, startTime: startTime)..code = const Uuid().v4().replaceAll('-', '');
+      final now = DateTime.now();
+      StudyRecord record = StudyRecord(
+        resourceCode: resourceCode,
+        resourceType: resourceType,
+        folderCode: folderCode ?? '',
+        startTime: startTime,
+        date: startTime,
+      )..code = const Uuid().v4().replaceAll('-', '');
       await DatabaseService.insert(record);
     } catch (e) {
       // 静默处理错误
@@ -595,19 +604,19 @@ class FileNotifier extends StateNotifier<FileState> {
 
   /// 完成学习记录
   ///
-  /// [videoCode] 视频code
+  /// [resourceCode] 资源 code
   /// [endTime] 学习结束时间
   /// [duration] 学习时长（毫秒）
   /// [playCount] 本次完整播放次数
   ///
-  /// 查找该视频未完成的学习记录并更新
-  Future<void> completeStudyRecord(String videoCode, DateTime endTime, int duration, int playCount) async {
+  /// 查找该资源最近一条未完成的记录并更新
+  Future<void> completeStudyRecord(String resourceCode, DateTime endTime, int duration, int playCount) async {
     try {
-      // 查找该视频最近一条未完成的记录
+      // 查找该资源最近一条未完成的记录
       List<StudyRecord> records = await DatabaseService.findByCondition(
         () => StudyRecord(),
-        where: 'video_code = ? AND end_time IS NULL AND is_deleted = 0',
-        whereArgs: [videoCode],
+        where: 'resource_code = ? AND end_time IS NULL AND is_deleted = 0',
+        whereArgs: [resourceCode],
         orderBy: 'start_time DESC',
       );
 

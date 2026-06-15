@@ -10,17 +10,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:omni_player/omni_player.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/models/word_card_data.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/native_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
+import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/word_card.dart';
 
@@ -44,23 +43,29 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
   double _playbackSpeed = 1.0;
-  double _subtitleFontSize = 20.0;
 
-  int _timerSeconds = 0;
-  Timer? _shutdownTimer;
-
-  final List<Map<String, dynamic>> _timerOptions = [
+  // Time-based shutdown options
+  final List<Map<String, dynamic>> _timeOptions = [
     {'label': '不开启', 'value': 0},
     {'label': '15:00', 'value': 900},
     {'label': '30:00', 'value': 1800},
     {'label': '60:00', 'value': 3600},
+    {'label': '自定义', 'value': -1},
+  ];
+  // Episode-based shutdown options
+  final List<Map<String, dynamic>> _episodeOptions = [
+    {'label': '不开启', 'value': 0},
+    {'label': '播完本集', 'value': 1},
+    {'label': '播完2集', 'value': 2},
+    {'label': '播完3集', 'value': 3},
+    {'label': '播完5集', 'value': 5},
   ];
 
-  String _playMode = 'single_play';
   final List<Map<String, String>> _playModeOptions = [
-    {'label': '单集播放', 'value': 'single_play'},
     {'label': '单集循环', 'value': 'single_loop'},
     {'label': '列表循环', 'value': 'list_loop'},
+    {'label': '单集播放', 'value': 'single_play'},
+    {'label': '顺序播放', 'value': 'sequence_play'},
   ];
 
   // TTS playback
@@ -76,13 +81,19 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     WidgetsBinding.instance.addObserver(this);
     _lockLandscape();
     _loadSettings();
+    // 沉浸式状态栏：透明背景
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
     Future.microtask(() => _initializePlayer());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _shutdownTimer?.cancel();
     _aliAudioPlayer.dispose();
     _unlockOrientation();
     super.dispose();
@@ -147,89 +158,91 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final currentSub = (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length) ? subtitlesList[idx] : null;
     final drawerOpen = _showVideoList || _showSettings;
 
+    final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Video fills screen
-            Positioned.fill(
-              child: Container(
-                color: Colors.black,
-                child: VideoWidget(player: notifier.player, fit: BoxFit.contain, backgroundColor: Colors.black),
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Video fills screen (edge-to-edge, immersive)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: VideoWidget(player: notifier.player, fit: BoxFit.contain, backgroundColor: Colors.black),
+            ),
+          ),
+
+          // Top bar (with status bar padding)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.only(top: topPadding) + EdgeInsets.symmetric(horizontal: pageH(context)),
+              height: 40.w + topPadding,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
+              ),
+              child: Row(
+                children: [
+                  _topBtn(Icons.arrow_back_ios_new_rounded, () {
+                    _unlockOrientation();
+                    Navigator.pop(context);
+                  }),
+
+                  Expanded(
+                    child: Text(
+                      state.title,
+                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Row(
+                    spacing: 10.w,
+                    children: [
+                      _topBtn(
+                        Icons.format_list_bulleted_rounded,
+                        () => setState(() {
+                          _showVideoList = !_showVideoList;
+                          _showSettings = false;
+                          _showSpeedPicker = false;
+                        }),
+                        active: _showVideoList,
+                      ),
+
+                      _topBtn(
+                        Icons.settings_rounded,
+                        () => setState(() {
+                          _showSettings = !_showSettings;
+                          _showVideoList = false;
+                          _showSpeedPicker = false;
+                        }),
+                        active: _showSettings,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+          ),
 
-            // Top bar
+          // Bottom area (with navigation bar padding)
+          if (!drawerOpen)
             Positioned(
-              top: 0,
+              bottom: 0,
               left: 0,
               right: 0,
               child: Container(
-                height: 40.w,
-                padding: EdgeInsets.symmetric(horizontal: pageH(context)),
+                padding: EdgeInsets.only(bottom: bottomPadding),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
+                  gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
                 ),
-                child: Row(
-                  // alignment: Alignment.center,
-                  children: [
-                    _topBtn(Icons.arrow_back_ios_new_rounded, () {
-                      _unlockOrientation();
-                      Navigator.pop(context);
-                    }),
-
-                    Expanded(
-                      child: Text(
-                        state.title,
-                        style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    Row(
-                      spacing: 10.w,
-                      children: [
-                        _topBtn(
-                          Icons.format_list_bulleted_rounded,
-                          () => setState(() {
-                            _showVideoList = !_showVideoList;
-                            _showSettings = false;
-                            _showSpeedPicker = false;
-                          }),
-                          active: _showVideoList,
-                        ),
-
-                        _topBtn(
-                          Icons.settings_rounded,
-                          () => setState(() {
-                            _showSettings = !_showSettings;
-                            _showVideoList = false;
-                            _showSpeedPicker = false;
-                          }),
-                          active: _showSettings,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                child: _buildBottomArea(state, notifier, subtitlesList, isTablet, hasSubtitles, idx, currentSub),
               ),
             ),
-
-            // Bottom area
-            if (!drawerOpen)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
-                  ),
-                  child: _buildBottomArea(state, notifier, subtitlesList, isTablet, hasSubtitles, idx, currentSub),
-                ),
-              ),
 
             // Drawer overlay
             if (drawerOpen && !_showWordPopup)
@@ -255,25 +268,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 ),
               ),
 
-            // Word selection popup
-            if (_showWordPopup) ...[
-              // Tap-outside barrier
-              GestureDetector(
-                onTap: () => setState(() {
-                  _showWordPopup = false;
-                  _selectedWords = [];
-                }),
-                behavior: HitTestBehavior.opaque,
-                child: Container(color: Colors.black45),
-              ),
-              _buildWordSelectionPopup(isTablet),
-            ],
-
             // Read-aloud popup
             if (_showReadAloud) _buildReadAloudPopup(state, notifier, currentSub, isTablet),
           ],
         ),
-      ),
     );
   }
 
@@ -455,7 +453,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           if (s.subtitleVisible && sub.content.isNotEmpty)
             SelectableEnglishLine(
               text: sub.content,
-              fontSize: _subtitleFontSize,
+              fontSize: s.subtitleFontSize,
               fontColor: Colors.white,
               selectedBgColor: AppColors.primary.withValues(alpha: 0.7),
               onStartSelection: () {
@@ -464,12 +462,31 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 });
               },
               onSelectionChanged: (words) {
-                setState(() {
-                  if (words.isNotEmpty) {
-                    _selectedWords = words.map((w) => _WordItem(text: w, key: GlobalKey())).toList();
-                    _showWordPopup = true;
-                  }
-                });
+                if (words.isNotEmpty) {
+                  _selectedWords = words.map((w) => _WordItem(text: w, key: GlobalKey())).toList();
+                  final selectedText = words.join(' ');
+                  // 暂停播放
+                  ref.read(playerEngineProvider.notifier).player.pause();
+                  // 弹出查词卡片
+                  final subState = ref.read(subscriptionProvider);
+                  final isPremium = subState.mode == SubscriptionMode.premium;
+                  final notifier = ref.read(playerEngineProvider.notifier);
+                  final state = ref.read(playerEngineProvider);
+                  final currentSub = _getCurrentSubtitle();
+                  final canSave = WordBookService.isSingleWord(selectedText);
+                  WordCard.show(
+                    context,
+                    word: selectedText,
+                    contextSentence: currentSub?.content,
+                    isPaidMode: isPremium,
+                    onSpeak: () => _speakSelectedWord(selectedText),
+                    onSaveWord: canSave ? _handleSaveWord : null,
+                    sourceType: 'video',
+                    sourceCode: widget.videoCode,
+                    sourceTitle: state.title,
+                    segmentCode: currentSub?.code,
+                  );
+                }
               },
             ),
           if (s.translateVisible && sub.contentTranslate != null && sub.contentTranslate!.isNotEmpty)
@@ -477,7 +494,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               padding: EdgeInsets.only(top: 4),
               child: Text(
                 sub.contentTranslate!,
-                style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: _subtitleFontSize - 2, height: 1.3),
+                style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: s.subtitleFontSize - 2, height: 1.3),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -486,61 +503,26 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     );
   }
 
-  // ─── Word Selection Popup（双模式：免费→NativeService，付费→AiService）➠
-  Widget _buildWordSelectionPopup(bool t) {
-    final selectedText = _selectedWords.map((w) => w.text).join(' ');
-    final subState = ref.watch(subscriptionProvider);
-    final isPremium = subState.mode == SubscriptionMode.premium;
-    final canSave = WordBookService.isSingleWord(selectedText);
-
-    // 付费模式下调用 AI，免费模式调用原生
-    final future = isPremium ? _lookupWordPremium(selectedText) : _lookupWordFree(selectedText);
-
-    return FutureBuilder<WordCardData>(
-      future: future,
-      builder: (ctx, snap) {
-        final loading = snap.connectionState == ConnectionState.waiting;
-        if (loading) {
-          return Center(
-            child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
-          );
-        }
-        final data = snap.data;
-        if (data == null) {
-          return Center(
-            child: Text('暂无数据', style: TextStyle(color: Colors.white54)),
-          );
-        }
-        return WordCard(
-          data: data,
-          onClose: () => setState(() {
-            _showWordPopup = false;
-            _selectedWords = [];
-          }),
-          onGoRecharge: _navigateToProfile,
-          onSpeak: () => _speakSelectedWord(data.word),
-          canSave: canSave,
-          onSaveWord: canSave ? () => _handleSaveWord(data) : null,
-        );
-      },
-    );
-  }
-
   /// 收藏单词到生词本
-  Future<bool> _handleSaveWord(WordCardData data) async {
+  Future<bool> _handleSaveWord({
+    required String word,
+    String? contextSentence,
+    required String sourceType,
+    required String sourceCode,
+    String? sourceTitle,
+  }) async {
     final notifier = ref.read(playerEngineProvider.notifier);
     final state = ref.read(playerEngineProvider);
     final video = notifier.currentVideo;
     final currentSub = _getCurrentSubtitle();
 
     final result = await WordBookService.saveWord(
-      word: data.word,
-      sourceType: 'video',
-      sourceCode: widget.videoCode,
-      sourceTitle: state.title,
-      contextSentence: currentSub?.content,
+      word: word,
+      sourceType: sourceType,
+      sourceCode: sourceCode,
+      sourceTitle: sourceTitle,
+      contextSentence: contextSentence,
       segmentCode: currentSub?.code,
-      wordCardData: data,
       videoPath: video?.filePath,
       positionMs: state.position.inMilliseconds,
     );
@@ -557,16 +539,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       return subtitlesList[idx];
     }
     return null;
-  }
-
-  /// 免费模式：原生翻译 + 本地词典
-  Future<WordCardData> _lookupWordFree(String word) async {
-    return NativeService.lookupWord(word);
-  }
-
-  /// 付费模式：AI 释义
-  Future<WordCardData> _lookupWordPremium(String word) async {
-    return AiService.getDefinition(word: word);
   }
 
   /// 单词朗读：免费模式走系统 TTS，付费模式走 Edge Function ai_tts
@@ -768,20 +740,50 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _secTitle('播放模式'),
-                _toggleGroup(_playModeOptions.map((m) => m['label']!).toList(), _playModeOptions.indexWhere((m) => m['value'] == _playMode), (i) {
-                  setState(() => _playMode = _playModeOptions[i]['value']!);
-                  n.setLoopingMode(_playModeOptions[i]['value']!);
-                }),
-                _divider(),
-                _secTitle('定时关闭'),
                 _toggleGroup(
-                  _timerOptions.map((m) => m['label'] as String).toList(),
-                  _timerOptions.indexWhere((m) => (m['value'] as int) == _timerSeconds),
-                  (i) => _setTimer(_timerOptions[i]['value'] as int),
+                  _playModeOptions.map((m) => m['label']!).toList(),
+                  _playModeOptions.indexWhere((m) => m['value'] == s.loopingMode),
+                  (i) => n.setLoopingMode(_playModeOptions[i]['value']!),
                 ),
                 _divider(),
+                _secTitle('定时关闭'),
+                // Timer type toggle (time vs episode - mutually exclusive)
+                _toggleGroup(
+                  ['按时间', '按集数'],
+                  s.shutdownTimerType == 'episode' ? 1 : 0,
+                  (i) {
+                    n.setShutdownTimerType(i == 0 ? 'time' : 'episode');
+                  },
+                ),
+                const SizedBox(height: 8),
+                if (s.shutdownTimerType == 'time') ...[
+                  _toggleGroup(
+                    _timeOptions.map((m) => m['label'] as String).toList(),
+                    _timeOptions.indexWhere((m) {
+                      final v = m['value'] as int;
+                      if (v == -1) return false;
+                      if (v == 0 && s.shutdownTimerSeconds == 0) return true;
+                      return v == s.shutdownTimerSeconds;
+                    }),
+                    (i) {
+                      final val = _timeOptions[i]['value'] as int;
+                      if (val == -1) {
+                        _showCustomTimerDialog(n);
+                      } else {
+                        n.setShutdownTimer(val);
+                      }
+                    },
+                  ),
+                ] else ...[
+                  _toggleGroup(
+                    _episodeOptions.map((m) => m['label'] as String).toList(),
+                    _episodeOptions.indexWhere((m) => (m['value'] as int) == s.shutdownEpisodeCount),
+                    (i) => n.setShutdownEpisodeCount(_episodeOptions[i]['value'] as int),
+                  ),
+                ],
+                _divider(),
                 _secTitle('播放速度'),
-                _toggleGroup(_speedOptions.map((s) => '${s}X').toList(), _speedOptions.indexOf(s.speed), (i) {
+                _toggleGroup(_speedOptions.map((sp) => '${sp}X').toList(), _speedOptions.indexOf(s.speed), (i) {
                   _playbackSpeed = _speedOptions[i];
                   n.setSpeed(_speedOptions[i]);
                 }),
@@ -793,6 +795,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 _toggleRow(Icons.subtitles, '字幕显示', null, s.subtitleVisible, (_) => n.toggleSubtitleVisible()),
                 const SizedBox(height: 8),
                 _toggleRow(Icons.translate, '翻译显示', null, s.translateVisible, (_) => n.toggleTranslateVisible()),
+                const SizedBox(height: 8),
+                _toggleRow(Icons.skip_next, '按下一句自动播放', '打开单句暂停有效', s.singleSentencePause, (_) => n.toggleSingleSentencePause()),
               ],
             ),
           ),
@@ -841,42 +845,41 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   }
 
   Widget _buildFontSlider() {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '小',
-                style: TextStyle(color: Colors.white, fontSize: 6.sp),
-              ),
-              Text(
-                '${_subtitleFontSize.toInt()}',
-                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '大',
-                style: TextStyle(color: Colors.white, fontSize: 6.sp),
-              ),
-            ],
-          ),
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3,
-              activeTrackColor: AppColors.primary,
-              inactiveTrackColor: Colors.white12,
-              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8),
-              overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
-              thumbColor: AppColors.primary,
+    return Builder(builder: (context) {
+      final state = ref.watch(playerEngineProvider);
+      return Container(
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(10)),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('小', style: TextStyle(color: Colors.white, fontSize: 6.sp)),
+                Text('${state.subtitleFontSize.toInt()}', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                Text('大', style: TextStyle(color: Colors.white, fontSize: 6.sp)),
+              ],
             ),
-            child: Slider(value: _subtitleFontSize, min: 12, max: 40, onChanged: (v) => setState(() => _subtitleFontSize = v)),
-          ),
-        ],
-      ),
-    );
+            SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 3,
+                activeTrackColor: AppColors.primary,
+                inactiveTrackColor: Colors.white12,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                thumbColor: AppColors.primary,
+              ),
+              child: Slider(
+                value: state.subtitleFontSize,
+                min: 12,
+                max: 40,
+                onChanged: (v) => ref.read(playerEngineProvider.notifier).setSubtitleFontSize(v),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _toggleRow(IconData icon, String title, String? sub, bool v, ValueChanged<bool> onChanged) {
@@ -918,15 +921,53 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     );
   }
 
-  void _setTimer(int seconds) {
-    _shutdownTimer?.cancel();
-    setState(() => _timerSeconds = seconds);
-    ref.read(playerEngineProvider.notifier).setShutdownTimer(seconds);
-    if (seconds > 0 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('定时关闭已设置: ${seconds ~/ 60}分钟'), duration: const Duration(seconds: 2), behavior: SnackBarBehavior.floating),
-      );
-    }
+  void _showCustomTimerDialog(PlayerEngineNotifier n) {
+    int hours = 0;
+    int minutes = 30;
+    DialogUtils.show(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: Text('自定义时间', style: TextStyle(color: Colors.white)),
+        content: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 60,
+              child: TextField(
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: '小时', labelStyle: TextStyle(color: Colors.white54)),
+                onChanged: (v) => hours = int.tryParse(v) ?? 0,
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 60,
+              child: TextField(
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: '分钟', labelStyle: TextStyle(color: Colors.white54)),
+                onChanged: (v) => minutes = int.tryParse(v) ?? 0,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              final sec = hours * 3600 + minutes * 60;
+              if (sec > 0) n.setShutdownTimer(sec);
+              Navigator.pop(ctx);
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _fmtDuration(Duration d) {

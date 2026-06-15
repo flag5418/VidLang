@@ -2,6 +2,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
@@ -37,7 +38,8 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
 
   Future<void> _start() async {
     try {
-      await service.start(preferredPort: 9999);
+      final port = await SettingsService.getWifiPort();
+      await service.start(preferredPort: port);
     } catch (e) {
       _error = e.toString();
     } finally {

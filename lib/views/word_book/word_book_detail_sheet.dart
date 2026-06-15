@@ -24,6 +24,7 @@ class WordBookDetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final definitions = WordBookService.parseDefinitions(word.definitionsJson);
+    final morphology = WordBookService.parseMorphology(word.morphologyJson);
     final accuracy = word.reviewCount == 0 ? 0 : (word.correctCount * 100 ~/ word.reviewCount);
 
     return SafeArea(
@@ -82,7 +83,45 @@ class WordBookDetailSheet extends StatelessWidget {
                 ),
                 SizedBox(height: 8.h),
               ],
+              if (definitions.any((d) => d.example != null && d.example!.isNotEmpty)) ...[
+                _buildDivider(context),
+                _buildSectionTitle(context, '例句'),
+                ...definitions.where((d) => d.example != null && d.example!.isNotEmpty).map(
+                  (definition) => Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Text(
+                      '• ${definition.example}',
+                      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8.h),
+              ],
+              if (morphology.isNotEmpty) ...[
+                _buildDivider(context),
+                _buildSectionTitle(context, '词形变化'),
+                ...morphology.entries.map(
+                  (entry) => Padding(
+                    padding: EdgeInsets.only(bottom: 6.h),
+                    child: Text(
+                      '${_morphologyLabel(entry.key)}: ${entry.value}',
+                      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8.h),
+              ],
+              if ((word.mnemonic ?? '').isNotEmpty) ...[
+                _buildDivider(context),
+                _buildSectionTitle(context, '助记'),
+                Text(
+                  word.mnemonic!,
+                  style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                ),
+                SizedBox(height: 8.h),
+              ],
               if (word.contextSentence?.isNotEmpty ?? false) ...[
+                _buildDivider(context),
                 _buildSectionTitle(context, '来源上下文'),
                 Container(
                   width: double.infinity,
@@ -107,6 +146,7 @@ class WordBookDetailSheet extends StatelessWidget {
                   ),
                 ),
               if (tags.isNotEmpty) ...[
+                _buildDivider(context),
                 _buildSectionTitle(context, '标签'),
                 Wrap(
                   spacing: 8.w,
@@ -129,6 +169,7 @@ class WordBookDetailSheet extends StatelessWidget {
                 ),
                 SizedBox(height: 12.h),
               ],
+              _buildDivider(context),
               _buildSectionTitle(context, '学习记录'),
               Text(
                 '复习 ${word.reviewCount} 次 · 正确率 $accuracy%',
@@ -172,5 +213,38 @@ class WordBookDetailSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildDivider(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+    );
+  }
+
+  String _morphologyLabel(String key) {
+    switch (key) {
+      case 'comparative':
+        return '比较级';
+      case 'superlative':
+        return '最高级';
+      case 'plural':
+        return '复数';
+      case 'pastTense':
+      case 'past_tense':
+        return '过去式';
+      case 'pastParticiple':
+      case 'past_participle':
+        return '过去分词';
+      case 'presentParticiple':
+      case 'present_participle':
+        return '现在分词';
+      case 'thirdPerson':
+      case 'third_person':
+        return '第三人称单数';
+      default:
+        return key;
+    }
   }
 }

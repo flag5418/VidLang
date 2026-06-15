@@ -7,6 +7,7 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/views/main/main_page.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 enum _AuthMode { login, register, verifyOtp }
 enum _LoginTab { supabase, local }

@@ -3,8 +3,8 @@ import 'package:vidlang/models/base_entity.dart';
 /// 文章实体类
 ///
 /// 用于存储和管理英文文章。
-/// 全文以 Markdown 格式存储，按标题（#/##）解析章节，
-/// 再按句号等分割为句子供跟读和测试使用。
+/// 全文以 Markdown 格式存储，按段落和句子两级模型组织。
+/// 段落为阅读和操作的基本单元，句子为 TTS 朗读和收藏的最小单位。
 class Article extends BaseEntity {
   /// 所属文件夹 code（关联 video_folder.code）
   String folderCode;
@@ -27,8 +27,8 @@ class Article extends BaseEntity {
   /// 语言，默认 'en'
   String language;
 
-  /// 总章节数
-  int totalChapters;
+  /// 总段落数
+  int totalParagraphs;
 
   /// 总句子数
   int totalSentences;
@@ -39,10 +39,10 @@ class Article extends BaseEntity {
   /// 学习进度 0.0 ~ 1.0
   double progress;
 
-  /// 最后学习的章节索引
-  int lastChapterIndex;
+  /// 最后阅读的段落索引（断点续读）
+  int lastParagraphIndex;
 
-  /// 最后学习的句子索引
+  /// 最后阅读的句子索引（断点续读）
   int lastSentenceIndex;
 
   /// 最后学习时间
@@ -62,11 +62,11 @@ class Article extends BaseEntity {
     this.author,
     this.sourceUrl,
     this.language = 'en',
-    this.totalChapters = 0,
+    this.totalParagraphs = 0,
     this.totalSentences = 0,
     this.wordCount = 0,
     this.progress = 0.0,
-    this.lastChapterIndex = 0,
+    this.lastParagraphIndex = 0,
     this.lastSentenceIndex = 0,
     this.lastStudyDate,
     this.studyCount = 0,
@@ -89,11 +89,13 @@ class Article extends BaseEntity {
       'author': author,
       'source_url': sourceUrl,
       'language': language,
-      'total_chapters': totalChapters,
+      'total_paragraphs': totalParagraphs,
+      'total_chapters': totalParagraphs,
       'total_sentences': totalSentences,
       'word_count': wordCount,
       'progress': progress,
-      'last_chapter_index': lastChapterIndex,
+      'last_paragraph_index': lastParagraphIndex,
+      'last_chapter_index': lastParagraphIndex,
       'last_sentence_index': lastSentenceIndex,
       'last_study_date': lastStudyDate?.toIso8601String(),
       'study_count': studyCount,
@@ -120,11 +122,11 @@ class Article extends BaseEntity {
     author = map['author'];
     sourceUrl = map['source_url'];
     language = map['language'] ?? 'en';
-    totalChapters = map['total_chapters'] ?? 0;
+    totalParagraphs = map['total_paragraphs'] ?? map['total_chapters'] ?? 0;
     totalSentences = map['total_sentences'] ?? 0;
     wordCount = map['word_count'] ?? 0;
     progress = (map['progress'] as num?)?.toDouble() ?? 0.0;
-    lastChapterIndex = map['last_chapter_index'] ?? 0;
+    lastParagraphIndex = map['last_paragraph_index'] ?? map['last_chapter_index'] ?? 0;
     lastSentenceIndex = map['last_sentence_index'] ?? 0;
     lastStudyDate = map['last_study_date'] != null ? DateTime.parse(map['last_study_date']) : null;
     studyCount = map['study_count'] ?? 0;

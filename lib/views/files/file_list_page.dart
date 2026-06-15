@@ -8,7 +8,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/components/folder_card.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -18,6 +17,8 @@ import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/utils/device_utils.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 
@@ -340,50 +341,40 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
     _showCreateFolderDialog();
   }
 
-  void _showCreateFolderDialog() {
+  void _showCreateFolderDialog() async {
     final colorScheme = Theme.of(context).colorScheme;
     final currentType = _resourceTypes[_currentTab];
     final typeLabel = _resourceLabels[_currentTab];
     _folderNameController.clear();
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('新建$typeLabel文件夹', style: TextStyle(color: colorScheme.onSurface)),
-        content: TextField(
-          controller: _folderNameController,
-          autofocus: true,
-          style: TextStyle(color: colorScheme.onSurface),
-          decoration: InputDecoration(
-            hintText: '文件夹名称',
-            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-          ),
+    final result = await AppConfirmDialog.show(
+      context,
+      title: '新建$typeLabel文件夹',
+      content: '',
+      confirmText: '创建',
+      cancelText: '取消',
+      contentWidget: TextField(
+        controller: _folderNameController,
+        autofocus: true,
+        style: TextStyle(color: colorScheme.onSurface),
+        decoration: InputDecoration(
+          hintText: '文件夹名称',
+          hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+          filled: true,
+          fillColor: colorScheme.surfaceContainerHighest,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final name = _folderNameController.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                final folder = await ref.read(fileProvider.notifier).createFolder(name, contentType: currentType);
-              } catch (e) {
-                _showMessage('Failed: $e', theme: MessageTheme.error);
-              }
-            },
-            child: Text('创建', style: TextStyle(color: colorScheme.primary)),
-          ),
-        ],
       ),
     );
+    if (result == true) {
+      final name = _folderNameController.text.trim();
+      if (name.isEmpty) return;
+      try {
+        final folder = await ref.read(fileProvider.notifier).createFolder(name, contentType: currentType);
+      } catch (e) {
+        _showMessage('Failed: $e', theme: MessageTheme.error);
+      }
+    }
   }
 
   Future<void> _navigateToDetail(VideoFolder folder) async {
@@ -392,120 +383,63 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
     await ref.read(fileProvider.notifier).loadFolders();
   }
 
-  void _showFolderMenu(VideoFolder folder) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 10, bottom: 8),
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(2), color: colorScheme.outlineVariant),
-            ),
-            ListTile(
-              leading: Icon(Icons.edit_outlined, color: colorScheme.onSurfaceVariant),
-              title: Text('重命名', style: TextStyle(color: colorScheme.onSurface)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showRenameDialog(folder);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.quiz_outlined, color: Colors.green),
-              title: Text('单元测试', style: TextStyle(color: colorScheme.onSurface)),
-              subtitle: Text(
-                '测试文件夹内所有资源',
-                style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showUnitTest(folder);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline, color: colorScheme.error),
-              title: Text('删除', style: TextStyle(color: colorScheme.error)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmDeleteFolder(folder);
-              },
-            ),
-            SizedBox(height: 8),
-          ],
-        ),
-      ),
+  void _showFolderMenu(VideoFolder folder) async {
+    final result = await AppBottomSheetMenu.show(
+      context,
+      items: [
+        AppBottomSheetMenuItem(text: '重命名', icon: Icons.edit_outlined, onTap: () => _showRenameDialog(folder)),
+        AppBottomSheetMenuItem(text: '单元测试', subtitle: '测试文件夹内所有资源', icon: Icons.quiz_outlined, onTap: () => _showUnitTest(folder)),
+        AppBottomSheetMenuItem(text: '删除', icon: Icons.delete_outline, destructive: true, onTap: () => _confirmDeleteFolder(folder)),
+      ],
     );
   }
 
-  void _showRenameDialog(VideoFolder folder) {
+  void _showRenameDialog(VideoFolder folder) async {
     final colorScheme = Theme.of(context).colorScheme;
     _folderNameController.text = folder.name;
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('重命名', style: TextStyle(color: colorScheme.onSurface)),
-        content: TextField(
-          controller: _folderNameController,
-          autofocus: true,
-          style: TextStyle(color: colorScheme.onSurface),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-          ),
+    final result = await AppConfirmDialog.show(
+      context,
+      title: '重命名',
+      content: '',
+      confirmText: '保存',
+      cancelText: '取消',
+      contentWidget: TextField(
+        controller: _folderNameController,
+        autofocus: true,
+        style: TextStyle(color: colorScheme.onSurface),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: colorScheme.surfaceContainerHighest,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final name = _folderNameController.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                folder.name = name;
-                await folder.save();
-                await ref.read(fileProvider.notifier).loadFolders();
-              } catch (e) {
-                _showMessage('Failed: $e', theme: MessageTheme.error);
-              }
-            },
-            child: Text('保存', style: TextStyle(color: colorScheme.primary)),
-          ),
-        ],
       ),
     );
+    if (result == true) {
+      final name = _folderNameController.text.trim();
+      if (name.isEmpty) return;
+      try {
+        folder.name = name;
+        await folder.save();
+        await ref.read(fileProvider.notifier).loadFolders();
+      } catch (e) {
+        _showMessage('Failed: $e', theme: MessageTheme.error);
+      }
+    }
   }
 
-  void _confirmDeleteFolder(VideoFolder folder) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete "${folder.name}"?'),
-        content: Text('All resources in this folder will be deleted.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await ref.read(fileProvider.notifier).deleteFolder(folder.code!);
-            },
-            child: Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+  void _confirmDeleteFolder(VideoFolder folder) async {
+    final result = await AppConfirmDialog.show(
+      context,
+      title: 'Delete "${folder.name}"?',
+      content: 'All resources in this folder will be deleted.',
+      confirmText: '删除',
+      cancelText: 'Cancel',
+      destructive: true,
     );
+    if (result == true) {
+      await ref.read(fileProvider.notifier).deleteFolder(folder.code!);
+    }
   }
 
   void _showComprehensiveTest() {
@@ -519,6 +453,12 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
   }
 
   void _showMessage(String content, {MessageTheme theme = MessageTheme.info}) {
-    TDMessage.showMessage(context: context, content: content, visible: true, icon: true, theme: theme, duration: 3000);
+    final type = switch (theme) {
+      MessageTheme.error => ToastType.error,
+      MessageTheme.warning => ToastType.warning,
+      MessageTheme.success => ToastType.success,
+      _ => ToastType.info,
+    };
+    AppToast.show(context, content, type: type);
   }
 }

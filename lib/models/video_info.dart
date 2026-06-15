@@ -95,6 +95,21 @@ class VideoInfo extends BaseEntity {
   /// 累计播放时长的总和（不含重复计算）
   int totalPlayDuration;
 
+  /// 音频语言 ('en'|'fr'|'ja'|'ko'|...)
+  String? language;
+
+  /// 演唱者（音乐类型）
+  String? artist;
+
+  /// 专辑名（音乐类型）
+  String? album;
+
+  /// 封面来源 ('initial_letter'|'id3'|'ai'|'user')
+  String? coverSource;
+
+  /// 缓存：最后跟读综合评分（避免频繁查询 recording_record）
+  double? lastFollowScore;
+
   VideoInfo({
     this.name = '',
     this.folderCode = '',
@@ -113,6 +128,11 @@ class VideoInfo extends BaseEntity {
     this.currentCover,
     this.playCount = 0,
     this.totalPlayDuration = 0,
+    this.language,
+    this.artist,
+    this.album,
+    this.coverSource,
+    this.lastFollowScore,
   });
 
   @override
@@ -154,6 +174,11 @@ class VideoInfo extends BaseEntity {
       'current_cover': currentCover,
       'play_count': playCount,
       'total_play_duration': totalPlayDuration,
+      'language': language,
+      'artist': artist,
+      'album': album,
+      'cover_source': coverSource,
+      'last_follow_score': lastFollowScore,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'deleted_at': deletedAt?.toIso8601String(),
@@ -186,6 +211,11 @@ class VideoInfo extends BaseEntity {
     currentCover = map['current_cover'];
     playCount = map['play_count'] ?? 0;
     totalPlayDuration = map['total_play_duration'] ?? 0;
+    language = map['language'];
+    artist = map['artist'];
+    album = map['album'];
+    coverSource = map['cover_source'];
+    lastFollowScore = (map['last_follow_score'] as num?)?.toDouble();
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;

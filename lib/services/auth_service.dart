@@ -477,6 +477,34 @@ class AuthService {
     );
   }
 
+  /// 修改本地用户信息（昵称、密码）
+  Future<void> updateLocalUser({
+    required String userCode,
+    String? nickname,
+    String? newPassword,
+  }) async {
+    final user = await BaseEntityExtension.findByCode<local.User>(userCode, () => local.User());
+    if (user == null) {
+      throw AuthException('用户不存在');
+    }
+    if (user.authProvider == 'supabase') {
+      throw AuthException('主账号不能通过此方法修改');
+    }
+    if (nickname != null && nickname.trim().isNotEmpty) {
+      user.nickname = nickname.trim();
+    }
+    if (newPassword != null && newPassword.trim().isNotEmpty) {
+      if (newPassword.length < 6) {
+        throw AuthException('密码至少需要6位');
+      }
+      user.password = _hashPassword(newPassword);
+    }
+    await DatabaseService.update(user);
+    if (AppConfig.currentUser?.code == userCode) {
+      AppConfig.currentUser = user;
+    }
+  }
+
   /// 删除本地子用户
   Future<void> deleteLocalUser({required String userCode}) async {
     final user = await BaseEntityExtension.findByCode<local.User>(userCode, () => local.User());

@@ -94,6 +94,9 @@ dev_dependencies:
   # 提供代码风格建议和最佳实践
   flutter_lints: ^6.0.0
 
+  # App 图标生成工具
+  flutter_launcher_icons: ^0.13.1
+
 dependency_overrides:
   tdesign_flutter_adaptation:
     path: plugs/tdesign_flutter_adaptation
@@ -106,3 +109,14 @@ flutter:
     - assets/app/
     - assets/video_plays/
     - assets/dictionary/
+    - assets/Logo/
+
+# App 图标配置 - 运行 flutter pub run flutter_launcher_icons 生成
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/Logo/launcher_icon.png"
+  min_sdk_version: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/Logo/launcher_icon.png"
+  remove_alpha_ios: true

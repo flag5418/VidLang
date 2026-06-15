@@ -57,3 +57,7 @@ supabase functions logs ai-conversation
 
 Supabase Edge Functions 使用 Deno 运行时，部分 IDE/TS 诊断会提示 “找不到名称 Deno / 找不到 https://esm.sh 模块类型”。
 这不影响线上运行；如果需要快速消除本地诊断，可在对应函数文件顶部加 `// @ts-nocheck`。
+
+
+#生成图标
+dart run flutter_launcher_icons

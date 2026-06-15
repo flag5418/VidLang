@@ -19,6 +19,7 @@ import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 
@@ -88,10 +89,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           targetVideo ??= videos.first;
           await ref.read(fileProvider.notifier).loadVideos(code);
           if (!mounted) return;
+          final isMusic = folder.folderType == FolderContentType.music;
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => PlayerPage(videoCode: targetVideo!.code!, folderVideos: videos),
+              builder: (_) => isMusic
+                  ? AudioPlayerPage(videoCode: targetVideo!.code!, folderVideos: videos, audioType: 'music')
+                  : PlayerPage(videoCode: targetVideo!.code!, folderVideos: videos),
             ),
           );
           if (!mounted) return;
@@ -134,7 +138,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       _buildStatsSection(colorScheme),
                       _buildResourceSection(colorScheme, 'video', '视频', Icons.movie),
                       _buildResourceSection(colorScheme, 'music', '音频', Icons.music_note),
-                      _buildResourceSection(colorScheme, 'article', '文章', Icons.article),
+                      _buildResourceSection(colorScheme, 'article', '文章', Icons.menu_book),
                     ],
                   ),
                 ),

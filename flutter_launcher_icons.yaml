@@ -1,0 +1,9 @@
+# Flutter Launcher Icons 配置文件
+# 生成 iOS 和 Android 所有尺寸的 App 图标
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/Logo/app_icon.png"
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/Logo/app_icon.png"

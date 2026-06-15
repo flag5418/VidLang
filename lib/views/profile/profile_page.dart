@@ -22,11 +22,15 @@ import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/billing_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/stats_service.dart';
+import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_page.dart';
 import 'package:vidlang/views/profile/edit_profile_page.dart';
 import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -39,12 +43,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _isSupabaseUser = false;
   User? _currentUser;
   late Future<BillingOverview> _billingOverviewFuture;
+  SummaryStats _summaryStats = const SummaryStats();
+  int _wifiPort = 9999;
 
   @override
   void initState() {
     super.initState();
     _billingOverviewFuture = BillingService.fetchOverview();
     _checkUser();
+    _loadSummaryStats();
+    _loadWifiPort();
   }
 
   Future<void> _checkUser() async {
@@ -110,10 +118,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     _buildMenuItem(Icons.palette_outlined, '外观设置', ref.watch(themeModeProvider).label, colorScheme, onTap: () => _showThemePicker()),
                     _buildMenuItem(Icons.speed_rounded, '学习难度', difficulty.label, colorScheme, onTap: () => _showDifficultyPicker()),
                     if (_isSupabaseUser)
-                      _buildMenuItem(Icons.manage_accounts, '用户设置', '密码修改、子用户管理', colorScheme, onTap: () => _navigateToUserSettings()),
+                      _buildMenuItem(Icons.manage_accounts, '子账号设置', '子账号管理', colorScheme, onTap: () => _navigateToUserSettings()),
                     _buildMenuItem(Icons.play_circle_outline, '播放设置', '跳过片头片尾、缩略图时间', colorScheme, onTap: () {}),
                     _buildMenuItem(Icons.translate, '翻译与TTS', '配置翻译和语音', colorScheme, onTap: () {}),
                     _buildMenuItem(Icons.quiz_outlined, '测试设置', '题目类型和数量', colorScheme, onTap: () {}),
+                    _buildMenuItem(Icons.wifi, 'WiFi 传输', '端口：$_wifiPort', colorScheme, onTap: () => _showWifiPortDialog()),
                   ],
                 ),
               ),
@@ -346,6 +355,56 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  Future<void> _loadSummaryStats() async {
+    try {
+      final stats = await StatsService.getSummaryStats();
+      if (!mounted) return;
+      setState(() {
+        _summaryStats = stats;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadWifiPort() async {
+    final port = await SettingsService.getWifiPort();
+    if (!mounted) return;
+    setState(() => _wifiPort = port);
+  }
+
+  void _showWifiPortDialog() {
+    final controller = TextEditingController(text: _wifiPort.toString());
+    showGeneralDialog(
+      context: context,
+      pageBuilder: (buildContext, animation, secondaryAnimation) {
+        return TDInputDialog(
+          textEditingController: controller,
+          title: 'WiFi 传输端口',
+          content: '设置 WiFi 传输服务端口（1024-65535）',
+          hintText: '端口号',
+          leftBtn: TDDialogButtonOptions(
+            title: '取消',
+            action: () => Navigator.pop(buildContext),
+          ),
+          rightBtn: TDDialogButtonOptions(
+            title: '确定',
+            action: () async {
+              final port = int.tryParse(controller.text.trim());
+              if (port != null && port >= 1024 && port <= 65535) {
+                await SettingsService.setWifiPort(port);
+                if (mounted) setState(() => _wifiPort = port);
+                Navigator.pop(buildContext);
+              } else {
+                ScaffoldMessenger.of(buildContext).showSnackBar(
+                  const SnackBar(content: Text('端口号需在 1024-65535 之间')),
+                );
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+
   // ==================== 学习统计 ====================
 
   Widget _buildLearningStats(ColorScheme colorScheme) {
@@ -355,13 +414,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       },
       child: Row(
         children: [
-          _statCard(Icons.calendar_today, '学习天数', '0', colorScheme),
+          _statCard(Icons.calendar_today, '学习天数', '${_summaryStats.totalDays}', colorScheme),
           SizedBox(width: 8.w),
-          _statCard(Icons.video_library, '视频', '0', colorScheme),
+          _statCard(Icons.video_library, '视频', '${_summaryStats.videoTotal}', colorScheme),
           SizedBox(width: 8.w),
-          _statCard(Icons.music_note, '音频', '0', colorScheme),
+          _statCard(Icons.music_note, '音频', '${_summaryStats.audioTotal}', colorScheme),
           SizedBox(width: 8.w),
-          _statCard(Icons.article, '文章', '0', colorScheme),
+          _statCard(Icons.article, '文章', '${_summaryStats.articleTotal}', colorScheme),
         ],
       ),
     );
@@ -469,138 +528,45 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   // ==================== 主题切换 ====================
 
-  void _showThemePicker() {
+  void _showThemePicker() async {
     final currentMode = ref.read(themeModeProvider);
-
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Text(
-                    '外观设置',
-                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
-                  ),
-                ),
-                SizedBox(height: 12.h),
-                ...AppThemeMode.values.map((mode) {
-                  final isSelected = mode == currentMode;
-                  return ListTile(
-                    leading: Icon(mode.icon, color: isSelected ? cs.primary : cs.onSurfaceVariant),
-                    title: Text(
-                      mode.label,
-                      style: TextStyle(color: isSelected ? cs.primary : cs.onSurface, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal),
-                    ),
-                    trailing: isSelected ? Icon(Icons.check, color: cs.primary, size: 20) : null,
-                    onTap: () {
-                      ref.read(themeModeProvider.notifier).setMode(mode);
-                      Navigator.pop(ctx);
-                    },
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    final items = AppThemeMode.values.map((mode) {
+      final isSelected = mode == currentMode;
+      return AppBottomSheetMenuItem(
+        text: mode.label,
+        icon: mode.icon,
+        trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary, size: 20.sp) : null,
+        onTap: () => ref.read(themeModeProvider.notifier).setMode(mode),
+      );
+    }).toList();
+    await AppBottomSheetMenu.show(context, title: '外观设置', items: items);
   }
 
   // ==================== 退出登录 ====================
 
-  void _showDifficultyPicker() {
+  void _showDifficultyPicker() async {
     final currentLevel = ref.read(difficultyProvider);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        final maxHeight = MediaQuery.of(ctx).size.height * 0.7;
-        return ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.h),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Text(
-                      '学习难度',
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: DifficultyLevel.values.map((level) {
-                          final isSelected = level == currentLevel;
-                          return ListTile(
-                            leading: Icon(level.icon, color: isSelected ? cs.primary : cs.onSurfaceVariant),
-                            title: Text(
-                              level.label,
-                              style: TextStyle(
-                                color: isSelected ? cs.primary : cs.onSurface,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              ),
-                            ),
-                            subtitle: Text(
-                              level.description,
-                              style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant),
-                            ),
-                            trailing: isSelected ? Icon(Icons.check, color: cs.primary, size: 20) : null,
-                            onTap: () {
-                              ref.read(difficultyProvider.notifier).setLevel(level);
-                              Navigator.pop(ctx);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    final items = DifficultyLevel.values.map((level) {
+      final isSelected = level == currentLevel;
+      return AppBottomSheetMenuItem(
+        text: level.label,
+        subtitle: level.description,
+        icon: level.icon,
+        trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary, size: 20.sp) : null,
+        onTap: () => ref.read(difficultyProvider.notifier).setLevel(level),
+      );
+    }).toList();
+    await AppBottomSheetMenu.show(context, title: '学习难度', items: items);
   }
 
   void _logout() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        return AlertDialog(
-          backgroundColor: cs.surface,
-          title: Text('退出登录', style: TextStyle(color: cs.onSurface)),
-          content: Text('确定要退出当前用户吗？', style: TextStyle(color: cs.onSurfaceVariant)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text('退出', style: TextStyle(color: cs.error)),
-            ),
-          ],
-        );
-      },
+    final confirm = await AppConfirmDialog.show(
+      context,
+      title: '退出登录',
+      content: '确定要退出当前用户吗？',
+      confirmText: '退出',
+      cancelText: '取消',
+      destructive: true,
     );
     if (confirm != true || !mounted) return;
 

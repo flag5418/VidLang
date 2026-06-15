@@ -47,7 +47,7 @@ final navigationItems = [
   ),
   NavigationItem(
     id: NavigationPage.wordBook,
-    label: '生词本',
+    label: '收藏',
     icon: Icons.menu_book_outlined,
     activeIcon: Icons.menu_book,
   ),

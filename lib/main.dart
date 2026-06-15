@@ -25,7 +25,10 @@ import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:vidlang/config.dart' as app_config;
 import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/ai_evaluation_log.dart';
+import 'package:vidlang/models/article_bookmark.dart';
 import 'package:vidlang/models/article_chapter.dart';
+import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/config.dart';
@@ -34,6 +37,7 @@ import 'package:vidlang/models/participle.dart';
 import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/subtitles.dart';
+import 'package:vidlang/models/test_models.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
@@ -45,8 +49,10 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
+import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
+import 'package:vidlang/splash_screen.dart';
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -110,12 +116,18 @@ void main() async {
     'user': EntityConfig(creator: () => User(), description: '用户表'),
     'error_log': EntityConfig(creator: () => ErrorLog(), description: '错误日志表'),
     'article': EntityConfig(creator: () => Article(), description: '文章表'),
-    'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表'),
+    'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表（旧版，迁移中）'),
+    'article_paragraph': EntityConfig(creator: () => ArticleParagraph(), description: '文章段落表'),
     'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
+    'article_bookmark': EntityConfig(creator: () => ArticleBookmark(), description: '文章书签表'),
     'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
     'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
     'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
     'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
+    'test_session': EntityConfig(creator: () => TestSession(), description: '评测主记录表'),
+    'test_item': EntityConfig(creator: () => TestItem(), description: '单题记录表'),
+    'test_evaluation': EntityConfig(creator: () => TestEvaluation(), description: 'AI评价报告表'),
+    'ai_evaluation_log': EntityConfig(creator: () => AiEvaluationLog(), description: 'AI学习评价日志表'),
   });
 
   // 预热数据库并执行缺表迁移（含 study_record）
@@ -170,7 +182,7 @@ class _VidLangAppState extends State<VidLangApp> {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    showDialog(
+    DialogUtils.show(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
@@ -264,11 +276,9 @@ class _AppEntryState extends State<_AppEntry> {
     return FutureBuilder<Widget>(
       future: _target,
       builder: (context, snap) {
+        // 初始化未完成时显示启动页面，避免白屏
         if (snap.connectionState != ConnectionState.done) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            body: SafeArea(child: Center(child: CircularProgressIndicator())),
-          );
+          return const SplashScreen();
         }
         if (snap.hasData) return snap.data!;
         return const LoginPage();

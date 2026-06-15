@@ -42,6 +42,19 @@ class Subtitles extends BaseEntity {
   /// 默认为 'subtitle'，保持向后兼容
   String type;
 
+  /// 字幕来源
+  /// 'user_import'|'ai_recognize'|'ai_lyrics_search'|'user_verified'
+  String? source;
+
+  /// 中文注音（整行，如 "爱 旺特 兔 厚的 尤尔 汉德"）
+  String? pronunciation;
+
+  /// 逐词注音JSON（如 [{"word":"I","zh":"爱"},{"word":"want","zh":"旺特"}]）
+  String? pronunciationMapJson;
+
+  /// AI识别置信度（纯音频识别时设置）
+  double? confidence;
+
   Subtitles({
     this.videoCode = '',
     this.startPosition = 0,
@@ -49,6 +62,10 @@ class Subtitles extends BaseEntity {
     this.content = '',
     this.contentTranslate,
     this.type = 'subtitle',
+    this.source,
+    this.pronunciation,
+    this.pronunciationMapJson,
+    this.confidence,
   });
 
   @override
@@ -66,6 +83,10 @@ class Subtitles extends BaseEntity {
       'content': content,
       'content_translate': contentTranslate,
       'type': type,
+      'source': source,
+      'pronunciation': pronunciation,
+      'pronunciation_map_json': pronunciationMapJson,
+      'confidence': confidence,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'deleted_at': deletedAt?.toIso8601String(),
@@ -87,6 +108,10 @@ class Subtitles extends BaseEntity {
     content = map['content'] ?? '';
     contentTranslate = map['content_translate'];
     type = map['type'] ?? 'subtitle';
+    source = map['source'];
+    pronunciation = map['pronunciation'];
+    pronunciationMapJson = map['pronunciation_map_json'];
+    confidence = (map['confidence'] as num?)?.toDouble();
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/utils/dialog_utils.dart';
 
 /// 余额不足充值引导弹窗
 /// 多处复用：字幕点击、翻译、TTS、跟读评分等场景
@@ -127,7 +128,7 @@ class RechargeDialog extends StatelessWidget {
     required String featureName,
     VoidCallback? onGoRecharge,
   }) {
-    showDialog(
+    DialogUtils.show(
       context: context,
       barrierColor: Colors.black54,
       builder: (ctx) => RechargeDialog(

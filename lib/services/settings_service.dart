@@ -20,6 +20,17 @@ class SettingsService {
   static const String keyPlayerSubtitleVisible = 'subtitle_visible';
   static const String keyPlayerTranslateVisible = 'translate_visible';
   static const String keyPlayerSingleSentencePause = 'single_sentence_pause';
+  static const String keyPlayerLoopingMode = 'looping_mode';
+  static const String keyPlayerShutdownTimerType = 'shutdown_timer_type';
+  static const String keyPlayerShutdownTimerSeconds = 'shutdown_timer_seconds';
+  static const String keyPlayerShutdownEpisodeCount = 'shutdown_episode_count';
+  static const String keyPlayerSubtitleFontSize = 'subtitle_font_size';
+  static const String keyAudioOriginalVolumePure = 'audio_original_volume_pure';
+  static const String keyAudioOriginalVolumeMusic = 'audio_original_volume_music';
+  static const String keyAudioPronunciationVisible = 'audio_pronunciation_visible';
+
+  static const String categoryWifi = 'wifi';
+  static const String keyWifiPort = 'port';
 
   static const PlaybackSettings _defaults = PlaybackSettings(
     skipOpening: false,
@@ -195,5 +206,88 @@ class SettingsService {
 
   static Future<void> setPlayerSingleSentencePause(bool value) async {
     await _upsertConfig(categoryPlayer, keyPlayerSingleSentencePause, ValueType.boolean, value ? 'true' : 'false');
+  }
+
+  static Future<String> getPlayerLoopingMode() async {
+    final row = await _findConfig(categoryPlayer, keyPlayerLoopingMode);
+    return row?.value ?? 'single_loop';
+  }
+
+  static Future<void> setPlayerLoopingMode(String value) async {
+    await _upsertConfig(categoryPlayer, keyPlayerLoopingMode, ValueType.string, value);
+  }
+
+  static Future<String> getPlayerShutdownTimerType() async {
+    final row = await _findConfig(categoryPlayer, keyPlayerShutdownTimerType);
+    return row?.value ?? 'time';
+  }
+
+  static Future<void> setPlayerShutdownTimerType(String value) async {
+    await _upsertConfig(categoryPlayer, keyPlayerShutdownTimerType, ValueType.string, value);
+  }
+
+  static Future<int> getPlayerShutdownTimerSeconds() async {
+    final row = await _findConfig(categoryPlayer, keyPlayerShutdownTimerSeconds);
+    return int.tryParse(row?.value ?? '0') ?? 0;
+  }
+
+  static Future<void> setPlayerShutdownTimerSeconds(int value) async {
+    await _upsertConfig(categoryPlayer, keyPlayerShutdownTimerSeconds, ValueType.number, value.toString());
+  }
+
+  static Future<int> getPlayerShutdownEpisodeCount() async {
+    final row = await _findConfig(categoryPlayer, keyPlayerShutdownEpisodeCount);
+    return int.tryParse(row?.value ?? '0') ?? 0;
+  }
+
+  static Future<void> setPlayerShutdownEpisodeCount(int value) async {
+    await _upsertConfig(categoryPlayer, keyPlayerShutdownEpisodeCount, ValueType.number, value.toString());
+  }
+
+  static Future<double> getPlayerSubtitleFontSize() async {
+    final row = await _findConfig(categoryPlayer, keyPlayerSubtitleFontSize);
+    return double.tryParse(row?.value ?? '20') ?? 20;
+  }
+
+  static Future<void> setPlayerSubtitleFontSize(double value) async {
+    await _upsertConfig(categoryPlayer, keyPlayerSubtitleFontSize, ValueType.number, value.toString());
+  }
+
+  static Future<int> getWifiPort() async {
+    final row = await _findConfig(categoryWifi, keyWifiPort);
+    return int.tryParse(row?.value ?? '9999') ?? 9999;
+  }
+
+  static Future<void> setWifiPort(int value) async {
+    await _upsertConfig(categoryWifi, keyWifiPort, ValueType.number, value.toString());
+  }
+
+  static Future<double> getAudioOriginalVolumePure() async {
+    final row = await _findConfig(categoryPlayer, keyAudioOriginalVolumePure);
+    return double.tryParse(row?.value ?? '0.6') ?? 0.6;
+  }
+
+  static Future<void> setAudioOriginalVolumePure(double value) async {
+    await _upsertConfig(categoryPlayer, keyAudioOriginalVolumePure, ValueType.number, value.clamp(0.0, 1.0).toString());
+  }
+
+  static Future<double> getAudioOriginalVolumeMusic() async {
+    final row = await _findConfig(categoryPlayer, keyAudioOriginalVolumeMusic);
+    return double.tryParse(row?.value ?? '0.8') ?? 0.8;
+  }
+
+  static Future<void> setAudioOriginalVolumeMusic(double value) async {
+    await _upsertConfig(categoryPlayer, keyAudioOriginalVolumeMusic, ValueType.number, value.clamp(0.0, 1.0).toString());
+  }
+
+  static Future<bool> getAudioPronunciationVisible() async {
+    final row = await _findConfig(categoryPlayer, keyAudioPronunciationVisible);
+    final v = row?.value;
+    if (v == null) return true;
+    return v == 'true' || v == '1';
+  }
+
+  static Future<void> setAudioPronunciationVisible(bool value) async {
+    await _upsertConfig(categoryPlayer, keyAudioPronunciationVisible, ValueType.boolean, value ? 'true' : 'false');
   }
 }

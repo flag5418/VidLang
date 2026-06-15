@@ -6,17 +6,24 @@ import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 class TestPage extends StatefulWidget {
   final String? videoCode;
   final String videoTitle;
   final List<Map<String, dynamic>> seedWords;
+  final List<String>? questionTypes;
+  final int? questionsPerWord;
+  final String? difficulty;
 
   const TestPage({
     super.key,
     this.videoCode,
     required this.videoTitle,
     this.seedWords = const [],
+    this.questionTypes,
+    this.questionsPerWord,
+    this.difficulty,
   });
 
   bool get isWordBookMode => videoCode == null;
@@ -54,7 +61,30 @@ class _TestPageState extends State<TestPage> {
       final client = sb.Supabase.instance.client;
       final requestId = _uuid.v4();
       final prefs = await SharedPreferences.getInstance();
-      final difficulty = prefs.getString('app_difficulty_level') ?? 'intermediate';
+      final difficulty = widget.difficulty ?? prefs.getString('app_difficulty_level') ?? 'intermediate';
+
+      // Apply config overrides
+      if (widget.questionsPerWord != null) {
+        setState(() {
+          _reorderCount = widget.questionsPerWord!;
+          _spellingCount = widget.questionsPerWord!;
+          _mcqCount = widget.questionsPerWord!;
+        });
+      }
+      if (widget.questionTypes != null) {
+        final types = widget.questionTypes!;
+        setState(() {
+          _reorderCount = types.contains('reorder') ? _reorderCount : 0;
+          _spellingCount = types.contains('spelling') ? _spellingCount : 0;
+          _mcqCount = types.contains('definition_choice') ? _mcqCount : 0;
+          if (types.contains('example_cloze') || types.contains('speaking')) {
+            _reorderCount = types.contains('reorder') ? _reorderCount : 0;
+            _spellingCount = types.contains('spelling') ? _spellingCount : 0;
+            _mcqCount = types.contains('definition_choice') ? _mcqCount : 0;
+          }
+        });
+      }
+
       final config = {
         'reorder_count': widget.isWordBookMode ? 0 : _reorderCount,
         'spelling_count': _spellingCount,
@@ -340,18 +370,15 @@ class _TestRunPageState extends State<_TestRunPage> {
         );
       }
       if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (ctx) {
-          return AlertDialog(
-            title: Text('完成', style: TextStyle(fontSize: 16.sp)),
-            content: Text('得分：$_correct / ${widget.items.length}', style: TextStyle(fontSize: 14.sp)),
-            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('返回'))],
-          );
+      AppAlertDialog.show(
+        context,
+        title: '完成',
+        content: '得分：$_correct / ${widget.items.length}',
+        buttonText: '返回',
+        onAction: () {
+          if (mounted) navigator.pop(true);
         },
-      ).then((_) {
-        if (mounted) navigator.pop(true);
-      });
+      );
       return;
     }
     setState(() {

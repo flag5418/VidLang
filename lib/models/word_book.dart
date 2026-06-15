@@ -3,10 +3,24 @@ import 'package:vidlang/models/base_entity.dart';
 /// 单词本实体类
 ///
 /// 替代/扩展 participle，支持跨来源（视频/文章/歌曲）收藏和复习。
+/// 通过 content_type 区分三种收藏类型：
+/// - word: 单词 → 生词本（带等级标签）
+/// - sentence: 句子 → 知识库（带自定义标签）
+/// - phrase: 短语 → 短语本（Phase 2）
+///
 /// 主状态仅保留 learning / mastered 两档。
 class WordBook extends BaseEntity {
-  /// 单词
+  /// 单词/短语/句子原文
   String word;
+
+  /// 收藏类型：word / sentence / phrase
+  String contentType;
+
+  /// 收藏的原始文本（句子/短语收藏时的完整原文）
+  String? sourceText;
+
+  /// 对应的翻译文本
+  String? sourceTranslation;
 
   /// 来源类型：video / article / music
   String sourceType;
@@ -62,8 +76,14 @@ class WordBook extends BaseEntity {
   /// 助记缓存
   String? mnemonic;
 
+  /// 用户手动添加的备注/注释
+  String? note;
+
   WordBook({
     this.word = '',
+    this.contentType = 'word',
+    this.sourceText,
+    this.sourceTranslation,
     this.sourceType = 'video',
     this.sourceCode = '',
     this.sourceTitle,
@@ -82,6 +102,7 @@ class WordBook extends BaseEntity {
     this.masteredAt,
     this.morphologyJson,
     this.mnemonic,
+    this.note,
   });
 
   bool get isLearning => masteryLevel == 'learning';
@@ -103,6 +124,9 @@ class WordBook extends BaseEntity {
       'code': code,
       'user_code': userCode,
       'word': word,
+      'content_type': contentType,
+      'source_text': sourceText,
+      'source_translation': sourceTranslation,
       'source_type': sourceType,
       'source_code': sourceCode,
       'source_title': sourceTitle,
@@ -121,6 +145,7 @@ class WordBook extends BaseEntity {
       'mastered_at': masteredAt?.toIso8601String(),
       'morphology_json': morphologyJson,
       'mnemonic': mnemonic,
+      'note': note,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'deleted_at': deletedAt?.toIso8601String(),
@@ -137,6 +162,9 @@ class WordBook extends BaseEntity {
     code = map['code'];
     userCode = map['user_code'];
     word = map['word'] ?? '';
+    contentType = map['content_type'] ?? 'word';
+    sourceText = map['source_text'];
+    sourceTranslation = map['source_translation'];
     sourceType = map['source_type'] ?? 'video';
     sourceCode = map['source_code'] ?? '';
     sourceTitle = map['source_title'];
@@ -155,6 +183,7 @@ class WordBook extends BaseEntity {
     masteredAt = map['mastered_at'] != null ? DateTime.parse(map['mastered_at']) : null;
     morphologyJson = map['morphology_json'];
     mnemonic = map['mnemonic'];
+    note = map['note'];
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;

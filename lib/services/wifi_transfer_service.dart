@@ -2,14 +2,17 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Brightness, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
+import 'package:omni_player/omni_player.dart';
+import 'package:video_player/video_player.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
-import 'package:video_player/video_player.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_sentence.dart';
@@ -210,7 +213,8 @@ class WifiTransferService extends ChangeNotifier {
       final folderCode = uploadArticle.group(1)!;
       final filename = (req.uri.queryParameters['filename'] ?? '').trim();
       if (filename.isEmpty) return _replyJson(req.response, 400, {'ok': false, 'message': 'filename cannot be empty'});
-      final article = await _uploadArticle(req, folderCode: folderCode, filename: filename);
+      final customTitle = (req.uri.queryParameters['title'] ?? '').trim();
+      final article = await _uploadArticle(req, folderCode: folderCode, filename: filename, customTitle: customTitle.isNotEmpty ? customTitle : null);
       return _replyJson(req.response, 200, {'ok': true, 'data': _articleJson(article)});
     }
 
@@ -389,19 +393,29 @@ class WifiTransferService extends ChangeNotifier {
     await sink.flush();
     await sink.close();
 
-    int durationMs = 0;
-    VideoPlayerController? controller;
-    try {
-      controller = VideoPlayerController.file(File(dst));
-      await controller.initialize();
-      durationMs = controller.value.duration.inMilliseconds;
-    } catch (e, st) {
-      logger.error('wifi duration error', tag: 'WIFI', error: e, stackTrace: st, extra: {'file': dst});
-    } finally {
+    // 使用原生 AVAsset/MediaExtractor 提取视频元数据（时长 + 嵌入字幕）
+    final metadata = await VideoMetadataExtractor.extract(dst);
+    int durationMs = metadata.durationMs;
+    final hasEmbeddedSubtitles = metadata.hasSubtitles;
+
+    // 降级方案：当原生方法通道不可用时，使用 video_player 提取时长
+    if (durationMs == 0) {
       try {
-        await controller?.dispose();
-      } catch (_) {}
+        final controller = VideoPlayerController.file(File(dst));
+        await controller.initialize();
+        durationMs = controller.value.duration.inMilliseconds;
+        await controller.dispose();
+        logger.info('fallback duration via video_player: ${durationMs}ms', tag: 'WIFI');
+      } catch (e) {
+        logger.warning('video_player fallback also failed: $e', tag: 'WIFI');
+      }
     }
+
+    logger.info(
+      'wifi metadata extracted',
+      tag: 'WIFI',
+      extra: {'file': dst, 'durationMs': durationMs, 'hasSubtitles': hasEmbeddedSubtitles, 'subtitleLangs': metadata.subtitleLanguages},
+    );
 
     int timeSec = folder.thumbnailTime;
     final durationSec = (durationMs / 1000).floor();
@@ -424,7 +438,7 @@ class WifiTransferService extends ChangeNotifier {
       extensionName: ext,
       duration: durationMs,
       cover: cover,
-      hasSubtitles: false,
+      hasSubtitles: hasEmbeddedSubtitles,
       currentPosition: 0,
       isCurrentPlaying: false,
       description: '',
@@ -663,7 +677,7 @@ class WifiTransferService extends ChangeNotifier {
         if (line.trim().startsWith('#')) totalChapters++;
       }
       if (totalChapters == 0) totalChapters = 1;
-      article.totalChapters = totalChapters;
+      article.totalParagraphs = totalChapters;
       article.wordCount = contentMarkdown.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
       await _softDeleteArticleContent(articleCode);
       await _parseArticleChaptersAndSentences(article);
@@ -747,7 +761,7 @@ class WifiTransferService extends ChangeNotifier {
       'contentMarkdown': a.contentMarkdown,
       'author': a.author,
       'sourceUrl': a.sourceUrl,
-      'totalChapters': a.totalChapters,
+      'totalParagraphs': a.totalParagraphs,
       'totalSentences': a.totalSentences,
       'wordCount': a.wordCount,
       'progress': a.progress,
@@ -766,7 +780,7 @@ class WifiTransferService extends ChangeNotifier {
     return rows.map(_articleJson).toList();
   }
 
-  Future<Article> _uploadArticle(HttpRequest req, {required String folderCode, required String filename}) async {
+  Future<Article> _uploadArticle(HttpRequest req, {required String folderCode, required String filename, String? customTitle}) async {
     final folder = await _getFolderByCode(folderCode);
     if (folder == null) throw Exception('Folder not found');
 
@@ -774,7 +788,7 @@ class WifiTransferService extends ChangeNotifier {
     if (bytes.isEmpty) throw Exception('Article content is empty');
 
     final String contentStr = utf8.decode(bytes);
-    final String title = p.basenameWithoutExtension(filename);
+    final String title = customTitle ?? p.basenameWithoutExtension(filename);
 
     // Count chapters - lines starting with # (markdown headers)
     final lines = contentStr.split('\n');
@@ -796,7 +810,7 @@ class WifiTransferService extends ChangeNotifier {
       title: title,
       contentMarkdown: contentStr,
       language: 'en',
-      totalChapters: totalChapters,
+      totalParagraphs: totalChapters,
       totalSentences: 0,
       wordCount: wordCount,
       orderIndex: 0,
@@ -869,11 +883,10 @@ class WifiTransferService extends ChangeNotifier {
           if (s.isEmpty) continue;
           sentenceIndex++;
           final ws = s.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-          final chapterCode = chapters.isNotEmpty ? chapters.last.code : null;
           sentences.add(
             ArticleSentence(
               articleCode: article.code!,
-              chapterCode: chapterCode,
+              paragraphIndex: chapterIndex,
               content: s,
               sentenceIndex: sentenceIndex,
               wordCount: ws,
@@ -890,11 +903,10 @@ class WifiTransferService extends ChangeNotifier {
           if (s.isEmpty) continue;
           sentenceIndex++;
           final ws = s.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-          final chapterCode = chapters.isNotEmpty ? chapters.last.code : null;
           sentences.add(
             ArticleSentence(
               articleCode: article.code!,
-              chapterCode: chapterCode,
+              paragraphIndex: chapterIndex,
               content: s,
               sentenceIndex: sentenceIndex,
               wordCount: ws,
@@ -931,7 +943,7 @@ class WifiTransferService extends ChangeNotifier {
     }
 
     // Update article stats
-    article.totalChapters = chapters.length;
+    article.totalParagraphs = chapters.length;
     article.totalSentences = sentenceIndex;
     await DatabaseService.update(article);
   }
@@ -1001,7 +1013,21 @@ class WifiTransferService extends ChangeNotifier {
 
   Future<String> _html() async {
     try {
-      return await rootBundle.loadString('assets/app/wifi_transfer.html');
+      var html = await rootBundle.loadString('assets/app/wifi_transfer.html');
+      // Resolve theme: read persisted preference, fallback to platform brightness
+      final prefs = await SharedPreferences.getInstance();
+      final themeValue = prefs.getString('app_theme_mode');
+      String theme;
+      if (themeValue == 'light') {
+        theme = 'light';
+      } else if (themeValue == 'dark') {
+        theme = 'dark';
+      } else {
+        final brightness = PlatformDispatcher.instance.platformBrightness;
+        theme = brightness == Brightness.dark ? 'dark' : 'light';
+      }
+      html = html.replaceFirst('__THEME_PLACEHOLDER__', 'data-theme="$theme"');
+      return html;
     } catch (_) {
       return '<!doctype html><html><body style="background:#000;color:#fff;padding:20px;font-family:sans-serif"><h2>VidLang WiFi</h2><p>HTML加载失败</p></body></html>';
     }

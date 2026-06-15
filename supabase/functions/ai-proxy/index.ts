@@ -21,6 +21,7 @@ import {
   wordLink,
 } from './clients/qwen-chat.ts'
 import { qwenTts } from './clients/qwen-tts.ts'
+import { shengtongEvaluate } from './clients/shengtong.ts'
 
 // ─── 路由表 ───
 const ROUTES: Record<
@@ -153,9 +154,42 @@ Deno.serve(async (req: Request) => {
       (await getSetting('qwen_base_url')) ||
       'https://dashscope.aliyuncs.com/compatible-mode/v1'
 
-    // 7b. TTS 走独立路由（API 格式不同）
+    // 7b. 声通跟读评分（独立 API 配置）
     let result: any
-    if (ruleCode === 'ai_tts') {
+    if (ruleCode === 'st_pron_score') {
+      const shengtongAppKey = await getSetting('shengtong_app_key')
+      const shengtongSecretKey = await getSetting('shengtong_secret_key')
+      const shengtongServerUrl =
+        (await getSetting('shengtong_server_url')) ||
+        'https://api.stkouyu.com:8443'
+
+      if (!shengtongAppKey || !shengtongSecretKey) {
+        return json(
+          {
+            ok: false,
+            error: 'shengtong_not_configured',
+            message: '声通 API 未配置',
+          },
+          500,
+        )
+      }
+      result = await shengtongEvaluate(
+        shengtongAppKey,
+        shengtongSecretKey,
+        shengtongServerUrl,
+        {
+          coreType: params.core_type,
+          refText: params.ref_text,
+          userId,
+          audioBase64: params.audio_base64,
+          tokenId: params.token_id,
+          audioType: params.audio_type || 'wav',
+          sampleRate: params.sample_rate || 16000,
+        },
+      )
+    }
+    // 7c. TTS 走独立路由（API 格式不同）
+    else if (ruleCode === 'ai_tts') {
       if (!qwenApiKey) {
         return json(
           {
@@ -171,7 +205,7 @@ Deno.serve(async (req: Request) => {
         voice: params.voice,
       })
     } else {
-      // 7c. Chat 类路由
+      // 7d. Chat 类路由
       if (!qwenApiKey) {
         return json(
           {

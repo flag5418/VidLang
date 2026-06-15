@@ -9,6 +9,7 @@ import 'package:vidlang/config.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -148,6 +149,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 2)));
+    AppToast.show(context, message);
   }
 }

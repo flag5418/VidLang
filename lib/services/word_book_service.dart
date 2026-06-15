@@ -226,11 +226,20 @@ class WordBookService {
   static Future<List<WordBook>> queryWords(WordBookFilter filter) async {
     final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
-    final args = <Object?>[WordBook.normalizeMasteryLevel(filter.status)];
+    final args = <Object?>[];
     final where = <String>[
       'wb.is_deleted = 0',
-      'wb.mastery_level = ?',
     ];
+
+    if (filter.status != null) {
+      where.add('wb.mastery_level = ?');
+      args.add(WordBook.normalizeMasteryLevel(filter.status!));
+    }
+
+    if (filter.contentType != null && filter.contentType!.isNotEmpty) {
+      where.add('wb.content_type = ?');
+      args.add(filter.contentType);
+    }
 
     if (userCode != null) {
       where.add('wb.user_code = ?');
@@ -249,9 +258,9 @@ class WordBookService {
 
     final keyword = filter.keyword.trim();
     if (keyword.isNotEmpty) {
-      where.add('(wb.word LIKE ? OR wb.context_sentence LIKE ? OR wb.source_title LIKE ?)');
+      where.add('(wb.word LIKE ? OR wb.context_sentence LIKE ? OR wb.source_text LIKE ? OR wb.note LIKE ? OR wb.source_title LIKE ?)');
       final keywordLike = '%$keyword%';
-      args.addAll([keywordLike, keywordLike, keywordLike]);
+      args.addAll([keywordLike, keywordLike, keywordLike, keywordLike, keywordLike]);
     }
 
     final joinClause = filter.tagCode != null && filter.tagCode!.isNotEmpty
@@ -343,6 +352,70 @@ class WordBookService {
     ];
   }
 
+  /// 加载知识库 Tab 导航项列表
+  ///
+  /// 按 masteryLevel（learning/mastered）分组，每组下按来源文章（sourceType + sourceCode + sourceTitle）聚合。
+  /// 返回结构与 [loadNavItems] 相同，但分组键是文章而非标签。
+  static Future<List<WordBookNavItem>> loadNavItemsForKnowledgeBase(String status) async {
+    final normalizedStatus = WordBook.normalizeMasteryLevel(status);
+    final db = await DatabaseService.database;
+    final userCode = await DatabaseService.getCurrentUserCode();
+    final args = <Object?>[normalizedStatus, 'sentence'];
+    final baseWhere = <String>[
+      'wb.is_deleted = 0',
+      'wb.mastery_level = ?',
+      'wb.content_type = ?',
+    ];
+
+    if (userCode != null) {
+      baseWhere.add('wb.user_code = ?');
+      args.add(userCode);
+    }
+
+    final totalRows = await db.rawQuery(
+      '''
+      SELECT COUNT(*) AS count
+      FROM word_book wb
+      WHERE ${baseWhere.join(' AND ')}
+      ''',
+      args,
+    );
+    final totalCount = (totalRows.first['count'] as int?) ?? 0;
+
+    final articleRows = await db.rawQuery(
+      '''
+      SELECT
+        wb.source_type AS source_type,
+        wb.source_code AS source_code,
+        wb.source_title AS source_title,
+        COUNT(DISTINCT wb.code) AS count
+      FROM word_book wb
+      WHERE ${baseWhere.join(' AND ')}
+      GROUP BY wb.source_type, wb.source_code, wb.source_title
+      ORDER BY wb.source_title ASC
+      ''',
+      args,
+    );
+
+    return [
+      WordBookNavItem(
+        code: '${normalizedStatus}_all',
+        label: '全部',
+        count: totalCount,
+        status: normalizedStatus,
+      ),
+      ...articleRows.map(
+        (row) => WordBookNavItem(
+          code: '${normalizedStatus}_${row['source_code']}',
+          label: row['source_title']?.toString() ?? '未命名',
+          count: row['count'] as int? ?? 0,
+          status: normalizedStatus,
+          tagCode: row['source_code']?.toString(),
+        ),
+      ),
+    ];
+  }
+
   static Future<bool> updateMastery({
     required String wordBookCode,
     required bool recognized,
@@ -366,6 +439,66 @@ class WordBookService {
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  static Map<String, String> parseMorphology(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return const {};
+      return decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  static Future<int> countTodayReviewed() async {
+    try {
+      final db = await DatabaseService.database;
+      final userCode = await DatabaseService.getCurrentUserCode();
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+      final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).toIso8601String();
+
+      final where = <String>['is_deleted = 0', 'last_review_at >= ?', 'last_review_at <= ?'];
+      final args = <Object?>[todayStart, todayEnd];
+
+      if (userCode != null) {
+        where.add('user_code = ?');
+        args.add(userCode);
+      }
+
+      final rows = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}',
+        args,
+      );
+      return (rows.first['count'] as int?) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  static Future<int> countTotalWords() async {
+    try {
+      final db = await DatabaseService.database;
+      final userCode = await DatabaseService.getCurrentUserCode();
+
+      final where = <String>['is_deleted = 0'];
+      final args = <Object?>[];
+
+      if (userCode != null) {
+        where.add('user_code = ?');
+        args.add(userCode);
+      }
+
+      final rows = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}',
+        args,
+      );
+      return (rows.first['count'] as int?) ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 

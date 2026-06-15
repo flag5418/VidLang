@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
+import 'package:omni_player/omni_player.dart';
+import 'package:video_player/video_player.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
-import 'package:video_player/video_player.dart';
 import 'package:vidlang/models/participle.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -377,7 +378,27 @@ class FilePickerService {
       videoPath = persisted.videoPath;
       subtitlePath = persisted.subtitlePath;
 
-      final duration = await _getVideoDuration(videoPath, videoCode: videoCode);
+      final metadata = await VideoMetadataExtractor.extract(videoPath);
+      int duration = metadata.durationMs;
+
+      // 降级方案：当原生方法通道不可用时，使用 video_player 提取时长
+      if (duration == 0) {
+        try {
+          final controller = VideoPlayerController.file(File(videoPath));
+          await controller.initialize();
+          duration = controller.value.duration.inMilliseconds;
+          await controller.dispose();
+          logger.info('fallback duration via video_player: ${duration}ms', tag: 'IMPORT_VIDEO');
+        } catch (e) {
+          logger.warning('video_player fallback also failed: $e', tag: 'IMPORT_VIDEO');
+        }
+      }
+
+      logger.info('metadata extracted', tag: 'IMPORT_VIDEO', extra: {
+        'video': videoPath, 'videoCode': videoCode,
+        'durationMs': duration, 'hasSubtitles': metadata.hasSubtitles,
+        'subtitleLanguages': metadata.subtitleLanguages,
+      });
 
       int thumbnailTime = 15;
       final folderRows = await DatabaseService.findByCondition(
@@ -435,7 +456,7 @@ class FilePickerService {
         extensionName: fileExtension,
         duration: duration,
         cover: thumbnailPath,
-        hasSubtitles: subtitlePath != null,
+        hasSubtitles: subtitlePath != null || metadata.hasSubtitles,
         currentPosition: 0,
         isCurrentPlaying: false,
         description: '',
@@ -767,6 +788,7 @@ class FilePickerService {
     final stem = path.basenameWithoutExtension(normalizedVideoPath);
     if (stem.isEmpty) return null;
 
+    // 1. 精确匹配：ceshi6.srt / ceshi6.ass …
     for (final ext in supportedSubtitleExtensions) {
       final sp = path.join(dir, '$stem$ext');
       if (FileSystemEntity.isFileSync(sp)) return sp;
@@ -775,17 +797,26 @@ class FilePickerService {
       if (upper != sp && FileSystemEntity.isFileSync(upper)) return upper;
     }
 
+    // 2. 目录扫描：支持 {stem}.{lang}.{ext} 模式（如 ceshi6.en.srt、ceshi6.zh.srt）
     try {
       final directory = Directory(dir);
       final entities = directory.listSync(followLinks: false);
+      String? langSuffixMatch;
       for (final entity in entities) {
         if (entity is! File) continue;
         final ext = _getFileExtension(entity.path);
         if (!_isSubtitleFile(ext)) continue;
-        if (path.basenameWithoutExtension(entity.path) == stem) {
-          return entity.path;
+
+        final baseName = path.basenameWithoutExtension(entity.path);
+        // 精确匹配（无语言后缀）
+        if (baseName == stem) return entity.path;
+
+        // 带语言后缀匹配：{stem}.{lang} 如 ceshi6.en
+        if (baseName.startsWith('$stem.') && langSuffixMatch == null) {
+          langSuffixMatch = entity.path;
         }
       }
+      if (langSuffixMatch != null) return langSuffixMatch;
     } catch (_) {}
 
     return null;
@@ -853,29 +884,6 @@ class FilePickerService {
     } catch (_) {}
 
     return (videoPath: videoPath, subtitlePath: subtitlePath);
-  }
-
-  /// 获取视频时长
-  ///
-  /// [filePath] 视频文件路径
-  /// 返回视频时长（毫秒），获取失败返回0
-  static Future<int> _getVideoDuration(String filePath, {String? videoCode}) async {
-    VideoPlayerController? controller;
-    try {
-      logger.info('duration start', tag: 'IMPORT_VIDEO', extra: {'video': filePath, 'videoCode': videoCode});
-      controller = VideoPlayerController.file(File(filePath));
-      await controller.initialize();
-      final duration = controller.value.duration.inMilliseconds;
-      logger.info('duration done', tag: 'IMPORT_VIDEO', extra: {'video': filePath, 'videoCode': videoCode, 'durationMs': duration});
-      return duration;
-    } catch (e, st) {
-      logger.error('duration error', tag: 'IMPORT_VIDEO', error: e, stackTrace: st, extra: {'video': filePath, 'videoCode': videoCode});
-      return 0;
-    } finally {
-      try {
-        await controller?.dispose();
-      } catch (_) {}
-    }
   }
 
   /// 更新文件夹封面

@@ -28,14 +28,12 @@ class FolderCard extends StatelessWidget {
 
     return Builder(
       builder: (context) {
-        var maxWidth = MediaQuery.of(context).size.width;
-        var maxHeight = MediaQuery.of(context).size.height;
         return GestureDetector(
           onTap: onTap,
           onLongPress: onLongPress,
           child: Container(
-            width: maxWidth,
-            height: maxHeight,
+            width: double.infinity,
+            height: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               color: AppColors.cardThumbnailBg,
@@ -60,18 +58,24 @@ class FolderCard extends StatelessWidget {
       builder: (context, snapshot) {
         final path = snapshot.data;
         if (path != null && File(path).existsSync()) {
-          return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(context, colorScheme));
+          return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(context, colorScheme, folder.folderType));
         }
-        return _placeholder(context, colorScheme);
+        return _placeholder(context, colorScheme, folder.folderType);
       },
     );
   }
 
-  Widget _placeholder(BuildContext context, ColorScheme colorScheme) {
+  Widget _placeholder(BuildContext context, ColorScheme colorScheme, FolderContentType folderType) {
+    final isVideo = folderType == FolderContentType.video;
+    final icon = folderType == FolderContentType.article
+        ? Icons.menu_book
+        : folderType == FolderContentType.music
+        ? Icons.headphones
+        : Icons.play_circle_outline;
     return Container(
-      color: AppColors.cardThumbnailBg,
+      color: isVideo ? AppColors.cardThumbnailBg : colorScheme.surfaceContainerHighest,
       child: Center(
-        child: Icon(Icons.play_circle_outline, size: 22.w * 1.5, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+        child: Icon(icon, size: 22.w * 1.5, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
       ),
     );
   }
@@ -102,6 +106,8 @@ class FolderCard extends StatelessWidget {
   }
 
   Widget _buildBadge(BuildContext context, ColorScheme colorScheme) {
+    // 仅视频文件夹显示进度角标，文章/音频不需要
+    if (folder.folderType != FolderContentType.video) return const SizedBox.shrink();
     return Positioned(
       top: 8,
       right: 8,

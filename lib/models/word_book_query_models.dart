@@ -1,11 +1,13 @@
 class WordBookFilter {
-  final String status;
+  final String? status;
   final String? tagCode;
+  final String? contentType;
   final String keyword;
 
   const WordBookFilter({
-    required this.status,
+    this.status,
     this.tagCode,
+    this.contentType,
     this.keyword = '',
   });
 }
