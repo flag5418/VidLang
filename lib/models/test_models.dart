@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:vidlang/models/base_entity.dart';
 
 // ─── 题型枚举 ───
@@ -312,31 +314,14 @@ class TestEvaluation extends BaseEntity {
   Map<String, double> get categoryScores {
     if (categoryScoresJson == null || categoryScoresJson!.isEmpty) return {};
     try {
-      final map = Map<String, dynamic>.from(
-        Uri.base.queryParameters.isEmpty
-            ? (RegExp(r'[{}"]').hasMatch(categoryScoresJson!)
-                ? _parseJson(categoryScoresJson!)
-                : {})
-            : {},
-      );
-      return map.map((k, v) => MapEntry(k, (v as num).toDouble()));
+      final decoded = jsonDecode(categoryScoresJson!);
+      if (decoded is Map<String, dynamic>) {
+        return decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+      }
+      return {};
     } catch (_) {
       return {};
     }
-  }
-
-  static Map<String, dynamic> _parseJson(String json) {
-    // Simple JSON parsing for category scores
-    final cleaned = json.replaceAll('{', '').replaceAll('}', '').replaceAll('"', '');
-    final pairs = cleaned.split(',');
-    final map = <String, dynamic>{};
-    for (final pair in pairs) {
-      final parts = pair.split(':');
-      if (parts.length == 2) {
-        map[parts[0].trim()] = double.tryParse(parts[1].trim()) ?? 0;
-      }
-    }
-    return map;
   }
 
   @override

@@ -52,6 +52,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   bool _initialized = false;
   bool _showSettings = false;
   bool _showSpeedPicker = false;
+  bool? _hasHeadphone;
   List<VideoInfo>? _folderVideosOverride;
   String? _resolvedCoverPath;
 
@@ -59,11 +60,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   String? _recordingPath;
   bool _isEvaluating = false;
   ShengtongEvaluator? _evaluator;
+  Timer? _autoStopTimer;
 
   final ap.AudioPlayer _aliAudioPlayer = ap.AudioPlayer();
   bool _isTtsSpeaking = false;
 
-  final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  static const _supportedEvalLanguages = {'en', 'fr', 'ja', 'ko'};
+
+  List<double> get _speedOptions {
+    final isMusic = widget.audioType == 'music';
+    return isMusic
+        ? [0.5, 0.75, 1.0, 1.25, 1.5]
+        : [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  }
+
   double _playbackSpeed = 1.0;
 
   @override
@@ -78,11 +88,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       systemNavigationBarIconBrightness: Brightness.light,
     ));
     Future.microtask(() => _initializePlayer());
+    _checkHeadphone();
+  }
+
+  Future<void> _checkHeadphone() async {
+    final has = await _detectHeadphoneMode();
+    if (mounted) setState(() => _hasHeadphone = has);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _autoStopTimer?.cancel();
     _aliAudioPlayer.dispose();
     _evaluator?.dispose();
     _recorder.dispose();
@@ -224,6 +241,22 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     final video = ref.read(playerEngineProvider.notifier).currentVideo;
     if (video == null) return;
 
+    if (widget.audioType == 'music') {
+      final hasArtistInfo = (video.artist != null && video.artist!.isNotEmpty);
+      if (!hasArtistInfo) {
+        final info = await _showSongInfoInputDialog(video.name);
+        if (info == null) return;
+        if (info['title'] != null && info['title']!.isNotEmpty) {
+          video.name = info['title']!;
+        }
+        if (info['artist'] != null && info['artist']!.isNotEmpty) {
+          video.artist = info['artist'];
+        }
+        await DatabaseService.update(video);
+        ref.read(playerEngineProvider.notifier).openAudioByCode(widget.videoCode, widget.audioType);
+      }
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -249,6 +282,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           );
           await ref.read(playerEngineProvider.notifier).reloadSubtitles(widget.videoCode);
           if (mounted) setState(() {});
+          unawaited(ConversationService.uploadSubtitlesToCloud(widget.videoCode));
         } else {
           _showRecognitionFailed();
         }
@@ -269,6 +303,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           );
           await ref.read(playerEngineProvider.notifier).reloadSubtitles(widget.videoCode);
           if (mounted) setState(() {});
+          unawaited(ConversationService.uploadSubtitlesToCloud(widget.videoCode));
         } else {
           _showRecognitionFailed();
         }
@@ -284,6 +319,73 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('未能识别此音频内容，已转入欣赏模式')),
+    );
+  }
+
+  Future<Map<String, String>?> _showSongInfoInputDialog(String currentName) async {
+    final titleCtrl = TextEditingController(text: currentName);
+    final artistCtrl = TextEditingController();
+
+    return showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lyrics_outlined, color: AppColors.primary, size: 28),
+              const SizedBox(height: 12),
+              Text('请输入歌曲信息', style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('以便搜索歌词', style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleCtrl,
+                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                decoration: InputDecoration(
+                  labelText: '歌曲名',
+                  labelStyle: TextStyle(color: Colors.white54),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: artistCtrl,
+                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                decoration: InputDecoration(
+                  labelText: '演唱者',
+                  labelStyle: TextStyle(color: Colors.white54),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('跳过,先欣赏', style: TextStyle(color: Colors.white54)),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, {
+                      'title': titleCtrl.text.trim(),
+                      'artist': artistCtrl.text.trim(),
+                    }),
+                    child: Text('搜索歌词', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -689,6 +791,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _buildFeatureRow(PlayerEngineState s, PlayerEngineNotifier n, bool hasSubtitles, String followLabel) {
+    final video = n.currentVideo;
+    final language = video?.language ?? 'en';
+    final evalSupported = _supportedEvalLanguages.contains(language);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Wrap(
@@ -696,7 +801,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         spacing: 12,
         runSpacing: 6,
         children: [
-          if (hasSubtitles)
+          if (hasSubtitles && evalSupported)
             _featureBtn(followLabel, s.followModeActive, () {
               if (s.followModeActive) {
                 n.exitFollowMode();
@@ -714,6 +819,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             _featureBtn('翻译', s.translateVisible, () => n.toggleTranslateVisible()),
           if (hasSubtitles)
             _featureBtn('由慢到快', s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence()),
+          _featureBtn(
+            s.abLoopStart != null && s.abLoopEnd != null ? 'A-B' : s.abLoopStart != null ? 'A-' : 'A-B',
+            s.abLoopStart != null,
+            () {
+              if (s.abLoopStart != null && s.abLoopEnd != null) {
+                n.clearABLoop();
+              } else if (s.abLoopStart == null) {
+                n.setABLoopStart();
+              } else {
+                n.setABLoopEnd();
+              }
+              setState(() {});
+            },
+          ),
           _featureBtn(
             '${s.speed.toStringAsFixed(1)}X',
             s.speed != 1.0,
@@ -808,6 +927,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             ],
           ),
           const SizedBox(height: 12),
+          if (_hasHeadphone == false)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.headphones_outlined, size: 14, color: Colors.orange),
+                  const SizedBox(width: 4),
+                  Text('建议佩戴耳机跟读，录音效果更佳', style: TextStyle(color: Colors.orange, fontSize: 10.sp)),
+                ],
+              ),
+            ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -886,6 +1017,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         n.seekToMs(currentSub.startPosition.toInt());
         n.togglePlayPause();
       }
+
+      _autoStopTimer?.cancel();
+      final endMs = currentSub.endPosition.toInt();
+      final bufferMs = widget.audioType == 'music' ? 1000 : 500;
+      final remainingMs = endMs - s.position.inMilliseconds;
+      if (remainingMs > 0) {
+        _autoStopTimer = Timer(Duration(milliseconds: remainingMs + bufferMs), () {
+          if (mounted && ref.read(playerEngineProvider).isRecording) {
+            _stopFollowRecording(ref.read(playerEngineProvider), n, currentSub);
+          }
+        });
+      }
     } catch (_) {
       n.setRecording(false);
       if (mounted) {
@@ -897,6 +1040,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Future<void> _stopFollowRecording(PlayerEngineState s, PlayerEngineNotifier n, Subtitles? currentSub) async {
+    _autoStopTimer?.cancel();
     if (_recordingPath == null) return;
 
     try {
@@ -976,6 +1120,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           subtitleIndex: s.currentSubtitleIndex,
           originalVolume: s.originalVolume,
           speed: s.speed,
+          headphoneMode: await _detectHeadphoneMode(),
         );
         await DatabaseService.insert(record);
 
@@ -986,6 +1131,8 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             await DatabaseService.update(video);
           }
         }
+
+        unawaited(ConversationService.uploadSubtitlesToCloud(widget.videoCode));
 
         _showScoreResult(overall, fluency, accuracy, completeness);
       } else if (mounted) {
@@ -1152,5 +1299,22 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     final s = d.inSeconds.remainder(60);
     if (h > 0) return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  Future<bool?> _detectHeadphoneMode() async {
+    try {
+      final devices = await _recorder.listInputDevices();
+      final hasHeadset = devices.any((d) =>
+        d.id.toLowerCase().contains('headset') ||
+        d.id.toLowerCase().contains('headphone') ||
+        d.id.toLowerCase().contains('bluetooth') ||
+        d.label.toLowerCase().contains('headset') ||
+        d.label.toLowerCase().contains('headphone') ||
+        d.label.toLowerCase().contains('bluetooth') ||
+        d.label.toLowerCase().contains('airpods'));
+      return hasHeadset;
+    } catch (_) {
+      return null;
+    }
   }
 }

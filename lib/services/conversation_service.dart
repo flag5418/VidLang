@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/conversation_message.dart';
@@ -117,7 +119,9 @@ class ConversationService {
 
       final client = sb.Supabase.instance.client;
       await client.functions.invoke('subtitle-storage', body: {'op': 'upload', 'video_code': videoCode, 'title': title, 'items': items});
-    } catch (_) {}
+    } catch (e) {
+      dev.log('uploadSubtitlesToCloud failed: $e', name: 'ConversationService');
+    }
   }
 
   static Future<void> deleteSubtitlesFromCloud(String videoCode) async {
@@ -125,7 +129,9 @@ class ConversationService {
       AuthService.instance.ensureActiveSession();
       final client = sb.Supabase.instance.client;
       await client.functions.invoke('subtitle-storage', body: {'op': 'delete', 'video_code': videoCode});
-    } catch (_) {}
+    } catch (e) {
+      dev.log('deleteSubtitlesFromCloud failed: $e', name: 'ConversationService');
+    }
   }
 
   static Future<void> settleSession({
@@ -158,7 +164,7 @@ class ConversationService {
         },
       );
     } catch (e) {
-      print('conversation settle error: $e');
+      dev.log('settleSession error: $e', name: 'ConversationService');
     }
   }
 

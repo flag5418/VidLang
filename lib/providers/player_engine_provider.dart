@@ -49,6 +49,8 @@ class PlayerEngineState {
   final double originalVolume;
   final bool isRecording;
   final double? lastFollowScore;
+  final Duration? abLoopStart;
+  final Duration? abLoopEnd;
 
   const PlayerEngineState({
     this.videoCode,
@@ -80,6 +82,8 @@ class PlayerEngineState {
     this.originalVolume = 1.0,
     this.isRecording = false,
     this.lastFollowScore,
+    this.abLoopStart,
+    this.abLoopEnd,
   });
 
   PlayerEngineState copyWith({
@@ -112,6 +116,8 @@ class PlayerEngineState {
     double? originalVolume,
     bool? isRecording,
     Object? lastFollowScore = _unset,
+    Object? abLoopStart = _unset,
+    Object? abLoopEnd = _unset,
   }) {
     return PlayerEngineState(
       videoCode: videoCode ?? this.videoCode,
@@ -143,6 +149,8 @@ class PlayerEngineState {
       originalVolume: originalVolume ?? this.originalVolume,
       isRecording: isRecording ?? this.isRecording,
       lastFollowScore: identical(lastFollowScore, _unset) ? this.lastFollowScore : lastFollowScore as double?,
+      abLoopStart: identical(abLoopStart, _unset) ? this.abLoopStart : abLoopStart as Duration?,
+      abLoopEnd: identical(abLoopEnd, _unset) ? this.abLoopEnd : abLoopEnd as Duration?,
     );
   }
 }
@@ -471,6 +479,20 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     await _player.seek(Duration(milliseconds: safe));
   }
 
+  void setABLoopStart() {
+    _setStateSafely(state.copyWith(abLoopStart: state.position));
+  }
+
+  void setABLoopEnd() {
+    if (state.abLoopStart != null && state.position > state.abLoopStart!) {
+      _setStateSafely(state.copyWith(abLoopEnd: state.position));
+    }
+  }
+
+  void clearABLoop() {
+    _setStateSafely(state.copyWith(abLoopStart: null, abLoopEnd: null));
+  }
+
   Future<void> setSpeed(double speed, {bool persist = true}) async {
     final v = speed.clamp(0.5, 2.0);
     await _player.setSpeed(v);
@@ -740,6 +762,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         unawaited(_saveProgress());
         _handleSingleSentencePauseIfNeeded(ms);
         _handleSlowToFastIfNeeded(ms);
+        _handleABLoopIfNeeded(p);
       }),
       _player.durationStream.listen((d) {
         if (_closed) return;
@@ -947,6 +970,16 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     if (state.playerState != PlayerState.playing) return;
     if (positionMs < _slowEndMs - 120) return;
     unawaited(_advanceSlowToFastStep());
+  }
+
+  void _handleABLoopIfNeeded(Duration position) {
+    final start = state.abLoopStart;
+    final end = state.abLoopEnd;
+    if (start == null || end == null) return;
+    if (state.playerState != PlayerState.playing) return;
+    if (position >= end) {
+      _player.seek(start);
+    }
   }
 
   Future<void> _advanceSlowToFastStep() async {

@@ -19,6 +19,8 @@ class AiService {
     required String scene,
     required String entry,
     required String word,
+    String? sourceType,
+    String? sourceCode,
     Map<String, dynamic> params = const {},
     Map<String, dynamic>? billing,
   }) async {
@@ -36,6 +38,8 @@ class AiService {
           'entry': entry,
           'request_id': requestId,
           'params': {...params, if (billing?.isNotEmpty ?? false) 'billing': billing},
+          if (sourceType != null) 'source_type': sourceType,
+          if (sourceCode != null) 'source_code': sourceCode,
         },
       );
 
@@ -85,6 +89,8 @@ class AiService {
   static Future<WordDetail> getDefinition({
     required String word,
     String? contextSentence,
+    String? sourceType,
+    String? sourceCode,
     Map<String, dynamic>? billing,
   }) async {
     final cacheKey = word.toLowerCase().trim();
@@ -109,6 +115,8 @@ class AiService {
       scene: 'player',
       entry: 'subtitle_tap',
       word: word,
+      sourceType: sourceType,
+      sourceCode: sourceCode,
       params: {
         'word': word,
         if (contextSentence?.isNotEmpty ?? false) 'context_sentence': contextSentence,
@@ -172,6 +180,8 @@ class AiService {
     required String text,
     String sourceLanguage = 'en',
     String targetLanguage = 'zh-Hans',
+    String? sourceType,
+    String? sourceCode,
     Map<String, dynamic>? billing,
   }) async {
     final result = await callAiProxy(
@@ -179,6 +189,8 @@ class AiService {
       scene: 'player',
       entry: 'trans_btn',
       word: text,
+      sourceType: sourceType,
+      sourceCode: sourceCode,
       params: {
         'text': text,
         'source_language': sourceLanguage,
@@ -226,6 +238,8 @@ class AiService {
   static Future<Map<String, dynamic>?> getTtsAudio({
     required String text,
     String language = 'en-US',
+    String? sourceType,
+    String? sourceCode,
     Map<String, dynamic>? billing,
   }) async {
     final requestId = _uuid.v4();
@@ -240,6 +254,8 @@ class AiService {
           'entry': 'tts_btn',
           'request_id': requestId,
           'params': {'text': text, 'language': language, if (billing?.isNotEmpty ?? false) 'billing': billing},
+          if (sourceType != null) 'source_type': sourceType,
+          if (sourceCode != null) 'source_code': sourceCode,
         },
       );
       final data = response.data;

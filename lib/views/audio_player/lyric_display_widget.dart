@@ -26,6 +26,9 @@ class LyricDisplayWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pronMap = parsePronunciationMap(subtitle.pronunciationMapJson);
+    final hasAlignedPron = pronMap != null && pronMap.isNotEmpty && pronunciationVisible;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -50,7 +53,7 @@ class LyricDisplayWidget extends StatelessWidget {
                     style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
                     textAlign: TextAlign.center,
                   ),
-          if (pronunciationVisible && subtitle.pronunciation != null && subtitle.pronunciation!.isNotEmpty)
+          if (pronunciationVisible && !hasAlignedPron && subtitle.pronunciation != null && subtitle.pronunciation!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
@@ -62,6 +65,15 @@ class LyricDisplayWidget extends StatelessWidget {
                   letterSpacing: 1.5,
                 ),
                 textAlign: TextAlign.center,
+              ),
+            ),
+          if (hasAlignedPron && subtitleVisible)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: _AlignedPronunciationRow(
+                content: subtitle.content,
+                pronMap: pronMap!,
+                fontSize: fontSize - 4,
               ),
             ),
           if (translateVisible && subtitle.contentTranslate != null && subtitle.contentTranslate!.isNotEmpty)
@@ -93,6 +105,70 @@ class LyricDisplayWidget extends StatelessWidget {
     } catch (_) {
       return null;
     }
+  }
+}
+
+class _AlignedPronunciationRow extends StatelessWidget {
+  final String content;
+  final List<PronunciationEntry> pronMap;
+  final double fontSize;
+
+  const _AlignedPronunciationRow({
+    required this.content,
+    required this.pronMap,
+    required this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pronLookup = <String, String>{};
+    for (final entry in pronMap) {
+      pronLookup[entry.word.toLowerCase()] = entry.zh;
+    }
+
+    final tokens = content.split(RegExp(r'(\s+)'));
+    final spans = <InlineSpan>[];
+
+    for (int i = 0; i < tokens.length; i++) {
+      final token = tokens[i];
+      final clean = token.replaceAll(RegExp(r'[^\w]'), '').toLowerCase();
+      final zh = pronLookup[clean] ?? '';
+
+      if (zh.isNotEmpty) {
+        spans.add(TextSpan(
+          children: [
+            TextSpan(
+              text: zh,
+              style: TextStyle(
+                color: AppColors.primary.withValues(alpha: 0.8),
+                fontSize: fontSize,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ));
+      } else {
+        final spacing = zh.isEmpty && clean.isNotEmpty ? token.length : 0;
+        if (spacing > 0) {
+          spans.add(TextSpan(
+            text: ' ' * (token.length > 1 ? token.length : 1),
+            style: TextStyle(fontSize: fontSize, color: Colors.transparent),
+          ));
+        }
+      }
+
+      if (i < tokens.length - 1) {
+        spans.add(TextSpan(
+          text: ' ',
+          style: TextStyle(fontSize: fontSize, color: Colors.transparent),
+        ));
+      }
+    }
+
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(children: spans),
+    );
   }
 }
 

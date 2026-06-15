@@ -1,11 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
-import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/models/video_info.dart';
 
 class AiEvaluationSheet extends StatefulWidget {
   final String videoCode;
@@ -74,13 +75,9 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
     setState(() => _loading = true);
 
     try {
-      final records = await DatabaseService.findByCondition(
-        () => RecordingRecord(),
-        where: 'resource_code = ? AND is_deleted = 0',
-        whereArgs: [widget.videoCode],
-      );
+      final breakdown = await ScoreService.getScoreBreakdown(widget.videoCode);
 
-      if (records.isEmpty) {
+      if (breakdown.allRecords.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('暂无跟读记录，请先跟读后再请求AI点评')),
@@ -89,27 +86,12 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         return;
       }
 
-      final sentenceRecords = records.where((r) => r.scope == 'sentence').toList();
-      final fullRecords = records.where((r) => r.scope == 'full').toList();
-
-      final sentenceAvg = sentenceRecords.isNotEmpty
-          ? sentenceRecords.map((r) => r.overallScore ?? 0).reduce((a, b) => a + b) / sentenceRecords.length
-          : null;
-      final fullAvg = fullRecords.isNotEmpty
-          ? fullRecords.map((r) => r.overallScore ?? 0).reduce((a, b) => a + b) / fullRecords.length
-          : null;
-
-      double? resourceScore;
-      if (sentenceAvg != null && fullAvg != null) {
-        resourceScore = (sentenceAvg + fullAvg) / 2;
-      } else if (sentenceAvg != null) {
-        resourceScore = sentenceAvg;
-      } else if (fullAvg != null) {
-        resourceScore = fullAvg;
-      }
+      final sentenceAvg = breakdown.sentenceAvg;
+      final fullAvg = breakdown.fullAvg;
+      final resourceScore = breakdown.resourceScore;
 
       final followSummary = <String>[];
-      for (final r in records.take(10)) {
+      for (final r in breakdown.allRecords.take(10)) {
         followSummary.add('${r.refText ?? ""}: ${r.overallScore?.round() ?? "?"}分');
       }
 
@@ -118,13 +100,15 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         scene: 'audio_player',
         entry: 'ai_commentary',
         word: widget.videoTitle,
+        sourceType: 'music',
+        sourceCode: widget.videoCode,
         params: {
           'resource_title': widget.videoTitle,
           'language': widget.language,
           'sentence_follow_avg': sentenceAvg?.round(),
-          'sentence_follow_count': sentenceRecords.length,
+          'sentence_follow_count': breakdown.sentenceCount,
           'full_follow_avg': fullAvg?.round(),
-          'full_follow_count': fullRecords.length,
+          'full_follow_count': breakdown.fullCount,
           'resource_score': resourceScore?.round(),
           'follow_summary': followSummary.join('\n'),
         },
@@ -132,10 +116,12 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
 
       if (!mounted) return;
 
-      final evaluationJson = result.success ? result.toJson().toString() : '{}';
-      final summary = result.success ? (result.translation ?? result.wordMeaningInContext ?? result.word) : null;
+      final evaluationJson = result.success ? jsonEncode(result.toJson()) : '{}';
+      final summary = result.success
+          ? (result.translation ?? result.wordMeaningInContext ?? result.mnemonic ?? result.word)
+          : null;
 
-      final level = _determineLevel(resourceScore);
+      final level = ScoreService.determineLevel(resourceScore);
 
       final log = AiEvaluationLog(
         resourceCode: widget.videoCode,
@@ -143,9 +129,9 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         resourceTitle: widget.videoTitle,
         language: widget.language,
         sentenceFollowAvgScore: sentenceAvg,
-        sentenceFollowCount: sentenceRecords.length,
+        sentenceFollowCount: breakdown.sentenceCount,
         fullFollowAvgScore: fullAvg,
-        fullFollowCount: fullRecords.length,
+        fullFollowCount: breakdown.fullCount,
         resourceScore: resourceScore,
         evaluationJson: evaluationJson,
         summary: summary,
@@ -168,21 +154,9 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
     }
   }
 
-  String _determineLevel(double? score) {
-    if (score == null) return 'N/A';
-    if (score >= 90) return 'A';
-    if (score >= 80) return 'B';
-    if (score >= 70) return 'C';
-    if (score >= 60) return 'D';
-    return 'F';
-  }
+  String _determineLevel(double? score) => ScoreService.determineLevel(score);
 
-  Color _scoreColor(double score) {
-    if (score >= 90) return Colors.green;
-    if (score >= 75) return Colors.orange;
-    if (score >= 60) return Colors.deepOrange;
-    return Colors.red;
-  }
+  Color _scoreColor(double score) => ScoreService.scoreColor(score);
 
   @override
   Widget build(BuildContext context) {
@@ -261,6 +235,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
 
   Widget _buildEvaluationContent(ScrollController controller) {
     final e = _evaluation!;
+    final structured = _parseStructuredEvaluation(e.evaluationJson);
     return ListView(
       controller: controller,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -304,7 +279,18 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           ],
         ),
         const SizedBox(height: 16),
-        if (e.summary != null && e.summary!.isNotEmpty) ...[
+        if (structured != null) ...[
+          if (structured['encouragement'] != null)
+            _evaluationSection(Icons.favorite, '鼓励', structured['encouragement']!),
+          if (structured['pronunciation'] != null)
+            _evaluationSection(Icons.record_voice_over, '发音', structured['pronunciation']!),
+          if (structured['fluency'] != null)
+            _evaluationSection(Icons.speed, '流畅度', structured['fluency']!),
+          if (structured['suggestions'] != null)
+            _suggestionsSection(structured['suggestions']),
+          if (structured['nextStep'] != null)
+            _evaluationSection(Icons.trending_up, '下一步', structured['nextStep']!),
+        ] else if (e.summary != null && e.summary!.isNotEmpty) ...[
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -324,6 +310,78 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           ..._history.skip(1).map((h) => _historyItem(h)),
         ],
       ],
+    );
+  }
+
+  Map<String, dynamic>? _parseStructuredEvaluation(String json) {
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded is Map<String, dynamic>) {
+        final eval = decoded['evaluation'];
+        if (eval is Map<String, dynamic>) return eval;
+        if (decoded.containsKey('encouragement')) return decoded;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Widget _evaluationSection(IconData icon, String title, String content) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: Colors.white70),
+              const SizedBox(width: 6),
+              Text(title, style: TextStyle(color: Colors.white70, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(content, style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.6)),
+        ],
+      ),
+    );
+  }
+
+  Widget _suggestionsSection(dynamic suggestions) {
+    if (suggestions is! List) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb, size: 16, color: Colors.white70),
+              const SizedBox(width: 6),
+              Text('建议', style: TextStyle(color: Colors.white70, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...suggestions.map((s) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('• ', style: TextStyle(color: Colors.white54, fontSize: 13.sp)),
+                Expanded(child: Text('$s', style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.5))),
+              ],
+            ),
+          )),
+        ],
+      ),
     );
   }
 

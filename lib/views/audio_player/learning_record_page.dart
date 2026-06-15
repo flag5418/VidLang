@@ -1,9 +1,12 @@
+import 'dart:math';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
 import 'package:vidlang/models/recording_record.dart';
-import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/audio_player/ai_evaluation_sheet.dart';
 
@@ -31,8 +34,10 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
   double? _resourceScore;
   int _totalFollowCount = 0;
   int _uniqueSentenceCount = 0;
-  Map<String, dynamic>? _bestRecord;
-  Map<String, dynamic>? _worstRecord;
+  String? _bestRefText;
+  double? _bestScore;
+  String? _worstRefText;
+  double? _worstScore;
 
   @override
   void initState() {
@@ -41,12 +46,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
   }
 
   Future<void> _loadData() async {
-    final records = await DatabaseService.findByCondition(
-      () => RecordingRecord(),
-      where: 'resource_code = ? AND is_deleted = 0',
-      whereArgs: [widget.videoCode],
-      orderBy: 'created_at DESC',
-    );
+    final breakdown = await ScoreService.getScoreBreakdown(widget.videoCode);
 
     final evaluations = await DatabaseService.findByCondition(
       () => AiEvaluationLog(),
@@ -55,54 +55,19 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       orderBy: 'evaluated_at DESC',
     );
 
-    final sentenceRecords = records.where((r) => r.scope == 'sentence').toList();
-    final fullRecords = records.where((r) => r.scope == 'full').toList();
-
-    double? sentenceAvg;
-    if (sentenceRecords.isNotEmpty) {
-      final scored = sentenceRecords.where((r) => r.overallScore != null).toList();
-      if (scored.isNotEmpty) {
-        sentenceAvg = scored.map((r) => r.overallScore!).reduce((a, b) => a + b) / scored.length;
-      }
-    }
-
-    double? fullAvg;
-    if (fullRecords.isNotEmpty) {
-      final scored = fullRecords.where((r) => r.overallScore != null).toList();
-      if (scored.isNotEmpty) {
-        fullAvg = scored.map((r) => r.overallScore!).reduce((a, b) => a + b) / scored.length;
-      }
-    }
-
-    double? resourceScore;
-    if (sentenceAvg != null && fullAvg != null) {
-      resourceScore = (sentenceAvg + fullAvg) / 2;
-    } else {
-      resourceScore = sentenceAvg ?? fullAvg;
-    }
-
-    RecordingRecord? best;
-    RecordingRecord? worst;
-    final scored = records.where((r) => r.overallScore != null).toList();
-    if (scored.isNotEmpty) {
-      scored.sort((a, b) => (b.overallScore ?? 0).compareTo(a.overallScore ?? 0));
-      best = scored.first;
-      worst = scored.last;
-    }
-
-    final uniqueSentences = records.where((r) => r.scope == 'sentence').map((r) => r.sentenceCode).toSet();
-
     if (mounted) {
       setState(() {
-        _records = records;
+        _records = breakdown.allRecords;
         _evaluations = evaluations;
-        _sentenceAvg = sentenceAvg;
-        _fullAvg = fullAvg;
-        _resourceScore = resourceScore;
-        _totalFollowCount = records.length;
-        _uniqueSentenceCount = uniqueSentences.length;
-        _bestRecord = best != null ? {'refText': best.refText, 'score': best.overallScore} : null;
-        _worstRecord = worst != null ? {'refText': worst.refText, 'score': worst.overallScore} : null;
+        _sentenceAvg = breakdown.sentenceAvg;
+        _fullAvg = breakdown.fullAvg;
+        _resourceScore = breakdown.resourceScore;
+        _totalFollowCount = breakdown.totalFollowCount;
+        _uniqueSentenceCount = breakdown.uniqueSentenceCount;
+        _bestRefText = breakdown.bestRefText;
+        _bestScore = breakdown.bestScore;
+        _worstRefText = breakdown.worstRefText;
+        _worstScore = breakdown.worstScore;
         _loading = false;
       });
     }
@@ -129,8 +94,14 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                   const SizedBox(height: 16),
                   _buildStatsGrid(),
                   const SizedBox(height: 16),
-                  if (_bestRecord != null || _worstRecord != null)
+                  if (_bestRefText != null || _worstRefText != null)
                     _buildBestWorst(),
+                  const SizedBox(height: 16),
+                  if (_records.where((r) => r.overallScore != null).length >= 3)
+                    _buildScoreTrendChart(),
+                  if (_records.where((r) => r.overallScore != null).length >= 3)
+                    const SizedBox(height: 16),
+                  _buildWeakSentences(),
                   const SizedBox(height: 16),
                   _buildEvaluationHistory(),
                   const SizedBox(height: 16),
@@ -238,11 +209,11 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
         children: [
           Text('表现分析', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          if (_bestRecord != null)
-            _analysisRow(Icons.thumb_up_outlined, '最佳', _bestRecord!['refText'] ?? '', _bestRecord!['score'] as double, Colors.green),
-          if (_bestRecord != null && _worstRecord != null) const SizedBox(height: 8),
-          if (_worstRecord != null)
-            _analysisRow(Icons.thumb_down_outlined, '待提升', _worstRecord!['refText'] ?? '', _worstRecord!['score'] as double, Colors.orange),
+          if (_bestRefText != null)
+            _analysisRow(Icons.thumb_up_outlined, '最佳', _bestRefText ?? '', _bestScore!, Colors.green),
+          if (_bestRefText != null && _worstRefText != null) const SizedBox(height: 8),
+          if (_worstRefText != null)
+            _analysisRow(Icons.thumb_down_outlined, '待提升', _worstRefText ?? '', _worstScore!, Colors.orange),
         ],
       ),
     );
@@ -262,6 +233,94 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
           child: Text('${score.round()}', style: TextStyle(color: color, fontSize: 11.sp, fontWeight: FontWeight.bold)),
         ),
       ],
+    );
+  }
+
+  Widget _buildScoreTrendChart() {
+    final scored = _records.where((r) => r.overallScore != null).toList();
+    if (scored.length < 3) return const SizedBox.shrink();
+    final last20 = scored.length > 20 ? scored.sublist(scored.length - 20) : scored;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('分数趋势', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 120,
+            child: CustomPaint(
+              painter: _ScoreTrendPainter(last20.map((r) => r.overallScore!).toList()),
+              size: Size.infinite,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeakSentences() {
+    final sentenceRecords = _records.where((r) => r.scope == 'sentence' && r.overallScore != null).toList();
+    if (sentenceRecords.isEmpty) return const SizedBox.shrink();
+    final bySentence = <String, List<RecordingRecord>>{};
+    for (final r in sentenceRecords) {
+      final key = r.sentenceCode ?? '';
+      if (key.isEmpty) continue;
+      bySentence.putIfAbsent(key, () => []).add(r);
+    }
+    final avgBySentence = <String, double>{};
+    for (final e in bySentence.entries) {
+      avgBySentence[e.key] = e.value.map((r) => r.overallScore!).reduce((a, b) => a + b) / e.value.length;
+    }
+    final weak = avgBySentence.entries.where((e) => e.value < 70).toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    if (weak.isEmpty) return const SizedBox.shrink();
+    final weakWithText = <MapEntry<String, double>>[];
+    for (final e in weak.take(5)) {
+      weakWithText.add(e);
+    }
+    final codeToText = <String, String>{};
+    for (final r in sentenceRecords) {
+      final sc = r.sentenceCode ?? '';
+      if (sc.isNotEmpty && !codeToText.containsKey(sc) && r.refText != null && r.refText!.isNotEmpty) {
+        codeToText[sc] = r.refText!;
+      }
+    }
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('薄弱句型', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          ...weakWithText.map((e) {
+            final text = codeToText[e.key] ?? e.key;
+            final score = e.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context, e.key),
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(text, style: TextStyle(color: Colors.white70, fontSize: 11.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(color: ScoreService.scoreColor(score).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+                      child: Text('${score.round()}', style: TextStyle(color: ScoreService.scoreColor(score), fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 
@@ -369,14 +428,61 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
     );
   }
 
-  Color _scoreColor(double score) {
-    if (score >= 90) return Colors.green;
-    if (score >= 75) return Colors.orange;
-    if (score >= 60) return Colors.deepOrange;
-    return Colors.red;
-  }
+  Color _scoreColor(double score) => ScoreService.scoreColor(score);
 
   String _fmtDate(DateTime d) {
     return '${d.month}/${d.day} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
+}
+
+class _ScoreTrendPainter extends CustomPainter {
+  final List<double> scores;
+  _ScoreTrendPainter(this.scores);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (scores.isEmpty) return;
+    final paint = Paint()
+      ..color = AppColors.primary
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final fillPaint = Paint()
+      ..color = AppColors.primary.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+    const pad = 8.0;
+    final w = size.width - pad * 2;
+    final h = size.height - pad * 2;
+    final n = scores.length;
+    final minScore = scores.reduce(min);
+    final maxScore = scores.reduce(max);
+    final range = maxScore - minScore;
+    final yScale = range > 0 ? h / range : h / 100.0;
+
+    final points = <Offset>[];
+    for (var i = 0; i < n; i++) {
+      final x = pad + (n > 1 ? w * i / (n - 1) : w / 2);
+      final y = pad + h - (scores[i] - (range > 0 ? minScore : 0)) * yScale;
+      points.add(Offset(x, y));
+    }
+
+    if (points.length > 1) {
+      final path = Path()..moveTo(points.first.dx, size.height);
+      for (final p in points) {
+        path.lineTo(p.dx, p.dy);
+      }
+      path.lineTo(points.last.dx, size.height);
+      path.close();
+      canvas.drawPath(path, fillPaint);
+      canvas.drawPoints(PointMode.polygon, points, paint);
+    }
+
+    final dotPaint = Paint()..color = AppColors.primary..style = PaintingStyle.fill;
+    for (final p in points) {
+      canvas.drawCircle(p, 3, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScoreTrendPainter old) => old.scores != scores;
 }

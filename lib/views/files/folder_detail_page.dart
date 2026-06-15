@@ -32,7 +32,11 @@ import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
+import 'package:vidlang/services/id3_parser.dart';
+import 'package:vidlang/services/initial_letter_cover.dart';
+import 'package:vidlang/services/lrc_parser.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:omni_player/omni_player.dart' show VideoMetadataExtractor;
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
@@ -734,7 +738,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     final videoCode = const Uuid().v4().replaceAll('-', '');
     final coverCode = const Uuid().v4().replaceAll('-', '');
 
-    // 复制文件到应用目录
+    final audioExtensions = {'.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.wma'};
+    final isAudio = audioExtensions.contains(extension.toLowerCase());
+
     final destDir = Directory('${docs.path}/videos/$folderCode');
     if (!await destDir.exists()) {
       await destDir.create(recursive: true);
@@ -742,32 +748,69 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     final destPath = '${destDir.path}/$videoCode$extension';
     await file.copy(destPath);
 
-    // 获取时长
     int durationMs = 0;
-    try {
-      final controller = VideoPlayerController.file(File(destPath));
-      await controller.initialize();
-      durationMs = controller.value.duration.inMilliseconds;
-      await controller.dispose();
-    } catch (_) {}
-
-    // 生成缩略图
-    String? coverPath;
-    try {
-      final coverFile = 'covers/$folderCode/$coverCode.jpg';
-      final fullCoverPath = await ThumbnailService.getFullPath(coverFile);
-      final coverDir = Directory(fullCoverPath);
-      if (!await coverDir.exists()) {
-        await coverDir.create(recursive: true);
+    if (isAudio) {
+      try {
+        final metadata = await VideoMetadataExtractor.extract(destPath);
+        if (metadata != null) durationMs = metadata.durationMs ?? 0;
+      } catch (_) {}
+      if (durationMs == 0) {
+        try {
+          final controller = VideoPlayerController.file(File(destPath));
+          await controller.initialize().timeout(const Duration(seconds: 5));
+          durationMs = controller.value.duration.inMilliseconds;
+          await controller.dispose();
+        } catch (_) {}
       }
-      await VideoThumbnail.thumbnailFile(video: destPath, thumbnailPath: fullCoverPath, imageFormat: ImageFormat.JPEG, maxWidth: 512, timeMs: 5000);
-      coverPath = coverFile;
-    } catch (_) {}
+    } else {
+      try {
+        final controller = VideoPlayerController.file(File(destPath));
+        await controller.initialize();
+        durationMs = controller.value.duration.inMilliseconds;
+        await controller.dispose();
+      } catch (_) {}
+    }
 
-    // 检测同名字幕文件
+    String? coverPath;
+    String? coverSource;
+    if (isAudio) {
+      try {
+        final id3Tags = await Id3Parser.parse(destPath);
+        if (id3Tags?.coverData != null) {
+          final coverFile = 'covers/$folderCode/$coverCode.jpg';
+          final fullCoverPath = await ThumbnailService.getFullPath(coverFile);
+          final coverDir = Directory(fullCoverPath);
+          if (!await coverDir.exists()) await coverDir.create(recursive: true);
+          await File(fullCoverPath).writeAsBytes(id3Tags!.coverData!);
+          coverPath = coverFile;
+          coverSource = 'id3';
+        }
+      } catch (_) {}
+      if (coverPath == null) {
+        final generated = await InitialLetterCover.generate(fileName, folderCode);
+        if (generated != null) {
+          coverPath = generated;
+          coverSource = 'initial_letter';
+        }
+      }
+    } else {
+      try {
+        final coverFile = 'covers/$folderCode/$coverCode.jpg';
+        final fullCoverPath = await ThumbnailService.getFullPath(coverFile);
+        final coverDir = Directory(fullCoverPath);
+        if (!await coverDir.exists()) await coverDir.create(recursive: true);
+        await VideoThumbnail.thumbnailFile(video: destPath, thumbnailPath: fullCoverPath, imageFormat: ImageFormat.JPEG, maxWidth: 512, timeMs: 5000);
+        coverPath = coverFile;
+        coverSource = 'thumbnail';
+      } catch (_) {}
+    }
+
     final subtitleBasePath = filePath.substring(0, filePath.lastIndexOf('.'));
     String? subtitlePath;
-    for (final ext in ['.srt', '.ass', '.ssa', '.vtt']) {
+    final subtitleExts = isAudio
+        ? ['.lrc', '.srt', '.ass', '.ssa', '.vtt']
+        : ['.srt', '.ass', '.ssa', '.vtt'];
+    for (final ext in subtitleExts) {
       final sp = '$subtitleBasePath$ext';
       if (await File(sp).exists()) {
         subtitlePath = sp;
@@ -775,7 +818,6 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       }
     }
 
-    // 保存到数据库
     final video = VideoInfo(
       name: fileName,
       folderCode: folderCode,
@@ -784,13 +826,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       extensionName: extension.replaceAll('.', ''),
       duration: durationMs,
       cover: coverPath,
+      coverSource: coverSource,
       hasSubtitles: subtitlePath != null && subtitlePath.isNotEmpty,
       fileType: 'virtual',
     );
     video.code = videoCode;
     await DatabaseService.insert(video);
 
-    // 导入字幕
     if (subtitlePath != null) {
       await _importSubtitles(subtitlePath, videoCode);
     }
@@ -800,6 +842,28 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Future<void> _importSubtitles(String subtitlePath, String videoCode) async {
     final subFile = File(subtitlePath);
     if (!await subFile.exists()) return;
+
+    if (subtitlePath.toLowerCase().endsWith('.lrc')) {
+      final content = await subFile.readAsString();
+      final parsed = LrcParser.parseContent(content, videoCode);
+      for (final s in parsed) {
+        await DatabaseService.insert(s);
+      }
+      if (parsed.isNotEmpty) {
+        final videos = await DatabaseService.findByCondition(
+          () => VideoInfo(),
+          where: 'code = ? AND is_deleted = 0',
+          whereArgs: [videoCode],
+          limit: 1,
+        );
+        if (videos.isNotEmpty) {
+          videos.first.hasSubtitles = true;
+          await DatabaseService.update(videos.first);
+        }
+      }
+      await ConversationService.uploadSubtitlesToCloud(videoCode);
+      return;
+    }
 
     final content = await subFile.readAsString();
     final subtitles = <Subtitles>[];

@@ -58,6 +58,7 @@ class VideoCard extends StatelessWidget {
               _buildThumbnail(context, colorScheme),
               _buildBottomOverlay(context, colorScheme),
               _buildSubtitleBadge(context, colorScheme),
+              if (video.lastFollowScore != null) _buildScoreBadge(context),
               _buildMoreButton(context, colorScheme),
               if (isCurrentPlaying) _buildPlayingBadge(context, colorScheme),
             ],
@@ -150,6 +151,40 @@ class VideoCard extends StatelessWidget {
         child: Icon(Icons.subtitles, size: 12.sp, color: video.hasSubtitles ? Colors.white : Colors.white38),
       ),
     );
+  }
+
+  Widget _buildScoreBadge(BuildContext context) {
+    final score = video.lastFollowScore!;
+    final color = _scoreColor(score);
+    return Positioned(
+      top: 6.h,
+      left: 28.w,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4.r),
+          color: color.withValues(alpha: 0.85),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.mic, size: 9.sp, color: Colors.white),
+            SizedBox(width: 2.w),
+            Text(
+              '${score.round()}',
+              style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _scoreColor(double score) {
+    if (score >= 90) return Colors.green;
+    if (score >= 75) return Colors.orange;
+    if (score >= 60) return Colors.deepOrange;
+    return Colors.red;
   }
 
   Widget _buildMoreButton(BuildContext context, ColorScheme colorScheme) {
