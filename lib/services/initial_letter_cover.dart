@@ -3,7 +3,6 @@ import 'dart:math';
 import 'dart:ui' as ui show Canvas, Color, FontWeight, Offset, Paint, PictureRecorder, Rect, ImageByteFormat, TextAlign, TextStyle, ParagraphBuilder, ParagraphStyle, ParagraphConstraints;
 
 import 'package:flutter/painting.dart' show LinearGradient, Alignment;
-import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 
 class InitialLetterCover {
@@ -68,12 +67,11 @@ class InitialLetterCover {
     final coverFile = 'covers/$folderCode/$coverCode.png';
     final fullPath = await ThumbnailService.getFullPath(coverFile);
 
-    final dir = Directory(fullPath);
+    final file = File(fullPath);
+    final dir = file.parent;
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
-
-    final file = File(fullPath);
     await file.writeAsBytes(byteData.buffer.asUint8List());
 
     return coverFile;

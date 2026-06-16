@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vidlang/theme/theme.dart';
 
 class RecognitionPromptDialog extends StatelessWidget {
   final String audioType;
@@ -22,9 +21,10 @@ class RecognitionPromptDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMusic = audioType == 'music';
     final matchLabel = isMusic ? '智能搜索歌词' : '智能识别字幕';
+    final cs = Theme.of(context).colorScheme;
 
     return Dialog(
-      backgroundColor: AppColors.surfaceElevated,
+      backgroundColor: cs.surfaceContainerHigh,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -33,35 +33,35 @@ class RecognitionPromptDialog extends StatelessWidget {
           children: [
             Icon(
               isMusic ? Icons.lyrics_outlined : Icons.subtitles_outlined,
-              color: AppColors.primary,
+              color: cs.primary,
               size: 36,
             ),
             const SizedBox(height: 12),
             Text(
               isMusic ? '暂无歌词' : '暂无字幕',
-              style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600),
+              style: TextStyle(color: cs.onSurface, fontSize: 16.sp, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               isMusic
                   ? '可以选择搜索歌词或手动导入LRC文件'
                   : '可以选择AI识别音频内容或手动导入字幕文件',
-              style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.sp),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            _actionBtn(matchLabel, Icons.auto_awesome_outlined, AppColors.primary, onSmartMatch),
+            _actionBtn(matchLabel, Icons.auto_awesome_outlined, cs.primary, onSmartMatch, cs),
             const SizedBox(height: 10),
-            _actionBtn('手动导入', Icons.upload_file_outlined, AppColors.secondary, onManualImport),
+            _actionBtn('手动导入', Icons.upload_file_outlined, cs.secondary, onManualImport, cs),
             const SizedBox(height: 10),
-            _actionBtn('先欣赏吧', Icons.headphones_outlined, Colors.white54, onAppreciate),
+            _actionBtn('先欣赏吧', Icons.headphones_outlined, cs.onSurfaceVariant, onAppreciate, cs),
           ],
         ),
       ),
     );
   }
 
-  Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap, ColorScheme cs) {
     return SizedBox(
       width: double.infinity,
       child: GestureDetector(

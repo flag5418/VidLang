@@ -86,8 +86,8 @@ INSERT INTO public.app_settings (key, value, description) VALUES
   ('default_new_user_balance', '10.00', '新用户注册默认赠送余额（元）'),
   ('qwen_api_key', '', '通义千问 API Key（请在 Supabase Dashboard 中填充）'),
   ('qwen_base_url', 'https://dashscope.aliyuncs.com/compatible-mode/v1', 'Qwen API 地址'),
-  ('shengtong_api_key', '', '声通发音评分 API Key'),
-  ('shengtong_app_id', '', '声通 App ID')
+  ('shengtong_api_key', '5d0b32c950794688f6caf0c797980cde', '声通发音评分 API Key'),
+  ('shengtong_app_id', '17618890190005e3', '声通 App ID')
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================

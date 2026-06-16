@@ -6,11 +6,11 @@ class AppConfig {
   static User? currentUser;
 
   // ==================== 声通语音评测配置 ====================
-  /// 声通评测 appKey（晚些时候设置实际值）
-  static const String shengtongAppKey = '';
+  static const String shengtongAppKey = '17618890190005e3';
 
-  /// 声通评测 secretKey（晚些时候设置实际值）
-  static const String shengtongSecretKey = '';
+  static const String shengtongSecretKey = '5d0b32c950794688f6caf0c797980cde';
+
+  static const String shengtongUid = 'uid';
 
   /// 声通 WebSocket 地址（ws 协议）
   static const String shengtongWsUrl = 'ws://api.stkouyu.com:8080';

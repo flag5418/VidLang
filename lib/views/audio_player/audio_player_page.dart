@@ -325,43 +325,44 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   Future<Map<String, String>?> _showSongInfoInputDialog(String currentName) async {
     final titleCtrl = TextEditingController(text: currentName);
     final artistCtrl = TextEditingController();
+    final cs = Theme.of(context).colorScheme;
 
     return showDialog<Map<String, String>>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(
-        backgroundColor: AppColors.surfaceElevated,
+        backgroundColor: cs.surfaceContainerHigh,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lyrics_outlined, color: AppColors.primary, size: 28),
+              Icon(Icons.lyrics_outlined, color: cs.primary, size: 28),
               const SizedBox(height: 12),
-              Text('请输入歌曲信息', style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+              Text('请输入歌曲信息', style: TextStyle(color: cs.onSurface, fontSize: 15.sp, fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
-              Text('以便搜索歌词', style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
+              Text('以便搜索歌词', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.sp)),
               const SizedBox(height: 16),
               TextField(
                 controller: titleCtrl,
-                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                style: TextStyle(color: cs.onSurface, fontSize: 14.sp),
                 decoration: InputDecoration(
                   labelText: '歌曲名',
-                  labelStyle: TextStyle(color: Colors.white54),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: artistCtrl,
-                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                style: TextStyle(color: cs.onSurface, fontSize: 14.sp),
                 decoration: InputDecoration(
                   labelText: '演唱者',
-                  labelStyle: TextStyle(color: Colors.white54),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline)),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -370,7 +371,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: Text('跳过,先欣赏', style: TextStyle(color: Colors.white54)),
+                    child: Text('跳过,先欣赏', style: TextStyle(color: cs.onSurfaceVariant)),
                   ),
                   const SizedBox(width: 12),
                   TextButton(
@@ -378,7 +379,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                       'title': titleCtrl.text.trim(),
                       'artist': artistCtrl.text.trim(),
                     }),
-                    child: Text('搜索歌词', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                    child: Text('搜索歌词', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
@@ -390,6 +391,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _buildRecognitionProgressDialog() {
+    final cs = Theme.of(context).colorScheme;
     return PopScope(
       canPop: false,
       child: Center(
@@ -398,22 +400,22 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: cs.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(color: AppColors.primary),
+                CircularProgressIndicator(color: cs.primary),
                 const SizedBox(height: 16),
                 Text(
                   widget.audioType == 'music' ? '正在搜索歌词...' : '正在识别音频...',
-                  style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                  style: TextStyle(color: cs.onSurface, fontSize: 14.sp),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '识别期间您可以继续收听',
-                  style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.sp),
                 ),
               ],
             ),
