@@ -15,7 +15,6 @@
 library;
 
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,8 +23,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:vidlang/config.dart' as app_config;
-import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
+import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_bookmark.dart';
 import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_paragraph.dart';
@@ -44,15 +43,16 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_tag.dart';
 import 'package:vidlang/models/word_tag.dart';
+import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/providers/theme_provider.dart';
+import 'package:vidlang/services/global_error_handler.dart';
+import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
-import 'package:vidlang/splash_screen.dart';
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -60,93 +60,66 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 /// 应用入口函数
 ///
 /// 在调用runApp之前完成所有初始化操作
-void main() async {
-  // 确保Flutter绑定初始化
-  WidgetsFlutterBinding.ensureInitialized();
-  final view = WidgetsBinding.instance.platformDispatcher.views.first;
-  final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
-  if (shortestSide >= 600) {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-  } else {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  }
+void main() {
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  VscodeLogger.instance.init(appName: 'VidLang', minLevel: LogLevel.debug, printToConsole: true);
-  FlutterError.onError = (details) {
-    logger.error(
-      'FlutterError',
-      tag: 'UNCAUGHT',
-      error: details.exception,
-      stackTrace: details.stack,
-      extra: {
-        'library': details.library,
-        'context': details.context?.toDescription(),
-        'information': details.informationCollector?.call().map((e) => e.toString()).toList(),
-      },
-    );
-  };
-  PlatformDispatcher.instance.onError = (error, stack) {
-    logger.fatal('PlatformDispatcher', tag: 'UNCAUGHT', error: error, stackTrace: stack);
-    return true;
-  };
+      final view = WidgetsBinding.instance.platformDispatcher.views.first;
+      final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
+      if (shortestSide >= 600) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      } else {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      }
 
-  await Supabase.initialize(url: app_config.AppConfig.supabaseUrl, anonKey: app_config.AppConfig.supabaseAnonKey);
+      VscodeLogger.instance.init(appName: 'VidLang', minLevel: LogLevel.debug, printToConsole: true);
+      GlobalErrorHandler.instance.install(navigatorKey: navigatorKey);
 
-  // ============================================================
-  // 数据库实体注册
-  // ============================================================
-  //
-  // 注册所有数据实体到数据库服务，每个实体需要提供：
-  // - creator: 实体构造函数
-  // - description: 实体描述（用于日志和调试）
-  // - enableFullTextSearch: 是否启用全文检索（字幕和分词需要）
-  // 注意：键名必须与实体的 tableName 属性完全匹配
-  DatabaseService.registerEntities({
-    'video_folder': EntityConfig(creator: () => VideoFolder(), description: '视频文件夹表'),
-    'video_info': EntityConfig(creator: () => VideoInfo(), description: '视频信息表'),
-    'subtitles': EntityConfig(creator: () => Subtitles(), description: '字幕表（支持全文检索）', enableFullTextSearch: true),
-    'participle': EntityConfig(creator: () => Participle(), description: '分词表（支持全文检索）', enableFullTextSearch: true),
-    'config': EntityConfig(creator: () => Config(), description: '配置表'),
-    'study_record': EntityConfig(creator: () => StudyRecord(), description: '学习记录表'),
-    'user': EntityConfig(creator: () => User(), description: '用户表'),
-    'error_log': EntityConfig(creator: () => ErrorLog(), description: '错误日志表'),
-    'article': EntityConfig(creator: () => Article(), description: '文章表'),
-    'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表（旧版，迁移中）'),
-    'article_paragraph': EntityConfig(creator: () => ArticleParagraph(), description: '文章段落表'),
-    'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
-    'article_bookmark': EntityConfig(creator: () => ArticleBookmark(), description: '文章书签表'),
-    'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
-    'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
-    'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
-    'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
-    'test_session': EntityConfig(creator: () => TestSession(), description: '评测主记录表'),
-    'test_item': EntityConfig(creator: () => TestItem(), description: '单题记录表'),
-    'test_evaluation': EntityConfig(creator: () => TestEvaluation(), description: 'AI评价报告表'),
-    'ai_evaluation_log': EntityConfig(creator: () => AiEvaluationLog(), description: 'AI学习评价日志表'),
-  });
+      await Supabase.initialize(url: app_config.AppConfig.supabaseUrl, anonKey: app_config.AppConfig.supabaseAnonKey);
 
-  // 预热数据库并执行缺表迁移（含 study_record）
-  try {
-    await DatabaseService.database;
-  } catch (e, st) {
-    logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
-  }
+      DatabaseService.registerEntities({
+        'video_folder': EntityConfig(creator: () => VideoFolder(), description: '视频文件夹表'),
+        'video_info': EntityConfig(creator: () => VideoInfo(), description: '视频信息表'),
+        'subtitles': EntityConfig(creator: () => Subtitles(), description: '字幕表（支持全文检索）', enableFullTextSearch: true),
+        'participle': EntityConfig(creator: () => Participle(), description: '分词表（支持全文检索）', enableFullTextSearch: true),
+        'config': EntityConfig(creator: () => Config(), description: '配置表'),
+        'study_record': EntityConfig(creator: () => StudyRecord(), description: '学习记录表'),
+        'user': EntityConfig(creator: () => User(), description: '用户表'),
+        'error_log': EntityConfig(creator: () => ErrorLog(), description: '错误日志表'),
+        'article': EntityConfig(creator: () => Article(), description: '文章表'),
+        'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表（旧版，迁移中）'),
+        'article_paragraph': EntityConfig(creator: () => ArticleParagraph(), description: '文章段落表'),
+        'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
+        'article_bookmark': EntityConfig(creator: () => ArticleBookmark(), description: '文章书签表'),
+        'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
+        'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
+        'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
+        'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
+        'test_session': EntityConfig(creator: () => TestSession(), description: '评测主记录表'),
+        'test_item': EntityConfig(creator: () => TestItem(), description: '单题记录表'),
+        'test_evaluation': EntityConfig(creator: () => TestEvaluation(), description: 'AI评价报告表'),
+        'ai_evaluation_log': EntityConfig(creator: () => AiEvaluationLog(), description: 'AI学习评价日志表'),
+      });
 
-  // 初始化设备类型（iOS 通过原生 UIDevice 精确判断）
-  await DeviceUtils.init();
+      try {
+        await DatabaseService.database;
+      } catch (e, st) {
+        logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
+      }
 
-  // ============================================================
-  // 运行应用
-  // ============================================================
+      await DeviceUtils.init();
 
-  runApp(
-    // ProviderScope: Riverpod状态管理的根容器
-    const ProviderScope(child: VidLangApp()),
+      runApp(const ProviderScope(child: VidLangApp()));
+    },
+    (error, stack) {
+      GlobalErrorHandler.instance.handleZoneError(error, stack);
+    },
   );
 }
 
@@ -227,9 +200,7 @@ class _VidLangAppState extends State<VidLangApp> {
               darkTheme: AppTheme.darkTheme,
               themeMode: ref.watch(themeModeProvider).themeMode,
               debugShowCheckedModeBanner: false,
-              routes: {
-                '/login': (_) => const LoginPage(),
-              },
+              routes: {'/login': (_) => const LoginPage()},
               navigatorKey: navigatorKey,
               home: const _AppEntry(),
             );
