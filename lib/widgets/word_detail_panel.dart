@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
-import 'package:vidlang/theme/app_colors.dart';
 
 /// 统一词条详情弹窗组件
 ///
@@ -45,11 +44,12 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   WordDetailSection? _currentSection;
   bool _isLandscape = false;
+  List<WordDetailSection> _effectiveSections = const [];
 
   @override
   void initState() {
     super.initState();
-    for (final s in widget.config.sections) {
+    for (final s in WordDetailSection.values) {
       _sectionKeys[s] = GlobalKey();
     }
     _scrollController.addListener(_onScroll);
@@ -66,7 +66,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     if (!_scrollController.hasClients) return;
     // 从后往前找，确定当前滚动位置对应的 section
     WordDetailSection? found;
-    for (final s in widget.config.sections) {
+    for (final s in _effectiveSections) {
       final key = _sectionKeys[s]!;
       final ctx = key.currentContext;
       if (ctx == null) continue;
@@ -86,12 +86,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   void _scrollToSection(WordDetailSection section) {
     final key = _sectionKeys[section];
     if (key?.currentContext != null) {
-      Scrollable.ensureVisible(
-        key!.currentContext!,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        alignment: 0.0,
-      );
+      Scrollable.ensureVisible(key!.currentContext!, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut, alignment: 0.0);
     }
   }
 
@@ -103,12 +98,14 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   @override
   Widget build(BuildContext context) {
     _isLandscape = _checkLandscape(context);
+    _effectiveSections = _buildEffectiveSections();
+    final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: widget.onClose,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        color: Colors.black54,
+        color: cs.scrim.withValues(alpha: 0.54),
         child: Center(
           child: GestureDetector(
             onTap: () {}, // 阻止点击内容区传播到外层
@@ -135,6 +132,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Loading 状态 ─────────────────────────────────
 
   Widget _buildLoadingState() {
+    final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
     final isWide = screenSize.width >= 600;
     return Material(
@@ -144,25 +142,18 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
             const SizedBox(height: 24),
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-            ),
+            SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary)),
             const SizedBox(height: 12),
-            Text(
-              '正在查询「${widget.data.word}」...',
-              style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13),
-            ),
+            Text('正在查询「${widget.data.word}」...', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
             const SizedBox(height: 16),
           ],
         ),
@@ -173,6 +164,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Error 状态 ─────────────────────────────────
 
   Widget _buildErrorState() {
+    final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
     final isWide = screenSize.width >= 600;
     return Material(
@@ -182,9 +174,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -193,7 +185,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             const SizedBox(height: 12),
             Text(
               widget.data.error ?? '查询失败',
-              style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+              style: TextStyle(color: cs.error, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -206,6 +198,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── 竖屏布局 ─────────────────────────────────
 
   Widget _buildPortraitLayout() {
+    final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
     return Material(
       color: Colors.transparent,
@@ -213,25 +206,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         width: screenSize.width * 0.6,
         constraints: BoxConstraints(maxWidth: 420, maxHeight: screenSize.height * 0.6),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: _buildHeader(),
-            ),
-            Flexible(
+            Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 0), child: _buildHeader()),
+            Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _buildAllSections(),
-                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
               ),
             ),
             _buildBottomBar(),
@@ -244,6 +231,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── 横屏双栏布局 ─────────────────────────────────
 
   Widget _buildLandscapeLayout() {
+    final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
     return Material(
       color: Colors.transparent,
@@ -251,16 +239,13 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         width: screenSize.width * 0.6,
         constraints: BoxConstraints(maxWidth: 700, maxHeight: screenSize.height * 0.6),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: _buildHeader(),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 0), child: _buildHeader()),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,29 +254,24 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   Container(
                     width: 140,
                     decoration: BoxDecoration(
-                      border: Border(right: BorderSide(color: Colors.white12)),
+                      border: Border(right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3))),
                     ),
                     child: ListView(
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      children: widget.config.sections.map((s) {
+                      children: _effectiveSections.map((s) {
                         final isActive = s == _currentSection;
                         return GestureDetector(
                           onTap: () => _scrollToSection(s),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             decoration: BoxDecoration(
-                              color: isActive ? AppColors.primary.withValues(alpha: 0.08) : null,
-                              border: Border(
-                                left: BorderSide(
-                                  color: isActive ? AppColors.primary : Colors.transparent,
-                                  width: 3,
-                                ),
-                              ),
+                              color: isActive ? cs.primary.withValues(alpha: 0.08) : null,
+                              border: Border(left: BorderSide(color: isActive ? cs.primary : Colors.transparent, width: 3)),
                             ),
                             child: Text(
                               s.label,
                               style: TextStyle(
-                                color: isActive ? AppColors.primary : AppColors.onSurfaceVariant,
+                                color: isActive ? cs.primary : cs.onSurfaceVariant,
                                 fontSize: 13,
                                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                               ),
@@ -306,10 +286,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     child: SingleChildScrollView(
                       controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildAllSections(),
-                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
                     ),
                   ),
                 ],
@@ -324,15 +301,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   // ─── 各个 Section ─────────────────────────────────
 
-  List<Widget> _buildAllSections() {
+  List<Widget> _buildAllSections(List<WordDetailSection> sections) {
     final List<Widget> children = [];
-    for (final section in widget.config.sections) {
-      children.add(
-        Container(
-          key: _sectionKeys[section],
-          child: _buildSection(section),
-        ),
-      );
+    for (final section in sections) {
+      children.add(Container(key: _sectionKeys[section], child: _buildSection(section)));
     }
     return children;
   }
@@ -363,8 +335,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   Widget _buildHeader() {
     final pronounce = widget.data.pronounce;
     final hasPhonetic =
-        (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty) ||
-        (pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty);
+        (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty) || (pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,19 +345,18 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             Expanded(
               child: Text(
                 widget.data.word,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: widget.data.word.length > 20 ? 18 : 26,
                   fontWeight: FontWeight.bold,
+                  height: 1.15,
                 ),
+                maxLines: widget.data.word.length > 20 ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             // 发音按钮
-            _buildPronounceButton(
-              text: widget.data.word,
-              icon: Icons.volume_up_rounded,
-              size: 22,
-            ),
+            _buildPronounceButton(text: widget.data.word, icon: Icons.volume_up_rounded, size: 22),
             const SizedBox(width: 12),
             // 收藏按钮
             _buildSaveButton(),
@@ -399,15 +369,23 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             child: Row(
               children: [
                 if (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty) ...[
-                  Text('英 ', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11)),
-                  Text('[${pronounce.ukPhonetic!}]', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w300)),
+                  Text('英 ', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
+                  Text(
+                    '[${pronounce.ukPhonetic!}]',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w300),
+                  ),
                 ],
-                if (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty &&
-                    pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty)
+                if (pronounce.ukPhonetic != null &&
+                    pronounce.ukPhonetic!.isNotEmpty &&
+                    pronounce.usPhonetic != null &&
+                    pronounce.usPhonetic!.isNotEmpty)
                   const SizedBox(width: 10),
                 if (pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty) ...[
-                  Text('美 ', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11)),
-                  Text('[${pronounce.usPhonetic!}]', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w300)),
+                  Text('美 ', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
+                  Text(
+                    '[${pronounce.usPhonetic!}]',
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w300),
+                  ),
                 ],
               ],
             ),
@@ -416,26 +394,20 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     );
   }
 
-  Widget _buildPronounceButton({
-    required String text,
-    IconData icon = Icons.volume_up_outlined,
-    double size = 18,
-  }) {
+  Widget _buildPronounceButton({required String text, IconData icon = Icons.volume_up_outlined, double size = 18}) {
     return GestureDetector(
       onTap: () => widget.onSpeak?.call(),
       child: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: size),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: size),
       ),
     );
   }
 
   Widget _buildSaveButton() {
     if (widget.onSaveWord == null) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
     final isSaved = widget.isSaved;
     final isSaving = widget.saving;
 
@@ -444,25 +416,13 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: isSaved
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : Colors.white.withValues(alpha: 0.08),
+          color: isSaved ? cs.primary.withValues(alpha: 0.15) : cs.surface.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSaved ? AppColors.primary : Colors.white24,
-          ),
+          border: Border.all(color: isSaved ? cs.primary : cs.outlineVariant),
         ),
         child: isSaving
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-              )
-            : Icon(
-                isSaved ? Icons.star_rounded : Icons.star_border_rounded,
-                size: 22,
-                color: isSaved ? AppColors.primary : Colors.white54,
-              ),
+            ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary))
+            : Icon(isSaved ? Icons.star_rounded : Icons.star_border_rounded, size: 22, color: isSaved ? cs.primary : cs.onSurfaceVariant),
       ),
     );
   }
@@ -471,6 +431,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   Widget _buildSentenceTranslation() {
     if (widget.data.sentenceTranslation == null &&
+        widget.data.translation == null &&
         widget.data.wordMeaningInContext == null &&
         widget.data.contextSentence == null) {
       return const SizedBox.shrink();
@@ -480,21 +441,15 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.data.contextSentence != null) ...[
-            _buildRichContextSentence(),
-            const SizedBox(height: 6),
-          ],
+          if (widget.data.contextSentence != null) ...[_buildRichContextSentence(), const SizedBox(height: 6)],
           if (widget.data.wordMeaningInContext != null) ...[
-            Text(
-              widget.data.wordMeaningInContext!,
-              style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
-            ),
+            Text(widget.data.wordMeaningInContext!, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15, height: 1.5)),
             const SizedBox(height: 4),
           ],
-          if (widget.data.sentenceTranslation != null)
+          if (widget.data.sentenceTranslation != null || widget.data.translation != null)
             Text(
-              widget.data.sentenceTranslation!,
-              style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, height: 1.4),
+              widget.data.sentenceTranslation ?? widget.data.translation!,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
             ),
         ],
       ),
@@ -506,19 +461,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final word = widget.data.word.toLowerCase();
     final index = sentence.toLowerCase().indexOf(word);
     if (index == -1) {
-      return Text(sentence, style: const TextStyle(color: Colors.white70, fontSize: 14));
+      return Text(sentence, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14));
     }
     return RichText(
       text: TextSpan(
-        style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14, height: 1.5),
         children: [
           TextSpan(text: sentence.substring(0, index)),
           TextSpan(
             text: sentence.substring(index, index + word.length),
             style: TextStyle(
-              color: const Color(0xFFFFD54F),
+              color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
-              backgroundColor: const Color(0xFFFFD54F).withValues(alpha: 0.15),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
             ),
           ),
           TextSpan(text: sentence.substring(index + word.length)),
@@ -531,6 +486,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   Widget _buildDefinitions() {
     if (widget.data.definitions.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
     return _buildSectionContainer(
       title: WordDetailSection.definitions.label,
       child: Column(
@@ -548,17 +504,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                       Container(
                         margin: const EdgeInsets.only(right: 8, top: 2),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                        decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
                         child: Text(
                           d.partOfSpeech!,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(color: cs.primary, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -566,17 +515,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            d.chineseMeaning,
-                            style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
-                          ),
+                          Text(d.chineseMeaning, style: TextStyle(color: cs.onSurface, fontSize: 15, height: 1.5)),
                           if (d.englishMeaning != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                d.englishMeaning!,
-                                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12),
-                              ),
+                              child: Text(d.englishMeaning!, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
                             ),
                         ],
                       ),
@@ -601,19 +544,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                                   children: [
                                     Text(
                                       ex.english,
-                                      style: TextStyle(
-                                        color: AppColors.onSurfaceVariant,
-                                        fontSize: 13,
-                                        fontStyle: FontStyle.italic,
-                                      ),
+                                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, fontStyle: FontStyle.italic),
                                     ),
-                                    Text(
-                                      ex.chinese,
-                                      style: TextStyle(
-                                        color: AppColors.onSurfaceDisabled,
-                                        fontSize: 11,
-                                      ),
-                                    ),
+                                    Text(ex.chinese, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 11)),
                                   ],
                                 ),
                               ),
@@ -635,6 +568,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Section: 英文解释 ─────────────────────────────────
 
   Widget _buildEnglishMeaning() {
+    final cs = Theme.of(context).colorScheme;
     // 从 definitions 中收集所有 englishMeaning
     final meanings = widget.data.definitions
         .where((d) => d.englishMeaning != null && d.englishMeaning!.isNotEmpty)
@@ -651,9 +585,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('• ', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14)),
+                Text('• ', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
                 Expanded(
-                  child: Text(m, style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14, height: 1.5)),
+                  child: Text(m, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, height: 1.5)),
                 ),
               ],
             ),
@@ -666,6 +600,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Section: 词性 ─────────────────────────────────
 
   Widget _buildPartOfSpeech() {
+    final cs = Theme.of(context).colorScheme;
     final posSet = <String>{};
     for (final d in widget.data.definitions) {
       if (d.partOfSpeech != null) posSet.add(d.partOfSpeech!);
@@ -682,13 +617,13 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.15),
+              color: cs.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
             ),
             child: Text(
               pos,
-              style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(color: cs.primary, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           );
         }).toList(),
@@ -700,6 +635,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   Widget _buildExamples() {
     if (widget.data.standaloneExamples.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
     return _buildSectionContainer(
       title: WordDetailSection.examples.label,
       child: Column(
@@ -716,17 +652,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     children: [
                       Text(
                         ex.english,
-                        style: TextStyle(
-                          color: AppColors.onSurfaceVariant,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, fontStyle: FontStyle.italic),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        ex.chinese,
-                        style: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: 12),
-                      ),
+                      Text(ex.chinese, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 12)),
                     ],
                   ),
                 ),
@@ -739,14 +668,13 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     );
   }
 
-  // ─── Section: 考试等级 ─────────────────────────────────
+  // ─── Section: 单词难度 ─────────────────────────────────
 
   Widget _buildDifficulty() {
-    if (widget.data.difficulty == DifficultyLevel.unknown &&
-        widget.data.definitions.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    final color = Color(widget.data.difficulty.colorValue);
+    final cs = Theme.of(context).colorScheme;
+    final diff = widget.data.difficulty;
+    // 始终显示难度 section，即使未知也显示“未知”
+    final color = diff == DifficultyLevel.unknown ? cs.outline : Color(diff.colorValue);
     return _buildSectionContainer(
       title: WordDetailSection.difficulty.label,
       child: Wrap(
@@ -780,6 +708,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Section: 词形变化 ─────────────────────────────────
 
   Widget _buildMorphology() {
+    final cs = Theme.of(context).colorScheme;
     final morph = widget.data.morphology;
     if (morph == null) return const SizedBox.shrink();
 
@@ -796,41 +725,30 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       '最高级': morph.superlative,
     };
 
-    final effectiveForms = Map.fromEntries(
-      forms.entries.where((e) => e.value != null && e.value!.isNotEmpty),
-    );
+    final effectiveForms = Map.fromEntries(forms.entries.where((e) => e.value != null && e.value!.isNotEmpty));
 
     if (effectiveForms.isNotEmpty) {
       items.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Table(
-            columnWidths: const {
-              0: IntrinsicColumnWidth(),
-              1: FlexColumnWidth(),
-            },
+            columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: effectiveForms.entries.map((e) {
               return TableRow(
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-                    child: Text(
-                      e.key,
-                      style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13),
-                    ),
+                    child: Text(e.key, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
+                      decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
                       child: Text(
                         e.value!,
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                        style: TextStyle(color: cs.onSurface, fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ),
@@ -852,7 +770,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             children: [
               SizedBox(
                 width: 60,
-                child: Text('同义', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13)),
+                child: Text('同义', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
               ),
               Expanded(
                 child: Wrap(
@@ -861,14 +779,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   children: morph.synonyms.map((s) {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        s,
-                        style: const TextStyle(color: Color(0xFF81C784), fontSize: 12),
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFF4CAF50).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                      child: Text(s, style: const TextStyle(color: Color(0xFF81C784), fontSize: 12)),
                     );
                   }).toList(),
                 ),
@@ -887,7 +799,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           children: [
             SizedBox(
               width: 60,
-              child: Text('反义', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13)),
+              child: Text('反义', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
             ),
             Expanded(
               child: Wrap(
@@ -896,14 +808,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 children: morph.antonyms.map((a) {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF5252).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      a,
-                      style: const TextStyle(color: Color(0xFFEF9A9A), fontSize: 12),
-                    ),
+                    decoration: BoxDecoration(color: const Color(0xFFFF5252).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                    child: Text(a, style: const TextStyle(color: Color(0xFFEF9A9A), fontSize: 12)),
                   );
                 }).toList(),
               ),
@@ -925,22 +831,55 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   Widget _buildMnemonic() {
     if (widget.data.mnemonic == null || widget.data.mnemonic!.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
     return _buildSectionContainer(
       title: WordDetailSection.mnemonic.label,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lightbulb_outline, size: 18, color: const Color(0xFFFFD54F)),
+          Icon(Icons.lightbulb_outline, size: 18, color: cs.primary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              widget.data.mnemonic!,
-              style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 14, height: 1.5),
-            ),
+            child: Text(widget.data.mnemonic!, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, height: 1.5)),
           ),
         ],
       ),
     );
+  }
+
+  List<WordDetailSection> _buildEffectiveSections() {
+    final raw = widget.config.sections;
+    final out = <WordDetailSection>[];
+    for (final section in raw) {
+      if (_shouldShowSection(section)) {
+        out.add(section);
+      }
+    }
+    return out;
+  }
+
+  bool _shouldShowSection(WordDetailSection section) {
+    final data = widget.data;
+    switch (section) {
+      case WordDetailSection.sentenceTranslation:
+        return (data.sentenceTranslation != null && data.sentenceTranslation!.trim().isNotEmpty) ||
+            (data.wordMeaningInContext != null && data.wordMeaningInContext!.trim().isNotEmpty) ||
+            (data.contextSentence != null && data.contextSentence!.trim().isNotEmpty);
+      case WordDetailSection.definitions:
+        return data.definitions.isNotEmpty;
+      case WordDetailSection.englishMeaning:
+        return data.definitions.any((d) => d.englishMeaning != null && d.englishMeaning!.trim().isNotEmpty);
+      case WordDetailSection.partOfSpeech:
+        return data.definitions.any((d) => d.partOfSpeech != null && d.partOfSpeech!.trim().isNotEmpty);
+      case WordDetailSection.examples:
+        return data.standaloneExamples.isNotEmpty || data.definitions.any((d) => d.examples.isNotEmpty);
+      case WordDetailSection.difficulty:
+        return true;
+      case WordDetailSection.morphology:
+        return data.morphology != null;
+      case WordDetailSection.mnemonic:
+        return data.mnemonic != null && data.mnemonic!.trim().isNotEmpty;
+    }
   }
 
   // ─── 底部栏 ─────────────────────────────────
@@ -952,6 +891,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── 通用 Section 容器 ─────────────────────────────────
 
   Widget _buildSectionContainer({required String title, required Widget child}) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
@@ -961,12 +901,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               title,
-              style: TextStyle(
-                color: AppColors.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 0.5),
             ),
           ),
           child,

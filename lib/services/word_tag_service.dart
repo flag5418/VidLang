@@ -4,12 +4,44 @@ import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/services/database_service.dart';
 
 class WordTagService {
+  /// 默认标签名：未分类
+  static const String defaultTagName = '未分类';
+  static const List<String> builtInDifficultyTags = [defaultTagName, '小学', '初中', '高中', 'CET4', 'CET6', '考研', '雅思', '托福', 'GRE'];
+
+  /// 确保默认标签存在，返回其 code
+  static Future<String> ensureDefaultTag() async {
+    final existing = await BaseEntityExtension.findByCondition(() => WordTag(), where: 'name = ? AND is_deleted = 0', whereArgs: [defaultTagName]);
+    if (existing.isNotEmpty && existing.first.code != null) {
+      return existing.first.code!;
+    }
+    final tag = WordTag(name: defaultTagName, orderIndex: 0);
+    await DatabaseService.insert(tag);
+    return tag.code!;
+  }
+
   static Future<List<WordTag>> listTags() async {
-    return BaseEntityExtension.findByCondition(
-      () => WordTag(),
-      where: 'is_deleted = 0',
-      orderBy: 'order_index ASC, created_at ASC',
-    );
+    return BaseEntityExtension.findByCondition(() => WordTag(), where: 'is_deleted = 0', orderBy: 'order_index ASC, created_at ASC');
+  }
+
+  static Future<void> ensureBuiltInDifficultyTagsExist() async {
+    for (int i = 0; i < builtInDifficultyTags.length; i++) {
+      await _ensureTagExists(builtInDifficultyTags[i], orderIndex: i);
+    }
+  }
+
+  static Future<WordTag> _ensureTagExists(String name, {required int orderIndex}) async {
+    final existing = await BaseEntityExtension.findByCondition(() => WordTag(), where: 'name = ? AND is_deleted = 0', whereArgs: [name]);
+    if (existing.isNotEmpty) {
+      final tag = existing.first;
+      if (tag.orderIndex != orderIndex) {
+        tag.orderIndex = orderIndex;
+        await DatabaseService.update(tag);
+      }
+      return tag;
+    }
+    final tag = WordTag(name: name, orderIndex: orderIndex);
+    await DatabaseService.insert(tag);
+    return tag;
   }
 
   static Future<List<WordTag>> listTagsForWord(String wordBookCode) async {
@@ -65,12 +97,24 @@ class WordTagService {
       await DatabaseService.batchSoftDelete(current);
     }
 
+    // 没有选中标签时，兜底关联到"未分类"
     final uniqueTagCodes = tagCodes.where((code) => code.trim().isNotEmpty).toSet().toList();
-    if (uniqueTagCodes.isEmpty) return;
+    if (uniqueTagCodes.isEmpty) {
+      final defaultCode = await ensureDefaultTag();
+      uniqueTagCodes.add(defaultCode);
+    }
 
-    final entities = uniqueTagCodes
-        .map((tagCode) => WordBookTag(wordBookCode: wordBookCode, tagCode: tagCode))
-        .toList();
+    final entities = uniqueTagCodes.map((tagCode) => WordBookTag(wordBookCode: wordBookCode, tagCode: tagCode)).toList();
     await DatabaseService.batchInsert(entities);
+  }
+
+  /// 创建新标签
+  static Future<WordTag?> createTag(String name) async {
+    if (name.trim().isEmpty) return null;
+    final existing = await BaseEntityExtension.findByCondition(() => WordTag(), where: 'name = ? AND is_deleted = 0', whereArgs: [name.trim()]);
+    if (existing.isNotEmpty) return existing.first;
+    final tag = WordTag(name: name.trim(), orderIndex: builtInDifficultyTags.length + 10);
+    await DatabaseService.insert(tag);
+    return tag;
   }
 }

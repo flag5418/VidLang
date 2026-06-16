@@ -557,7 +557,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         await _aliAudioPlayer.play(ap.DeviceFileSource(file.path));
       } catch (_) {}
     } else {
-      TtsService().speakWord(word);
+      if (WordBookService.isSingleWord(word)) {
+        TtsService().speakWord(word);
+      } else {
+        TtsService().speakSubtitle(word);
+      }
     }
   }
 

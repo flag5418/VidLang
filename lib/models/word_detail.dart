@@ -94,10 +94,10 @@ class PronounceInfo {
   };
 
   factory PronounceInfo.fromJson(Map<String, dynamic> json) => PronounceInfo(
-    ukPhonetic: json['uk_phonetic'] as String?,
-    usPhonetic: json['us_phonetic'] as String?,
-    ukAudioUrl: json['uk_audio_url'] as String?,
-    usAudioUrl: json['us_audio_url'] as String?,
+    ukPhonetic: json['uk_phonetic'] as String? ?? json['ukPhonetic'] as String?,
+    usPhonetic: json['us_phonetic'] as String? ?? json['usPhonetic'] as String?,
+    ukAudioUrl: json['uk_audio_url'] as String? ?? json['ukAudioUrl'] as String?,
+    usAudioUrl: json['us_audio_url'] as String? ?? json['usAudioUrl'] as String?,
   );
 }
 
@@ -120,9 +120,9 @@ class WordExample {
   };
 
   factory WordExample.fromJson(Map<String, dynamic> json) => WordExample(
-    english: json['english'] as String? ?? '',
-    chinese: json['chinese'] as String? ?? '',
-    exampleAudioUrl: json['example_audio_url'] as String?,
+    english: json['english'] as String? ?? json['en'] as String? ?? '',
+    chinese: json['chinese'] as String? ?? json['zh'] as String? ?? '',
+    exampleAudioUrl: json['example_audio_url'] as String? ?? json['exampleAudioUrl'] as String?,
   );
 }
 
@@ -197,12 +197,18 @@ class WordDefinition {
   };
 
   factory WordDefinition.fromJson(Map<String, dynamic> json) => WordDefinition(
-    partOfSpeech: json['part_of_speech'] as String?,
-    chineseMeaning: json['chinese_meaning'] as String? ?? '',
-    englishMeaning: json['english_meaning'] as String?,
+    partOfSpeech: json['part_of_speech'] as String? ?? json['partOfSpeech'] as String?,
+    chineseMeaning: (json['chinese_meaning'] as String? ??
+            json['chineseMeaning'] as String? ??
+            json['meaning'] as String? ??
+            '')
+        .trim(),
+    englishMeaning: json['english_meaning'] as String? ?? json['englishMeaning'] as String?,
     examples: (json['examples'] as List?)
-        ?.map((e) => WordExample.fromJson(e as Map<String, dynamic>))
-        .toList() ?? [],
+            ?.whereType<Map>()
+            .map((e) => WordExample.fromJson(e.cast<String, dynamic>()))
+            .toList() ??
+        const [],
   );
 }
 
@@ -294,18 +300,19 @@ class WordDetail {
       morphology = WordMorphology.fromJson(result['morphology'] as Map<String, dynamic>);
     }
 
+    final word = (result['word'] as String? ?? '').trim();
     return WordDetail(
-      word: result['word'] as String? ?? '',
+      word: word.isNotEmpty ? word : (result['text'] as String? ?? ''),
       pronounce: pronounce,
       definitions: definitions,
       standaloneExamples: standaloneExamples,
       difficulty: DifficultyLevelX.fromString(result['difficulty'] as String?),
       morphology: morphology,
       mnemonic: result['mnemonic'] as String?,
-      contextSentence: result['context_sentence'] as String?,
-      sentenceTranslation: result['sentence_translation'] as String?,
-      wordMeaningInContext: result['word_meaning_in_context'] as String?,
-      translation: result['translation'] as String?,
+      contextSentence: result['context_sentence'] as String? ?? result['contextSentence'] as String?,
+      sentenceTranslation: result['sentence_translation'] as String? ?? result['sentenceTranslation'] as String?,
+      wordMeaningInContext: result['word_meaning_in_context'] as String? ?? result['wordMeaningInContext'] as String?,
+      translation: result['translation'] as String? ?? result['translatedText'] as String?,
       success: true,
       costCny: costCny,
       balanceAfter: balanceAfter,

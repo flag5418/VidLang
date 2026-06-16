@@ -30,11 +30,7 @@ class WordBookService {
     return RegExp(r"^[a-zA-Z][a-zA-Z']*$").hasMatch(trimmed);
   }
 
-  static WordBook applyMastery(
-    WordBook word, {
-    required bool recognized,
-    DateTime? reviewedAt,
-  }) {
+  static WordBook applyMastery(WordBook word, {required bool recognized, DateTime? reviewedAt}) {
     final now = reviewedAt ?? DateTime.now();
     word.masteryLevel = recognized ? 'mastered' : 'learning';
     word.masteredAt = recognized ? now : null;
@@ -42,12 +38,7 @@ class WordBookService {
     return word;
   }
 
-  static WordBook mergeTestResult(
-    WordBook word, {
-    required bool reviewed,
-    required bool correct,
-    DateTime? reviewedAt,
-  }) {
+  static WordBook mergeTestResult(WordBook word, {required bool reviewed, required bool correct, DateTime? reviewedAt}) {
     if (!reviewed) return word;
     word.reviewCount += 1;
     if (correct) {
@@ -152,11 +143,7 @@ class WordBookService {
       wb.phoneticUs = wordCardData.phonetic;
       // 缓存 definitions 为 JSON
       if (wordCardData.definitions.isNotEmpty) {
-        final defsJson = wordCardData.definitions.map((d) => {
-          'partOfSpeech': d.partOfSpeech,
-          'meaning': d.meaning,
-          'example': d.example,
-        }).toList();
+        final defsJson = wordCardData.definitions.map((d) => {'partOfSpeech': d.partOfSpeech, 'meaning': d.meaning, 'example': d.example}).toList();
         wb.definitionsJson = jsonEncode(defsJson);
       }
     }
@@ -164,12 +151,7 @@ class WordBookService {
     // 视频/音频类型：截取当前画面截图
     if ((sourceType == 'video' || sourceType == 'music') && videoPath != null && positionMs != null) {
       try {
-        final screenshotPath = await ThumbnailService.generateWordScreenshot(
-          videoPath,
-          sourceCode,
-          positionMs: positionMs,
-          wordCode: wb.code!,
-        );
+        final screenshotPath = await ThumbnailService.generateWordScreenshot(videoPath, sourceCode, positionMs: positionMs, wordCode: wb.code!);
         wb.screenshotPath = screenshotPath;
       } catch (e) {
         logger.warning('截图失败，继续保存: $e', tag: 'WordBook');
@@ -190,6 +172,50 @@ class WordBookService {
     }
   }
 
+  static Future<WordBook?> saveSentence({
+    required String text,
+    required String sourceType,
+    required String sourceCode,
+    String? sourceTitle,
+    String? segmentCode,
+    String? translation,
+    String? note,
+  }) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return null;
+
+    final userCode = await DatabaseService.getCurrentUserCode();
+    final existing = await DatabaseService.findByCondition(
+      () => WordBook(),
+      where: 'content_type = ? AND source_text = ? AND source_type = ? AND source_code = ? AND is_deleted = 0',
+      whereArgs: ['sentence', trimmed, sourceType, sourceCode],
+    );
+    if (existing.isNotEmpty) {
+      return existing.first;
+    }
+
+    final wb = WordBook(
+      word: trimmed,
+      contentType: 'sentence',
+      sourceText: trimmed,
+      sourceTranslation: translation,
+      sourceType: sourceType,
+      sourceCode: sourceCode,
+      sourceTitle: sourceTitle,
+      segmentCode: segmentCode,
+      note: note,
+    );
+    wb.userCode = userCode;
+
+    try {
+      await wb.save();
+      return wb;
+    } catch (e, st) {
+      logger.error('收藏句子失败: $e', tag: 'WordBook', error: e, stackTrace: st);
+      return null;
+    }
+  }
+
   /// 取消收藏
   static Future<bool> removeWord(int id) async {
     try {
@@ -206,11 +232,7 @@ class WordBookService {
   }
 
   /// 检查单词是否已收藏
-  static Future<bool> isWordSaved({
-    required String word,
-    required String sourceType,
-    required String sourceCode,
-  }) async {
+  static Future<bool> isWordSaved({required String word, required String sourceType, required String sourceCode}) async {
     final count = await DatabaseService.count(
       () => WordBook(),
       where: 'word = ? AND source_type = ? AND source_code = ? AND is_deleted = 0',
@@ -227,9 +249,7 @@ class WordBookService {
     final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[];
-    final where = <String>[
-      'wb.is_deleted = 0',
-    ];
+    final where = <String>['wb.is_deleted = 0'];
 
     if (filter.status != null) {
       where.add('wb.mastery_level = ?');
@@ -263,12 +283,9 @@ class WordBookService {
       args.addAll([keywordLike, keywordLike, keywordLike, keywordLike, keywordLike]);
     }
 
-    final joinClause = filter.tagCode != null && filter.tagCode!.isNotEmpty
-        ? 'INNER JOIN word_book_tag wbt ON wbt.word_book_code = wb.code'
-        : '';
+    final joinClause = filter.tagCode != null && filter.tagCode!.isNotEmpty ? 'INNER JOIN word_book_tag wbt ON wbt.word_book_code = wb.code' : '';
 
-    final rows = await db.rawQuery(
-      '''
+    final rows = await db.rawQuery('''
       SELECT DISTINCT wb.*
       FROM word_book wb
       $joinClause
@@ -277,9 +294,7 @@ class WordBookService {
         CASE WHEN wb.next_review_at IS NULL THEN 1 ELSE 0 END,
         wb.next_review_at ASC,
         wb.created_at DESC
-      ''',
-      args,
-    );
+      ''', args);
 
     return rows.map((row) => WordBook().fromMap(row) as WordBook).toList();
   }
@@ -289,24 +304,18 @@ class WordBookService {
     final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[normalizedStatus];
-    final baseWhere = <String>[
-      'wb.is_deleted = 0',
-      'wb.mastery_level = ?',
-    ];
+    final baseWhere = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?'];
 
     if (userCode != null) {
       baseWhere.add('wb.user_code = ?');
       args.add(userCode);
     }
 
-    final totalRows = await db.rawQuery(
-      '''
+    final totalRows = await db.rawQuery('''
       SELECT COUNT(*) AS count
       FROM word_book wb
       WHERE ${baseWhere.join(' AND ')}
-      ''',
-      args,
-    );
+      ''', args);
     final totalCount = (totalRows.first['count'] as int?) ?? 0;
 
     final tagRows = await db.rawQuery(
@@ -334,12 +343,7 @@ class WordBookService {
     );
 
     return [
-      WordBookNavItem(
-        code: '${normalizedStatus}_all',
-        label: '全部',
-        count: totalCount,
-        status: normalizedStatus,
-      ),
+      WordBookNavItem(code: '${normalizedStatus}_all', label: '全部', count: totalCount, status: normalizedStatus),
       ...tagRows.map(
         (row) => WordBookNavItem(
           code: row['tag_code']?.toString() ?? '',
@@ -361,29 +365,21 @@ class WordBookService {
     final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[normalizedStatus, 'sentence'];
-    final baseWhere = <String>[
-      'wb.is_deleted = 0',
-      'wb.mastery_level = ?',
-      'wb.content_type = ?',
-    ];
+    final baseWhere = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?', 'wb.content_type = ?'];
 
     if (userCode != null) {
       baseWhere.add('wb.user_code = ?');
       args.add(userCode);
     }
 
-    final totalRows = await db.rawQuery(
-      '''
+    final totalRows = await db.rawQuery('''
       SELECT COUNT(*) AS count
       FROM word_book wb
       WHERE ${baseWhere.join(' AND ')}
-      ''',
-      args,
-    );
+      ''', args);
     final totalCount = (totalRows.first['count'] as int?) ?? 0;
 
-    final articleRows = await db.rawQuery(
-      '''
+    final articleRows = await db.rawQuery('''
       SELECT
         wb.source_type AS source_type,
         wb.source_code AS source_code,
@@ -393,17 +389,10 @@ class WordBookService {
       WHERE ${baseWhere.join(' AND ')}
       GROUP BY wb.source_type, wb.source_code, wb.source_title
       ORDER BY wb.source_title ASC
-      ''',
-      args,
-    );
+      ''', args);
 
     return [
-      WordBookNavItem(
-        code: '${normalizedStatus}_all',
-        label: '全部',
-        count: totalCount,
-        status: normalizedStatus,
-      ),
+      WordBookNavItem(code: '${normalizedStatus}_all', label: '全部', count: totalCount, status: normalizedStatus),
       ...articleRows.map(
         (row) => WordBookNavItem(
           code: '${normalizedStatus}_${row['source_code']}',
@@ -416,10 +405,7 @@ class WordBookService {
     ];
   }
 
-  static Future<bool> updateMastery({
-    required String wordBookCode,
-    required bool recognized,
-  }) async {
+  static Future<bool> updateMastery({required String wordBookCode, required bool recognized}) async {
     try {
       final word = await findWordByCode(wordBookCode);
       if (word == null) return false;
@@ -469,10 +455,7 @@ class WordBookService {
         args.add(userCode);
       }
 
-      final rows = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}',
-        args,
-      );
+      final rows = await db.rawQuery('SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}', args);
       return (rows.first['count'] as int?) ?? 0;
     } catch (_) {
       return 0;
@@ -492,10 +475,7 @@ class WordBookService {
         args.add(userCode);
       }
 
-      final rows = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}',
-        args,
-      );
+      final rows = await db.rawQuery('SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}', args);
       return (rows.first['count'] as int?) ?? 0;
     } catch (_) {
       return 0;
@@ -522,12 +502,7 @@ class WordBookService {
     for (final result in merged.values) {
       final word = await findWordByCode(result.wordBookCode);
       if (word == null) continue;
-      mergeTestResult(
-        word,
-        reviewed: true,
-        correct: result.correct,
-        reviewedAt: result.reviewedAt,
-      );
+      mergeTestResult(word, reviewed: true, correct: result.correct, reviewedAt: result.reviewedAt);
       await word.save();
     }
   }
