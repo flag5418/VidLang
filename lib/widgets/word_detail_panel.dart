@@ -863,6 +863,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     switch (section) {
       case WordDetailSection.sentenceTranslation:
         return (data.sentenceTranslation != null && data.sentenceTranslation!.trim().isNotEmpty) ||
+            (data.translation != null && data.translation!.trim().isNotEmpty) ||
             (data.wordMeaningInContext != null && data.wordMeaningInContext!.trim().isNotEmpty) ||
             (data.contextSentence != null && data.contextSentence!.trim().isNotEmpty);
       case WordDetailSection.definitions:
