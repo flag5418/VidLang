@@ -4,20 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vidlang/config.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_bookmark.dart';
 import 'package:vidlang/models/article_chapter.dart';
+import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/article_translation.dart';
 import 'package:vidlang/models/base_entity.dart';
-import 'package:vidlang/models/word_book.dart';
-import 'package:vidlang/models/word_detail.dart';
-import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/translation_service.dart';
+import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
+import 'package:vidlang/widgets/word_card.dart';
 
 /// 文章阅读器页面
 ///
@@ -41,6 +42,7 @@ class ArticleReaderPage extends StatefulWidget {
 class _ArticleReaderPageState extends State<ArticleReaderPage> {
   Article? _article;
   List<ArticleChapter> _chapters = [];
+  List<ArticleParagraph> _paragraphs = [];
   List<ArticleSentence> _sentences = [];
   ArticleBookmark? _bookmark;
   bool _isLoading = true;
@@ -83,6 +85,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   ArticleTranslation? _translation;
   bool _showTranslation = false;
   bool _loadingTranslation = false;
+  bool get _isPaidMode => AppConfig.currentUser?.authProvider == 'supabase';
 
   @override
   void initState() {
@@ -94,9 +97,46 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   @override
+  void didUpdateWidget(covariant ArticleReaderPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.articleCode != widget.articleCode) {
+      _resetForNewArticle();
+      _loadArticle();
+      _checkBookmark();
+    }
+  }
+
+  void _resetForNewArticle() {
+    _ttsTimer?.cancel();
+    _isSpeaking = false;
+    _ttsCurrentWordIndex = -1;
+    _ttsSentenceIndex = -1;
+    _ttsWords = [];
+    _translation = null;
+    _showTranslation = false;
+    _loadingTranslation = false;
+    _markedWords.clear();
+    _sentenceKeys.clear();
+    _scrollController.removeListener(_onScroll);
+    setState(() {
+      _article = null;
+      _chapters = [];
+      _paragraphs = [];
+      _sentences = [];
+      _bookmark = null;
+      _isLoading = true;
+      _currentChapterIndex = 0;
+      _readSentenceIndex = 0;
+      _hasBookmark = false;
+    });
+  }
+
+  @override
   void dispose() {
     _saveReadingPosition();
     _flutterTts?.stop();
+    _ttsTimer?.cancel();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -163,9 +203,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       orderBy: 'sentence_index ASC',
     );
 
+    final paragraphs = await DatabaseService.findByCondition<ArticleParagraph>(
+      () => ArticleParagraph(),
+      where: 'article_code = ? AND is_deleted = 0',
+      whereArgs: [widget.articleCode],
+      orderBy: 'paragraph_index ASC',
+    );
+
     setState(() {
       _article = article;
       _chapters = chapters;
+      _paragraphs = paragraphs;
       _sentences = sentences;
       _currentChapterIndex = article.lastParagraphIndex;
       _readSentenceIndex = article.lastSentenceIndex;
@@ -226,7 +274,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     if (_article == null) return;
     setState(() => _loadingTranslation = true);
     try {
-      final t = await TranslationService.translateArticle(articleCode: widget.articleCode, article: _article!, chapters: _chapters);
+      final t = await TranslationService.translateArticle(
+        articleCode: widget.articleCode,
+        article: _article!,
+        chapters: _chapters,
+        paragraphs: _paragraphs,
+        sentences: _sentences,
+      );
       if (mounted && t != null) {
         setState(() {
           _translation = t;
@@ -300,11 +354,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         _bookmark!.sentenceIndex = _readSentenceIndex;
         await _bookmark!.save();
       } else {
-        final bookmark = ArticleBookmark(
-          articleCode: widget.articleCode,
-          paragraphIndex: _currentChapterIndex,
-          sentenceIndex: _readSentenceIndex,
-        );
+        final bookmark = ArticleBookmark(articleCode: widget.articleCode, paragraphIndex: _currentChapterIndex, sentenceIndex: _readSentenceIndex);
         await DatabaseService.insert(bookmark);
       }
     } catch (_) {}
@@ -361,13 +411,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   // 划词菜单 — 底部 Sheet 方式
   // ============================================================
 
-  void _showSelectionSheet(String selectedText) {
+  void _showSelectionSheet(String selectedText, {String? contextSentence, String? segmentCode}) {
     if (selectedText.trim().isEmpty) return;
 
-    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, builder: (ctx) => _buildSelectionToolbar(selectedText));
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _buildSelectionToolbar(selectedText, contextSentence: contextSentence, segmentCode: segmentCode),
+    );
   }
 
-  Widget _buildSelectionToolbar(String text) {
+  Widget _buildSelectionToolbar(String text, {String? contextSentence, String? segmentCode}) {
     return Container(
       margin: EdgeInsets.all(AppSpacing.md.w),
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md.w, vertical: AppSpacing.sm.h),
@@ -392,7 +446,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               children: [
                 _buildToolbarButton('释义', Icons.translate, () {
                   Navigator.pop(context);
-                  _showDefinition(text);
+                  _openWordCard(text, contextSentence: contextSentence, segmentCode: segmentCode);
                 }),
                 _buildToolbarButton('朗读', Icons.volume_up_outlined, () {
                   Navigator.pop(context);
@@ -400,7 +454,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 }),
                 _buildToolbarButton('收藏', Icons.bookmark_add_outlined, () {
                   Navigator.pop(context);
-                  _collectSelected(text);
+                  _openWordCard(text, contextSentence: contextSentence, segmentCode: segmentCode);
                 }),
                 if (!text.contains(' '))
                   _buildToolbarButton('标记', Icons.format_paint, () {
@@ -409,13 +463,38 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   }),
                 _buildToolbarButton('翻译', Icons.g_translate, () {
                   Navigator.pop(context);
-                  _translateSelected(text);
+                  _openWordCard(text, contextSentence: contextSentence, segmentCode: segmentCode);
                 }),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _openWordCard(String text, {String? contextSentence, String? segmentCode}) {
+    WordCard.show(
+      context,
+      word: text,
+      contextSentence: contextSentence,
+      isPaidMode: _isPaidMode,
+      sourceType: 'article',
+      sourceCode: widget.articleCode,
+      sourceTitle: _article?.title,
+      segmentCode: segmentCode,
+      onSaveWord:
+          ({required String word, String? contextSentence, required String sourceType, required String sourceCode, String? sourceTitle}) async {
+            final wb = await WordBookService.saveWord(
+              word: word,
+              contextSentence: contextSentence,
+              sourceType: sourceType,
+              sourceCode: sourceCode,
+              sourceTitle: sourceTitle,
+              segmentCode: segmentCode,
+            );
+            return wb != null;
+          },
     );
   }
 
@@ -438,82 +517,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _showDefinition(String text) async {
-    final word = text.toLowerCase().trim();
-    if (word.isEmpty) return;
-
-    final entries = await DatabaseService.findByCondition<WordBook>(
-      () => WordBook(),
-      where: 'word = ? AND is_deleted = 0',
-      whereArgs: [word],
-      limit: 1,
-    );
-
-    if (!mounted) return;
-
-    if (entries.isNotEmpty && entries.first.definitionsJson != null) {
-      _showDefinitionBubble(entries.first);
-      return;
-    }
-
-    // Not in word book — call AI
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('正在查询「$word」...'), duration: const Duration(seconds: 1)),
-    );
-
-    final detail = await AiService.getDefinition(
-      word: word,
-      contextSentence: text,
-      sourceType: 'article',
-      sourceCode: widget.articleCode,
-    );
-
-    if (!mounted) return;
-
-    if (detail.success) {
-      _showWordDetailBubble(detail);
-    } else if (detail.isInsufficientBalance) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(detail.error ?? '余额不足')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('暂无「$word」的释义')),
-      );
-    }
-  }
-
-  void _showWordDetailBubble(WordDetail detail) {
-    final parts = <String>[];
-    if (detail.displayPhonetic != null) parts.add('/${detail.displayPhonetic}/');
-    for (final def in detail.definitions) {
-      parts.add('${def.partOfSpeech ?? ""} ${def.chineseMeaning}');
-    }
-    final display = parts.join('\n');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(display.length > 300 ? '${display.substring(0, 300)}...' : display),
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showDefinitionBubble(WordBook entry) {
-    // 简化实现：用 SnackBar 展示
-    final def = entry.definitionsJson ?? '';
-    String display;
-    try {
-      display = def.length > 200 ? '${def.substring(0, 200)}...' : def;
-    } catch (_) {
-      display = def;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(display), duration: const Duration(seconds: 4), behavior: SnackBarBehavior.floating));
   }
 
   Future<void> _speakSelected(String text) async {
@@ -598,146 +601,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         _ttsWords = [];
       });
     }
-  }
-
-  Future<void> _translateSelected(String text) async {
-    if (text.trim().isEmpty) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('正在翻译...'), duration: const Duration(seconds: 1)),
-    );
-
-    final detail = await AiService.translateText(
-      text: text,
-      sourceType: 'article',
-      sourceCode: widget.articleCode,
-    );
-
-    if (!mounted) return;
-
-    if (detail.success && detail.translation != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(detail.translation!),
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } else if (detail.isInsufficientBalance) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(detail.error ?? '余额不足')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('翻译失败，请稍后重试')),
-      );
-    }
-  }
-
-  Future<void> _collectSelected(String text) async {
-    if (text.isEmpty) return;
-
-    final isWord = !text.contains(' ') && text.split(RegExp(r'\s+')).length <= 1;
-
-    if (isWord) {
-      final tag = await _showTagPicker();
-      if (tag == null) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('正在收藏「$text」...'), duration: const Duration(seconds: 1)),
-      );
-
-      String? definitionsJson;
-      try {
-        final detail = await AiService.getDefinition(
-          word: text.toLowerCase(),
-          contextSentence: text,
-          sourceType: 'article',
-          sourceCode: widget.articleCode,
-        );
-        if (detail.success) {
-          definitionsJson = '{"tag":"$tag","phonetic":"${detail.displayPhonetic ?? ""}","definitions":${detail.definitions.map((d) => '{"pos":"${d.partOfSpeech ?? ""}","meaning":"${d.chineseMeaning}"}').toList()}}';
-        } else {
-          definitionsJson = '{"tag":"$tag"}';
-        }
-      } catch (_) {
-        definitionsJson = '{"tag":"$tag"}';
-      }
-
-      final wordBook = WordBook(
-        word: text.toLowerCase(),
-        contentType: 'word',
-        sourceType: 'article',
-        sourceCode: widget.articleCode,
-        sourceTitle: _article?.title,
-        definitionsJson: definitionsJson,
-      );
-      await wordBook.save();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已收藏「$text」（$tag）')));
-      }
-    } else {
-      // 句子收藏
-      final result = await showDialog<String>(
-        context: context,
-        builder: (ctx) {
-          final ctrl = TextEditingController();
-          return AlertDialog(
-            title: const Text('收藏句子'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(text, maxLines: 3, overflow: TextOverflow.ellipsis),
-                SizedBox(height: AppSpacing.sm.h),
-                TextField(
-                  controller: ctrl,
-                  decoration: const InputDecoration(hintText: '输入标签（可选）', border: OutlineInputBorder()),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx, ctrl.text);
-                  ctrl.dispose();
-                },
-                child: const Text('收藏'),
-              ),
-            ],
-          );
-        },
-      );
-
-      final wordBook = WordBook(
-        word: text,
-        contentType: 'sentence',
-        sourceType: 'article',
-        sourceCode: widget.articleCode,
-        sourceTitle: _article?.title,
-        sourceText: text,
-        note: result,
-      );
-      await wordBook.save();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('句子已收藏')));
-      }
-    }
-  }
-
-  Future<String?> _showTagPicker() async {
-    final tags = ['小学', '初中', '高中', '四级', '六级', '考研', '雅思', '托福'];
-    return await showDialog<String>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('选择单词等级'),
-        children: tags.map((tag) {
-          return SimpleDialogOption(onPressed: () => Navigator.pop(ctx, tag), child: Text(tag));
-        }).toList(),
-      ),
-    );
   }
 
   // ============================================================
@@ -1261,8 +1124,55 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       widgets.add(
         KeyedSubtree(key: _sentenceKeys[sentence.sentenceIndex], child: _buildSentenceTile(sentence, spans, colorScheme, isCurrent, i == lastIdx)),
       );
+
+      final next = i + 1 <= lastIdx ? chapterSentences[i + 1] : null;
+      final isEndOfParagraph = next == null || next.paragraphIndex != sentence.paragraphIndex;
+      if (isEndOfParagraph) {
+        widgets.add(_buildParagraphFooter(sentence.paragraphIndex, colorScheme));
+      }
     }
     return widgets;
+  }
+
+  Widget _buildParagraphFooter(int paragraphIndex, ColorScheme colorScheme) {
+    final hasAnyTranslation = _sentences.any((s) => s.paragraphIndex == paragraphIndex && (s.contentTranslate ?? '').trim().isNotEmpty);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(6.w, 0, 6.w, 10.h),
+      child: Row(
+        children: [
+          const Spacer(),
+          InkWell(
+            onTap: () => _onParagraphTranslateTap(paragraphIndex),
+            borderRadius: BorderRadius.circular(6.r),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.translate_outlined, size: 14.sp, color: AppColors.primary.withValues(alpha: 0.95)),
+                  SizedBox(width: 4.w),
+                  Text(
+                    hasAnyTranslation ? '本段已翻译' : '翻译本段',
+                    style: TextStyle(fontSize: 11.sp, color: AppColors.primary.withValues(alpha: 0.95)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _onParagraphTranslateTap(int paragraphIndex) async {
+    final needsTranslation = _sentences.any((s) => s.paragraphIndex == paragraphIndex && (s.contentTranslate ?? '').trim().isEmpty);
+
+    if (needsTranslation && !_loadingTranslation) {
+      await _loadTranslation();
+    }
+    if (!mounted) return;
+    setState(() => _showTranslation = true);
   }
 
   Widget _buildSentenceTile(ArticleSentence sentence, List<TextSpan> spans, ColorScheme colorScheme, bool isCurrent, bool isLast) {
@@ -1292,7 +1202,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   if (!selText.contains(' ') && _markedWords.containsKey(lower)) {
                     _showMarkedWordActions(lower);
                   } else {
-                    _showSelectionSheet(selText);
+                    _showSelectionSheet(selText, contextSentence: sentence.content, segmentCode: sentence.sentenceIndex.toString());
                   }
                 }
               },
@@ -1323,11 +1233,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 padding: EdgeInsets.only(top: 2.h),
                 child: Text(
                   sentence.contentTranslate!,
-                  style: TextStyle(
-                    fontSize: (_fontSize - 2).sp,
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    height: 1.6,
-                  ),
+                  style: TextStyle(fontSize: (_fontSize - 2).sp, color: colorScheme.onSurface.withValues(alpha: 0.7), height: 1.6),
                 ),
               ),
           ],
@@ -1575,7 +1481,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               title: const Text('查词'),
               onTap: () {
                 Navigator.pop(ctx);
-                _showDefinition(word);
+                final currentList = _sentences.where((s) => s.sentenceIndex == _readSentenceIndex).toList();
+                final current = currentList.isNotEmpty ? currentList.first : null;
+                _openWordCard(word, contextSentence: current?.content, segmentCode: _readSentenceIndex.toString());
               },
             ),
             ListTile(
