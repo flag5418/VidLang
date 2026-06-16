@@ -30,19 +30,18 @@ class ArticleParser {
   static ArticleParser parse({required String title, required String content}) {
     final article = Article(title: title, contentMarkdown: content);
 
-    // 按 # 标题拆分为章
     final chapSections = _splitIntoChapterSections(content);
     final List<ArticleParagraph> paragraphs = [];
     final List<ArticleChapter> chapters = [];
     final List<ArticleSentence> sentences = [];
     int globalSentenceIdx = 0;
     int totalWordCount = 0;
+    int globalParagraphIdx = 0;
 
     for (int cIdx = 0; cIdx < chapSections.length; cIdx++) {
       final section = chapSections[cIdx];
       final chapTitle = section.title;
 
-      // 章内按空行分段落
       final paraTexts = section.body.split(RegExp(r'\n\s*\n'));
       final startSentenceIdx = globalSentenceIdx;
 
@@ -63,7 +62,7 @@ class ArticleParser {
 
           sentences.add(ArticleSentence(
             articleCode: '',
-            paragraphIndex: cIdx, // paragraphIndex = chapterIndex for backward compat
+            paragraphIndex: globalParagraphIdx,
             sentenceIndex: globalSentenceIdx,
             content: s,
             wordCount: wc,
@@ -75,15 +74,15 @@ class ArticleParser {
 
         paragraphs.add(ArticleParagraph(
           articleCode: '',
-          paragraphIndex: cIdx,
+          paragraphIndex: globalParagraphIdx,
           contentMarkdown: text,
           contentPlain: plainText,
-          startSentenceIdx: globalSentenceIdx - paraSentences.length,
+          startSentenceIdx: globalSentenceIdx - paraSentences.where((s) => s.trim().isNotEmpty).length,
           endSentenceIdx: globalSentenceIdx - 1,
         ));
+        globalParagraphIdx++;
       }
 
-      // 构建 ArticleChapter
       final chapPlainText = section.body.split(RegExp(r'\n\s*\n')).map((t) => _stripMarkdown(t.trim())).where((t) => t.isNotEmpty).join(' ');
       chapters.add(ArticleChapter(
         articleCode: '',
@@ -154,13 +153,11 @@ class ArticleParser {
       'Jr.', 'Sr.', 'U.S.', 'U.K.', 'a.m.', 'p.m.',
     ];
 
-    // 用占位符替换缩写中的句点
     String processed = text;
     final placeholders = <String, String>{};
     for (int i = 0; i < abbreviations.length; i++) {
       final abbr = abbreviations[i];
-      final idx = processed.indexOf(abbr);
-      if (idx >= 0) {
+      if (processed.contains(abbr)) {
         final placeholder = '\x00ABBR${i}\x00';
         placeholders[placeholder] = abbr;
         processed = processed.replaceAll(abbr, placeholder);
@@ -182,17 +179,16 @@ class ArticleParser {
     return result;
   }
 
-  /// 简单去除 Markdown 标记
   static String _stripMarkdown(String text) {
     return text
-        .replaceAll(RegExp(r'\*\*(.+?)\*\*'), r'$1')
-        .replaceAll(RegExp(r'\*(.+?)\*'), r'$1')
-        .replaceAll(RegExp(r'__(.+?)__'), r'$1')
-        .replaceAll(RegExp(r'_(.+?)_'), r'$1')
-        .replaceAll(RegExp(r'`(.+?)`'), r'$1')
-        .replaceAll(RegExp(r'~~(.+?)~~'), r'$1')
+        .replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'\*(.+?)\*'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'__(.+?)__'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'_(.+?)_'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'`(.+?)`'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'~~(.+?)~~'), (m) => m.group(1)!)
         .replaceAll(RegExp(r'!\[.*?\]\(.*?\)'), '')
-        .replaceAll(RegExp(r'\[(.+?)\]\(.*?\)'), r'$1')
+        .replaceAllMapped(RegExp(r'\[(.+?)\]\(.*?\)'), (m) => m.group(1)!)
         .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
         .replaceAll(RegExp(r'^>\s+', multiLine: true), '')
         .replaceAll(RegExp(r'^[-*+]\s+', multiLine: true), '')

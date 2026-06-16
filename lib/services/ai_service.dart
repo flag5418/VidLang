@@ -78,6 +78,43 @@ class AiService {
     }
   }
 
+  /// 调用 AI 接口并返回原始 JSON（用于翻译等不转 WordDetail 的场景）
+  ///
+  /// 成功返回 `{'ok': true, 'result': {...}, 'cost_cny': ..., 'balance_after': ...}`
+  /// 失败返回 `{'ok': false, 'error': ..., 'message': ...}`
+  static Future<Map<String, dynamic>> callAiProxyRaw({
+    required String ruleCode,
+    required String scene,
+    required String entry,
+    Map<String, dynamic> params = const {},
+    String? sourceType,
+    String? sourceCode,
+    Map<String, dynamic>? billing,
+  }) async {
+    final requestId = _uuid.v4();
+    try {
+      AuthService.instance.ensureActiveSession();
+      final client = sb.Supabase.instance.client;
+      final response = await client.functions.invoke(
+        _functionName,
+        body: {
+          'rule_code': ruleCode,
+          'scene': scene,
+          'entry': entry,
+          'request_id': requestId,
+          'params': {...params, if (billing?.isNotEmpty ?? false) 'billing': billing},
+          if (sourceType != null) 'source_type': sourceType,
+          if (sourceCode != null) 'source_code': sourceCode,
+        },
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) return data;
+      return {'ok': false, 'error': 'invalid_response', 'message': 'AI 服务响应格式异常'};
+    } catch (e) {
+      return {'ok': false, 'error': 'invoke_failed', 'message': 'Edge Function 调用失败: $e'};
+    }
+  }
+
   /// 调用 AI 释义（ai_definition）
   ///
   /// 优先查询全局缓存（word_cache 表），命中则直接返回，

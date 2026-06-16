@@ -11,6 +11,8 @@ import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/article_translation.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/word_book.dart';
+import 'package:vidlang/models/word_detail.dart';
+import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/translation_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
@@ -50,16 +52,21 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   FlutterTts? _flutterTts;
   bool _ttsAvailable = false;
   bool _isSpeaking = false;
-  int _ttsCurrentWordIndex = -1; // 当前朗读到的词在 _ttsWords 中的索引
-  List<String> _ttsWords = []; // 正在朗读的句子拆分出的词列表
-  int _ttsSentenceIndex = -1; // 正在朗读的句子全局索引
-  Timer? _ttsTimer; // 逐词高亮定时器
+  int _ttsCurrentWordIndex = -1;
+  List<String> _ttsWords = [];
+  int _ttsSentenceIndex = -1;
+  Timer? _ttsTimer;
+  bool _ttsProgressHandlerFired = false;
 
   // 侧边栏
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // 阅读位置
   int _readSentenceIndex = 0;
+
+  // Scroll tracking
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _sentenceKeys = {};
 
   // 单词标记：word_lowercase → Color
   final Map<String, Color> _markedWords = {};
@@ -90,6 +97,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   void dispose() {
     _saveReadingPosition();
     _flutterTts?.stop();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -104,6 +112,30 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       await _flutterTts!.setLanguage('en-US');
       await _flutterTts!.setSpeechRate(0.5);
       await _flutterTts!.setPitch(1.0);
+
+      _flutterTts!.setProgressHandler((String text, int start, int end, String word) {
+        _ttsProgressHandlerFired = true;
+        _ttsTimer?.cancel();
+        _ttsTimer = null;
+        final idx = _ttsWords.indexOf(word);
+        if (idx >= 0 && mounted) {
+          setState(() => _ttsCurrentWordIndex = idx);
+        }
+      });
+
+      _flutterTts!.setCompletionHandler(() {
+        _ttsTimer?.cancel();
+        _ttsTimer = null;
+        if (mounted) {
+          setState(() {
+            _isSpeaking = false;
+            _ttsCurrentWordIndex = -1;
+            _ttsSentenceIndex = -1;
+            _ttsWords = [];
+          });
+        }
+      });
+
       _ttsAvailable = true;
     } catch (_) {
       _ttsAvailable = false;
@@ -142,17 +174,59 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     // 异步加载翻译（不阻塞阅读）
     _loadTranslation();
+
+    // Scroll-based read position tracking
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.addListener(_onScroll);
+    });
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _sentences.isEmpty) return;
+    final viewportTop = _scrollController.offset;
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final viewportCenter = viewportTop + viewportHeight * 0.3;
+
+    int bestIndex = _readSentenceIndex;
+    double bestDistance = double.infinity;
+
+    for (final sentence in _sentences) {
+      final key = _sentenceKeys[sentence.sentenceIndex];
+      if (key?.currentContext == null) continue;
+      final box = key!.currentContext!.findRenderObject() as RenderBox?;
+      if (box == null) continue;
+      final offset = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
+      final center = offset.dy + box.size.height / 2;
+      final distance = (center - viewportCenter).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = sentence.sentenceIndex;
+      }
+    }
+
+    if (bestIndex != _readSentenceIndex) {
+      _readSentenceIndex = bestIndex;
+      final chapter = _chapterForSentence(bestIndex);
+      if (chapter != null && chapter.chapterIndex != _currentChapterIndex) {
+        _currentChapterIndex = chapter.chapterIndex;
+      }
+    }
+  }
+
+  ArticleChapter? _chapterForSentence(int sentenceIndex) {
+    for (final ch in _chapters) {
+      if (sentenceIndex >= ch.startSentenceIndex && sentenceIndex <= ch.endSentenceIndex) {
+        return ch;
+      }
+    }
+    return null;
   }
 
   Future<void> _loadTranslation() async {
     if (_article == null) return;
     setState(() => _loadingTranslation = true);
     try {
-      final t = await TranslationService.translateArticle(
-        articleCode: widget.articleCode,
-        article: _article!,
-        chapters: _chapters,
-      );
+      final t = await TranslationService.translateArticle(articleCode: widget.articleCode, article: _article!, chapters: _chapters);
       if (mounted && t != null) {
         setState(() {
           _translation = t;
@@ -219,25 +293,39 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       await _article!.save();
     } catch (_) {}
 
-    // 保存书签到 article_bookmark 表
+    // 保存书签到 article_bookmark 表（upsert）
     try {
-      final bookmark = ArticleBookmark(
-        articleCode: widget.articleCode,
-        paragraphIndex: _currentChapterIndex,
-        sentenceIndex: _readSentenceIndex,
-      );
-      await DatabaseService.insert(bookmark);
+      if (_bookmark != null && !_bookmark!.isDeleted) {
+        _bookmark!.paragraphIndex = _currentChapterIndex;
+        _bookmark!.sentenceIndex = _readSentenceIndex;
+        await _bookmark!.save();
+      } else {
+        final bookmark = ArticleBookmark(
+          articleCode: widget.articleCode,
+          paragraphIndex: _currentChapterIndex,
+          sentenceIndex: _readSentenceIndex,
+        );
+        await DatabaseService.insert(bookmark);
+      }
     } catch (_) {}
   }
 
   Future<void> _addBookmark({String? note}) async {
-    final bookmark = ArticleBookmark(
-      articleCode: widget.articleCode,
-      paragraphIndex: _currentChapterIndex,
-      sentenceIndex: _readSentenceIndex,
-      note: note,
-    );
-    await DatabaseService.insert(bookmark);
+    if (_bookmark != null && !_bookmark!.isDeleted) {
+      _bookmark!.paragraphIndex = _currentChapterIndex;
+      _bookmark!.sentenceIndex = _readSentenceIndex;
+      _bookmark!.note = note ?? _bookmark!.note;
+      await _bookmark!.save();
+    } else {
+      final bookmark = ArticleBookmark(
+        articleCode: widget.articleCode,
+        paragraphIndex: _currentChapterIndex,
+        sentenceIndex: _readSentenceIndex,
+        note: note,
+      );
+      await DatabaseService.insert(bookmark);
+      _bookmark = bookmark;
+    }
     setState(() => _hasBookmark = true);
 
     if (mounted) {
@@ -276,21 +364,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   void _showSelectionSheet(String selectedText) {
     if (selectedText.trim().isEmpty) return;
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _buildSelectionToolbar(selectedText),
-    );
+    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, builder: (ctx) => _buildSelectionToolbar(selectedText));
   }
 
   Widget _buildSelectionToolbar(String text) {
     return Container(
       margin: EdgeInsets.all(AppSpacing.md.w),
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md.w, vertical: AppSpacing.sm.h),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
+      decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(12.r)),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -300,7 +381,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               padding: EdgeInsets.only(bottom: AppSpacing.sm.h),
               child: Text(
                 text.length > 100 ? '${text.substring(0, 100)}...' : text,
-                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12.sp),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12.sp),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -328,9 +409,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   }),
                 _buildToolbarButton('翻译', Icons.g_translate, () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('翻译功能即将上线')),
-                  );
+                  _translateSelected(text);
                 }),
               ],
             ),
@@ -351,7 +430,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           children: [
             Icon(icon, color: Colors.white, size: 20.sp),
             SizedBox(height: 2.h),
-            Text(label, style: TextStyle(color: Colors.white, fontSize: 11.sp)),
+            Text(
+              label,
+              style: TextStyle(color: Colors.white, fontSize: 11.sp),
+            ),
           ],
         ),
       ),
@@ -362,7 +444,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     final word = text.toLowerCase().trim();
     if (word.isEmpty) return;
 
-    // 查询 word_book 表
     final entries = await DatabaseService.findByCondition<WordBook>(
       () => WordBook(),
       where: 'word = ? AND is_deleted = 0',
@@ -373,13 +454,51 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     if (!mounted) return;
 
     if (entries.isNotEmpty && entries.first.definitionsJson != null) {
-      // 显示 tooltip 气泡
       _showDefinitionBubble(entries.first);
+      return;
+    }
+
+    // Not in word book — call AI
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('正在查询「$word」...'), duration: const Duration(seconds: 1)),
+    );
+
+    final detail = await AiService.getDefinition(
+      word: word,
+      contextSentence: text,
+      sourceType: 'article',
+      sourceCode: widget.articleCode,
+    );
+
+    if (!mounted) return;
+
+    if (detail.success) {
+      _showWordDetailBubble(detail);
+    } else if (detail.isInsufficientBalance) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(detail.error ?? '余额不足')),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('暂无「$word」的释义')),
       );
     }
+  }
+
+  void _showWordDetailBubble(WordDetail detail) {
+    final parts = <String>[];
+    if (detail.displayPhonetic != null) parts.add('/${detail.displayPhonetic}/');
+    for (final def in detail.definitions) {
+      parts.add('${def.partOfSpeech ?? ""} ${def.chineseMeaning}');
+    }
+    final display = parts.join('\n');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(display.length > 300 ? '${display.substring(0, 300)}...' : display),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _showDefinitionBubble(WordBook entry) {
@@ -392,13 +511,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       display = def;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(display),
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(display), duration: const Duration(seconds: 4), behavior: SnackBarBehavior.floating));
   }
 
   Future<void> _speakSelected(String text) async {
@@ -407,23 +522,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       return;
     }
 
-    // 先停止当前朗读
     await _flutterTts!.stop();
     _ttsTimer?.cancel();
     _isSpeaking = false;
     _ttsCurrentWordIndex = -1;
     _ttsSentenceIndex = -1;
     _ttsWords = [];
+    _ttsProgressHandlerFired = false;
 
-    // 拆句：与 _buildMarkedSpans 使用相同正则，仅提取单词 token
     final wordRegex = RegExp(r'(\b\w+\b|[^\w]+|\s+)');
-    _ttsWords = wordRegex
-        .allMatches(text)
-        .map((m) => m.group(0)!)
-        .where((t) => t.trim().isNotEmpty && RegExp(r'\w').hasMatch(t))
-        .toList();
+    _ttsWords = wordRegex.allMatches(text).map((m) => m.group(0)!).where((t) => t.trim().isNotEmpty && RegExp(r'\w').hasMatch(t)).toList();
 
-    // 找到当前朗读的句子索引
     for (int i = 0; i < _sentences.length; i++) {
       if (_sentences[i].content == text) {
         _ttsSentenceIndex = _sentences[i].sentenceIndex;
@@ -440,44 +549,41 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       return;
     }
 
-    // Timer 逐词高亮（语速 0.5 → 约 350ms/词）
-    const msPerWord = 350;
     _ttsCurrentWordIndex = 0;
     setState(() => _isSpeaking = true);
 
-    _ttsTimer = Timer.periodic(const Duration(milliseconds: msPerWord), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
-        timer.cancel();
-        if (mounted) {
-          setState(() {
-            _ttsCurrentWordIndex = -1;
-          });
+    // After 1s, if progress handler never fired, fall back to Timer
+    _ttsTimer = Timer(const Duration(seconds: 1), () {
+      if (_ttsProgressHandlerFired || !mounted) return;
+      const msPerWord = 350;
+      _ttsTimer = Timer.periodic(const Duration(milliseconds: msPerWord), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
         }
-        return;
-      }
-      setState(() {
-        _ttsCurrentWordIndex++;
+        if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
+          timer.cancel();
+          _ttsTimer = null;
+          if (mounted) {
+            setState(() {
+              _isSpeaking = false;
+              _ttsCurrentWordIndex = -1;
+              _ttsSentenceIndex = -1;
+              _ttsWords = [];
+            });
+          }
+          return;
+        }
+        setState(() => _ttsCurrentWordIndex++);
       });
     });
 
     try {
       await _flutterTts!.speak(text);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('朗读失败: $e')));
-    } finally {
       _ttsTimer?.cancel();
-      if (mounted) {
-        setState(() {
-          _isSpeaking = false;
-          _ttsCurrentWordIndex = -1;
-          _ttsSentenceIndex = -1;
-          _ttsWords = [];
-        });
-      }
+      _ttsTimer = null;
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('朗读失败: $e')));
     }
   }
 
@@ -494,15 +600,69 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     }
   }
 
+  Future<void> _translateSelected(String text) async {
+    if (text.trim().isEmpty) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('正在翻译...'), duration: const Duration(seconds: 1)),
+    );
+
+    final detail = await AiService.translateText(
+      text: text,
+      sourceType: 'article',
+      sourceCode: widget.articleCode,
+    );
+
+    if (!mounted) return;
+
+    if (detail.success && detail.translation != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(detail.translation!),
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (detail.isInsufficientBalance) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(detail.error ?? '余额不足')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('翻译失败，请稍后重试')),
+      );
+    }
+  }
+
   Future<void> _collectSelected(String text) async {
     if (text.isEmpty) return;
 
     final isWord = !text.contains(' ') && text.split(RegExp(r'\s+')).length <= 1;
 
     if (isWord) {
-      // 单词收藏：弹窗选择等级标签
       final tag = await _showTagPicker();
       if (tag == null) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('正在收藏「$text」...'), duration: const Duration(seconds: 1)),
+      );
+
+      String? definitionsJson;
+      try {
+        final detail = await AiService.getDefinition(
+          word: text.toLowerCase(),
+          contextSentence: text,
+          sourceType: 'article',
+          sourceCode: widget.articleCode,
+        );
+        if (detail.success) {
+          definitionsJson = '{"tag":"$tag","phonetic":"${detail.displayPhonetic ?? ""}","definitions":${detail.definitions.map((d) => '{"pos":"${d.partOfSpeech ?? ""}","meaning":"${d.chineseMeaning}"}').toList()}}';
+        } else {
+          definitionsJson = '{"tag":"$tag"}';
+        }
+      } catch (_) {
+        definitionsJson = '{"tag":"$tag"}';
+      }
 
       final wordBook = WordBook(
         word: text.toLowerCase(),
@@ -510,7 +670,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         sourceType: 'article',
         sourceCode: widget.articleCode,
         sourceTitle: _article?.title,
-        definitionsJson: '{"tag":"$tag"}',
+        definitionsJson: definitionsJson,
       );
       await wordBook.save();
 
@@ -532,10 +692,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 SizedBox(height: AppSpacing.sm.h),
                 TextField(
                   controller: ctrl,
-                  decoration: const InputDecoration(
-                    hintText: '输入标签（可选）',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(hintText: '输入标签（可选）', border: OutlineInputBorder()),
                 ),
               ],
             ),
@@ -577,10 +734,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       builder: (ctx) => SimpleDialog(
         title: const Text('选择单词等级'),
         children: tags.map((tag) {
-          return SimpleDialogOption(
-            onPressed: () => Navigator.pop(ctx, tag),
-            child: Text(tag),
-          );
+          return SimpleDialogOption(onPressed: () => Navigator.pop(ctx, tag), child: Text(tag));
         }).toList(),
       ),
     );
@@ -609,7 +763,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('字体大小', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+                  Text(
+                    '字体大小',
+                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  ),
                   SizedBox(height: AppSpacing.lg.h),
 
                   // 实时预览
@@ -646,9 +803,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                         onPressed: () {
                           setSheetState(() => tempSize = 16);
                           setState(() => _fontSize = 16);
-                          SharedPreferences.getInstance().then(
-                            (prefs) => prefs.setDouble('article_reader_font_size', 16),
-                          );
+                          SharedPreferences.getInstance().then((prefs) => prefs.setDouble('article_reader_font_size', 16));
                           Navigator.pop(ctx);
                         },
                         child: const Text('恢复默认'),
@@ -657,9 +812,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       ElevatedButton(
                         onPressed: () {
                           setState(() => _fontSize = tempSize);
-                          SharedPreferences.getInstance().then(
-                            (prefs) => prefs.setDouble('article_reader_font_size', tempSize),
-                          );
+                          SharedPreferences.getInstance().then((prefs) => prefs.setDouble('article_reader_font_size', tempSize));
                           Navigator.pop(ctx);
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
@@ -693,13 +846,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             Container(
               padding: EdgeInsets.all(AppSpacing.md.w),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: colorScheme.outline.withOpacity(0.2))),
+                border: Border(bottom: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2))),
               ),
               child: Row(
                 children: [
                   Icon(Icons.list_alt, color: colorScheme.onSurface, size: 20.sp),
                   SizedBox(width: AppSpacing.sm.w),
-                  Text('目录', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+                  Text(
+                    '目录',
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  ),
                   const Spacer(),
                   if (_hasBookmark)
                     GestureDetector(
@@ -717,9 +873,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 itemBuilder: (context, index) {
                   final chapter = _chapters[index];
                   final isCurrent = index == _currentChapterIndex;
-                  final firstSentence = chapter.plainText.length > 50
-                      ? '${chapter.plainText.substring(0, 50)}...'
-                      : chapter.plainText;
+                  final firstSentence = chapter.plainText.length > 50 ? '${chapter.plainText.substring(0, 50)}...' : chapter.plainText;
 
                   return InkWell(
                     onTap: () => _jumpToChapter(index),
@@ -727,8 +881,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     child: Container(
                       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md.w, vertical: AppSpacing.sm.h),
                       decoration: BoxDecoration(
-                        color: isCurrent ? AppColors.primary.withOpacity(0.15) : null,
-                        border: Border(bottom: BorderSide(color: colorScheme.outline.withOpacity(0.1))),
+                        color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : null,
+                        border: Border(bottom: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1))),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -762,16 +916,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                if (_hasBookmark &&
-                                    _bookmark != null &&
-                                    _bookmark!.paragraphIndex == index)
+                                if (_hasBookmark && _bookmark != null && _bookmark!.paragraphIndex == index)
                                   Padding(
                                     padding: EdgeInsets.only(top: 2.h),
                                     child: Row(
                                       children: [
                                         Icon(Icons.bookmark, size: 10.sp, color: AppColors.primary),
                                         SizedBox(width: 2.w),
-                                        Text('书签', style: TextStyle(fontSize: 10.sp, color: AppColors.primary)),
+                                        Text(
+                                          '书签',
+                                          style: TextStyle(fontSize: 10.sp, color: AppColors.primary),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -790,7 +945,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             Container(
               padding: EdgeInsets.all(AppSpacing.md.w),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: colorScheme.outline.withOpacity(0.2))),
+                border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2))),
               ),
               child: _buildReadingStats(colorScheme),
             ),
@@ -811,25 +966,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               Navigator.pop(ctx);
               _addBookmark(note: '第 ${chapterIndex + 1} 章');
             },
-            child: const Row(children: [
-              Icon(Icons.bookmark_add_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('标记书签'),
-            ]),
+            child: const Row(children: [Icon(Icons.bookmark_add_outlined, size: 18), SizedBox(width: 8), Text('标记书签')]),
           ),
-          if (_hasBookmark &&
-              _bookmark != null &&
-              _bookmark!.paragraphIndex == chapterIndex)
+          if (_hasBookmark && _bookmark != null && _bookmark!.paragraphIndex == chapterIndex)
             SimpleDialogOption(
               onPressed: () {
                 Navigator.pop(ctx);
                 _removeBookmark();
               },
-              child: const Row(children: [
-                Icon(Icons.bookmark_remove, size: 18),
-                SizedBox(width: 8),
-                Text('取消书签'),
-              ]),
+              child: const Row(children: [Icon(Icons.bookmark_remove, size: 18), SizedBox(width: 8), Text('取消书签')]),
             ),
         ],
       ),
@@ -855,7 +1000,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('阅读统计', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+        Text(
+          '阅读统计',
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+        ),
         SizedBox(height: 8.h),
         Wrap(
           spacing: AppSpacing.md.w,
@@ -865,9 +1013,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               width: (MediaQuery.of(context).size.width * 0.75 - AppSpacing.md.w * 3) / 2,
               child: Row(
                 children: [
-                  Text(s.label, style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant)),
+                  Text(
+                    s.label,
+                    style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                  ),
                   const Spacer(),
-                  Text(s.value, style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+                  Text(
+                    s.value,
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  ),
                 ],
               ),
             );
@@ -876,20 +1030,30 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         SizedBox(height: 8.h),
         Row(
           children: [
-            Text('重点句', style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant)),
+            Text(
+              '重点句',
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+            ),
             const Spacer(),
-            Text('$keySentenceCount / $totalSentences',
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.primary)),
+            Text(
+              '$keySentenceCount / $totalSentences',
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.primary),
+            ),
           ],
         ),
         if (markedWordCount > 0) ...[
           SizedBox(height: 4.h),
           Row(
             children: [
-              Text('标记词', style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant)),
+              Text(
+                '标记词',
+                style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+              ),
               const Spacer(),
-              Text('$markedWordCount',
-                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              Text(
+                '$markedWordCount',
+                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.primary),
+              ),
             ],
           ),
         ],
@@ -900,7 +1064,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           child: LinearProgressIndicator(
             value: totalSentences > 0 ? (readSentences / totalSentences).clamp(0.0, 1.0) : 0,
             minHeight: 4.h,
-            backgroundColor: colorScheme.outline.withOpacity(0.2),
+            backgroundColor: colorScheme.outline.withValues(alpha: 0.2),
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
         ),
@@ -933,84 +1097,78 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     }
 
     return Scaffold(
-        key: _scaffoldKey,
+      key: _scaffoldKey,
+      backgroundColor: colorScheme.surface,
+      appBar: AppBar(
         backgroundColor: colorScheme.surface,
-        appBar: AppBar(
-          backgroundColor: colorScheme.surface,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text(
-            _article!.title,
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          actions: [
-            // 翻译开关
-            _buildTranslateToggle(colorScheme),
-            if (_hasBookmark)
-              IconButton(
-                icon: Icon(Icons.bookmark, color: AppColors.primary),
-                onPressed: _jumpToBookmark,
-                tooltip: '跳转书签',
-              ),
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+        title: Text(
+          _article!.title,
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          // 翻译开关
+          _buildTranslateToggle(colorScheme),
+          if (_hasBookmark)
             IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-              tooltip: '目录',
+              icon: Icon(Icons.bookmark, color: AppColors.primary),
+              onPressed: _jumpToBookmark,
+              tooltip: '跳转书签',
             ),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              onSelected: (value) {
-                switch (value) {
-                  case 'font_size':
-                    _showFontSizeSheet();
-                    break;
-                  case 'add_bookmark':
-                    _addBookmark();
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'font_size', child: Text('字体大小')),
-                const PopupMenuItem(value: 'add_bookmark', child: Text('添加书签')),
-              ],
-            ),
-          ],
-        ),
-        endDrawer: _buildOutlineDrawer(),
-        endDrawerEnableOpenDragGesture: true,
-        body: Column(
-          children: [
-            // 正文区域
-            Expanded(
-              child: _chapters.isEmpty
-                  ? Center(
-                      child: Text('暂无内容', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                    )
-                  : _buildContent(colorScheme),
-            ),
+          IconButton(icon: const Icon(Icons.menu), onPressed: () => _scaffoldKey.currentState?.openEndDrawer(), tooltip: '目录'),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'font_size':
+                  _showFontSizeSheet();
+                  break;
+                case 'add_bookmark':
+                  _addBookmark();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'font_size', child: Text('字体大小')),
+              const PopupMenuItem(value: 'add_bookmark', child: Text('添加书签')),
+            ],
+          ),
+        ],
+      ),
+      endDrawer: _buildOutlineDrawer(),
+      endDrawerEnableOpenDragGesture: true,
+      body: Column(
+        children: [
+          // 正文区域
+          Expanded(
+            child: _chapters.isEmpty
+                ? Center(
+                    child: Text('暂无内容', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                  )
+                : _buildContent(colorScheme),
+          ),
 
-            // 底部进度条
-            _buildBottomBar(colorScheme),
-          ],
-        ),
+          // 底部进度条
+          _buildBottomBar(colorScheme),
+        ],
+      ),
     );
   }
 
   Widget _buildContent(ColorScheme colorScheme) {
-    final chapter = _chapters.isNotEmpty
-        ? (_currentChapterIndex < _chapters.length ? _chapters[_currentChapterIndex] : _chapters.first)
-        : null;
+    final chapter = _chapters.isNotEmpty ? (_currentChapterIndex < _chapters.length ? _chapters[_currentChapterIndex] : _chapters.first) : null;
 
     if (chapter == null) {
-      return Center(child: Text('暂无内容', style: TextStyle(color: colorScheme.onSurfaceVariant)));
+      return Center(
+        child: Text('暂无内容', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+      );
     }
 
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: EdgeInsets.all(AppSpacing.md.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,8 +1182,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           ..._buildChapterSentences(chapter, colorScheme),
 
           // 翻译显示
-          if (_showTranslation && _translation != null)
-            _buildTranslationSection(chapter, colorScheme),
+          if (_showTranslation && _translation != null) _buildTranslationSection(chapter, colorScheme),
 
           SizedBox(height: AppSpacing.xxl.h),
         ],
@@ -1038,9 +1195,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
-          onPressed: _currentChapterIndex > 0
-              ? () => setState(() => _currentChapterIndex--)
-              : null,
+          onPressed: _currentChapterIndex > 0 ? () => setState(() => _currentChapterIndex--) : null,
           icon: const Icon(Icons.arrow_back_ios),
           iconSize: 16.sp,
         ),
@@ -1049,9 +1204,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
         ),
         IconButton(
-          onPressed: _currentChapterIndex < _chapters.length - 1
-              ? () => setState(() => _currentChapterIndex++)
-              : null,
+          onPressed: _currentChapterIndex < _chapters.length - 1 ? () => setState(() => _currentChapterIndex++) : null,
           icon: const Icon(Icons.arrow_forward_ios),
           iconSize: 16.sp,
         ),
@@ -1066,9 +1219,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   List<Widget> _buildChapterSentences(ArticleChapter chapter, ColorScheme colorScheme) {
     final startIdx = chapter.startSentenceIndex;
     final endIdx = chapter.endSentenceIndex + 1;
-    final chapterSentences = _sentences
-        .where((s) => s.sentenceIndex >= startIdx && s.sentenceIndex < endIdx)
-        .toList();
+    final chapterSentences = _sentences.where((s) => s.sentenceIndex >= startIdx && s.sentenceIndex < endIdx).toList();
 
     if (chapterSentences.isEmpty) {
       return [
@@ -1088,11 +1239,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           padding: EdgeInsets.only(bottom: 12.h),
           child: Text(
             chapter.title,
-            style: TextStyle(
-              fontSize: (_fontSize + 4).sp,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
+            style: TextStyle(fontSize: (_fontSize + 4).sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
           ),
         ),
       );
@@ -1110,23 +1257,23 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         ttsWordIndex: isTtsSentence ? _ttsCurrentWordIndex : -1,
         ttsWords: isTtsSentence ? _ttsWords : const [],
       );
-      widgets.add(_buildSentenceTile(sentence, spans, colorScheme, isCurrent, i == lastIdx));
+      _sentenceKeys.putIfAbsent(sentence.sentenceIndex, () => GlobalKey());
+      widgets.add(
+        KeyedSubtree(key: _sentenceKeys[sentence.sentenceIndex], child: _buildSentenceTile(sentence, spans, colorScheme, isCurrent, i == lastIdx)),
+      );
     }
     return widgets;
   }
 
-  Widget _buildSentenceTile(ArticleSentence sentence, List<TextSpan> spans,
-      ColorScheme colorScheme, bool isCurrent, bool isLast) {
+  Widget _buildSentenceTile(ArticleSentence sentence, List<TextSpan> spans, ColorScheme colorScheme, bool isCurrent, bool isLast) {
     final bool isTtsSpeakingThis = _isSpeaking && _ttsSentenceIndex == sentence.sentenceIndex;
 
     return Container(
       margin: EdgeInsets.only(bottom: 4.h),
       decoration: BoxDecoration(
-        color: isCurrent ? AppColors.primary.withOpacity(0.06) : Colors.transparent,
+        color: isCurrent ? AppColors.primary.withValues(alpha: 0.06) : Colors.transparent,
         borderRadius: BorderRadius.circular(6.r),
-        border: isCurrent
-            ? Border.all(color: AppColors.primary.withOpacity(0.15), width: 1)
-            : null,
+        border: isCurrent ? Border.all(color: AppColors.primary.withValues(alpha: 0.15), width: 1) : null,
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(6.w, 6.h, 6.w, 4.h),
@@ -1139,9 +1286,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 children: spans,
               ),
               onSelectionChanged: (selection, cause) {
-                if (selection.isValid &&
-                    selection.isNormalized &&
-                    selection.end > selection.start) {
+                if (selection.isValid && selection.isNormalized && selection.end > selection.start) {
                   final selText = sentence.content.substring(selection.start, selection.end);
                   final lower = selText.toLowerCase().trim();
                   if (!selText.contains(' ') && _markedWords.containsKey(lower)) {
@@ -1171,7 +1316,19 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             if (!isLast)
               Padding(
                 padding: EdgeInsets.only(top: 4.h),
-                child: Divider(height: 1.h, color: colorScheme.outline.withOpacity(0.08)),
+                child: Divider(height: 1.h, color: colorScheme.outline.withValues(alpha: 0.08)),
+              ),
+            if (_showTranslation && sentence.contentTranslate != null && sentence.contentTranslate!.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 2.h),
+                child: Text(
+                  sentence.contentTranslate!,
+                  style: TextStyle(
+                    fontSize: (_fontSize - 2).sp,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    height: 1.6,
+                  ),
+                ),
               ),
           ],
         ),
@@ -1196,9 +1353,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         _showTranslation ? Icons.translate : Icons.translate_outlined,
         color: _showTranslation ? AppColors.primary : colorScheme.onSurfaceVariant,
       ),
-      onPressed: hasTranslation
-          ? () => setState(() => _showTranslation = !_showTranslation)
-          : () => _retryTranslation(),
+      onPressed: hasTranslation ? () => setState(() => _showTranslation = !_showTranslation) : () => _retryTranslation(),
       tooltip: hasTranslation ? (_showTranslation ? '隐藏翻译' : '显示翻译') : '重新翻译',
     );
   }
@@ -1217,8 +1372,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   Widget _buildTranslationSection(ArticleChapter chapter, ColorScheme colorScheme) {
     final chapterIdx = chapter.chapterIndex.toString();
-    final translated = _translation?.chapterTranslations[chapterIdx] ??
-        _translation?.fullTranslation;
+    final translated = _translation?.chapterTranslations[chapterIdx] ?? _translation?.fullTranslation;
 
     if (translated == null || translated.isEmpty) return const SizedBox.shrink();
 
@@ -1227,24 +1381,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Divider(color: AppColors.primary.withOpacity(0.2)),
+          Divider(color: AppColors.primary.withValues(alpha: 0.2)),
           SizedBox(height: AppSpacing.sm.h),
           Text(
             '中文翻译',
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 12.sp, color: AppColors.primary, fontWeight: FontWeight.w600),
           ),
           SizedBox(height: AppSpacing.sm.h),
           SelectableText(
             translated,
-            style: TextStyle(
-              fontSize: (_fontSize - 2).sp,
-              color: colorScheme.onSurface.withOpacity(0.85),
-              height: 1.7,
-            ),
+            style: TextStyle(fontSize: (_fontSize - 2).sp, color: colorScheme.onSurface.withValues(alpha: 0.85), height: 1.7),
           ),
         ],
       ),
@@ -1262,7 +1408,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           children: [
             Icon(icon, size: 13.sp, color: AppColors.primary),
             SizedBox(width: 2.w),
-            Text(label, style: TextStyle(fontSize: 11.sp, color: AppColors.primary)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11.sp, color: AppColors.primary),
+            ),
           ],
         ),
       ),
@@ -1273,8 +1422,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   // 标记词文本 Span 构建
   // ============================================================
 
-  List<TextSpan> _buildMarkedSpans(String text, ColorScheme colorScheme, bool isCurrent,
-      {int ttsWordIndex = -1, List<String> ttsWords = const []}) {
+  List<TextSpan> _buildMarkedSpans(String text, ColorScheme colorScheme, bool isCurrent, {int ttsWordIndex = -1, List<String> ttsWords = const []}) {
     if (_markedWords.isEmpty && ttsWordIndex < 0) {
       return [TextSpan(text: text)];
     }
@@ -1288,7 +1436,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       final markColor = _markedWords[lower] ?? _markedWords[token];
 
       // TTS 逐词高亮
-      final bool isTtsWord = ttsWordIndex >= 0 &&
+      final bool isTtsWord =
+          ttsWordIndex >= 0 &&
           ttsWords.isNotEmpty &&
           wordMatchIdx < ttsWords.length &&
           ttsWords[wordMatchIdx] == token &&
@@ -1298,25 +1447,25 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       }
 
       if (isTtsWord) {
-        spans.add(TextSpan(
-          text: token,
-          style: TextStyle(
-            backgroundColor: AppColors.primary.withOpacity(0.3),
-            color: AppColors.primary,
-            fontWeight: FontWeight.w600,
+        spans.add(
+          TextSpan(
+            text: token,
+            style: TextStyle(backgroundColor: AppColors.primary.withValues(alpha: 0.3), color: AppColors.primary, fontWeight: FontWeight.w600),
           ),
-        ));
+        );
       } else if (markColor != null) {
-        spans.add(TextSpan(
-          text: token,
-          style: TextStyle(
-            backgroundColor: markColor.withOpacity(0.25),
-            color: isCurrent ? colorScheme.onSurface : null,
-            decoration: TextDecoration.underline,
-            decorationColor: markColor,
-            decorationThickness: 2,
+        spans.add(
+          TextSpan(
+            text: token,
+            style: TextStyle(
+              backgroundColor: markColor.withValues(alpha: 0.25),
+              color: isCurrent ? colorScheme.onSurface : null,
+              decoration: TextDecoration.underline,
+              decorationColor: markColor,
+              decorationThickness: 2,
+            ),
           ),
-        ));
+        );
       } else {
         spans.add(TextSpan(text: token));
       }
@@ -1329,12 +1478,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     await sentence.save();
     if (mounted) {
       setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(sentence.isKeySentence ? '已标记重点句' : '已取消标记'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(sentence.isKeySentence ? '已标记重点句' : '已取消标记'), duration: const Duration(seconds: 1)));
     }
   }
 
@@ -1368,9 +1514,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       color: _markerColors[i],
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.black26, width: 1),
-                      boxShadow: [
-                        BoxShadow(color: _markerColors[i].withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2)),
-                      ],
+                      boxShadow: [BoxShadow(color: _markerColors[i].withValues(alpha: 0.4), blurRadius: 6, offset: const Offset(0, 2))],
                     ),
                   ),
                 );
@@ -1378,12 +1522,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消'))],
       ),
     ).then((colorIdx) {
       if (colorIdx != null && mounted) {
@@ -1395,18 +1534,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   void _markWord(String word, int colorIndex) {
     final lower = word.toLowerCase().trim();
     if (_markedWords.containsKey(lower)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('该单词已有标记，长按标记可更换颜色'), duration: Duration(seconds: 2)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('该单词已有标记，长按标记可更换颜色'), duration: Duration(seconds: 2)));
       return;
     }
     setState(() {
       _markedWords[lower] = _markerColors[colorIndex % _markerColors.length];
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已标记单词，全文同步高亮'), duration: Duration(seconds: 2)),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已标记单词，全文同步高亮'), duration: Duration(seconds: 2)));
     }
   }
 
@@ -1428,7 +1563,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
                   SizedBox(width: 8.w),
-                  Text('「$word」', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                  Text(
+                    '「$word」',
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
             ),
@@ -1454,9 +1592,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               onTap: () {
                 Navigator.pop(ctx);
                 setState(() => _markedWords.remove(word));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已移除「$word」的标记'), duration: const Duration(seconds: 2)),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已移除「$word」的标记'), duration: const Duration(seconds: 2)));
               },
             ),
           ],
@@ -1485,24 +1621,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 decoration: BoxDecoration(
                   color: _markerColors[i],
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isCurrent ? Colors.black : Colors.black26,
-                    width: isCurrent ? 2.5 : 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: _markerColors[i].withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2)),
-                  ],
+                  border: Border.all(color: isCurrent ? Colors.black : Colors.black26, width: isCurrent ? 2.5 : 1),
+                  boxShadow: [BoxShadow(color: _markerColors[i].withValues(alpha: 0.4), blurRadius: 6, offset: const Offset(0, 2))],
                 ),
-                child: isCurrent
-                    ? const Icon(Icons.check, color: Colors.black, size: 18)
-                    : null,
+                child: isCurrent ? const Icon(Icons.check, color: Colors.black, size: 18) : null,
               ),
             );
           }),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消'))],
       ),
     ).then((colorIdx) {
       if (colorIdx != null && mounted) {
@@ -1523,7 +1650,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md.w, vertical: AppSpacing.sm.h),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(top: BorderSide(color: colorScheme.outline.withOpacity(0.2))),
+        border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2))),
       ),
       child: SafeArea(
         child: Column(
@@ -1534,7 +1661,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               child: LinearProgressIndicator(
                 value: progress.clamp(0.0, 1.0),
                 minHeight: 3.h,
-                backgroundColor: colorScheme.outline.withOpacity(0.3),
+                backgroundColor: colorScheme.outline.withValues(alpha: 0.3),
                 valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
               ),
             ),

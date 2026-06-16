@@ -17,18 +17,18 @@ import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:vidlang/components/article_item_card.dart';
 import 'package:vidlang/components/main_video_card.dart';
 import 'package:vidlang/components/playback_settings_sheet.dart';
 import 'package:vidlang/components/video_card.dart';
 import 'package:vidlang/models/article.dart';
-import 'package:vidlang/models/article_chapter.dart';
-import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/playback_settings.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
+import 'package:vidlang/services/article_parser.dart';
 import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
@@ -289,14 +289,22 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         child: ListView(children: [SizedBox(height: MediaQuery.of(context).size.height * 0.6, child: _buildEmptyState(colorScheme, FolderContentType.article))]),
       );
     }
+    final crossAxisCount = DeviceUtils.getGridColumns(context);
+    final gridSpacing = DeviceUtils.getGridSpacing(context);
     return RefreshIndicator(
       onRefresh: _loadArticlesIfNeeded,
-      child: ListView.builder(
+      child: GridView.builder(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: gridSpacing,
+          mainAxisSpacing: gridSpacing,
+          childAspectRatio: 16 / 9,
+        ),
         itemCount: _articles.length,
         itemBuilder: (context, index) {
           final article = _articles[index];
-          return _ArticleCard(
+          return ArticleItemCard(
             article: article,
             onTap: () => _openArticle(article),
             onDelete: () => _confirmDeleteArticle(article),
@@ -610,106 +618,31 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     final title = _getFileNameWithoutExtension(fileName);
     final folderCode = widget.folderCode;
 
-    final article = Article(folderCode: folderCode, title: title, contentMarkdown: content, language: 'en');
-    article.code = const Uuid().v4().replaceAll('-', '');
-    await DatabaseService.insert(article);
+    final parsed = ArticleParser.parse(title: title, content: content);
+    parsed.article.folderCode = folderCode;
 
-    // 解析章节和句子
-    await _parseArticleContent(article, content);
-  }
+    await DatabaseService.insert(parsed.article);
+    final articleCode = parsed.article.code!;
 
-  /// 解析文章内容为章节和句子
-  Future<void> _parseArticleContent(Article article, String content) async {
-    final lines = content.split('\n');
-    final chapters = <ArticleChapter>[];
-    final sentences = <ArticleSentence>[];
-    int chapterIndex = 0;
-    int sentenceIndex = 0;
-    String currentChapterTitle = 'Introduction';
-    List<String> chapterLines = [];
-
-    for (final line in lines) {
-      if (line.trim().startsWith('# ')) {
-        // 保存上一章
-        if (chapterLines.isNotEmpty) {
-          _processChapterLines(article, chapters, sentences, chapterIndex, currentChapterTitle, chapterLines, sentenceIndex);
-          sentenceIndex = sentences.length;
-          chapterIndex++;
-          chapterLines = [];
-        }
-        // 移除 # 前缀，多个 # 视为子章节标题但保留在同一章
-        currentChapterTitle = line.trim().replaceAll(RegExp(r'^#+\s*'), '');
-      } else {
-        chapterLines.add(line);
-      }
+    for (final s in parsed.sentences) {
+      s.articleCode = articleCode;
     }
-    // 最后一章
-    if (chapterLines.isNotEmpty || chapterIndex == 0) {
-      _processChapterLines(article, chapters, sentences, chapterIndex, currentChapterTitle, chapterLines, sentenceIndex);
+    for (final ch in parsed.chapters) {
+      ch.articleCode = articleCode;
+    }
+    for (final p in parsed.paragraphs) {
+      p.articleCode = articleCode;
     }
 
-    // 批量保存
-    for (final ch in chapters) {
-      await DatabaseService.insert(ch);
+    if (parsed.sentences.isNotEmpty) {
+      await DatabaseService.batchInsert(parsed.sentences);
     }
-    for (final s in sentences) {
-      await DatabaseService.insert(s);
+    if (parsed.chapters.isNotEmpty) {
+      await DatabaseService.batchInsert(parsed.chapters);
     }
-
-    // 更新文章统计
-    article.totalParagraphs = chapters.length;
-    article.totalSentences = sentences.length;
-    await DatabaseService.update(article);
-  }
-
-  void _processChapterLines(
-    Article article,
-    List<ArticleChapter> chapters,
-    List<ArticleSentence> sentences,
-    int chapterIndex,
-    String title,
-    List<String> lines,
-    int startSentenceIndex,
-  ) {
-    final fullText = lines.join(' ').trim();
-    if (fullText.isEmpty) return;
-
-    // 按句号/问号/感叹号分割句子
-    final sentenceParts = fullText.split(RegExp(r'(?<=[.!?])\s+'));
-    final chapterSentences = <String>[];
-    int sentenceCount = 0;
-
-    for (final part in sentenceParts) {
-      final trimmed = part.trim();
-      if (trimmed.isEmpty) continue;
-      chapterSentences.add(trimmed);
-      final ws = trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-      sentenceCount++;
-
-      sentences.add(
-        ArticleSentence(
-          articleCode: article.code!,
-          paragraphIndex: chapterIndex,
-          content: trimmed,
-          sentenceIndex: startSentenceIndex + sentences.length,
-          wordCount: ws,
-          startPositionMs: (sentences.length) * 3000,
-          endPositionMs: (sentences.length + 1) * 3000,
-        )..code = const Uuid().v4().replaceAll('-', ''),
-      );
+    if (parsed.paragraphs.isNotEmpty) {
+      await DatabaseService.batchInsert(parsed.paragraphs);
     }
-
-    final chapter = ArticleChapter(
-      articleCode: article.code!,
-      title: title,
-      chapterIndex: chapterIndex,
-      sentenceCount: sentenceCount,
-      plainText: chapterSentences.join(' '),
-      startSentenceIndex: startSentenceIndex,
-      endSentenceIndex: startSentenceIndex + sentenceCount - 1,
-    );
-    chapter.code = const Uuid().v4().replaceAll('-', '');
-    chapters.add(chapter);
   }
 
   /// 导入音频文件
@@ -1161,44 +1094,4 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 }
 
-class _ArticleCard extends StatelessWidget {
-  final Article article;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
 
-  const _ArticleCard({required this.article, required this.onTap, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm / 2),
-      child: ListTile(
-        leading: Container(
-          width: 44,
-          height: 56,
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(Icons.menu_book, color: colorScheme.primary),
-        ),
-        title: Text(
-          article.title,
-          style: TextStyle(fontWeight: FontWeight.w500),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          '${article.totalParagraphs} 章',
-          style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
-        ),
-        trailing: IconButton(
-          icon: Icon(Icons.delete_outline, color: colorScheme.error),
-          onPressed: onDelete,
-        ),
-        onTap: onTap,
-      ),
-    );
-  }
-}

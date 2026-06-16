@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vidlang/models/article.dart';
-import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/services/article_parser.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
@@ -52,12 +50,15 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
       await DatabaseService.insert(parsed.article);
       final articleCode = parsed.article.code!;
 
-      // 填充 articleCode 到句子和章节
+      // 填充 articleCode 到句子、章节和段落
       for (final s in parsed.sentences) {
         s.articleCode = articleCode;
       }
       for (final ch in parsed.chapters) {
         ch.articleCode = articleCode;
+      }
+      for (final p in parsed.paragraphs) {
+        p.articleCode = articleCode;
       }
 
       // 保存句子
@@ -68,6 +69,11 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
       // 保存章节（阅读器核心依赖）
       if (parsed.chapters.isNotEmpty) {
         await DatabaseService.batchInsert(parsed.chapters);
+      }
+
+      // 保存段落
+      if (parsed.paragraphs.isNotEmpty) {
+        await DatabaseService.batchInsert(parsed.paragraphs);
       }
 
       if (!mounted) return;
@@ -178,7 +184,7 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                    disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
+                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
                   ),
                   child: _isSaving
                       ? SizedBox(

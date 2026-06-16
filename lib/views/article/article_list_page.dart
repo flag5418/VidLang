@@ -98,7 +98,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.article_outlined, size: 64.sp, color: colorScheme.onSurfaceVariant.withOpacity(0.3)),
+          Icon(Icons.article_outlined, size: 64.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
           SizedBox(height: AppSpacing.md.h),
           Text('暂无文章', style: TextStyle(fontSize: 16.sp, color: colorScheme.onSurfaceVariant)),
           SizedBox(height: AppSpacing.sm.h),
@@ -181,7 +181,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
                 child: LinearProgressIndicator(
                   value: article.progress.clamp(0.0, 1.0),
                   minHeight: 4.h,
-                  backgroundColor: colorScheme.outline.withOpacity(0.3),
+                  backgroundColor: colorScheme.outline.withValues(alpha: 0.3),
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
               ),
