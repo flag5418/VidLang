@@ -15,12 +15,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_chapter.dart';
+import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/error_log.dart';
 import 'package:vidlang/models/participle.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
+import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
@@ -220,6 +222,11 @@ class WifiTransferService extends ChangeNotifier {
 
     // Article cover (placeholder)
     final articleRename = RegExp(r'^/api/articles/([a-zA-Z0-9]+)$').firstMatch(path);
+    if (articleRename != null && req.method == 'DELETE') {
+      final articleCode = articleRename.group(1)!;
+      await _batchDeleteArticles([articleCode]);
+      return _replyJson(req.response, 200, {'ok': true});
+    }
     if (articleRename != null && req.method == 'PATCH') {
       final articleCode = articleRename.group(1)!;
       final body = await _readJson(req);
@@ -334,6 +341,7 @@ class WifiTransferService extends ChangeNotifier {
     )..code = const Uuid().v4().replaceAll('-', '');
     await SettingsService.applyGlobalDefaultsToFolder(folder);
     await DatabaseService.insert(folder);
+    notifyListeners();
     return folder;
   }
 
@@ -351,6 +359,7 @@ class WifiTransferService extends ChangeNotifier {
 
     folder.name = name;
     await DatabaseService.update(folder);
+    notifyListeners();
     return folder;
   }
 
@@ -369,12 +378,16 @@ class WifiTransferService extends ChangeNotifier {
     if (video == null) throw Exception('视频不存在');
     video.name = name;
     await DatabaseService.update(video);
+    notifyListeners();
     return video;
   }
 
   Future<VideoInfo> _uploadVideo(HttpRequest req, {required String folderCode, required String filename}) async {
-    final folder = await _getFolderByCode(folderCode);
-    if (folder == null) throw Exception('文件夹不存在');
+    var folder = await _getFolderByCode(folderCode);
+    if (folder == null) {
+      folder = await _getFolderByCodeIncludeDeleted(folderCode);
+      if (folder == null) throw Exception('文件夹不存在');
+    }
 
     final ext = p.extension(filename).toLowerCase();
     final code = const Uuid().v4().replaceAll('-', '');
@@ -450,6 +463,7 @@ class WifiTransferService extends ChangeNotifier {
     await DatabaseService.insert(video);
     await _normalizeOrderIndex(folderCode);
     await FolderStatsService.refreshFolderStats(folderCode);
+    notifyListeners();
     return video;
   }
 
@@ -492,6 +506,7 @@ class WifiTransferService extends ChangeNotifier {
     );
 
     await FolderStatsService.refreshFolderStats(video.folderCode);
+    notifyListeners();
     return video;
   }
 
@@ -566,6 +581,7 @@ class WifiTransferService extends ChangeNotifier {
 
     await DatabaseService.softDelete(folder);
     await FolderStatsService.refreshFolderStats(folderCode);
+    notifyListeners();
   }
 
   Future<void> _deleteVideo(String videoCode, {bool refreshStats = true, bool normalize = true}) async {
@@ -596,6 +612,7 @@ class WifiTransferService extends ChangeNotifier {
     if (refreshStats) {
       await FolderStatsService.refreshFolderStats(video.folderCode);
     }
+    notifyListeners();
   }
 
   Future<void> _batchDeleteVideos(List<String> codes) async {
@@ -609,6 +626,7 @@ class WifiTransferService extends ChangeNotifier {
       await _normalizeOrderIndex(fc);
       await FolderStatsService.refreshFolderStats(fc);
     }
+    notifyListeners();
   }
 
   Future<void> _batchDeleteArticles(List<String> codes) async {
@@ -625,6 +643,12 @@ class WifiTransferService extends ChangeNotifier {
             whereArgs: [c],
           );
           for (final ch in chapters) await DatabaseService.softDelete(ch);
+          final paragraphs = await DatabaseService.findByCondition(
+            () => ArticleParagraph(),
+            where: 'article_code = ? AND is_deleted = 0',
+            whereArgs: [c],
+          );
+          for (final p in paragraphs) await DatabaseService.softDelete(p);
           final sentences = await DatabaseService.findByCondition(
             () => ArticleSentence(),
             where: 'article_code = ? AND is_deleted = 0',
@@ -637,6 +661,7 @@ class WifiTransferService extends ChangeNotifier {
     for (final fc in folderCodes) {
       await FolderStatsService.refreshFolderStats(fc);
     }
+    notifyListeners();
   }
 
   Future<void> _reorderVideos(String folderCode, List<String> orderedCodes) async {
@@ -663,26 +688,30 @@ class WifiTransferService extends ChangeNotifier {
 
     await _normalizeOrderIndex(folderCode);
     await FolderStatsService.refreshFolderStats(folderCode);
+    notifyListeners();
   }
 
   Future<Article> _renameArticle(String articleCode, String? name, {String? contentMarkdown}) async {
     final article = await _getArticleByCode(articleCode);
     if (article == null) throw Exception('文章不存在');
-    if (name != null) article.title = name;
+    if (name != null && name != article.title) {
+      final existing = await DatabaseService.findByCondition(
+        () => Article(),
+        where: 'folder_code = ? AND title = ? AND code != ? AND is_deleted = 0',
+        whereArgs: [article.folderCode, name, articleCode],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) throw Exception('文章标题已存在');
+      article.title = name;
+    }
     if (contentMarkdown != null) {
       article.contentMarkdown = contentMarkdown;
-      final lines = contentMarkdown.split('\n');
-      int totalChapters = 0;
-      for (final line in lines) {
-        if (line.trim().startsWith('#')) totalChapters++;
-      }
-      if (totalChapters == 0) totalChapters = 1;
-      article.totalParagraphs = totalChapters;
       article.wordCount = contentMarkdown.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
       await _softDeleteArticleContent(articleCode);
       await _parseArticleChaptersAndSentences(article);
     }
     await DatabaseService.update(article);
+    notifyListeners();
     return article;
   }
 
@@ -693,6 +722,12 @@ class WifiTransferService extends ChangeNotifier {
       whereArgs: [articleCode],
     );
     for (final ch in chapters) await DatabaseService.softDelete(ch);
+    final paragraphs = await DatabaseService.findByCondition(
+      () => ArticleParagraph(),
+      where: 'article_code = ? AND is_deleted = 0',
+      whereArgs: [articleCode],
+    );
+    for (final p in paragraphs) await DatabaseService.softDelete(p);
     final sentences = await DatabaseService.findByCondition(
       () => ArticleSentence(),
       where: 'article_code = ? AND is_deleted = 0',
@@ -780,9 +815,23 @@ class WifiTransferService extends ChangeNotifier {
     return rows.map(_articleJson).toList();
   }
 
+  Future<VideoFolder?> _getFolderByCodeIncludeDeleted(String code) async {
+    final rows = await DatabaseService.findByCondition(() => VideoFolder(), where: 'code = ?', whereArgs: [code], limit: 1);
+    if (rows.isEmpty) return null;
+    final folder = rows.first;
+    if (folder.isDeleted) {
+      folder.isDeleted = false;
+      await DatabaseService.update(folder);
+    }
+    return folder;
+  }
+
   Future<Article> _uploadArticle(HttpRequest req, {required String folderCode, required String filename, String? customTitle}) async {
-    final folder = await _getFolderByCode(folderCode);
-    if (folder == null) throw Exception('Folder not found');
+    var folder = await _getFolderByCode(folderCode);
+    if (folder == null) {
+      folder = await _getFolderByCodeIncludeDeleted(folderCode);
+      if (folder == null) throw Exception('Folder not found');
+    }
 
     final bytes = await _readAllBytes(req);
     if (bytes.isEmpty) throw Exception('Article content is empty');
@@ -790,15 +839,16 @@ class WifiTransferService extends ChangeNotifier {
     final String contentStr = utf8.decode(bytes);
     final String title = customTitle ?? p.basenameWithoutExtension(filename);
 
-    // Count chapters - lines starting with # (markdown headers)
-    final lines = contentStr.split('\n');
-    int totalChapters = 0;
-    for (final line in lines) {
-      if (line.trim().startsWith('#')) {
-        totalChapters++;
-      }
+    // 检查同文件夹下标题是否重复
+    final existing = await DatabaseService.findByCondition(
+      () => Article(),
+      where: 'folder_code = ? AND title = ? AND is_deleted = 0',
+      whereArgs: [folderCode, title],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      throw Exception('文章标题已存在');
     }
-    if (totalChapters == 0) totalChapters = 1;
 
     // Count words
     final wordCount = contentStr.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
@@ -810,7 +860,6 @@ class WifiTransferService extends ChangeNotifier {
       title: title,
       contentMarkdown: contentStr,
       language: 'en',
-      totalParagraphs: totalChapters,
       totalSentences: 0,
       wordCount: wordCount,
       orderIndex: 0,
@@ -821,25 +870,69 @@ class WifiTransferService extends ChangeNotifier {
     // Parse and save chapters + sentences
     await _parseArticleChaptersAndSentences(article);
 
+    // Upload to cloud for AI question generation
+    try {
+      await ConversationService.uploadArticleContentToCloud(article.code!);
+    } catch (_) {}
+
+    notifyListeners();
     return article;
   }
 
   Future<void> _parseArticleChaptersAndSentences(Article article) async {
-    final lines = article.contentMarkdown.split('\n');
+    // 统一换行符：\r\n → \n，单独 \r → \n
+    String normalized = article.contentMarkdown
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
+    final lines = normalized.split('\n');
     final chapters = <ArticleChapter>[];
+    final paragraphs = <ArticleParagraph>[];
     final sentences = <ArticleSentence>[];
     int sentenceIndex = 0;
     int chapterIndex = 0;
+    int paragraphIndex = 0;
     String currentChapterTitle = 'Introduction';
     int chapterStartSentence = 0;
     final chapterSentences = <String>[];
+    // Current paragraph being built
+    final paraContentLines = <String>[];
+    int paraStartSentence = 0;
 
+    void flushParagraph() {
+      if (paraContentLines.isEmpty) return;
+      final md = paraContentLines.join('\n');
+      final plain = _stripMarkdown(md);
+      paragraphs.add(
+        ArticleParagraph(
+          articleCode: article.code!,
+          paragraphIndex: paragraphIndex,
+          contentMarkdown: md,
+          contentPlain: plain,
+          startSentenceIdx: paraStartSentence,
+          endSentenceIdx: sentenceIndex - 1,
+        )..code = const Uuid().v4().replaceAll('-', ''),
+      );
+      paraContentLines.clear();
+      paragraphIndex++;
+    }
+
+    int blankLineCount = 0;
+    int contentLineCount = 0;
     for (final rawLine in lines) {
       final line = rawLine.trim();
-      if (line.isEmpty) continue;
+
+      // Blank line = paragraph boundary
+      if (line.isEmpty) {
+        blankLineCount++;
+        flushParagraph();
+        continue;
+      }
+
+      contentLineCount++;
 
       // Check for chapter header (# or ## or ###)
       if (line.startsWith('#')) {
+        flushParagraph();
         // Save previous chapter
         if (chapterSentences.isNotEmpty) {
           chapters.add(
@@ -861,6 +954,12 @@ class WifiTransferService extends ChangeNotifier {
         chapterSentences.clear();
         continue;
       }
+
+      // Content line — start paragraph if needed
+      if (paraContentLines.isEmpty) {
+        paraStartSentence = sentenceIndex;
+      }
+      paraContentLines.add(rawLine);
 
       // Simple sentence splitting: split on . ! ? followed by space or end
       final parts = line.split(RegExp(r'(?<=[.!?])\s+(?=[A-Z])'));
@@ -886,7 +985,7 @@ class WifiTransferService extends ChangeNotifier {
           sentences.add(
             ArticleSentence(
               articleCode: article.code!,
-              paragraphIndex: chapterIndex,
+              paragraphIndex: paragraphIndex,
               content: s,
               sentenceIndex: sentenceIndex,
               wordCount: ws,
@@ -906,7 +1005,7 @@ class WifiTransferService extends ChangeNotifier {
           sentences.add(
             ArticleSentence(
               articleCode: article.code!,
-              paragraphIndex: chapterIndex,
+              paragraphIndex: paragraphIndex,
               content: s,
               sentenceIndex: sentenceIndex,
               wordCount: ws,
@@ -918,6 +1017,9 @@ class WifiTransferService extends ChangeNotifier {
         }
       }
     }
+
+    // Flush last paragraph
+    flushParagraph();
 
     // Save last chapter
     if (chapterSentences.isNotEmpty || chapterIndex == 0) {
@@ -938,14 +1040,47 @@ class WifiTransferService extends ChangeNotifier {
     for (final ch in chapters) {
       await DatabaseService.insert(ch);
     }
+    for (final p in paragraphs) {
+      await DatabaseService.insert(p);
+    }
     for (final s in sentences) {
       await DatabaseService.insert(s);
     }
 
     // Update article stats
-    article.totalParagraphs = chapters.length;
+    article.totalParagraphs = paragraphs.length;
     article.totalSentences = sentenceIndex;
     await DatabaseService.update(article);
+
+    // 调试输出
+    print('═══ 文章解析结果 ═══');
+    print('空行数: $blankLineCount');
+    print('内容行数: $contentLineCount');
+    print('章节数: ${chapters.length}');
+    print('段落数: ${paragraphs.length}');
+    print('句子数: ${sentences.length}');
+    for (final p in paragraphs) {
+      final preview = p.contentPlain.length > 60 ? '${p.contentPlain.substring(0, 60)}...' : p.contentPlain;
+      print('  段落[${p.paragraphIndex}]: 句${p.startSentenceIdx}-${p.endSentenceIdx} → $preview');
+    }
+    print('═══════════════════');
+  }
+
+  static String _stripMarkdown(String text) {
+    return text
+        .replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'\*(.+?)\*'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'__(.+?)__'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'_(.+?)_'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'`(.+?)`'), (m) => m.group(1)!)
+        .replaceAllMapped(RegExp(r'~~(.+?)~~'), (m) => m.group(1)!)
+        .replaceAll(RegExp(r'!\[.*?\]\(.*?\)'), '')
+        .replaceAllMapped(RegExp(r'\[(.+?)\]\(.*?\)'), (m) => m.group(1)!)
+        .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
+        .replaceAll(RegExp(r'^>\s+', multiLine: true), '')
+        .replaceAll(RegExp(r'^[-*+]\s+', multiLine: true), '')
+        .replaceAll(RegExp(r'^\d+\.\s+', multiLine: true), '')
+        .trim();
   }
 
   Future<Map<String, dynamic>> _readJson(HttpRequest req) async {

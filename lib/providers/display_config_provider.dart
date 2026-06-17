@@ -20,7 +20,7 @@ extension WordDetailSectionX on WordDetailSection {
       case WordDetailSection.englishMeaning:       return '英文解释';
       case WordDetailSection.partOfSpeech:         return '词性';
       case WordDetailSection.examples:             return '例句';
-      case WordDetailSection.difficulty:           return '考试等级';
+      case WordDetailSection.difficulty:           return '单词难度';
       case WordDetailSection.morphology:           return '词形变化';
       case WordDetailSection.mnemonic:             return '记忆技巧';
     }

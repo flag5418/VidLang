@@ -189,8 +189,8 @@ class VideoCard extends StatelessWidget {
 
   Widget _buildMoreButton(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
-      top: 6.h,
-      right: 6.w,
+      bottom: 6,
+      right: 6,
       child: PopupMenuButton<String>(
         onSelected: (value) {
           switch (value) {
@@ -216,12 +216,10 @@ class VideoCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 6,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: Colors.black.withValues(alpha: 0.6)),
-          child: Text(
-            '···',
-            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.white, height: 1.2),
-          ),
+          width: 26.r,
+          height: 26.r,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6.r), color: Colors.black.withValues(alpha: 0.65)),
+          child: Icon(Icons.more_vert, size: 16.sp, color: Colors.white),
         ),
         itemBuilder: (context) {
           final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
@@ -260,7 +258,7 @@ class VideoCard extends StatelessWidget {
   Widget _buildPlayingBadge(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       bottom: 6,
-      right: 6,
+      left: 6,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: colorScheme.primary),

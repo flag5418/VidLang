@@ -83,6 +83,11 @@ dependencies:
 
   # 本地键值存储 - 用于持久化用户偏好设置（如主题模式）
   shared_preferences: ^2.3.5
+
+  # Hugeicons - 4700+ 免费 SVG 图标，自动适配主题色与暗黑模式
+  # 官方浏览: https://hugeicons.com/icons
+  hugeicons: ^1.1.7
+  image_picker: ^1.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -241,6 +241,51 @@ class WordBookService {
     return count > 0;
   }
 
+  static Future<bool> isSentenceSaved({required String text, required String sourceType, required String sourceCode}) async {
+    final count = await DatabaseService.count(
+      () => WordBook(),
+      where: 'content_type = ? AND source_text = ? AND source_type = ? AND source_code = ? AND is_deleted = 0',
+      whereArgs: ['sentence', text.trim(), sourceType, sourceCode],
+    );
+    return count > 0;
+  }
+
+  static Future<bool> unsaveWord({required String word, required String sourceType, required String sourceCode}) async {
+    try {
+      final trimmed = word.trim().toLowerCase();
+      final rows = await DatabaseService.findByCondition<WordBook>(
+        () => WordBook(),
+        where: 'word = ? AND source_type = ? AND source_code = ? AND is_deleted = 0',
+        whereArgs: [trimmed, sourceType, sourceCode],
+        limit: 1,
+      );
+      if (rows.isEmpty) return false;
+      await rows.first.softDelete();
+      return true;
+    } catch (e) {
+      logger.error('取消收藏失败: $e', tag: 'WordBook', error: e);
+      return false;
+    }
+  }
+
+  static Future<bool> unsaveSentence({required String text, required String sourceType, required String sourceCode}) async {
+    try {
+      final trimmed = text.trim();
+      final rows = await DatabaseService.findByCondition<WordBook>(
+        () => WordBook(),
+        where: 'content_type = ? AND source_text = ? AND source_type = ? AND source_code = ? AND is_deleted = 0',
+        whereArgs: ['sentence', trimmed, sourceType, sourceCode],
+        limit: 1,
+      );
+      if (rows.isEmpty) return false;
+      await rows.first.softDelete();
+      return true;
+    } catch (e) {
+      logger.error('取消收藏句子失败: $e', tag: 'WordBook', error: e);
+      return false;
+    }
+  }
+
   static Future<WordBook?> findWordByCode(String code) async {
     return BaseEntityExtension.findByCode(code, () => WordBook());
   }

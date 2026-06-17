@@ -366,7 +366,7 @@ function renderTable(){
   if(!isArticle){
     headHtml+='<th class="thumb-col"></th><th>名称</th><th>时长</th><th>字幕</th>';
   }else{
-    headHtml+='<th>标题</th><th>字数</th><th>章节</th>';
+    headHtml+='<th>标题</th><th>字数</th><th>段落</th>';
   }
   headHtml+='<th class="action-col"></th></tr>';
   thead.innerHTML=headHtml;
@@ -386,7 +386,7 @@ function renderTable(){
       bodyHtml+=`<td>${dur}</td><td class="sub-col">${sub}</td>`;
     }else{
       bodyHtml+=`<td><span class="title-cell" onclick="renameResource('${r.code}','${escHtml(r.title||'')}')">${escHtml(r.title||'')}</span></td>`;
-      bodyHtml+=`<td class="word-col">${r.wordCount??0}</td><td class="chapter-col">${r.totalChapters??0}</td>`;
+      bodyHtml+=`<td class="word-col">${r.wordCount??0}</td><td class="chapter-col">${r.totalParagraphs??0}</td>`;
     }
     bodyHtml+=`<td class="action-col"><button class="action-btn" onclick="showContextMenu(event,'${r.code}','${isArticle?'article':'video'}')">···</button></td>`;
     bodyHtml+='</tr>';

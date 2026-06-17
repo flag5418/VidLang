@@ -57,7 +57,7 @@ export async function definition(
   word: string,
   sentence?: string,
 ): Promise<Record<string, any>> {
-  let prompt = `请用中文详细解释英语单词"${word}"，要求返回 JSON 格式：\n{\n  "word": "单词",\n  "phonetic_uk": "英式音标",\n  "phonetic_us": "美式音标",\n  "part_of_speech": "词性",\n  "definitions": "中文释义（简要）",\n  "examples": [{"english": "英文例句", "chinese": "中文翻译"}]\n}`
+  let prompt = `请用中文详细解释英语单词“${word}”，要求返回 JSON 格式：\n{\n  "word": "单词",\n  "phonetic_uk": "英式音标",\n  "phonetic_us": "美式音标",\n  "part_of_speech": "词性",\n  "definitions": "中文释义（简要）",\n  "difficulty": "该单词所属的学习阶段，只能是以下值之一：primary/juniorHigh/seniorHigh/cet4/cet6/postgraduate/ielts/toefl/gre",\n  "examples": [{"english": "英文例句", "chinese": "中文翻译"}]\n}\n\n难度判断标准：根据单词在中国英语教学体系中的常见出现阶段来判断。如 apple/boy 属于 primary，abandon/build 属于 juniorHigh，sophisticated 属于 cet6，ubiquitous 属于 gre。`
 
   if (sentence) {
     prompt += `\n\n上下文句子：${sentence}`

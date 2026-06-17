@@ -211,7 +211,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 0), child: _buildHeader()),
             Expanded(
@@ -237,7 +237,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       color: Colors.transparent,
       child: Container(
         width: screenSize.width * 0.6,
-        constraints: BoxConstraints(maxWidth: 700, maxHeight: screenSize.height * 0.6),
+        constraints: BoxConstraints(maxWidth: 700, maxHeight: screenSize.height * 0.8),
         decoration: BoxDecoration(
           color: cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
@@ -412,7 +412,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final isSaving = widget.saving;
 
     return GestureDetector(
-      onTap: isSaving || isSaved ? null : () => widget.onSaveWord?.call(),
+      onTap: isSaving ? null : () => widget.onSaveWord?.call(),
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(

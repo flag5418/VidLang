@@ -8,10 +8,13 @@
 /// 5. 底部固定（关于 + 退出登录）
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/config.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/billing_summary.dart';
@@ -22,14 +25,13 @@ import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/billing_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
+import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_page.dart';
 import 'package:vidlang/views/profile/edit_profile_page.dart';
 import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -117,11 +119,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     _buildSectionTitle('设置', colorScheme),
                     _buildMenuItem(Icons.palette_outlined, '外观设置', ref.watch(themeModeProvider).label, colorScheme, onTap: () => _showThemePicker()),
                     _buildMenuItem(Icons.speed_rounded, '学习难度', difficulty.label, colorScheme, onTap: () => _showDifficultyPicker()),
-                    if (_isSupabaseUser)
-                      _buildMenuItem(Icons.manage_accounts, '子账号设置', '子账号管理', colorScheme, onTap: () => _navigateToUserSettings()),
-                    _buildMenuItem(Icons.play_circle_outline, '播放设置', '跳过片头片尾、缩略图时间', colorScheme, onTap: () {}),
-                    _buildMenuItem(Icons.translate, '翻译与TTS', '配置翻译和语音', colorScheme, onTap: () {}),
-                    _buildMenuItem(Icons.quiz_outlined, '测试设置', '题目类型和数量', colorScheme, onTap: () {}),
+                    if (_isSupabaseUser) _buildMenuItem(Icons.manage_accounts, '子账号设置', '子账号管理', colorScheme, onTap: () => _navigateToUserSettings()),
                     _buildMenuItem(Icons.wifi, 'WiFi 传输', '端口：$_wifiPort', colorScheme, onTap: () => _showWifiPortDialog()),
                   ],
                 ),
@@ -146,23 +144,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildProfileCard(ColorScheme colorScheme) {
     final displayName = _currentUser?.nickname.isNotEmpty == true ? _currentUser!.nickname : (_currentUser?.username ?? '未登录');
     final loginName = _currentUser?.username ?? '';
+    final avatarPath = _currentUser?.avatar;
 
     return GestureDetector(
       onTap: () => _navigateToEditProfile(),
       child: Container(
-        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(16.r), color: _cardColor(colorScheme)),
         child: Row(
           children: [
             // 头像
-            CircleAvatar(
-              radius: 28.r,
-              backgroundColor: colorScheme.primary.withValues(alpha: 0.15),
-              child: Text(
-                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: colorScheme.primary),
-              ),
-            ),
+            _buildAvatarWidget(colorScheme, avatarPath, displayName),
             SizedBox(width: 14.w),
             // 昵称 + 登录名
             Expanded(
@@ -185,6 +176,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 24.w),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarWidget(ColorScheme colorScheme, String? avatarPath, String displayName) {
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      final file = File(avatarPath);
+      if (file.existsSync()) {
+        return ClipOval(
+          child: Image.file(file, width: 56.w, height: 56.w, fit: BoxFit.cover),
+        );
+      }
+    }
+    return CircleAvatar(
+      radius: 28.r,
+      backgroundColor: colorScheme.primary.withValues(alpha: 0.15),
+      child: Text(
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+        style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: colorScheme.primary),
       ),
     );
   }
@@ -381,10 +391,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           title: 'WiFi 传输端口',
           content: '设置 WiFi 传输服务端口（1024-65535）',
           hintText: '端口号',
-          leftBtn: TDDialogButtonOptions(
-            title: '取消',
-            action: () => Navigator.pop(buildContext),
-          ),
+          leftBtn: TDDialogButtonOptions(title: '取消', action: () => Navigator.pop(buildContext)),
           rightBtn: TDDialogButtonOptions(
             title: '确定',
             action: () async {
@@ -394,9 +401,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 if (mounted) setState(() => _wifiPort = port);
                 Navigator.pop(buildContext);
               } else {
-                ScaffoldMessenger.of(buildContext).showSnackBar(
-                  const SnackBar(content: Text('端口号需在 1024-65535 之间')),
-                );
+                ScaffoldMessenger.of(buildContext).showSnackBar(const SnackBar(content: Text('端口号需在 1024-65535 之间')));
               }
             },
           ),
@@ -416,11 +421,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           _statCard(Icons.calendar_today, '学习天数', '${_summaryStats.totalDays}', colorScheme),
           SizedBox(width: 8.w),
-          _statCard(Icons.video_library, '视频', '${_summaryStats.videoTotal}', colorScheme),
+          _statCard(Icons.movie, '视频', '${_summaryStats.videoTotal}', colorScheme),
           SizedBox(width: 8.w),
           _statCard(Icons.music_note, '音频', '${_summaryStats.audioTotal}', colorScheme),
           SizedBox(width: 8.w),
-          _statCard(Icons.article, '文章', '${_summaryStats.articleTotal}', colorScheme),
+          _statCard(Icons.menu_book, '文章', '${_summaryStats.articleTotal}', colorScheme),
         ],
       ),
     );
@@ -507,10 +512,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   // ==================== 导航 ====================
 
   void _navigateToEditProfile() async {
-    final result = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const EditProfilePage()));
-    if (result == true) {
-      _checkUser(); // 刷新用户信息
-    }
+    await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const EditProfilePage()));
+    _checkUser(); // 编辑页内已实时更新 AppConfig，此处刷新本地状态
   }
 
   void _navigateToUserSettings() {

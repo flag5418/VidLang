@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/components/folder_card.dart';
+import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
@@ -19,6 +20,7 @@ import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
@@ -68,7 +70,34 @@ class _HomePageState extends ConsumerState<HomePage> {
     final code = folder.code;
     if (code == null) return;
 
-    // 有最后播放记录，直接进入播放
+    // 文章文件夹：直接进入最后一次阅读的文章阅读器
+    if (folder.folderType == FolderContentType.article) {
+      try {
+        final articles = await DatabaseService.findByCondition(
+          () => Article(),
+          where: 'folder_code = ? AND is_deleted = 0',
+          whereArgs: [code],
+          orderBy: 'last_study_date DESC, updated_at DESC',
+        );
+        if (articles.isNotEmpty && mounted) {
+          Article target = articles.firstWhere(
+            (a) => a.lastStudyDate != null,
+            orElse: () => articles.first,
+          );
+          if (!mounted) return;
+          await Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ArticleReaderPage(articleCode: target.code!),
+          ));
+          if (!mounted) return;
+          await _loadData();
+          return;
+        }
+      } catch (_) {
+        // fallback to folder detail
+      }
+    }
+
+    // 视频/音频：有最后播放记录，直接进入播放
     if (folder.lastVideoCode != null && folder.lastVideoCode!.isNotEmpty) {
       try {
         final videos = await DatabaseService.findByCondition(

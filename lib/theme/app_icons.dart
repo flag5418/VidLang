@@ -1,7 +1,10 @@
 /// 图标系统
 ///
 /// 统一管理应用中使用的所有图标，包括：
-/// - Flutter内置Material Icons
+/// - Flutter内置 Material Icons
+/// - Hugeicons（第三方图标库，4700+ 免费 SVG 图标）
+///   - 官方浏览: https://hugeicons.com/icons
+///   - 用法: HugeIcon(icon: HugeIcons.strokeRoundedXxx, size: 24, color: ...)
 /// - 自定义PNG图标（特殊情况下使用）
 ///
 /// 图标分类：
@@ -20,6 +23,10 @@
 /// // 或直接使用Icon类
 /// Icon(AppIcons.videoLibrary)
 ///
+/// // Hugeicons 图标
+/// import 'package:hugeicons/hugeicons.dart';
+/// HugeIcon(icon: HugeIcons.strokeRoundedHome01, size: 24)
+///
 /// // 自定义PNG图标
 /// AppIcons.getPngIcon(AppIcons.logo)
 /// ```
@@ -27,6 +34,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 /// 应用图标类
 ///
@@ -458,5 +466,67 @@ class PngIcons {
         return Icon(Icons.broken_image_outlined, size: width ?? 24, color: Colors.grey);
       },
     );
+  }
+}
+
+/// 三类资源的图标（Hugeicons 统一入口）
+///
+/// 集中管理文件夹级和单资源级的图标映射，
+/// 未来如需替换图标集只需改此处。
+abstract final class ResourceIcons {
+  // ─── 文件夹（合集）图标 ─────────────────────
+  static const folderVideo = HugeIcons.strokeRoundedFolderVideo;
+  static const folderArticle = HugeIcons.strokeRoundedBookOpenText;
+  static const folderAudio = HugeIcons.strokeRoundedFolderMusic;
+
+  // ─── 单资源图标 ────────────────────────────
+  static const itemVideo = HugeIcons.strokeRoundedFileVideo;
+  static const itemArticle = HugeIcons.strokeRoundedNote02;
+  static const itemAudio = HugeIcons.strokeRoundedFileMusic;
+
+  /// 根据类型取文件夹图标
+  static const Map<String, List<List<dynamic>>> _folderIcons = {
+    'video': folderVideo,
+    'article': folderArticle,
+    'music': folderAudio,
+  };
+
+  /// 根据类型取单资源图标
+  static const Map<String, List<List<dynamic>>> _itemIcons = {
+    'video': itemVideo,
+    'article': itemArticle,
+    'music': itemAudio,
+  };
+
+  /// 获取类型对应的文件夹图标
+  static List<List<dynamic>> folderIconFor(String type) => _folderIcons[type] ?? folderVideo;
+
+  /// 获取类型对应的单资源图标
+  static List<List<dynamic>> itemIconFor(String type) => _itemIcons[type] ?? itemVideo;
+
+  // ─── 卡片展示图标（Material Icons） ──────────
+  static const IconData displayVideo = Icons.movie;
+  static const IconData displayArticle = Icons.menu_book;
+  static const IconData displayAudio = Icons.music_note;
+
+  /// 根据类型取卡片展示图标
+  static const Map<String, IconData> _displayIcons = {
+    'video': displayVideo,
+    'article': displayArticle,
+    'music': displayAudio,
+  };
+
+  static IconData displayIconFor(String type) => _displayIcons[type] ?? displayVideo;
+
+  /// 助记标签文案
+  static String unitLabel(String type) {
+    switch (type) {
+      case 'article':
+        return '篇';
+      case 'music':
+        return '首';
+      default:
+        return '集';
+    }
   }
 }

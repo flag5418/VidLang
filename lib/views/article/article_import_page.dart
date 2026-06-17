@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/services/article_parser.dart';
+import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
@@ -75,6 +76,11 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
       if (parsed.paragraphs.isNotEmpty) {
         await DatabaseService.batchInsert(parsed.paragraphs);
       }
+
+      // Upload to cloud for AI question generation
+      try {
+        await ConversationService.uploadArticleContentToCloud(articleCode);
+      } catch (_) {}
 
       if (!mounted) return;
 

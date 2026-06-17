@@ -1,5 +1,7 @@
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +10,8 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_tag.dart';
+import 'package:vidlang/services/ios_native_features.dart';
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/word_tag_service.dart';
 import 'package:vidlang/views/test/test_page.dart';
@@ -15,9 +19,9 @@ import 'package:vidlang/views/word_book/widgets/snippet_detail_sheet.dart';
 import 'package:vidlang/views/word_book/widgets/snippet_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_nav_panel.dart';
+import 'package:vidlang/widgets/word_card.dart';
 
 import 'word_book_detail_sheet.dart';
-import 'word_book_lookup_sheet.dart';
 import 'word_book_review_page.dart';
 
 class CollectionPage extends ConsumerStatefulWidget {
@@ -32,6 +36,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
   int _currentTab = 0;
 
   List<WordBook> _words = [];
+  List<WordBook> _allWords = [];
   List<WordBookNavItem> _learningNavItems = const [];
   List<WordBookNavItem> _masteredNavItems = const [];
   Map<String, List<WordTag>> _tagsByWordCode = const {};
@@ -55,13 +60,31 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     _reload();
   }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// 实时模糊过滤：在本地列表中筛选，不做数据库查询
+  void _onSearchChanged() {
+    final keyword = _searchController.text.trim().toLowerCase();
+    setState(() {
+      if (keyword.isEmpty) {
+        _words = List.from(_allWords);
+      } else {
+        _words = _allWords.where((w) {
+          return w.word.toLowerCase().contains(keyword) ||
+              (w.contextSentence?.toLowerCase().contains(keyword) ?? false) ||
+              (w.note?.toLowerCase().contains(keyword) ?? false);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _reload() async {
@@ -90,7 +113,18 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
       setState(() {
         _learningNavItems = learningItems;
         _masteredNavItems = masteredItems;
-        _words = rows;
+        _allWords = rows;
+        // 应用当前搜索过滤
+        final keyword = _searchController.text.trim().toLowerCase();
+        if (keyword.isEmpty) {
+          _words = List.from(rows);
+        } else {
+          _words = rows.where((w) {
+            return w.word.toLowerCase().contains(keyword) ||
+                (w.contextSentence?.toLowerCase().contains(keyword) ?? false) ||
+                (w.note?.toLowerCase().contains(keyword) ?? false);
+          }).toList();
+        }
         _tagsByWordCode = tags;
         _todayReviewed = todayReviewed;
         _totalWords = totalWords;
@@ -119,27 +153,60 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     final colorScheme = Theme.of(context).colorScheme;
     final isNarrow = MediaQuery.of(context).size.width < 900;
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: colorScheme.surface,
-      drawer: isNarrow ? _buildDrawer(context) : null,
-      bottomNavigationBar: _selectionMode ? _buildSelectionBar(context) : null,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(16.r),
+    return GestureDetector(
+      onTap: _selectionMode ? _cancelSelection : null,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: colorScheme.surface,
+        drawer: isNarrow ? _buildDrawer(context) : null,
+        bottomNavigationBar: _selectionMode ? _buildSelectionBar(context) : null,
+        body: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, isNarrow),
-              SizedBox(height: 10.h),
-              _buildTabBar(context),
-              SizedBox(height: 10.h),
-              _buildSearchBar(context),
-              SizedBox(height: 10.h),
-              Expanded(
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : LayoutBuilder(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── 头部区：独立背景层，与其他区域视觉分离 ──
+            Container(
+              color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+              padding: EdgeInsets.fromLTRB(16.r, 12.h, 16.r, 14.h),
+              child: _buildHeader(context, isNarrow),
+            ),
+            // ── Tab + 搜索：紧凑工具栏层 ──
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.r, 12.h, 16.r, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTabBar(context),
+                  SizedBox(height: 8.h),
+                  _buildSearchBar(context),
+                ],
+              ),
+            ),
+            // ── 选择模式提示 ──
+            if (_selectionMode)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 6.h),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text(
+                    '已选择 ${_selectedWordCodes.length}/${_words.length}，点击下方按钮开始，或点击任意位置取消',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            // ── 列表区：占满剩余空间 ──
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Padding(
+                      padding: EdgeInsets.fromLTRB(16.r, 12.h, 16.r, 8.h),
+                      child: LayoutBuilder(
                         builder: (context, constraints) {
                           final wide = constraints.maxWidth >= 900.w;
                           if (wide) {
@@ -154,12 +221,30 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
                           return _words.isEmpty ? _buildEmptyState(context) : _buildWordList();
                         },
                       ),
+                    ),
+            ),
+            // ── 功能按钮行：固定在列表底部，无单词时隐藏 ──
+            if (!_selectionMode && _allWords.isNotEmpty)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.r, vertical: 10.h),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                ),
+                child: _buildActionBar(context),
               ),
-            ],
-          ),
+          ],
         ),
       ),
+      ),
     );
+  }
+  void _cancelSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedWordCodes.clear();
+    });
   }
 
   Widget _buildDrawer(BuildContext context) {
@@ -179,59 +264,38 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     final title = _isKnowledgeBase ? '知识库' : '生词本';
     final unitLabel = _isKnowledgeBase ? '句' : '词';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          children: [
-            if (isNarrow)
-              Padding(
-                padding: EdgeInsets.only(right: 8.w),
-                child: IconButton(
-                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                  icon: const Icon(Icons.menu),
-                  tooltip: '导航',
-                ),
-              ),
-            Row(
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
-                ),
-                SizedBox(width: 8.w),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                  child: Text(
-                    '${_words.length}$unitLabel',
-                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
-                  ),
-                ),
-              ],
+        if (isNarrow)
+          Padding(
+            padding: EdgeInsets.only(right: 4.w),
+            child: IconButton(
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              icon: const Icon(Icons.menu),
+              tooltip: '导航',
+              constraints: BoxConstraints(minWidth: 36.w, minHeight: 36.h),
+              padding: EdgeInsets.zero,
             ),
-            const Spacer(),
-            // 知识库 Tab 隐藏测试按钮
-            if (!_isKnowledgeBase)
-              FilledButton.tonalIcon(
-                onPressed: () => _enterSelectionMode('test'),
-                icon: const Icon(Icons.quiz_outlined),
-                label: const Text('测试'),
-              ),
-            if (!_isKnowledgeBase) SizedBox(width: 8.w),
-            FilledButton.icon(
-              onPressed: () => _enterSelectionMode('review'),
-              icon: const Icon(Icons.refresh),
-              label: const Text('复习'),
-            ),
-          ],
-        ),
-        SizedBox(height: 6.h),
+          ),
         Text(
-          '今日已复习 $_todayReviewed/$_totalWords $unitLabel',
+          title,
+          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
+        ),
+        SizedBox(width: 8.w),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(999.r),
+          ),
+          child: Text(
+            '${_allWords.length}$unitLabel',
+            style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
+          ),
+        ),
+        const Spacer(),
+        Text(
+          '今日 $_todayReviewed/$_totalWords',
           style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
         ),
       ],
@@ -243,38 +307,47 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(10.r),
       ),
-      padding: EdgeInsets.all(4.r),
+      padding: EdgeInsets.all(3.r),
       child: Row(
         children: [
-          _buildTabChip(context, '单词', 0),
-          _buildTabChip(context, '知识库', 1),
+          _buildTabChip(context, '单词', Icons.spellcheck, 0),
+          SizedBox(width: 3.w),
+          _buildTabChip(context, '知识库', Icons.library_books_outlined, 1),
         ],
       ),
     );
   }
 
-  Widget _buildTabChip(BuildContext context, String label, int tabIndex) {
+  Widget _buildTabChip(BuildContext context, String label, IconData icon, int tabIndex) {
     final colorScheme = Theme.of(context).colorScheme;
     final selected = _currentTab == tabIndex;
     return Expanded(
       child: GestureDetector(
         onTap: () => _onTabChanged(tabIndex),
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(vertical: 8.h),
           decoration: BoxDecoration(
             color: selected ? colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(8.r),
           ),
           alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: selected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16.sp, color: selected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant),
+              SizedBox(width: 4.w),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -284,21 +357,22 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
   Widget _buildSearchBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final hint = _isKnowledgeBase ? '搜索句子或备注' : '搜索单词或上下文';
+    final hasText = _searchController.text.isNotEmpty;
     return TextField(
       controller: _searchController,
-      onSubmitted: (_) => _handleSearch(),
+      onSubmitted: (_) => _handleSearchSubmit(),
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: _searchController.text.isEmpty
-            ? null
-            : IconButton(
+        suffixIcon: hasText
+            ? IconButton(
                 onPressed: () {
                   _searchController.clear();
-                  _reload();
+                  // _onSearchChanged 会通过 listener 自动触发
                 },
                 icon: const Icon(Icons.close),
-              ),
+              )
+            : null,
         filled: true,
         fillColor: colorScheme.surfaceContainerLow,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14.r), borderSide: BorderSide.none),
@@ -306,44 +380,120 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     );
   }
 
-  Future<void> _handleSearch() async {
+  /// 搜索提交：始终对输入的英文单词弹出翻译弹窗
+  Future<void> _handleSearchSubmit() async {
     final keyword = _searchController.text.trim();
     if (keyword.isEmpty) return;
 
-    if (_isKnowledgeBase) {
-      await _reload();
-      return;
-    }
+    // 知识库 Tab 不触发查词
+    if (_isKnowledgeBase) return;
 
-    // For word tab: first search locally
-    final rows = await WordBookService.queryWords(
-      WordBookFilter(status: _selectedStatus, tagCode: _selectedTagCode, contentType: 'word', keyword: keyword),
-    );
-
-    if (rows.isNotEmpty) {
-      await _reload();
-      return;
-    }
-
-    // No local result — check if it looks like a single English word
+    // 非英文单词模式 → 不触发
     final wordPattern = RegExp(r"^[a-zA-Z']+$");
-    if (!wordPattern.hasMatch(keyword)) {
-      await _reload();
-      return;
-    }
+    if (!wordPattern.hasMatch(keyword)) return;
 
-    // Trigger lookup
+    // 弹出翻译弹窗（复用 WordCard 组件）
     final isPaid = AppConfig.currentUser?.authProvider == 'supabase';
     if (!mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (ctx) => WordBookLookupSheet(
-        word: keyword,
-        isPaidMode: isPaid,
-      ),
+    await WordCard.show(
+      context,
+      word: keyword,
+      isPaidMode: isPaid,
+      onSpeak: () => _speakWord(keyword),
+      sourceType: 'word_book',
+      sourceCode: '',
     );
+  }
+
+  Future<void> _speakWord(String word) async {
+    TtsService().speakWord(word);
+  }
+
+  /// 功能按钮行：测试、复习、拍照翻译（iOS）
+  Widget _buildActionBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isIOS = Platform.isIOS;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (!_isKnowledgeBase) ...[          
+          FilledButton.icon(
+            onPressed: () => _enterSelectionMode('test'),
+            icon: const Icon(Icons.quiz_outlined, size: 18),
+            label: const Text('测试'),
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.tertiaryContainer,
+              foregroundColor: colorScheme.onTertiaryContainer,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            ),
+          ),
+          SizedBox(width: 12.w),
+        ],
+        FilledButton.icon(
+          onPressed: () => _enterSelectionMode('review'),
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('复习'),
+          style: FilledButton.styleFrom(
+            backgroundColor: colorScheme.primaryContainer,
+            foregroundColor: colorScheme.onPrimaryContainer,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          ),
+        ),
+        if (isIOS && !_isKnowledgeBase) ...[          
+          SizedBox(width: 12.w),
+          OutlinedButton.icon(
+            onPressed: _handleCameraTranslate,
+            icon: const Icon(Icons.camera_alt_outlined, size: 18),
+            label: const Text('拍照翻译'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colorScheme.onSurfaceVariant,
+              side: BorderSide(color: colorScheme.outlineVariant),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// 拍照翻译：调用 iOS 原生 OCR + 翻译
+  Future<void> _handleCameraTranslate() async {
+    try {
+      final result = await IosNativeFeatures.extractTextFromCamera();
+      if (!mounted) return;
+      if (!result.success || result.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('未识别到文本'), duration: Duration(seconds: 2)),
+        );
+        return;
+      }
+      // 提取识别到的单词并在翻译弹窗中显示
+      final text = result.text.trim();
+      final wordPattern = RegExp(r"([a-zA-Z']+)");
+      final words = wordPattern.allMatches(text).map((m) => m.group(0)!).toList();
+      if (words.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('未识别到英文单词'), duration: Duration(seconds: 2)),
+        );
+        return;
+      }
+      // 显示第一个单词的翻译弹窗
+      final isPaid = AppConfig.currentUser?.authProvider == 'supabase';
+      await WordCard.show(
+        context,
+        word: words.first,
+        isPaidMode: isPaid,
+        onSpeak: () => _speakWord(words.first),
+        sourceType: 'word_book',
+        sourceCode: '',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('拍照翻译失败: $e'), duration: const Duration(seconds: 3)),
+      );
+    }
   }
 
   Widget _buildNavPanel() {
@@ -530,66 +680,187 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     final tags = await WordTagService.listTags();
     if (!mounted) return;
     final selectedCodes = (_tagsByWordCode[code] ?? const <WordTag>[]).map((tag) => tag.code).whereType<String>().toSet();
+    final newTagController = TextEditingController();
+    final cs = Theme.of(context).colorScheme;
 
-    await showModalBottomSheet<void>(
+    await showDialog<void>(
       context: context,
-      isScrollControlled: true,
+      barrierDismissible: true,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(16.r),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '管理标签',
-                      style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w700),
-                    ),
-                    SizedBox(height: 12.h),
-                    if (tags.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: Text('当前还没有标签，后续可从管理页创建。', style: TextStyle(fontSize: 13.sp)),
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: cs.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 360.w, maxHeight: 420.h),
+                child: Padding(
+                  padding: EdgeInsets.all(20.r),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 标题
+                      Row(
+                        children: [
+                          Icon(Icons.label_outline_rounded, size: 20.sp, color: cs.primary),
+                          SizedBox(width: 8.w),
+                          Text('管理标签', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                        ],
                       ),
-                    ...tags.map((tag) {
-                      final tagCode = tag.code;
-                      final selected = tagCode != null && selectedCodes.contains(tagCode);
-                      return CheckboxListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        value: selected,
-                        title: Text(tag.name),
-                        onChanged: tagCode == null
-                            ? null
-                            : (_) {
-                                setModalState(() {
-                                  if (selected) {
-                                    selectedCodes.remove(tagCode);
-                                  } else {
-                                    selectedCodes.add(tagCode);
-                                  }
-                                });
+                      SizedBox(height: 12.h),
+                      // 标签下拉列表
+                      if (tags.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.h),
+                          child: Text('暂无标签，请在下方输入创建。', style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant)),
+                        )
+                      else
+                        Container(
+                          constraints: BoxConstraints(maxHeight: 200.h),
+                          decoration: BoxDecoration(
+                            color: cs.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+                          ),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            padding: EdgeInsets.symmetric(vertical: 4.h),
+                            itemCount: tags.length,
+                            itemBuilder: (_, index) {
+                              final tag = tags[index];
+                              final tagCode = tag.code;
+                              final selected = tagCode != null && selectedCodes.contains(tagCode);
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(8.r),
+                                onTap: tagCode == null
+                                    ? null
+                                    : () {
+                                        setDialogState(() {
+                                          if (selected) {
+                                            selectedCodes.remove(tagCode);
+                                          } else {
+                                            selectedCodes.add(tagCode);
+                                          }
+                                        });
+                                      },
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        selected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                                        size: 20.sp,
+                                        color: selected ? cs.primary : cs.onSurfaceVariant,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Expanded(
+                                        child: Text(
+                                          tag.name,
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                                            color: selected ? cs.primary : cs.onSurface,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      SizedBox(height: 12.h),
+                      // 新增标签输入行
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: newTagController,
+                              style: TextStyle(fontSize: 14.sp, color: cs.onSurface),
+                              decoration: InputDecoration(
+                                hintText: '新标签名称',
+                                hintStyle: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant),
+                                isDense: true,
+                                filled: true,
+                                fillColor: cs.surfaceContainerLow,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                  borderSide: BorderSide(color: cs.primary, width: 1.5),
+                                ),
+                              ),
+                              onSubmitted: (_) async {
+                                final name = newTagController.text.trim();
+                                if (name.isEmpty) return;
+                                final tag = await WordTagService.createTag(name);
+                                if (tag != null && tag.code != null) {
+                                  final newTag = tag;
+                                  setDialogState(() {
+                                    tags.add(newTag);
+                                    selectedCodes.add(newTag.code!);
+                                  });
+                                  newTagController.clear();
+                                }
                               },
-                      );
-                    }),
-                    SizedBox(height: 12.h),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () async {
-                          final navigator = Navigator.of(context);
-                          await WordTagService.replaceTags(code, selectedCodes.toList());
-                          if (!mounted) return;
-                          navigator.pop();
-                          await _reload();
-                        },
-                        child: const Text('确定'),
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          SizedBox(
+                            height: 38.h,
+                            child: FilledButton.tonal(
+                              onPressed: () async {
+                                final name = newTagController.text.trim();
+                                if (name.isEmpty) return;
+                                final tag = await WordTagService.createTag(name);
+                                if (tag != null && tag.code != null) {
+                                  final newTag = tag;
+                                  setDialogState(() {
+                                    tags.add(newTag);
+                                    selectedCodes.add(newTag.code!);
+                                  });
+                                  newTagController.clear();
+                                }
+                              },
+                              style: FilledButton.styleFrom(
+                                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                              ),
+                              child: Text('添加', style: TextStyle(fontSize: 13.sp)),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 16.h),
+                      // 确定按钮
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44.h,
+                        child: FilledButton(
+                          onPressed: () async {
+                            final navigator = Navigator.of(context);
+                            await WordTagService.replaceTags(code, selectedCodes.toList());
+                            if (!mounted) return;
+                            navigator.pop();
+                            await _reload();
+                          },
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          ),
+                          child: Text('确定', style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -597,6 +868,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
         );
       },
     );
+    newTagController.dispose();
   }
 
   void _enterSelectionMode(String action) {
@@ -776,58 +1048,57 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
 
   Widget _buildSelectionBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final unitLabel = _isKnowledgeBase ? '句' : '词';
     final actionLabel = _isKnowledgeBase || _selectionAction == 'review' ? '开始复习' : '开始测试';
+    final selectedCount = _selectedWordCodes.length;
+    final totalCount = _words.length;
+    final allSelected = selectedCount == totalCount && totalCount > 0;
+    final someSelected = selectedCount > 0 && selectedCount < totalCount;
 
     return SafeArea(
       top: false,
       child: Container(
-        padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,
-          border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.4))),
+          border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3))),
         ),
         child: Row(
           children: [
+            // 左侧：Checkbox 全选/反选
+            SizedBox(
+              width: 36.w,
+              height: 36.h,
+              child: Checkbox(
+                value: allSelected ? true : (someSelected ? null : false),
+                tristate: true,
+                onChanged: (val) {
+                  setState(() {
+                    if (val == true) {
+                      _selectedWordCodes
+                        ..clear()
+                        ..addAll(_words.map((item) => item.code).whereType<String>());
+                    } else {
+                      _selectedWordCodes.clear();
+                    }
+                  });
+                },
+              ),
+            ),
+            SizedBox(width: 4.w),
             Text(
-              '已选 ${_selectedWordCodes.length} $unitLabel',
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+              '$selectedCount/$totalCount',
+              style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
             ),
             const Spacer(),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  if (_selectedWordCodes.length == _words.length) {
-                    _selectedWordCodes.clear();
-                  } else {
-                    _selectedWordCodes
-                      ..clear()
-                      ..addAll(_words.map((item) => item.code).whereType<String>());
-                  }
-                });
-              },
-              child: const Text('全选'),
-            ),
-            SizedBox(width: 8.w),
-            OutlinedButton(
-              onPressed: () {
-                setState(() {
-                  _selectionMode = false;
-                  _selectedWordCodes.clear();
-                });
-              },
-              child: const Text('取消'),
-            ),
-            SizedBox(width: 8.w),
-            FilledButton(
-              onPressed: _selectedWordCodes.isEmpty
+            // 右侧：主操作按钮
+            FilledButton.icon(
+              onPressed: selectedCount == 0
                   ? null
                   : () async {
                       final selectedItems = _words
                           .where((item) => item.code != null && _selectedWordCodes.contains(item.code))
                           .toList();
 
-                      // 知识库 Tab 或复习：直接进入复习页，跳过测试配置
                       if (_isKnowledgeBase || _selectionAction == 'review') {
                         await Navigator.push(
                           context,
@@ -843,7 +1114,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
                         return;
                       }
 
-                      // 单词 Tab 测试：弹出配置窗口
                       if (!mounted) return;
                       final config = await _showTestConfigDialog(selectedItems.length);
                       if (config == null || !mounted) return;
@@ -871,7 +1141,12 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
                         await _reload();
                       }
                     },
-              child: Text(actionLabel),
+              icon: Icon(_selectionAction == 'review' ? Icons.refresh : Icons.quiz_outlined, size: 18.sp),
+              label: Text(actionLabel),
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+              ),
             ),
           ],
         ),

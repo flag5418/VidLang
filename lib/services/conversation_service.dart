@@ -2,6 +2,9 @@ import 'dart:developer' as dev;
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
+import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/article_paragraph.dart';
+import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
@@ -57,6 +60,38 @@ class ConversationService {
           chars += text.length;
           if (chars > maxChars) break;
           subtitleItems.add({'content': text, 'content_translate': (s.contentTranslate ?? '').trim()});
+        }
+      } catch (_) {
+        subtitleItems = null;
+      }
+    } else if (sourceType == 'article') {
+      try {
+        final articles = await DatabaseService.findByCondition(
+          () => Article(),
+          where: 'code = ? AND is_deleted = 0',
+          whereArgs: [sourceCode],
+          limit: 1,
+        );
+        sourceTitle = articles.isNotEmpty ? articles.first.title : null;
+
+        final paragraphs = await DatabaseService.findByCondition(
+          () => ArticleParagraph(),
+          where: 'article_code = ? AND is_deleted = 0',
+          whereArgs: [sourceCode],
+          orderBy: 'paragraph_index ASC',
+        );
+
+        const maxItems = 250;
+        const maxChars = 20000;
+        var chars = 0;
+        subtitleItems = [];
+        for (final p in paragraphs) {
+          if (subtitleItems.length >= maxItems) break;
+          final text = p.contentPlain.trim();
+          if (text.isEmpty) continue;
+          chars += text.length;
+          if (chars > maxChars) break;
+          subtitleItems.add({'content': text, 'content_translate': ''});
         }
       } catch (_) {
         subtitleItems = null;
@@ -131,6 +166,65 @@ class ConversationService {
       await client.functions.invoke('subtitle-storage', body: {'op': 'delete', 'video_code': videoCode});
     } catch (e) {
       dev.log('deleteSubtitlesFromCloud failed: $e', name: 'ConversationService');
+    }
+  }
+
+  static Future<void> uploadArticleContentToCloud(String articleCode) async {
+    try {
+      AuthService.instance.ensureActiveSession();
+      final client = sb.Supabase.instance.client;
+
+      final articles = await DatabaseService.findByCondition<Article>(
+        () => Article(),
+        where: 'code = ? AND is_deleted = 0',
+        whereArgs: [articleCode],
+        limit: 1,
+      );
+      if (articles.isEmpty) return;
+      final article = articles.first;
+
+      final paragraphs = await DatabaseService.findByCondition<ArticleParagraph>(
+        () => ArticleParagraph(),
+        where: 'article_code = ? AND is_deleted = 0',
+        whereArgs: [articleCode],
+        orderBy: 'paragraph_index ASC',
+      );
+
+      final sentences = await DatabaseService.findByCondition<ArticleSentence>(
+        () => ArticleSentence(),
+        where: 'article_code = ? AND is_deleted = 0',
+        whereArgs: [articleCode],
+        orderBy: 'sentence_index ASC',
+      );
+
+      final items = <Map<String, dynamic>>[];
+      for (final p in paragraphs) {
+        items.add({
+          'paragraph_index': p.paragraphIndex,
+          'content': p.contentPlain,
+          'start_sentence_idx': p.startSentenceIdx,
+          'end_sentence_idx': p.endSentenceIdx,
+        });
+      }
+      for (final s in sentences) {
+        items.add({
+          'sentence_index': s.sentenceIndex,
+          'paragraph_index': s.paragraphIndex,
+          'content': s.content,
+        });
+      }
+
+      await client.functions.invoke(
+        'subtitle-storage',
+        body: {
+          'op': 'upload',
+          'video_code': 'article_$articleCode',
+          'title': article.title,
+          'items': items,
+        },
+      );
+    } catch (e) {
+      dev.log('uploadArticleContentToCloud failed: $e', name: 'ConversationService');
     }
   }
 

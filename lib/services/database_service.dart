@@ -574,9 +574,6 @@ class DatabaseService {
         'created_by': entity.userCode,
         'updated_by': entity.userCode,
       });
-      if (_isDatabaseCorrupted(e)) {
-        await _recoverCorruptedDatabase(e, st);
-      }
       rethrow;
     }
   }
@@ -688,15 +685,14 @@ class DatabaseService {
         'updated_by': entity.userCode,
       });
 
-      if (_isDatabaseCorrupted(e)) {
-        await _recoverCorruptedDatabase(e, st);
-        return 0;
-      }
       rethrow;
     }
   }
 
   /// 批量软删除记录
+  ///
+  /// [entities] 要删除的实体列表
+  /// 返回影响行数
   ///
   /// [entities] 要删除的实体列表
   /// 返回影响行数
@@ -753,10 +749,6 @@ class DatabaseService {
         'updated_by': currentUserCode,
       });
 
-      if (_isDatabaseCorrupted(e)) {
-        await _recoverCorruptedDatabase(e, st);
-        return 0;
-      }
       rethrow;
     }
 

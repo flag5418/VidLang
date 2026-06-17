@@ -13,7 +13,9 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
+import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:vidlang/theme/app_icons.dart';
+import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/utils/device_utils.dart';
@@ -48,6 +50,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
 
   @override
   void dispose() {
+    WifiTransferService.instance.removeListener(_onWifiChanged);
     _folderNameController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -57,6 +60,12 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(fileProvider.notifier).loadFolders());
+    WifiTransferService.instance.addListener(_onWifiChanged);
+  }
+
+  void _onWifiChanged() {
+    if (!mounted) return;
+    ref.read(fileProvider.notifier).refreshFoldersSilently();
   }
 
   int get _currentTab => ref.watch(resourceTabProvider);
@@ -132,7 +141,11 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage())),
+              onTap: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage()));
+                if (!mounted) return;
+                await ref.read(fileProvider.notifier).loadFolders();
+              },
               child: Container(
                 width: 40.r,
                 height: 40.r,
@@ -309,28 +322,36 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       onTap: _showCreateFolderDialog,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           color: colorScheme.surfaceContainerHighest,
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44.r,
-              height: 44.r,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: colorScheme.outline, width: 2),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Column(
+            children: [
+              const Spacer(flex: 2),
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 40.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colorScheme.outline, width: 2),
+                  ),
+                  child: Icon(Icons.add, size: 20.sp, color: colorScheme.outline),
+                ),
               ),
-              child: Icon(Icons.add, size: 18.sp, color: colorScheme.outline),
-            ),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              '新建',
-              style: TextStyle(fontSize: 10.sp, color: colorScheme.outline, fontWeight: FontWeight.w500),
-            ),
-          ],
+              const Spacer(flex: 1),
+              Padding(
+                padding: EdgeInsets.only(bottom: 14.h),
+                child: Text(
+                  '新建',
+                  style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: colorScheme.outline),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

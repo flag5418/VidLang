@@ -159,9 +159,16 @@ class AuthService {
     if (newSessionId != null &&
         newSessionId != _localSessionId &&
         _localSessionId != null) {
-      // 被顶号！
-      _cachedServerSessionId = newSessionId;
-      _triggerForceLogout();
+      // 只有当 server 缓存已确认不是本设备 session，且 Realtime 又推送了不同的 session，才视为被顶号
+      // 首次注册后 _cachedServerSessionId 可能为 null（fetch 未完成）或等于 _localSessionId，此时不触发
+      if (_cachedServerSessionId != null &&
+          _cachedServerSessionId != _localSessionId) {
+        _cachedServerSessionId = newSessionId;
+        _triggerForceLogout();
+      } else {
+        // 首次注册或本设备事件回环，仅更新缓存
+        _cachedServerSessionId = newSessionId;
+      }
     } else if (newSessionId != null) {
       _cachedServerSessionId = newSessionId;
     }
@@ -209,6 +216,20 @@ class AuthService {
   }
 
   Future<bool> silentVerifySupabaseLogin({required bool setAsCurrent}) async {
+    // ── 优先使用 Supabase SDK 自动恢复的 session ──
+    // Supabase Flutter SDK 在 initialize 时会自动从 SharedPreferences
+    // 恢复上次的 session，无需重新输入密码。
+    final existingSession = _client.auth.currentSession;
+    if (existingSession != null && !existingSession.isExpired) {
+      // Session 有效，直接同步到本地
+      await _syncSupabaseSessionToLocal(setAsCurrent: setAsCurrent);
+      if (setAsCurrent) {
+        await registerSessionAndWatch();
+      }
+      return true;
+    }
+
+    // ── SDK session 无效，尝试用保存的凭据重新登录 ──
     final credential = await _loadSupabaseCredential();
     if (credential == null) return false;
     try {

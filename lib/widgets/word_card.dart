@@ -150,7 +150,18 @@ class _WordCardState extends ConsumerState<WordCard> {
         TtsService().speakSubtitle(widget.word);
       }
     }
+    _loadSavedState();
     _fetchDefinition();
+  }
+
+  Future<void> _loadSavedState() async {
+    try {
+      final saved = _isSingleWord
+          ? await WordBookService.isWordSaved(word: widget.word, sourceType: widget.sourceType, sourceCode: widget.sourceCode)
+          : await WordBookService.isSentenceSaved(text: widget.word, sourceType: widget.sourceType, sourceCode: widget.sourceCode);
+      if (!mounted) return;
+      setState(() => _saved = saved);
+    } catch (_) {}
   }
 
   Future<void> _fetchDefinition() async {
@@ -275,17 +286,52 @@ class _WordCardState extends ConsumerState<WordCard> {
     return WordDetail(word: text, contextSentence: text, sentenceTranslation: translated, success: true, source: 'local');
   }
 
-  Future<void> _handleSave() async {
-    if (_saving || _saved || widget.onSaveWord == null) return;
+  Future<void> _handleToggleSave() async {
+    if (_saving) return;
     setState(() => _saving = true);
     try {
-      final ok = await widget.onSaveWord!(
-        word: widget.word,
-        contextSentence: widget.contextSentence,
-        sourceType: widget.sourceType,
-        sourceCode: widget.sourceCode,
-        sourceTitle: widget.sourceTitle,
-      );
+      if (_saved) {
+        final ok = _isSingleWord
+            ? await WordBookService.unsaveWord(word: widget.word, sourceType: widget.sourceType, sourceCode: widget.sourceCode)
+            : await WordBookService.unsaveSentence(text: widget.word, sourceType: widget.sourceType, sourceCode: widget.sourceCode);
+        if (!mounted) return;
+        setState(() {
+          _saving = false;
+          if (ok) _saved = false;
+        });
+        if (ok) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('已取消收藏'), duration: const Duration(seconds: 1), behavior: SnackBarBehavior.floating));
+        }
+        return;
+      }
+
+      bool ok;
+      if (_isSingleWord) {
+        if (widget.onSaveWord == null) {
+          ok = false;
+        } else {
+          ok = await widget.onSaveWord!(
+            word: widget.word,
+            contextSentence: widget.contextSentence,
+            sourceType: widget.sourceType,
+            sourceCode: widget.sourceCode,
+            sourceTitle: widget.sourceTitle,
+          );
+        }
+      } else {
+        final wb = await WordBookService.saveSentence(
+          text: widget.word,
+          translation: _detail?.sentenceTranslation ?? _detail?.translation,
+          sourceType: widget.sourceType,
+          sourceCode: widget.sourceCode,
+          sourceTitle: widget.sourceTitle,
+          segmentCode: widget.segmentCode,
+        );
+        ok = wb != null;
+      }
+
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -295,36 +341,6 @@ class _WordCardState extends ConsumerState<WordCard> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('已收藏「${widget.word}」'), duration: const Duration(seconds: 1), behavior: SnackBarBehavior.floating));
-        // 收藏成功后弹出标签设置弹窗
-        await _showTagSettingDialog(contentType: 'word');
-      }
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _handleSaveSentence() async {
-    if (_saving || _saved) return;
-    setState(() => _saving = true);
-    try {
-      final wb = await WordBookService.saveSentence(
-        text: widget.word,
-        translation: _detail?.sentenceTranslation ?? _detail?.translation,
-        sourceType: widget.sourceType,
-        sourceCode: widget.sourceCode,
-        sourceTitle: widget.sourceTitle,
-        segmentCode: widget.segmentCode,
-      );
-      if (!mounted) return;
-      setState(() {
-        _saving = false;
-        if (wb != null) _saved = true;
-      });
-      if (wb?.code != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('已收藏句子'), duration: const Duration(seconds: 1), behavior: SnackBarBehavior.floating));
-        await _showTagSettingDialog(wordBookCode: wb!.code!, contentType: 'sentence');
       }
     } catch (_) {
       if (mounted) setState(() => _saving = false);
@@ -571,27 +587,25 @@ class _WordCardState extends ConsumerState<WordCard> {
       return WordDetailPanel(
         data: WordDetail(word: widget.word, pronounce: PronounceInfo(), definitions: [], standaloneExamples: [], success: true, source: 'loading'),
         config: config,
-        onSpeak: () => TtsService().speakWord(widget.word),
+        onSpeak: widget.onSpeak ?? () => (_isSingleWord ? TtsService().speakWord(widget.word) : TtsService().speakSubtitle(widget.word)),
         onClose: () => Navigator.of(context).pop(),
         isLoading: true,
-        onSaveWord: _isSingleWord ? (widget.onSaveWord != null ? _handleSave : null) : _handleSaveSentence,
         isSaved: _saved,
         saving: _saving,
+        onSaveWord: _isSingleWord ? (widget.onSaveWord != null ? _handleToggleSave : null) : _handleToggleSave,
       );
     }
 
-    if (_detail == null) {
-      return const SizedBox.shrink();
-    }
+    if (_detail == null) return const SizedBox.shrink();
 
     return WordDetailPanel(
       data: _detail!,
       config: config,
       onSpeak: widget.onSpeak ?? () => (_isSingleWord ? TtsService().speakWord(widget.word) : TtsService().speakSubtitle(widget.word)),
       onClose: () => Navigator.of(context).pop(),
-      onSaveWord: _isSingleWord ? (widget.onSaveWord != null ? _handleSave : null) : _handleSaveSentence,
       isSaved: _saved,
       saving: _saving,
+      onSaveWord: _isSingleWord ? (widget.onSaveWord != null ? _handleToggleSave : null) : _handleToggleSave,
     );
   }
 }

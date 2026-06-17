@@ -48,8 +48,8 @@ final navigationItems = [
   NavigationItem(
     id: NavigationPage.wordBook,
     label: '收藏',
-    icon: Icons.menu_book_outlined,
-    activeIcon: Icons.menu_book,
+    icon: Icons.star_border_rounded,
+    activeIcon: Icons.star_rounded,
   ),
   NavigationItem(
     id: NavigationPage.profile,

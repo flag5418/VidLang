@@ -76,7 +76,7 @@ class MainVideoCard extends StatelessWidget {
                 ),
               ),
             ),
-            _buildTopContent(context, colorScheme),
+            _buildMenu(context, colorScheme),
             _buildBottomSection(context, colorScheme),
             _buildPlayButton(context, colorScheme),
           ],
@@ -107,9 +107,9 @@ class MainVideoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTopContent(BuildContext context, ColorScheme colorScheme) {
+  Widget _buildMenu(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
-      top: 12,
+      bottom: 14,
       right: 12,
       child: PopupMenuButton<String>(
         onSelected: (value) {
@@ -136,18 +136,10 @@ class MainVideoCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 6,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), color: Colors.black.withValues(alpha: 0.6)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (video.hasSubtitles) ...[Icon(Icons.subtitles, size: 14.sp, color: colorScheme.primary), const SizedBox(width: 6)],
-              Text(
-                '${video.currentPositionString} / ${video.durationString}',
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500, color: Colors.white),
-              ),
-            ],
-          ),
+          width: 28.r,
+          height: 28.r,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6.r), color: Colors.black.withValues(alpha: 0.65)),
+          child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
         ),
         itemBuilder: (context) {
           final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
@@ -194,15 +186,26 @@ class MainVideoCard extends StatelessWidget {
                 colors: [Colors.black.withValues(alpha: 0.3), Colors.black.withValues(alpha: 0.85)],
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    video.name,
-                    style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  video.name,
+                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 2.h),
+                Row(
+                  children: [
+                    Icon(Icons.schedule, size: 10.sp, color: Colors.white70),
+                    SizedBox(width: 4.w),
+                    Text(
+                      '${video.currentPositionString} / ${video.durationString}',
+                      style: TextStyle(fontSize: 10.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ),
               ],
             ),

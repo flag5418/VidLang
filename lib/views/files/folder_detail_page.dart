@@ -17,6 +17,7 @@ import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:vidlang/components/article_hero_card.dart';
 import 'package:vidlang/components/article_item_card.dart';
 import 'package:vidlang/components/main_video_card.dart';
 import 'package:vidlang/components/playback_settings_sheet.dart';
@@ -36,6 +37,7 @@ import 'package:vidlang/services/id3_parser.dart';
 import 'package:vidlang/services/initial_letter_cover.dart';
 import 'package:vidlang/services/lrc_parser.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:omni_player/omni_player.dart' show VideoMetadataExtractor;
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -74,6 +76,20 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
       _loadArticlesIfNeeded();
     });
+    WifiTransferService.instance.addListener(_onWifiChanged);
+  }
+
+  @override
+  void dispose() {
+    WifiTransferService.instance.removeListener(_onWifiChanged);
+    super.dispose();
+  }
+
+  Future<void> _onWifiChanged() async {
+    if (!mounted) return;
+    await ref.read(fileProvider.notifier).refreshVideosSilently(widget.folderCode);
+    if (!mounted) return;
+    _loadArticlesIfNeeded();
   }
 
   Future<void> _loadArticlesIfNeeded() async {
@@ -148,13 +164,17 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         Expanded(
           child: Row(
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 40.r,
-                  height: 40.r,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: colorScheme.surfaceContainerHighest),
-                  child: Icon(Icons.arrow_back, size: 18.sp, color: colorScheme.onSurface),
+              Material(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(20.r),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20.r),
+                  onTap: () => Navigator.pop(context),
+                  child: SizedBox(
+                    width: 40.r,
+                    height: 40.r,
+                    child: Icon(Icons.arrow_back, size: 18.sp, color: colorScheme.onSurface),
+                  ),
                 ),
               ),
               SizedBox(width: AppSpacing.sm),
@@ -172,13 +192,17 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           spacing: AppSpacing.space2,
           children: [
             if (folderType != FolderContentType.article)
-              GestureDetector(
-                onTap: _showSettings,
-                child: Container(
-                  width: 40.r,
-                  height: 40.r,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: colorScheme.surfaceContainerHighest),
-                  child: Icon(Icons.settings, size: 18.sp, color: colorScheme.onSurfaceVariant),
+              Material(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(20.r),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20.r),
+                  onTap: _showSettings,
+                  child: SizedBox(
+                    width: 40.r,
+                    height: 40.r,
+                    child: Icon(Icons.settings, size: 18.sp, color: colorScheme.onSurfaceVariant),
+                  ),
                 ),
               ),
 
@@ -189,11 +213,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               color: colorScheme.surface,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 8,
-              child: Container(
-                width: 40.r,
-                height: 40.r,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.r), color: colorScheme.primary),
-                child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
+              child: Material(
+                color: colorScheme.primary,
+                borderRadius: BorderRadius.circular(20.r),
+                child: SizedBox(
+                  width: 40.r,
+                  height: 40.r,
+                  child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
+                ),
               ),
               itemBuilder: (context) => [
                 PopupMenuItem(value: 'import', child: _popupMenuItem(Icons.add_circle_outline, '选择导入（可多选）', colorScheme)),
@@ -291,25 +318,47 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     }
     final crossAxisCount = DeviceUtils.getGridColumns(context);
     final gridSpacing = DeviceUtils.getGridSpacing(context);
+
+    // 选"主文章"：最后阅读的（按 lastStudyDate），没有则取第一篇
+    final readArticles = _articles.where((a) => a.lastStudyDate != null).toList()
+      ..sort((a, b) => b.lastStudyDate!.compareTo(a.lastStudyDate!));
+    final heroArticle = readArticles.isNotEmpty ? readArticles.first : _articles.first;
+    final gridArticles = _articles.where((a) => a.code != heroArticle.code).toList();
+
     return RefreshIndicator(
       onRefresh: _loadArticlesIfNeeded,
-      child: GridView.builder(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: gridSpacing,
-          mainAxisSpacing: gridSpacing,
-          childAspectRatio: 16 / 9,
-        ),
-        itemCount: _articles.length,
-        itemBuilder: (context, index) {
-          final article = _articles[index];
-          return ArticleItemCard(
-            article: article,
-            onTap: () => _openArticle(article),
-            onDelete: () => _confirmDeleteArticle(article),
-          );
-        },
+      child: ListView(
+        children: [
+          if (heroArticle != null)
+            ArticleHeroCard(
+              article: heroArticle,
+              onRead: () => _openArticle(heroArticle),
+              onRename: () => _showArticleRenameDialog(heroArticle),
+              onDelete: () => _confirmDeleteArticle(heroArticle),
+            ),
+          if (heroArticle != null) SizedBox(height: AppSpacing.md),
+          GridView.builder(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: gridSpacing,
+              mainAxisSpacing: gridSpacing,
+              childAspectRatio: 4 / 3,
+            ),
+            itemCount: gridArticles.length,
+            itemBuilder: (context, index) {
+              final article = gridArticles[index];
+              return ArticleItemCard(
+                article: article,
+                onTap: () => _openArticle(article),
+                onRename: () => _showArticleRenameDialog(article),
+                onDelete: () => _confirmDeleteArticle(article),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -348,7 +397,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: gridSpacing,
             mainAxisSpacing: gridSpacing,
-            childAspectRatio: 16 / 9,
+            childAspectRatio: 4 / 3,
           ),
           itemCount: gridVideos.length,
           itemBuilder: (context, index) {
@@ -436,7 +485,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         _importWholeFolderForIosVideo();
         break;
       case 'wifi':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage()));
+        () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage()));
+          if (!mounted) return;
+          await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
+          _loadArticlesIfNeeded();
+        }();
         break;
       case 'rename':
         _showRenameDialog();
@@ -643,6 +697,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     if (parsed.paragraphs.isNotEmpty) {
       await DatabaseService.batchInsert(parsed.paragraphs);
     }
+
+    // Upload to cloud for AI question generation
+    try {
+      await ConversationService.uploadArticleContentToCloud(articleCode);
+    } catch (_) {}
   }
 
   /// 导入音频文件
@@ -1075,6 +1134,47 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       MessageTheme.info => ToastType.info,
     };
     AppToast.show(context, content, type: type);
+  }
+
+  Future<void> _showArticleRenameDialog(Article article) async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final controller = TextEditingController(text: article.title);
+    await DialogUtils.show(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surface,
+        title: Text('重命名文章', style: TextStyle(color: colorScheme.onSurface)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: TextStyle(color: colorScheme.onSurface),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: colorScheme.surfaceContainerHighest,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                article.title = name;
+                await DatabaseService.update(article);
+                if (mounted) setState(() {});
+              } catch (_) {}
+            },
+            child: Text('确定', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _confirmDeleteArticle(Article article) async {

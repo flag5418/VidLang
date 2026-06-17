@@ -102,6 +102,43 @@ class WordBookListCard extends StatelessWidget {
                         color: colorScheme.onSurface,
                       ),
                     ),
+                    // ── 来源上下文 ──
+                    if (word.contextSentence != null && word.contextSentence!.isNotEmpty) ...[                      SizedBox(height: 6.h),
+                      Text(
+                        word.contextSentence!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                    // ── 来源信息 ──
+                    if (word.sourceTitle != null && word.sourceTitle!.isNotEmpty) ...[                      SizedBox(height: 4.h),
+                      Row(
+                        children: [
+                          Icon(
+                            _sourceIcon(word.sourceType),
+                            size: 14.sp,
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                          SizedBox(width: 4.w),
+                          Expanded(
+                            child: Text(
+                              word.sourceTitle!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (tags.isNotEmpty) ...[
                       SizedBox(height: 8.h),
                       Wrap(
@@ -149,6 +186,19 @@ class WordBookListCard extends StatelessWidget {
         return '🎵';
       default:
         return '📖';
+    }
+  }
+
+  IconData _sourceIcon(String type) {
+    switch (type) {
+      case 'video':
+        return Icons.movie_outlined;
+      case 'article':
+        return Icons.article_outlined;
+      case 'music':
+        return Icons.music_note_outlined;
+      default:
+        return Icons.book_outlined;
     }
   }
 }

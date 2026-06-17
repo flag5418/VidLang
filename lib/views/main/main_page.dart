@@ -3,6 +3,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
@@ -47,6 +48,24 @@ class MainPage extends ConsumerWidget {
           type: BottomNavigationBarType.fixed,
           items: navigationItems.map((item) {
             final isActive = currentIndex == navigationItems.indexOf(item);
+
+            // 测试 Hugeicons：首页图标使用 Hugeicons 替代 Flutter 自带图标
+            if (item.id == NavigationPage.home) {
+              return BottomNavigationBarItem(
+                icon: HugeIcon(
+                  icon: HugeIcons.strokeRoundedHome01,
+                  color: isActive ? AppColors.iconActive : AppColors.iconDefault,
+                  size: 24.w,
+                ),
+                activeIcon: HugeIcon(
+                  icon: HugeIcons.strokeRoundedHome01,
+                  color: AppColors.iconActive,
+                  size: 24.w,
+                ),
+                label: item.label,
+              );
+            }
+
             return BottomNavigationBarItem(
               icon: Icon(item.icon, color: isActive ? AppColors.iconActive : AppColors.iconDefault, size: 24.w),
               activeIcon: Icon(item.activeIcon, color: AppColors.iconActive, size: 24.w),

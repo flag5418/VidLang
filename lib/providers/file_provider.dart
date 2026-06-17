@@ -237,6 +237,50 @@ class FileNotifier extends StateNotifier<FileState> {
     }
   }
 
+  /// 静默刷新指定文件夹下的视频列表（不触发 loading 状态）
+  ///
+  /// 用于 WiFi 传输等后台数据变更后的实时刷新，避免界面闪烁。
+  Future<void> refreshVideosSilently(String folderCode) async {
+    try {
+      VideoFolder? folder = await findFolderByCode(folderCode);
+      List<VideoInfo> videos = await DatabaseService.findByCondition(
+        () => VideoInfo(),
+        where: 'folder_code = ? AND is_deleted = 0',
+        whereArgs: [folderCode],
+        orderBy: 'order_index ASC, created_at ASC',
+      );
+
+      VideoInfo? currentVideo;
+      if (videos.isNotEmpty) {
+        final prevCode = state.currentVideo?.code;
+        if (prevCode != null && prevCode.isNotEmpty) {
+          for (final v in videos) {
+            if (v.code == prevCode) {
+              currentVideo = v;
+              break;
+            }
+          }
+        }
+        if (currentVideo == null && folder?.lastVideoCode != null) {
+          for (final v in videos) {
+            if (v.code == folder!.lastVideoCode) {
+              currentVideo = v;
+              break;
+            }
+          }
+        }
+        if (currentVideo == null) {
+          final playing = videos.where((v) => v.isCurrentPlaying).toList();
+          currentVideo = playing.isNotEmpty ? playing.first : videos.first;
+        }
+      }
+
+      state = state.copyWith(currentFolder: folder, videos: videos, currentVideo: currentVideo, error: null);
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+    }
+  }
+
   /// 创建叶子视频集（挂在默认或指定分组下）
   Future<String?> createFolder(String name, {String? parentCode, String contentType = 'video'}) async {
     state = state.copyWith(isLoading: true);

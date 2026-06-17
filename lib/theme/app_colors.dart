@@ -139,4 +139,67 @@ class AppColors {
 
   /// 第三层表面色（比 surfaceHighest 再高一级）
   static const Color surfaceTertiary = Color(0xFF363636);
+
+  // ─── 三类资源类型色（独立于主题，深/浅皆醒目） ────
+  /// 视频 - 蓝色（沿用 primary）
+  static const Color videoColor = Color(0xFF4284FC);
+  /// 视频卡片背景（dark 20%, light 12%）
+  static Color videoCardBg(Brightness brightness) =>
+      videoColor.withValues(alpha: brightness == Brightness.dark ? 0.20 : 0.12);
+
+  /// 文章 - 暖橙
+  static const Color articleColor = Color(0xFFFF8E53);
+  static Color articleCardBg(Brightness brightness) =>
+      articleColor.withValues(alpha: brightness == Brightness.dark ? 0.20 : 0.12);
+
+  /// 音频 - 紫色
+  static const Color audioColor = Color(0xFFA855F7);
+  static Color audioCardBg(Brightness brightness) =>
+      audioColor.withValues(alpha: brightness == Brightness.dark ? 0.20 : 0.12);
+
+  // ─── 文章卡片调色板（10+ 种颜色，按标题哈希分配） ──
+  static const List<Color> articlePalette = [
+    Color(0xFF2563EB), // 蓝
+    Color(0xFF059669), // 翡翠绿
+    Color(0xFFD97706), // 琥珀
+    Color(0xFFDC2626), // 红
+    Color(0xFF7C3AED), // 紫
+    Color(0xFFDB2777), // 粉红
+    Color(0xFF0891B2), // 青
+    Color(0xFF4F46E5), // 靛蓝
+    Color(0xFFEA580C), // 橙
+    Color(0xFF0D9488), // 茶绿
+    Color(0xFF9333EA), // 紫罗兰
+    Color(0xFF15803D), // 绿
+  ];
+
+  /// 根据文章标题分配颜色
+  static Color articleColorFor(String title) {
+    final hash = title.hashCode;
+    return articlePalette[hash.abs() % articlePalette.length];
+  }
+
+  /// 获取类型色
+  static Color colorForType(String type, {required Brightness brightness}) {
+    switch (type) {
+      case 'article':
+        return articleColor;
+      case 'music':
+        return audioColor;
+      default:
+        return videoColor;
+    }
+  }
+
+  /// 获取类型卡片背景色
+  static Color cardBgForType(String type, {required Brightness brightness}) {
+    switch (type) {
+      case 'article':
+        return articleCardBg(brightness);
+      case 'music':
+        return audioCardBg(brightness);
+      default:
+        return videoCardBg(brightness);
+    }
+  }
 }
