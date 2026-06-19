@@ -190,7 +190,7 @@ let contextTarget = null;   // {type, code} for context menu
 
 const CATEGORIES = [
   {type:'video', label:'视频', icon:'<svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>', exts:['.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], subExts:['.srt','.ass','.ssa','.vtt'], uploadLabel:'mp4 / mov / avi / mkv … 字幕：srt / ass / vtt'},
-  {type:'music', label:'音频', icon:'<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>', exts:['.mp3','.wav','.m4a','.aac','.flac','.ogg','.wma','.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], uploadLabel:'mp3 / wav / m4a / mp4 / mov …'},
+  {type:'music', label:'音频', icon:'<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>', exts:['.mp3','.wav','.m4a','.aac','.flac','.ogg','.wma','.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], subExts:['.lrc','.srt','.ass','.ssa','.vtt'], uploadLabel:'mp3 / wav / m4a / mp4 / mov … 字幕：lrc / srt / ass / vtt'},
   {type:'article',label:'文章', icon:'<svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>', exts:['.txt','.md','.markdown'], uploadLabel:'txt / md'},
 ];
 
@@ -527,7 +527,8 @@ async function uploadArticleContent(filename,content){
 async function uploadSubtitle(videoCode){
   const input=document.createElement('input');
   input.type='file';
-  input.accept='.srt,.ass,.ssa,.vtt';
+  const cat=getCategory(currentFolder.folderType);
+  input.accept=(cat.subExts||['.srt','.ass','.ssa','.vtt']).join(',');
   input.onchange=async()=>{
     const f=input.files[0];
     if(!f) return;

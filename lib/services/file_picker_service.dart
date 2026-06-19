@@ -15,6 +15,7 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/folder_stats_service.dart';
+import 'package:vidlang/services/lrc_parser.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 
@@ -57,7 +58,7 @@ class FilePickerService {
   static const List<String> supportedVideoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'];
 
   /// 支持的字幕文件扩展名列表
-  static const List<String> supportedSubtitleExtensions = ['.srt', '.ass', '.ssa', '.vtt'];
+  static const List<String> supportedSubtitleExtensions = ['.srt', '.ass', '.ssa', '.vtt', '.lrc'];
 
   /// 选择文件夹
   ///
@@ -503,8 +504,11 @@ class FilePickerService {
       // 读取字幕文件内容
       final content = await subtitleFile.readAsString();
 
-      // 解析字幕内容
-      final subtitles = _parseSubtitleContent(content);
+      // 解析字幕内容：.lrc 使用 LrcParser，其余使用 SRT/ASS/VTT 解析器
+      final ext = path.extension(subtitlePath).toLowerCase();
+      final subtitles = ext == '.lrc'
+          ? LrcParser.parseContent(content, videoCode)
+          : _parseSubtitleContent(content);
       int subtitlesInserted = 0;
       int participlesInserted = 0;
 
