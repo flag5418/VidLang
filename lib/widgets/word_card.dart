@@ -107,7 +107,7 @@ class WordCard extends ConsumerStatefulWidget {
     return DialogUtils.show<void>(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.black45,
       builder: (ctx) => WordCard._internal(
         word: word,
         contextSentence: contextSentence,
@@ -152,6 +152,13 @@ class _WordCardState extends ConsumerState<WordCard> {
     }
     _loadSavedState();
     _fetchDefinition();
+  }
+
+  @override
+  void dispose() {
+    // 弹窗关闭时停止 TTS 朗读
+    TtsService().stop();
+    super.dispose();
   }
 
   Future<void> _loadSavedState() async {

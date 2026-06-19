@@ -483,11 +483,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   _selectedWords = words.map((w) => _WordItem(text: w, key: GlobalKey())).toList();
                   final selectedText = words.join(' ');
                   // 暂停播放
-                  ref.read(playerEngineProvider.notifier).player.pause();
+                  final notifier = ref.read(playerEngineProvider.notifier);
+                  final wasPlaying = ref.read(playerEngineProvider).playerState == PlayerState.playing;
+                  notifier.player.pause();
                   // 弹出查词卡片
                   final subState = ref.read(subscriptionProvider);
                   final isPremium = subState.mode == SubscriptionMode.premium;
-                  final notifier = ref.read(playerEngineProvider.notifier);
                   final state = ref.read(playerEngineProvider);
                   final currentSub = _getCurrentSubtitle();
                   final canSave = WordBookService.isSingleWord(selectedText);
@@ -502,7 +503,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     sourceCode: widget.videoCode,
                     sourceTitle: state.title,
                     segmentCode: currentSub?.code,
-                  );
+                  ).then((_) {
+                    if (wasPlaying && mounted) notifier.player.play();
+                  });
                 }
               },
             ),

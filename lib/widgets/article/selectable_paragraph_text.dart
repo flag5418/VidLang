@@ -302,21 +302,27 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
           final lower = word.text.toLowerCase();
           final markColor = widget.markedWords[lower] ?? widget.markedWords[word.text];
 
-          Color? bgColor;
-          Color textColor = widget.textColor;
-          FontWeight fontWeight = FontWeight.normal;
-          TextDecoration? decoration;
+           Color? bgColor;
+           Color textColor = widget.textColor;
+           FontWeight fontWeight = FontWeight.normal;
+           TextDecoration? decoration;
+           TextDecorationStyle decorationStyle = TextDecorationStyle.solid;
+           Color? underlineColor;
 
-          if (isTtsHighlight) {
-            bgColor = widget.colorScheme.primary.withValues(alpha: 0.2);
-            textColor = widget.colorScheme.primary;
-            fontWeight = FontWeight.w600;
-          } else if (isSelected) {
-            bgColor = widget.colorScheme.primary.withValues(alpha: 0.25);
-            textColor = widget.colorScheme.primary;
-            fontWeight = FontWeight.w600;
-          } else if (markColor != null) {
-            decoration = TextDecoration.underline;
+           if (isTtsHighlight) {
+             bgColor = widget.colorScheme.primary.withValues(alpha: 0.2);
+             textColor = widget.colorScheme.primary;
+             fontWeight = FontWeight.w600;
+           } else if (isSelected) {
+             bgColor = widget.colorScheme.primary.withValues(alpha: 0.25);
+             textColor = widget.colorScheme.primary;
+             fontWeight = FontWeight.w600;
+           } else if (markColor != null) {
+             bgColor = markColor.withValues(alpha: 0.2);
+             decoration = TextDecoration.underline;
+             decorationStyle = TextDecorationStyle.dotted;
+             underlineColor = markColor;
+            decorationStyle = TextDecorationStyle.dotted;
           }
 
           return Container(
@@ -334,7 +340,8 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
                 fontWeight: fontWeight,
                 height: 1.6,
                 decoration: decoration,
-                decorationColor: markColor,
+                decorationStyle: decorationStyle,
+                decorationColor: underlineColor ?? markColor,
               ),
             ),
           );

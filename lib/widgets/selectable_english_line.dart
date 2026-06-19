@@ -157,21 +157,25 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
           _handleTap(event.position, words);
         }
 
-        setState(() {
-          _isPressing = false;
-          _isDragging = false;
-          _selectedWords = [];
-          _dragStartIdx = null;
-        });
+        if (mounted) {
+          setState(() {
+            _isPressing = false;
+            _isDragging = false;
+            _selectedWords = [];
+            _dragStartIdx = null;
+          });
+        }
       },
       onPointerCancel: (event) {
         _pressTimer?.cancel();
-        setState(() {
-          _isPressing = false;
-          _isDragging = false;
-          _selectedWords = [];
-          _dragStartIdx = null;
-        });
+        if (mounted) {
+          setState(() {
+            _isPressing = false;
+            _isDragging = false;
+            _selectedWords = [];
+            _dragStartIdx = null;
+          });
+        }
       },
       child: Stack(
         children: [

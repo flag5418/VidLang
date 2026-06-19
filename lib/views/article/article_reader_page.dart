@@ -76,6 +76,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   // 段落激活
   int? _activeParagraphIndex;
+  int _activeParagraphPosition = -1;
 
   // 划词选择状态
   bool _isSelecting = false; // 划词进行中（禁用滚动）
@@ -186,8 +187,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _audioPlayer = ap.AudioPlayer();
     _initFontSize();
     _initTts();
-    _loadArticle();
-    _loadMarkRecords();
+    _loadMarkRecords().then((_) => _loadArticle());
   }
 
   @override
@@ -333,6 +333,24 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       _isLoading = false;
     });
 
+    // 根据 lastSentenceIndex 找到当前段落并滚动
+    final currentSentence = _sentences.where((s) => s.sentenceIndex == _readSentenceIndex).firstOrNull;
+    if (currentSentence != null) {
+      final currentParaIdx = currentSentence.paragraphIndex;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _activeParagraphIndex = currentParaIdx;
+          final paraIndices = _getParagraphIndices();
+          _activeParagraphPosition = paraIndices.indexOf(currentParaIdx);
+        });
+        final paraIndices = _getParagraphIndices();
+        final pos = paraIndices.indexOf(currentParaIdx);
+        if (pos >= 0) {
+          _scrollToParagraph(currentParaIdx);
+        }
+      });
+    }
+
     // 加载同文件夹文章列表（用于侧边栏）
     final folderArticles = await DatabaseService.findByCondition<Article>(
       () => Article(),
@@ -477,6 +495,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       }
       if (_activeParagraphIndex != bestParaIdx) {
         _activeParagraphIndex = bestParaIdx;
+        final paraIndices = _getParagraphIndices();
+        _activeParagraphPosition = paraIndices.indexOf(bestParaIdx);
         setState(() {});
       }
     }
@@ -717,6 +737,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     final startPara = _activeParagraphIndex ?? sortedParas.first;
     _isReadingAll = true;
     _readingAllParagraphIndex = startPara;
+    final startPos = sortedParas.indexOf(startPara);
+    setState(() {
+      _activeParagraphIndex = startPara;
+      _activeParagraphPosition = startPos >= 0 ? startPos : 0;
+    });
     _speakCurrentParagraph();
   }
 
@@ -737,6 +762,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _readingAllParagraphIndex = sortedParas[currentIdx + 1];
     setState(() {
       _activeParagraphIndex = _readingAllParagraphIndex;
+      _activeParagraphPosition = currentIdx + 1;
     });
     _scrollToParagraph(_readingAllParagraphIndex);
     _speakCurrentParagraph();
@@ -758,6 +784,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     }
   }
 
+  void _scrollToParagraphByPosition(int position) {
+    final paraIndices = _getParagraphIndices();
+    if (position < 0 || position >= paraIndices.length) return;
+    final paraIndex = paraIndices[position];
+    _scrollToParagraph(paraIndex);
+  }
+
   List<int> _getParagraphIndices() {
     // 优先使用 ArticleParagraph 模型，否则从句子 paragraphIndex 推导
     if (_paragraphs.isNotEmpty) {
@@ -776,7 +809,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   void _speakParagraph(int paragraphIndex) {
     final sentences = _sentencesForParagraph(paragraphIndex);
     if (sentences.isEmpty) return;
-    setState(() => _activeParagraphIndex = paragraphIndex);
+    setState(() {
+      _activeParagraphIndex = paragraphIndex;
+      final paraIndices = _getParagraphIndices();
+      _activeParagraphPosition = paraIndices.indexOf(paragraphIndex);
+    });
     _scrollToParagraph(paragraphIndex);
     _speakText(sentences.map((s) => s.content).join(' '));
   }
@@ -814,10 +851,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     setState(() {
       if (_activeParagraphIndex == paragraphIndex) {
         _activeParagraphIndex = null;
+        _activeParagraphPosition = -1;
       } else {
         _activeParagraphIndex = paragraphIndex;
         _selectionText = null;
         _toolbarOffset = null;
+        final paraIndices = _getParagraphIndices();
+        _activeParagraphPosition = paraIndices.indexOf(paragraphIndex);
       }
     });
     // 更新阅读位置
@@ -1251,143 +1291,174 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     final progress = totalSentences > 0 ? (_readSentenceIndex + 1) / totalSentences : 0.0;
     final percent = (progress * 100).round().clamp(0, 100);
     final paraIndices = _getParagraphIndices();
-    final activeParaIdx = _activeParagraphIndex;
-    final currentParaPos = activeParaIdx != null ? paraIndices.indexOf(activeParaIdx) : -1;
+    final totalParas = paraIndices.length;
+    const pageSize = 7;
+    final totalPages = (totalParas / pageSize).ceil().clamp(1, 999);
+    final currentPage = (_activeParagraphPosition ~/ pageSize).clamp(0, totalPages - 1);
+    final pageStart = currentPage * pageSize;
+    final pageEnd = (pageStart + pageSize).clamp(0, totalParas);
+    final pageParas = paraIndices.sublist(pageStart, pageEnd);
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md.w, vertical: AppSpacing.sm.h),
       decoration: BoxDecoration(
         color: cs.surface,
-        border: Border(top: BorderSide(color: cs.outline.withValues(alpha: 0.15))),
+        border: Border(top: BorderSide(color: cs.outline.withValues(alpha: 0.08))),
       ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 段落圆点导航
-            SizedBox(
-              height: 28.h,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 8.w),
-                children: [
-                  for (int i = 0; i < paraIndices.length; i++)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+            // 段落导航
+            if (totalParas > 0) ...[
+              SizedBox(
+                height: 36.h,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 4.w),
+                  itemCount: pageParas.length,
+                  itemBuilder: (_, i) {
+                    final paraIdx = pageParas[i];
+                    final pos = pageStart + i;
+                    final isActive = pos == _activeParagraphPosition;
+                    final isRead = pos < _activeParagraphPosition;
+                    return Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 2.w),
                       child: GestureDetector(
                         onTap: () {
-                          setState(() => _activeParagraphIndex = paraIndices[i]);
-                          _scrollToParagraph(paraIndices[i]);
+                          setState(() => _activeParagraphPosition = pos);
+                          _scrollToParagraph(paraIdx);
                         },
                         child: Container(
-                          width: 28.w,
-                          height: 28.h,
+                          width: 26.w,
+                          height: 26.w,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: paraIndices[i] == activeParaIdx
-                                ? cs.primary
-                                : (i < currentParaPos
-                                    ? cs.primary.withValues(alpha: 0.3)
-                                    : Colors.transparent),
+                            color: isActive ? cs.primary : isRead ? cs.primary.withValues(alpha: 0.15) : Colors.transparent,
                             border: Border.all(
-                              color: paraIndices[i] == activeParaIdx ? cs.primary : cs.outline.withValues(alpha: 0.4),
-                              width: 1.5,
+                              color: isActive ? cs.primary : isRead ? cs.primary.withValues(alpha: 0.3) : cs.outline.withValues(alpha: 0.15),
+                              width: 1,
                             ),
                           ),
                           child: Center(
                             child: Text(
-                              '${paraIndices[i] + 1}',
+                              '${paraIdx + 1}',
                               style: TextStyle(
                                 fontSize: 10.sp,
-                                color: paraIndices[i] == activeParaIdx ? cs.onPrimary : cs.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
+                                color: isActive ? cs.onPrimary : isRead ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.5),
+                                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                    );
+                  },
+                ),
               ),
-            ),
-            SizedBox(height: 4.h),
-            // 进度条 + 按钮
+              if (totalParas > pageSize) ...[
+                SizedBox(height: 6.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.chevron_left, size: 18.sp, color: cs.onSurfaceVariant),
+                      onPressed: currentPage > 0
+                          ? () {
+                              final newPos = (_activeParagraphPosition ~/ pageSize - 1) * pageSize;
+                              setState(() => _activeParagraphPosition = newPos);
+                              _scrollToParagraphByPosition(newPos);
+                            }
+                          : null,
+                    ),
+                    Text(
+                      '${currentPage + 1}/$totalPages',
+                      style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.chevron_right, size: 18.sp, color: cs.onSurfaceVariant),
+                      onPressed: currentPage < totalPages - 1
+                          ? () {
+                              final newPos = (_activeParagraphPosition ~/ pageSize + 1) * pageSize;
+                              setState(() => _activeParagraphPosition = newPos);
+                              _scrollToParagraphByPosition(newPos);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
+              SizedBox(height: 8.h),
+            ],
+            // 进度条 + 操作按钮
             Row(
               children: [
-                // 全文朗读按钮
                 IconButton(
                   icon: Icon(
                     _isReadingAll ? Icons.stop_circle_rounded : Icons.auto_stories_outlined,
                     color: _isReadingAll ? cs.error : cs.onSurfaceVariant,
-                    size: 22.sp,
+                    size: 20.sp,
                   ),
                   onPressed: _isReadingAll ? _stopReadingAll : _startReadAll,
                   tooltip: _isReadingAll ? '停止朗读' : '全文朗读',
                 ),
-                // 进度条
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(2.r),
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(0.0, 1.0),
-                      minHeight: 4.h,
-                      backgroundColor: cs.outline.withValues(alpha: 0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(2.r),
+                        child: LinearProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          minHeight: 3.h,
+                          backgroundColor: cs.outline.withValues(alpha: 0.12),
+                          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '第 ${_activeParagraphPosition + 1} 段 / 共 $totalParas 段',
+                            style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                          ),
+                          Text(
+                            '$percent%',
+                            style: TextStyle(fontSize: 11.sp, color: cs.primary, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(width: 8.w),
-                 Text(
-                   '$percent%',
-                   style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500),
-                 ),
-                 SizedBox(width: 4.w),
-                 // 标记管理按钮
-                 Stack(
-                   clipBehavior: Clip.none,
-                   children: [
-                     IconButton(
-                       icon: Icon(Icons.color_lens_outlined, color: _showMarkManagerPopup ? cs.primary : cs.onSurfaceVariant, size: 20.sp),
-                       onPressed: () => setState(() {
-                         _showMarkManagerPopup = !_showMarkManagerPopup;
-                         _showFontSizePopup = false;
-                         _showArticleList = false;
-                       }),
-                       tooltip: '标记管理',
-                     ),
-                      if (_markRecords.isNotEmpty)
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: BoxConstraints(
-                              minWidth: 14,
-                              minHeight: 14,
-                            ),
-                            child: Text(
-                              '${_markRecords.length}',
-                              style: TextStyle(color: cs.onPrimary, fontSize: 8.sp, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                   ],
-                 ),
-                 // 字体大小按钮
-                 IconButton(
-                   icon: Icon(Icons.text_fields, color: _showFontSizePopup ? cs.primary : cs.onSurfaceVariant, size: 20.sp),
-                   onPressed: () => setState(() {
-                     _showFontSizePopup = !_showFontSizePopup;
-                     _showArticleList = false;
-                     _showMarkManagerPopup = false;
-                   }),
-                   tooltip: '字体大小',
-                 ),
+                IconButton(
+                  icon: Icon(Icons.bookmark_border, color: _showMarkManagerPopup ? cs.primary : cs.onSurfaceVariant, size: 20.sp),
+                  onPressed: () => setState(() {
+                    _showMarkManagerPopup = !_showMarkManagerPopup;
+                    _showFontSizePopup = false;
+                    _showArticleList = false;
+                  }),
+                  tooltip: '标记管理',
+                ),
+                if (_markRecords.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(right: 4.w),
+                    child: Text(
+                      '(${_markRecords.length})',
+                      style: TextStyle(fontSize: 10.sp, color: cs.primary),
+                    ),
+                  ),
+                IconButton(
+                  icon: Icon(Icons.text_fields, color: _showFontSizePopup ? cs.primary : cs.onSurfaceVariant, size: 20.sp),
+                  onPressed: () => setState(() {
+                    _showFontSizePopup = !_showFontSizePopup;
+                    _showArticleList = false;
+                    _showMarkManagerPopup = false;
+                  }),
+                  tooltip: '字体大小',
+                ),
               ],
             ),
           ],
@@ -1442,7 +1513,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   itemBuilder: (_, i) {
                     final a = _folderArticles[i];
                     final isCurrent = a.code == _article?.code;
-                    final progressPercent = (a.progress * 100).round();
+                    final progressPercent = (a.progress * 100).round().clamp(0, 100);
                     final estimatedMinutes = (a.wordCount / 200).ceil().clamp(1, 999);
                     return Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
@@ -1507,9 +1578,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   spacing: 8.w,
                                   runSpacing: 6.h,
                                   children: [
+                                    _statChip(Icons.layers, '${a.totalParagraphs}段', cs),
                                     _statChip(Icons.short_text, '${a.totalSentences}句', cs),
                                     _statChip(Icons.menu_book, '${a.wordCount}词', cs),
-                                    _statChip(Icons.layers, '${a.totalParagraphs}段', cs),
                                     _statChip(Icons.access_time, '约${estimatedMinutes}分钟', cs),
                                   ],
                                 ),
@@ -1642,112 +1713,173 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     });
   }
 
-  // ── 标记管理弹窗 (TDesign样式) ──
+  // ── 标记管理弹窗 (TDesign风格底部抽屉) ──
   Widget _buildMarkManagerPopup(ColorScheme cs) {
     return Positioned(
-      right: 16.w,
-      bottom: 180.h,
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(12.r),
-        color: cs.surface,
-        child: Container(
-          width: 300.w,
-          constraints: BoxConstraints(maxHeight: 400.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(12.r), topRight: Radius.circular(12.r)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '标记管理',
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: cs.onSurface),
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      child: GestureDetector(
+        onTap: () => setState(() => _showMarkManagerPopup = false),
+        child: Material(
+          color: Colors.black.withValues(alpha: 0.4),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.65),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 顶部横条
+                  Container(
+                    margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
+                    width: 32.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: cs.onSurface.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(2.r),
                     ),
-                    if (_markRecords.isNotEmpty)
-                      TDButton(
-                        text: '清空全部',
-                        type: TDButtonType.text,
-                        theme: TDButtonTheme.danger,
-                        size: TDButtonSize.small,
-                        onTap: () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('确认'),
-                              content: const Text('确定要清空所有标记吗？'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确定')),
+                  ),
+                  // 标题栏
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 32.w,
+                              height: 32.w,
+                              decoration: BoxDecoration(
+                                color: cs.primaryContainer.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Icon(Icons.bookmark_border, size: 18.sp, color: cs.primary),
+                            ),
+                            SizedBox(width: 10.w),
+                            Text(
+                              '标记管理',
+                              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
+                            ),
+                          ],
+                        ),
+                        if (_markRecords.isNotEmpty)
+                          TDButton(
+                            text: '清空',
+                            type: TDButtonType.text,
+                            theme: TDButtonTheme.danger,
+                            size: TDButtonSize.small,
+                            onTap: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('确认'),
+                                  content: const Text('确定要清空所有标记吗？'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确定')),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true) {
+                                setState(() => _markRecords.clear());
+                                await _saveMarkRecords();
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1.h, color: cs.outline.withValues(alpha: 0.1)),
+                  // 内容区域
+                  if (_markRecords.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 64.w,
+                              height: 64.w,
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.bookmark_border, size: 32.sp, color: cs.outline.withValues(alpha: 0.4)),
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              '暂无标记',
+                              style: TextStyle(fontSize: 15.sp, color: cs.onSurfaceVariant),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              '划词并标注开始学习吧',
+                              style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.separated(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                        separatorBuilder: (_, __) => Divider(height: 1.h, color: cs.outline.withValues(alpha: 0.08)),
+                        itemCount: _markRecords.length,
+                        itemBuilder: (_, index) {
+                          final record = _markRecords[index];
+                          return TDCell(
+                            titleWidget: Row(
+                              children: [
+                                Container(
+                                  width: 10.w,
+                                  height: 10.w,
+                                  decoration: BoxDecoration(
+                                    color: record.color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: cs.surface, width: 1.5),
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    record.text,
+                                    style: TextStyle(fontSize: 14.sp, color: cs.onSurface),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ],
                             ),
+                            rightIconWidget: IconButton(
+                              icon: Icon(Icons.close, size: 18.sp, color: cs.error),
+                              onPressed: () async {
+                                setState(() => _markRecords.removeAt(index));
+                                await _saveMarkRecords();
+                              },
+                            ),
+                            onClick: (_) {},
                           );
-                          if (confirmed == true) {
-                            setState(() => _markRecords.clear());
-                            await _saveMarkRecords();
-                          }
                         },
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-              if (_markRecords.isEmpty)
-                Padding(
-                  padding: EdgeInsets.all(24.w),
-                  child: Column(
-                    children: [
-                      Icon(Icons.highlight_off, size: 48.sp, color: cs.outline),
-                      SizedBox(height: 12.h),
-                      Text(
-                        '暂无标记',
-                        style: TextStyle(fontSize: 14.sp, color: cs.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: _markRecords.length,
-                    itemBuilder: (_, index) {
-                      final record = _markRecords[index];
-                      return TDCell(
-                        title: record.text,
-                        titleWidget: Text(
-                          record.text,
-                          style: TextStyle(fontSize: 14.sp, color: cs.onSurface),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        leftIconWidget: Container(
-                          width: 24.w,
-                          height: 24.w,
-                          decoration: BoxDecoration(
-                            color: record.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        rightIconWidget: IconButton(
-                          icon: Icon(Icons.delete_outline, color: cs.error),
-                          onPressed: () async {
-                            setState(() => _markRecords.removeAt(index));
-                            await _saveMarkRecords();
-                          },
-                        ),
-                        onClick: (_) {},
-                      );
-                    },
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),

@@ -44,8 +44,8 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
   final int _importTotal = 0;
 
   /// 资源类型标签
-  static const _resourceTypes = ['video', 'article', 'music'];
-  static const _resourceLabels = ['视频', '文章', '音频'];
+  static const _resourceTypes = ['video', 'music', 'article'];
+  static const _resourceLabels = ['视频', '音频', '文章'];
   // static const _resourceIcons = [Icons.videocam, Icons.article, Icons.headphones];
 
   @override

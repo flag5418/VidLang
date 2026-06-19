@@ -43,7 +43,6 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   final Map<WordDetailSection, GlobalKey> _sectionKeys = {};
 
   WordDetailSection? _currentSection;
-  bool _isLandscape = false;
   List<WordDetailSection> _effectiveSections = const [];
 
   @override
@@ -56,6 +55,16 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 延迟计算 effectiveSections 并初始化 currentSection
+    _effectiveSections = _buildEffectiveSections();
+    if (_currentSection == null && _effectiveSections.isNotEmpty) {
+      _currentSection = _effectiveSections.first;
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
@@ -64,7 +73,6 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    // 从后往前找，确定当前滚动位置对应的 section
     WordDetailSection? found;
     for (final s in _effectiveSections) {
       final key = _sectionKeys[s]!;
@@ -72,11 +80,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       if (ctx == null) continue;
       final box = ctx.findRenderObject() as RenderBox?;
       if (box == null) continue;
-      final pos = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
-      // 考虑导航栏高度和 padding，判断该 section 是否在可视区域上方
-      if (pos.dy <= 120) {
-        found = s;
-      }
+      final scrollableCtx = Scrollable.of(ctx).context;
+      final viewport = scrollableCtx.findRenderObject() as RenderBox?;
+      if (viewport == null) continue;
+      final pos = box.localToGlobal(Offset.zero, ancestor: viewport);
+      if (pos.dy <= 60) found = s;
     }
     if (found != null && found != _currentSection) {
       setState(() => _currentSection = found);
@@ -85,27 +93,33 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   void _scrollToSection(WordDetailSection section) {
     final key = _sectionKeys[section];
-    if (key?.currentContext != null) {
-      Scrollable.ensureVisible(key!.currentContext!, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut, alignment: 0.0);
-    }
-  }
-
-  bool _checkLandscape(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return size.width > size.height && size.width >= 600;
+    if (key?.currentContext == null) return;
+    final box = key!.currentContext!.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final scrollableCtx = Scrollable.of(key.currentContext!).context;
+    final viewport = scrollableCtx.findRenderObject() as RenderBox?;
+    if (viewport == null) return;
+    final pos = box.localToGlobal(Offset.zero, ancestor: viewport);
+    final targetOffset = (_scrollController.offset + pos.dy - 8).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    setState(() => _currentSection = section);
   }
 
   @override
   Widget build(BuildContext context) {
-    _isLandscape = _checkLandscape(context);
     _effectiveSections = _buildEffectiveSections();
-    final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: widget.onClose,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        color: cs.scrim.withValues(alpha: 0.54),
+      child: SizedBox.expand(
         child: Center(
           child: GestureDetector(
             onTap: () {}, // 阻止点击内容区传播到外层
@@ -123,10 +137,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     if (!widget.data.success && widget.data.error != null && !widget.data.isInsufficientBalance) {
       return _buildErrorState();
     }
-    if (_isLandscape) {
-      return _buildLandscapeLayout();
-    }
-    return _buildPortraitLayout();
+    return _buildContentLayout();
   }
 
   // ─── Loading 状态 ─────────────────────────────────
@@ -142,9 +153,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh,
+          color: Theme.of(context).brightness == Brightness.light
+              ? const Color(0xFFF0EDE8)
+              : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -174,9 +187,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh,
+          color: Theme.of(context).brightness == Brightness.light
+              ? const Color(0xFFF0EDE8)
+              : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -195,98 +210,64 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     );
   }
 
-  // ─── 竖屏布局 ─────────────────────────────────
+  // ─── 统一布局（横竖屏共用） ─────────────────────────────────
+  //
+  // 结构：顶部 Header + 下方 Row(左导航 + 右内容滚动区)
+  // 仅通过尺寸参数区分横竖屏
 
-  Widget _buildPortraitLayout() {
+  Widget _buildContentLayout() {
     final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
+    final isLandscape = screenSize.width > screenSize.height && screenSize.width >= 600;
+
+    // 横竖屏尺寸参数
+    final cardWidth = screenSize.width * (isLandscape ? 0.65 : 0.78);
+    final maxHeight = screenSize.height * (isLandscape ? 0.82 : 0.75);
+    final navWidth = isLandscape ? 120.0 : 96.0;
+
+    final bgColor = Theme.of(context).brightness == Brightness.light
+        ? const Color(0xFFF0EDE8)
+        : cs.surfaceContainerHigh;
+
     return Material(
       color: Colors.transparent,
       child: Container(
-        width: screenSize.width * 0.6,
-        constraints: BoxConstraints(maxWidth: 420, maxHeight: screenSize.height * 0.6),
+        width: cardWidth,
+        constraints: BoxConstraints(maxWidth: 700, maxHeight: maxHeight),
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh,
+          color: bgColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.max,
           children: [
-            Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 0), child: _buildHeader()),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
-              ),
+            // 顶部 Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: _buildHeader(),
             ),
-            _buildBottomBar(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── 横屏双栏布局 ─────────────────────────────────
-
-  Widget _buildLandscapeLayout() {
-    final cs = Theme.of(context).colorScheme;
-    final screenSize = MediaQuery.of(context).size;
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: screenSize.width * 0.6,
-        constraints: BoxConstraints(maxWidth: 700, maxHeight: screenSize.height * 0.8),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(24, 16, 24, 0), child: _buildHeader()),
+            const Divider(height: 16, thickness: 0.5, indent: 16, endIndent: 16),
+            // 下方：左导航 + 右内容
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 左侧固定导航
-                  Container(
-                    width: 140,
-                    decoration: BoxDecoration(
-                      border: Border(right: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3))),
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      children: _effectiveSections.map((s) {
-                        final isActive = s == _currentSection;
-                        return GestureDetector(
-                          onTap: () => _scrollToSection(s),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isActive ? cs.primary.withValues(alpha: 0.08) : null,
-                              border: Border(left: BorderSide(color: isActive ? cs.primary : Colors.transparent, width: 3)),
-                            ),
-                            child: Text(
-                              s.label,
-                              style: TextStyle(
-                                color: isActive ? cs.primary : cs.onSurfaceVariant,
-                                fontSize: 13,
-                                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                  SizedBox(
+                    width: navWidth,
+                    child: _buildNavList(cs, isLandscape),
                   ),
+                  // 分割线
+                  Container(width: 0.5, color: cs.outlineVariant.withValues(alpha: 0.3)),
                   // 右侧可滚动内容
                   Expanded(
                     child: SingleChildScrollView(
                       controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _buildAllSections(_effectiveSections),
+                      ),
                     ),
                   ),
                 ],
@@ -296,6 +277,47 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           ],
         ),
       ),
+    );
+  }
+
+  /// 左侧导航列表
+  Widget _buildNavList(ColorScheme cs, bool isLandscape) {
+    return ListView(
+      padding: EdgeInsets.symmetric(vertical: 4, horizontal: isLandscape ? 8 : 4),
+      children: _effectiveSections.map((s) {
+        final isActive = s == _currentSection;
+        return GestureDetector(
+          onTap: () => _scrollToSection(s),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 2),
+            padding: EdgeInsets.symmetric(
+              horizontal: isLandscape ? 12 : 8,
+              vertical: isLandscape ? 10 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: isActive ? cs.primary.withValues(alpha: 0.10) : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border(
+                left: BorderSide(
+                  color: isActive ? cs.primary : Colors.transparent,
+                  width: 2.5,
+                ),
+              ),
+            ),
+            child: Text(
+              s.label,
+              style: TextStyle(
+                color: isActive ? cs.primary : cs.onSurfaceVariant,
+                fontSize: isLandscape ? 13 : 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
