@@ -16,6 +16,7 @@ import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/article_translation.dart';
 import 'package:vidlang/models/base_entity.dart';
+import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/translation_service.dart';
@@ -23,6 +24,7 @@ import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/widgets/article/selectable_paragraph_text.dart';
+import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
 
 /// 标记记录类
@@ -904,7 +906,52 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     } else if (action == 'mark') {
       _showMarkColorDialog(text);
       _clearSelection();
+    } else if (action == 'shadow') {
+      _startShadowReader(text, contextSentence);
     }
+  }
+
+  // ── 跟读 ──
+
+  void _startShadowReader(String text, String contextSentence) {
+    // 在上下文中查找匹配的句子
+    final matchingSentence = _sentences.where((s) => contextSentence.contains(s.content) || s.content.contains(text)).toList();
+    
+    if (matchingSentence.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('未找到匹配的句子')),
+      );
+      return;
+    }
+
+    final subtitle = matchingSentence.first;
+    
+    // 创建临时的 Subtitles 对象用于跟读组件
+    final shadowSub = Subtitles(
+      videoCode: widget.articleCode,
+      content: subtitle.content,
+      contentTranslate: subtitle.contentTranslate,
+      startPosition: subtitle.startPositionMs,
+      endPosition: subtitle.endPositionMs,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ShadowReaderComponent.show(
+          context,
+          config: ShadowReaderConfig(
+            subtitle: shadowSub,
+            resourceType: 'article',
+            resourceCode: widget.articleCode,
+            resourceTitle: _article?.title ?? '',
+            language: 'en',
+            scope: 'sentence',
+            speakSubtitle: (t) => _speakText(t),
+            isMusic: false,
+          ),
+        );
+      }
+    });
   }
 
   // ── 字体大小 ──
@@ -1256,6 +1303,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               _tbBtn(Icons.color_lens_outlined, '标注', () => _onToolbarAction('mark'), cs),
               SizedBox(width: 4.w),
               _tbBtn(Icons.translate_outlined, '翻译', () => _onToolbarAction('translate'), cs),
+              SizedBox(width: 4.w),
+              _tbBtn(Icons.mic_rounded, '跟读', () => _onToolbarAction('shadow'), cs),
             ],
           ),
         ),

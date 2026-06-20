@@ -3,6 +3,17 @@
 /**
  * AI Proxy Edge Function
  * 统一入口：鉴权 → 计费预检 → 路由 AI 客户端 → 扣费 → 返回
+ *
+ * 统一返回格式：
+ * {
+ *   ok: true/false,
+ *   rule_code: string,
+ *   cost_cny: number,
+ *   balance_after: number,
+ *   result: Map<String, dynamic>,  // 统一为 Map 结构
+ *   error?: string,                 // 错误码（仅失败时）
+ *   message?: string,               // 错误详情（仅失败时）
+ * }
  */
 
 import { corsHeaders } from '../_shared/cors.ts'
@@ -15,6 +26,7 @@ import {
   getUserId,
 } from './billing.ts'
 import {
+  aiChat,
   definition,
   translateConversationResponse,
   translateText,
@@ -34,6 +46,55 @@ const ROUTES: Record<
   ai_word_link: (key, url, p) => wordLink(key, url, p.word, p.sentence),
   ai_translate_conversation: (key, url, p) =>
     translateConversationResponse(key, url, p.text),
+  ai_chat: (key, url, p) =>
+    aiChat(
+      key,
+      url,
+      p.prompt || p.text,
+      p.system_prompt || '你是一个专业的英语学习助手，请用中文回答。',
+      p.temperature ?? 0.3,
+      p.max_tokens ?? 2000,
+    ),
+  ai_translate_article: (key, url, p) =>
+    aiChat(
+      key,
+      url,
+      p.prompt,
+      '你是专业的英文学习翻译助手，请用中文做逐句翻译和段落翻译。',
+      p.temperature ?? 0.2,
+      p.max_tokens ?? 8192,
+    ),
+}
+
+// ─── 构建统一成功响应 ─────────────────────────────
+function buildSuccessResponse(
+  ruleCode: string,
+  costCny: number,
+  balanceAfter: number,
+  result: any,
+): Record<string, any> {
+  // 确保 result 是 Map 结构
+  const safeResult = (result && typeof result === 'object') ? result : { raw: String(result ?? '') }
+  return {
+    ok: true,
+    rule_code: ruleCode,
+    cost_cny: costCny,
+    balance_after: balanceAfter,
+    result: safeResult,
+  }
+}
+
+// ─── 构建统一失败响应 ─────────────────────────────
+function buildErrorResponse(
+  error: string,
+  message: string,
+  status: number = 400,
+): Response {
+  return json({
+    ok: false,
+    error,
+    message,
+  }, status)
 }
 
 // ─── 主服务 ───
@@ -139,13 +200,7 @@ Deno.serve(async (req: Request) => {
         }),
       )
 
-      return json({
-        ok: true,
-        rule_code: ruleCode,
-        cost_cny: rule.priceCny,
-        balance_after: newBalance,
-        result,
-      })
+      return json(buildSuccessResponse(ruleCode, rule.priceCny, newBalance, result))
     }
 
     // 7. 获取 API 配置
@@ -204,8 +259,9 @@ Deno.serve(async (req: Request) => {
         text: params.text,
         voice: params.voice,
       })
-    } else {
-      // 7d. Chat 类路由
+    }
+    // 7d. Chat 类路由（翻译、释义等）
+    else {
       if (!qwenApiKey) {
         return json(
           {
@@ -246,14 +302,8 @@ Deno.serve(async (req: Request) => {
       }),
     )
 
-    // 9. 返回成功
-    return json({
-      ok: true,
-      rule_code: ruleCode,
-      cost_cny: rule.priceCny,
-      balance_after: newBalance,
-      result,
-    })
+    // 9. 返回成功（统一结构）
+    return json(buildSuccessResponse(ruleCode, rule.priceCny, newBalance, result))
   } catch (e: any) {
     console.error('ai-proxy error:', e.message || e)
     return json(
@@ -353,6 +403,9 @@ function actionMeta(ruleCode: string): { key: string; label: string } {
   }
   if (ruleCode === 'ai_translate' || ruleCode === 'ai_translate_conversation') {
     return { key: 'ai_translate', label: 'AI 翻译' }
+  }
+  if (ruleCode === 'ai_chat' || ruleCode === 'ai_translate_article') {
+    return { key: ruleCode, label: 'AI 对话' }
   }
   if (ruleCode === 'ai_tts') {
     return { key: 'ai_tts', label: 'AI 朗读' }

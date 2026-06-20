@@ -6,9 +6,22 @@ import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/services/auth_service.dart';
 
 /// 统一调用 ai-proxy Edge Function
+///
+/// 后端统一返回格式：
+/// ```json
+/// {
+///   "ok": true,
+///   "rule_code": "ai_translate",
+///   "cost_cny": 0.01,
+///   "balance_after": 9.99,
+///   "result": { ... }  // 统一为 Map 结构
+/// }
+/// ```
 class AiService {
   static const _functionName = 'ai-proxy';
   static const _uuid = Uuid();
+
+  // ─── 核心调用 ─────────────────────────────────
 
   /// 调用 AI 接口并返回 WordDetail
   /// - 成功：返回 WordDetail（含释义/翻译/音标）
@@ -27,6 +40,9 @@ class AiService {
     final requestId = _uuid.v4();
 
     try {
+      dev.log('🚀 callAiProxy START: word="$word" ruleCode="$ruleCode" scene="$scene" entry="$entry" requestId=$requestId',
+          name: 'AiService');
+
       AuthService.instance.ensureActiveSession();
 
       final client = sb.Supabase.instance.client;
@@ -37,48 +53,66 @@ class AiService {
           'scene': scene,
           'entry': entry,
           'request_id': requestId,
-          'params': {...params, if (billing?.isNotEmpty ?? false) 'billing': billing},
-          if (sourceType != null) 'source_type': sourceType,
-          if (sourceCode != null) 'source_code': sourceCode,
+          'params': {
+            ...params,
+            if (billing?.isNotEmpty ?? false) 'billing': billing,
+          },
+          if ((sourceType ?? '') != '') 'source_type': sourceType,
+          if ((sourceCode ?? '') != '') 'source_code': sourceCode,
         },
       );
 
       final data = response.data;
       if (data is! Map<String, dynamic>) {
+        dev.log('❌ callAiProxy INVALID_RESPONSE: type=${data.runtimeType}',
+            name: 'AiService');
         return WordDetail.error(word, 'AI 服务响应异常');
       }
 
       final ok = data['ok'] as bool? ?? false;
       if (!ok) {
         final error = data['error'] as String? ?? '';
+        final message = data['message'] as String? ?? '';
+        dev.log('⚠️ callAiProxy FAIL: error="$error" message="$message"',
+            name: 'AiService');
+
         if (error == 'insufficient_balance') {
+          dev.log('💰 callAiProxy INSUFFICIENT_BALANCE: $message',
+              name: 'AiService');
           return WordDetail.error(
             word,
-            data['message'] as String? ?? '余额不足',
+            message,
             isInsufficientBalance: true,
             requiredCny: (data['required_cny'] as num?)?.toDouble(),
             balanceCny: (data['balance_cny'] as num?)?.toDouble(),
           );
         }
-        return WordDetail.error(word, data['message'] as String? ?? 'AI 服务调用失败');
+        return WordDetail.error(word, message.isNotEmpty ? message : 'AI 服务调用失败');
       }
 
       final result = data['result'];
       if (result is! Map<String, dynamic>) {
+        dev.log('❌ callAiProxy BAD_RESULT: type=${result.runtimeType} raw=$result',
+            name: 'AiService');
         return WordDetail.error(word, 'AI 服务返回数据格式错误');
       }
+
+      dev.log('✅ callAiProxy SUCCESS: word="$word" ruleCode="$ruleCode" costCny=${data['cost_cny']}',
+          name: 'AiService');
 
       return WordDetail.fromAiResult(
         result,
         costCny: (data['cost_cny'] as num?)?.toDouble(),
         balanceAfter: (data['balance_after'] as num?)?.toDouble(),
       );
-    } catch (e) {
+    } catch (e, st) {
+      dev.log('💥 callAiProxy EXCEPTION: word="$word" error=$e\n$st',
+          name: 'AiService');
       return WordDetail.error(word, 'Edge Function 调用失败: $e');
     }
   }
 
-  /// 调用 AI 接口并返回原始 JSON（用于翻译等不转 WordDetail 的场景）
+  /// 调用 AI 接口并返回原始 JSON（用于文章翻译等不转 WordDetail 的场景）
   ///
   /// 成功返回 `{'ok': true, 'result': {...}, 'cost_cny': ..., 'balance_after': ...}`
   /// 失败返回 `{'ok': false, 'error': ..., 'message': ...}`
@@ -102,18 +136,27 @@ class AiService {
           'scene': scene,
           'entry': entry,
           'request_id': requestId,
-          'params': {...params, if (billing?.isNotEmpty ?? false) 'billing': billing},
-          if (sourceType != null) 'source_type': sourceType,
-          if (sourceCode != null) 'source_code': sourceCode,
+          'params': {
+            ...params,
+            if (billing?.isNotEmpty ?? false) 'billing': billing,
+          },
+          if ((sourceType ?? '') != '') 'source_type': sourceType,
+          if ((sourceCode ?? '') != '') 'source_code': sourceCode,
         },
       );
       final data = response.data;
       if (data is Map<String, dynamic>) return data;
       return {'ok': false, 'error': 'invalid_response', 'message': 'AI 服务响应格式异常'};
     } catch (e) {
-      return {'ok': false, 'error': 'invoke_failed', 'message': 'Edge Function 调用失败: $e'};
+      return {
+        'ok': false,
+        'error': 'invoke_failed',
+        'message': 'Edge Function 调用失败: $e',
+      };
     }
   }
+
+  // ─── 业务方法 ─────────────────────────────────
 
   /// 调用 AI 释义（ai_definition）
   ///
@@ -213,6 +256,9 @@ class AiService {
   }
 
   /// 调用 AI 翻译（ai_translate）
+  ///
+  /// 新版后端返回结构化 Map：
+  /// { translation, phrase_explanations?, part_of_speech?, word_forms? }
   static Future<WordDetail> translateText({
     required String text,
     String sourceLanguage = 'en',
@@ -235,10 +281,6 @@ class AiService {
       },
       billing: billing,
     );
-    // 翻译场景下，将 translation 字段回填
-    if (result.success && result.translation != null) {
-      return result;
-    }
     return result;
   }
 
@@ -258,14 +300,27 @@ class AiService {
           'scene': 'conversation',
           'entry': 'translate_reply',
           'request_id': requestId,
-          'params': {'text': text, if (billing?.isNotEmpty ?? false) 'billing': billing},
+          'params': {
+            'text': text,
+            if (billing?.isNotEmpty ?? false) 'billing': billing,
+          },
         },
       );
       final data = response.data;
       if (data is! Map<String, dynamic>) return null;
       final ok = data['ok'] as bool? ?? false;
       if (!ok) return null;
-      return data['result'] as String?;
+
+      final result = data['result'];
+      // 新版后端返回 Map: { translation: "..." }
+      if (result is Map<String, dynamic>) {
+        return result['translation'] as String?;
+      }
+      // 兼容旧版直接返回 String
+      if (result is String) {
+        return result;
+      }
+      return null;
     } catch (_) {
       return null;
     }
@@ -290,9 +345,13 @@ class AiService {
           'scene': 'player',
           'entry': 'tts_btn',
           'request_id': requestId,
-          'params': {'text': text, 'language': language, if (billing?.isNotEmpty ?? false) 'billing': billing},
-          if (sourceType != null) 'source_type': sourceType,
-          if (sourceCode != null) 'source_code': sourceCode,
+          'params': {
+            'text': text,
+            'language': language,
+            if (billing?.isNotEmpty ?? false) 'billing': billing,
+          },
+          if ((sourceType ?? '') != '') 'source_type': sourceType,
+          if ((sourceCode ?? '') != '') 'source_code': sourceCode,
         },
       );
       final data = response.data;

@@ -100,15 +100,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final viewport = scrollableCtx.findRenderObject() as RenderBox?;
     if (viewport == null) return;
     final pos = box.localToGlobal(Offset.zero, ancestor: viewport);
-    final targetOffset = (_scrollController.offset + pos.dy - 8).clamp(
-      0.0,
-      _scrollController.position.maxScrollExtent,
-    );
-    _scrollController.animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    final targetOffset = (_scrollController.offset + pos.dy - 8).clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(targetOffset, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     setState(() => _currentSection = section);
   }
 
@@ -153,9 +146,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.light
-              ? const Color(0xFFF0EDE8)
-              : cs.surfaceContainerHigh,
+          color: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0EDE8) : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
@@ -187,9 +178,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.light
-              ? const Color(0xFFF0EDE8)
-              : cs.surfaceContainerHigh,
+          color: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0EDE8) : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
@@ -222,12 +211,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
     // 横竖屏尺寸参数
     final cardWidth = screenSize.width * (isLandscape ? 0.65 : 0.78);
-    final maxHeight = screenSize.height * (isLandscape ? 0.82 : 0.75);
+    final maxHeight = screenSize.height * (isLandscape ? 0.82 : 0.45);
     final navWidth = isLandscape ? 120.0 : 96.0;
 
-    final bgColor = Theme.of(context).brightness == Brightness.light
-        ? const Color(0xFFF0EDE8)
-        : cs.surfaceContainerHigh;
+    final bgColor = Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0EDE8) : cs.surfaceContainerHigh;
 
     return Material(
       color: Colors.transparent,
@@ -242,10 +229,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         child: Column(
           children: [
             // 顶部 Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-              child: _buildHeader(),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 0), child: _buildHeader()),
             const Divider(height: 16, thickness: 0.5, indent: 16, endIndent: 16),
             // 下方：左导航 + 右内容
             Expanded(
@@ -253,10 +237,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 左侧固定导航
-                  SizedBox(
-                    width: navWidth,
-                    child: _buildNavList(cs, isLandscape),
-                  ),
+                  SizedBox(width: navWidth, child: _buildNavList(cs, isLandscape)),
                   // 分割线
                   Container(width: 0.5, color: cs.outlineVariant.withValues(alpha: 0.3)),
                   // 右侧可滚动内容
@@ -264,10 +245,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     child: SingleChildScrollView(
                       controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildAllSections(_effectiveSections),
-                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
                     ),
                   ),
                 ],
@@ -291,19 +269,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           behavior: HitTestBehavior.opaque,
           child: Container(
             margin: const EdgeInsets.only(bottom: 2),
-            padding: EdgeInsets.symmetric(
-              horizontal: isLandscape ? 12 : 8,
-              vertical: isLandscape ? 10 : 8,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: isLandscape ? 12 : 8, vertical: isLandscape ? 10 : 8),
             decoration: BoxDecoration(
               color: isActive ? cs.primary.withValues(alpha: 0.10) : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
-              border: Border(
-                left: BorderSide(
-                  color: isActive ? cs.primary : Colors.transparent,
-                  width: 2.5,
-                ),
-              ),
+              border: Border(left: BorderSide(color: isActive ? cs.primary : Colors.transparent, width: 2.5)),
             ),
             child: Text(
               s.label,

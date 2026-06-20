@@ -24,6 +24,7 @@ class ConversationService {
     required String sourceCode,
     String voice = 'Ethan',
     String difficulty = 'intermediate',
+    String? difficultyInstructions,
   }) async {
     // 排他性登录校验
     AuthService.instance.ensureActiveSession();
@@ -105,8 +106,9 @@ class ConversationService {
         'source_code': sourceCode,
         'voice': voice,
         'difficulty': difficulty,
-        'source_title': ?sourceTitle,
-        'subtitle_items': ?subtitleItems,
+        'difficulty_instructions': difficultyInstructions,
+        'source_title': sourceTitle,
+        'subtitle_items': subtitleItems,
       },
     );
 

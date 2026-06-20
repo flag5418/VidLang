@@ -96,20 +96,22 @@ class EvaluationApi {
       final resp = await client.functions.invoke(
         _functionName,
         body: {
-          'rule_code': 'ai_translate',
+          'rule_code': 'ai_chat',
           'scene': 'test_judge',
           'entry': 'judge_translation',
           'request_id': _generateRequestId(),
           'params': {
-            'text': _buildJudgeTranslationPrompt(userText, refText, targetLanguage),
-            'target_language': '中文',
+            'prompt': _buildJudgeTranslationPrompt(userText, refText, targetLanguage),
+            'temperature': 0.3,
+            'max_tokens': 500,
           },
         },
       );
       final data = resp.data as Map<String, dynamic>?;
       if (data?['ok'] == true && data?['result'] != null) {
-        final result = data!['result'] as String;
-        return _parseJudgeResult(result);
+        final result = data!['result'] as Map<String, dynamic>;
+        final raw = result['raw'] as String? ?? '';
+        return _parseJudgeResult(raw);
       }
       return null;
     } catch (e) {
@@ -128,20 +130,22 @@ class EvaluationApi {
       final resp = await client.functions.invoke(
         _functionName,
         body: {
-          'rule_code': 'ai_translate',
+          'rule_code': 'ai_chat',
           'scene': 'test_judge',
           'entry': 'judge_meaning',
           'request_id': _generateRequestId(),
           'params': {
-            'text': _buildJudgeMeaningPrompt(userWord, targetWord),
-            'target_language': '中文',
+            'prompt': _buildJudgeMeaningPrompt(userWord, targetWord),
+            'temperature': 0.3,
+            'max_tokens': 500,
           },
         },
       );
       final data = resp.data as Map<String, dynamic>?;
       if (data?['ok'] == true && data?['result'] != null) {
-        final result = data!['result'] as String;
-        return _parseJudgeResult(result);
+        final result = data!['result'] as Map<String, dynamic>;
+        final raw = result['raw'] as String? ?? '';
+        return _parseJudgeResult(raw);
       }
       return null;
     } catch (e) {
@@ -171,20 +175,22 @@ class EvaluationApi {
       final resp = await client.functions.invoke(
         _functionName,
         body: {
-          'rule_code': 'ai_translate',
+          'rule_code': 'ai_chat',
           'scene': 'test_evaluation',
           'entry': 'generate_evaluation',
           'request_id': _generateRequestId(),
           'params': {
-            'text': prompt,
-            'target_language': '中文',
+            'prompt': prompt,
+            'temperature': 0.3,
+            'max_tokens': 2000,
           },
         },
       );
       final data = resp.data as Map<String, dynamic>?;
       if (data?['ok'] == true && data?['result'] != null) {
-        final result = data!['result'] as String;
-        return _parseEvaluationResult(result);
+        final result = data!['result'] as Map<String, dynamic>;
+        final raw = result['raw'] as String? ?? '';
+        return _parseEvaluationResult(raw);
       }
       return null;
     } catch (e) {

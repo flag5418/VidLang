@@ -163,7 +163,8 @@ class TranslationService {
 
     final result = resp['result'];
     if (result is Map<String, dynamic>) {
-      return (result['content'] as String?)?.trim();
+      // 新版后端返回 { raw: "..." }
+      return (result['raw'] as String?)?.trim();
     }
     if (result is String) {
       return result.trim();

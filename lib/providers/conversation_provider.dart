@@ -106,15 +106,29 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
       _sourceType = sourceType;
       _sourceCode = sourceCode;
       _sourceTitle = sourceTitle;
+      
+      // 根据难度构建 instructions
+      final difficultyInstructions = _getDifficultyInstructions(difficulty);
+      
       // 1. 通过 Edge Function 创建会话
-      _session = await ConversationService.createSession(sourceType: sourceType, sourceCode: sourceCode, voice: voice, difficulty: difficulty);
+      _session = await ConversationService.createSession(
+        sourceType: sourceType, 
+        sourceCode: sourceCode, 
+        voice: voice, 
+        difficulty: difficulty,
+        difficultyInstructions: difficultyInstructions,
+      );
 
       // 2. 建立 WebSocket 连接
       _realtimeService = QwenRealtimeService();
       await _realtimeService!.connect(wsUrl: _session!.wsUrl, apiKey: _session!.apiKey);
 
       // 3. 配置会话
-      _realtimeService!.updateSession(instructions: _session!.instructions, voice: _session!.voice);
+      _realtimeService!.updateSession(
+        instructions: _session!.instructions, 
+        voice: _session!.voice,
+        difficulty: difficulty,
+      );
 
       // 4. 监听事件
       _eventSubscription = _realtimeService!.events.listen(_handleEvent);
@@ -144,6 +158,20 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
       state = state.copyWith(state: ConversationState.listening);
     } catch (e) {
       state = state.copyWith(state: ConversationState.error, errorMessage: e.toString());
+    }
+  }
+
+  /// 根据难度返回对应的指令
+  String _getDifficultyInstructions(String difficulty) {
+    switch (difficulty) {
+      case 'beginner':
+        return '使用简单词汇和短句，语速缓慢，多给鼓励。适合初学者。';
+      case 'intermediate':
+        return '使用适中难度的词汇和句子，适当给予纠正和建议。适合中级学习者。';
+      case 'advanced':
+        return '使用复杂词汇和专业表达，深入讨论话题。适合高级学习者。';
+      default:
+        return '使用适中难度的词汇和句子。适合中级学习者。';
     }
   }
 
@@ -356,7 +384,12 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
         break;
 
       case ConnectionClosed():
-        state = state.copyWith(state: ConversationState.disconnected);
+        // 连接关闭时，如果不是主动结束，则保持当前状态或转为listening
+        // 只有在明确结束对话时才设置为disconnected
+        if (state.state != ConversationState.disconnected) {
+          // 如果是意外断开，尝试恢复到listening状态等待重连
+          state = state.copyWith(state: ConversationState.listening);
+        }
         break;
     }
   }

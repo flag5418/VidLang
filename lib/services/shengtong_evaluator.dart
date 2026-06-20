@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
 
@@ -152,6 +153,12 @@ class ShengtongEvaluator {
   }
 
   /// 处理收到的消息
+  @visibleForTesting
+  void handleMessage(dynamic message) {
+    _handleMessage(message);
+  }
+
+  /// 处理收到的消息 (internal)
   void _handleMessage(dynamic message) {
     try {
       final msgStr = message is String ? message : utf8.decode(message as List<int>);

@@ -21,6 +21,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
+import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
 
 class PlayerPage extends ConsumerStatefulWidget {
@@ -38,7 +39,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   bool _showSettings = false;
   bool _showSpeedPicker = false;
   bool _showReadAloud = false;
-  bool _isRecording = false;
   List<VideoInfo>? _folderVideosOverride;
 
   final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
@@ -74,6 +74,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   bool _showWordPopup = false;
   List<_WordItem> _selectedWords = [];
+
+  // Player overlay is always dark regardless of theme mode
+  Color _drawerBg() => AppColors.surface;
+  Color _drawerElevated() => AppColors.surfaceElevated;
+  Color _drawerText() => AppColors.onSurface;
+  Color _drawerTextVariant() => AppColors.onSurfaceVariant;
+  Color _drawerDivider() => Colors.white12;
+  Color _drawerOverlay() => Colors.black38;
 
   @override
   void initState() {
@@ -268,7 +276,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 _showSettings = false;
               }),
               behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.black38),
+              child: Container(color: _drawerOverlay()),
             ),
 
           // Drawer panel
@@ -279,13 +287,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               bottom: 0,
               child: Container(
                 width: isTablet ? 500 : 340,
-                color: AppColors.surface,
-                child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
+                color: _drawerBg(),
+                child: SafeArea(
+                  left: false,
+                  child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
+                ),
               ),
             ),
 
           // Read-aloud popup
-          if (_showReadAloud) _buildReadAloudPopup(state, notifier, currentSub, isTablet),
+          if (_showReadAloud) _buildNewShadowReader(state, notifier, currentSub),
         ],
       ),
     );
@@ -687,19 +698,19 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            border: Border(bottom: BorderSide(color: Colors.white12)),
+            color: _drawerElevated(),
+            border: Border(bottom: BorderSide(color: _drawerDivider())),
           ),
           child: Row(
             children: [
               Text(
                 '视频列表',
-                style: TextStyle(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _drawerText(), fontSize: 11.sp, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
                 '共 ${list.length} 集',
-                style: TextStyle(color: Colors.white, fontSize: 9.sp),
+                style: TextStyle(color: _drawerTextVariant(), fontSize: 9.sp),
               ),
             ],
           ),
@@ -714,7 +725,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                       const SizedBox(height: 8),
                       Text(
                         '暂无可播视频',
-                        style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                        style: TextStyle(color: _drawerTextVariant(), fontSize: 14.sp),
                       ),
                     ],
                   ),
@@ -745,14 +756,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            border: Border(bottom: BorderSide(color: Colors.white12)),
+            color: _drawerElevated(),
+            border: Border(bottom: BorderSide(color: _drawerDivider())),
           ),
           child: Row(
             children: [
               Text(
                 '播放设置',
-                style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _drawerText(), fontSize: 10.sp, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -1015,207 +1026,56 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  Widget _buildReadAloudPopup(PlayerEngineState s, PlayerEngineNotifier n, Subtitles? cs, bool t) {
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
-      child: Center(
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            constraints: BoxConstraints(maxWidth: t ? 600 : 360),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white12),
-              boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 8))],
-            ),
-            child: LayoutBuilder(
-              builder: (ctx, constraints) {
-                final screenW = MediaQuery.of(ctx).size.width;
-                final ratio = (constraints.maxWidth / screenW).clamp(0.45, 1.0);
-                double fs(double v, {double min = 10, double max = 16}) => (v * ratio).clamp(min, max);
-                double sz(double v, {double min = 12, double max = 24}) => (v * ratio).clamp(min, max);
-                final padH = sz(24.w, min: 14, max: 24);
-                final padV = sz(20.h, min: 12, max: 20);
 
-                return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '跟读',
-                        style: TextStyle(color: Colors.white, fontSize: fs(12.sp, min: 11, max: 14), fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: sz(12.h, min: 8, max: 12)),
-                      if (cs != null)
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(sz(12.w, min: 10, max: 12)),
-                          decoration: BoxDecoration(color: AppColors.surfaceHighest, borderRadius: BorderRadius.circular(10)),
-                          child: Text(
-                            cs.content,
-                            style: TextStyle(color: Colors.white, fontSize: fs(11.sp, min: 11, max: 14), fontWeight: FontWeight.w500),
-                            textAlign: TextAlign.center,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      if (cs != null && cs.contentTranslate != null && cs.contentTranslate!.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(top: sz(8.h, min: 6, max: 8)),
-                          child: Text(
-                            cs.contentTranslate!,
-                            style: TextStyle(color: AppColors.playerSubtitleTranslate, fontSize: fs(13.sp, min: 11, max: 14)),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      SizedBox(height: sz(16.h, min: 12, max: 16)),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: sz(10.w, min: 8, max: 10),
-                        runSpacing: sz(10.h, min: 8, max: 10),
-                        children: [
-                          GestureDetector(
-                            onTap: () async {
-                              if (cs != null) await TtsService().speakSubtitle(cs.content);
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: sz(14.w, min: 10, max: 14), vertical: sz(10.h, min: 8, max: 10)),
-                              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.volume_up_rounded, color: AppColors.primary, size: sz(22.w, min: 16, max: 22)),
-                                  SizedBox(width: sz(6.w, min: 4, max: 6)),
-                                  Text(
-                                    '朗读字幕',
-                                    style: TextStyle(color: AppColors.primary, fontSize: fs(12.sp, min: 11, max: 13), fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () async {
-                              if (cs != null && !_isTtsSpeaking) {
-                                setState(() => _isTtsSpeaking = true);
-                                await TtsService().speakClarity(
-                                  text: cs.content,
-                                  audioPlayer: _aliAudioPlayer,
-                                  onComplete: () {
-                                    if (mounted) setState(() => _isTtsSpeaking = false);
-                                  },
-                                );
-                              }
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: sz(14.w, min: 10, max: 14), vertical: sz(10.h, min: 8, max: 10)),
-                              decoration: BoxDecoration(
-                                color: _isTtsSpeaking ? AppColors.success.withValues(alpha: 0.25) : AppColors.primary.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isTtsSpeaking ? Icons.volume_up : Icons.record_voice_over_rounded,
-                                    color: _isTtsSpeaking ? AppColors.success : AppColors.primary,
-                                    size: sz(22.w, min: 16, max: 22),
-                                  ),
-                                  SizedBox(width: sz(6.w, min: 4, max: 6)),
-                                  Text(
-                                    _isTtsSpeaking ? '播放中' : '清晰朗读',
-                                    style: TextStyle(
-                                      color: _isTtsSpeaking ? AppColors.success : AppColors.primary,
-                                      fontSize: fs(12.sp, min: 11, max: 13),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              if (cs != null) {
-                                n.seekToMs(cs.startPosition.toInt());
-                                n.togglePlayPause();
-                              }
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: sz(14.w, min: 10, max: 14), vertical: sz(10.h, min: 8, max: 10)),
-                              decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.replay_rounded, color: AppColors.primary, size: sz(22.w, min: 16, max: 22)),
-                                  SizedBox(width: sz(6.w, min: 4, max: 6)),
-                                  Text(
-                                    '重播本句',
-                                    style: TextStyle(color: AppColors.primary, fontSize: fs(12.sp, min: 11, max: 13), fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _isRecording = !_isRecording),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: sz(14.w, min: 10, max: 14), vertical: sz(10.h, min: 8, max: 10)),
-                              decoration: BoxDecoration(
-                                color: _isRecording ? Colors.red.withValues(alpha: 0.3) : AppColors.primary.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                                    color: _isRecording ? Colors.red : AppColors.primary,
-                                    size: sz(22.w, min: 16, max: 22),
-                                  ),
-                                  SizedBox(width: sz(6.w, min: 4, max: 6)),
-                                  Text(
-                                    _isRecording ? '停止录音' : '开始录音',
-                                    style: TextStyle(
-                                      color: _isRecording ? Colors.red : AppColors.primary,
-                                      fontSize: fs(12.sp, min: 11, max: 13),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: sz(16.h, min: 12, max: 16)),
-                      GestureDetector(
-                        onTap: () => setState(() => _showReadAloud = false),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: sz(20.w, min: 14, max: 20), vertical: sz(8.h, min: 6, max: 8)),
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                          child: Text(
-                            '关闭',
-                            style: TextStyle(color: Colors.white, fontSize: fs(12.sp, min: 11, max: 13)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
+
+  Widget _buildNewShadowReader(PlayerEngineState s, PlayerEngineNotifier n, Subtitles? cs) {
+    if (cs == null) return const SizedBox.shrink();
+    final video = n.currentVideo;
+    final lang = video?.language ?? 'en';
+    final code = s.videoCode ?? '';
+
+    // 内联渲染：直接返回 Positioned Widget，不创建新路由，避免视频黑屏
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: ShadowReaderComponent.inline(
+        config: ShadowReaderConfig(
+          subtitle: cs,
+          resourceType: 'video',
+          resourceCode: code,
+          resourceTitle: s.title,
+          language: lang,
+          scope: 'sentence',
+          getPosition: () => s.position,
+          seekTo: (d) async => n.seekToMs(d.inMilliseconds),
+          togglePlayPause: () async => n.togglePlayPause(),
+          pause: () async => n.player.pause(),
+          play: () async => n.player.play(),
+          setOriginalVolume: (v) async => n.setOriginalVolume(v),
+          setSpeed: (v) async => n.setSpeed(v),
+          currentSpeed: s.speed,
+          getSingleSentencePause: s.singleSentencePause,
+          setSingleSentencePause: (v) async => n.setSingleSentencePause(v),
+          setRecording: (v) async => n.setRecording(v),
+          setLastFollowScore: (v) async => n.setLastFollowScore(v),
+          getCurrentVideo: () => video,
+          speakSubtitle: (text) async => TtsService().speakSubtitle(text),
+          isTtsSpeaking: _isTtsSpeaking,
+          onScore: ({required overall, required fluency, required accuracy, required completeness, required rawResult}) async {},
+          onAiEvaluation: ({required resourceCode, required resourceTitle, required language, required overallScore, required summary}) async {},
+          getHeadphoneMode: null,
+          currentSubtitleIndex: s.currentSubtitleIndex,
+          nextSentence: () async => n.nextSentence(),
+          previousSentence: () async => n.previousSentence(),
         ),
+        heightFactor: 0.55,
+        onClose: () => setState(() => _showReadAloud = false),
       ),
     );
   }
-}
 
+}
 class _WordItem {
   final String text;
   final GlobalKey key;

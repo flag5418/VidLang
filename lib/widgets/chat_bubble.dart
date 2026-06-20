@@ -1,76 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/conversation_message.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/app_spacing.dart';
 
-/// AI 对话消息气泡
+/// AI 对话消息气泡 - 微信风格
 class ChatBubble extends StatelessWidget {
   final ConversationMessage message;
   final bool showTranslation;
+  final bool isDark;
 
   const ChatBubble({
     super.key,
     required this.message,
     this.showTranslation = true,
+    this.isDark = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isAi = message.role == MessageRole.ai;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.space2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment: isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
         children: [
-          if (isAi) _buildAvatar(colorScheme),
-          const SizedBox(width: 8),
+          if (isAi) _buildAvatar(),
+          SizedBox(width: AppSpacing.space2),
           Flexible(
             child: Column(
-              crossAxisAlignment:
-                  isAi ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              crossAxisAlignment: isAi ? CrossAxisAlignment.start : CrossAxisAlignment.end,
               children: [
-                _buildBubble(isAi, colorScheme),
-                if (isAi && showTranslation && message.translation != null)
-                  _buildTranslation(colorScheme),
-                _buildTimestamp(colorScheme),
+                _buildBubble(isAi),
+                if (isAi && showTranslation && message.translation != null && message.translation!.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: AppSpacing.space1),
+                    child: Text(
+                      message.translation!,
+                      style: TextStyle(
+                        color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-          if (!isAi) const SizedBox(width: 8),
+          SizedBox(width: AppSpacing.space2),
+          if (!isAi) _buildUserAvatar(),
         ],
       ),
     );
   }
 
-  Widget _buildAvatar(ColorScheme colorScheme) {
+  Widget _buildAvatar() {
     return Container(
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: const Center(
-        child: Icon(Icons.smart_toy, color: Colors.white, size: 20),
-      ),
+      child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
     );
   }
 
-  Widget _buildBubble(bool isAi, ColorScheme colorScheme) {
+  Widget _buildUserAvatar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
-        color: isAi
-            ? colorScheme.surfaceContainerHighest
-            : colorScheme.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(isAi ? 4 : 16),
-          bottomRight: Radius.circular(isAi ? 16 : 4),
-        ),
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(AppSpacing.space2),
+      ),
+      child: const Icon(Icons.person, color: Colors.white, size: 20),
+    );
+  }
+
+  Widget _buildBubble(bool isAi) {
+    final bgColor = isAi
+        ? (isDark ? AppColors.surfaceHighest : AppColors.lightSurfaceHighest)
+        : AppColors.primary;
+
+    final textColor = isAi
+        ? (isDark ? AppColors.onSurface : AppColors.lightOnSurface)
+        : AppColors.onPrimary;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: AppSpacing.space3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppSpacing.space3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,116 +99,71 @@ class ChatBubble extends StatelessWidget {
           Text(
             message.text,
             style: TextStyle(
-              color: colorScheme.onSurface,
+              color: textColor,
               fontSize: 15,
               height: 1.5,
             ),
           ),
           if (message.isStreaming)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: EdgeInsets.only(top: AppSpacing.space1),
               child: SizedBox(
-                width: 12,
-                height: 12,
+                width: 14,
+                height: 14,
                 child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  color: colorScheme.primary,
+                  strokeWidth: 2,
+                  color: isAi ? AppColors.primary : Colors.white,
                 ),
-              ),
-            ),
-          if (message.isTranscribing)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.mic, size: 14, color: colorScheme.primary),
-                  const SizedBox(width: 4),
-                  Text(
-                    '识别中...',
-                    style: TextStyle(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
               ),
             ),
         ],
       ),
     );
   }
-
-  Widget _buildTranslation(ColorScheme colorScheme) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, left: 4),
-      child: Text(
-        message.translation!,
-        style: TextStyle(
-          color: colorScheme.onSurfaceVariant,
-          fontSize: 13,
-          height: 1.4,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimestamp(ColorScheme colorScheme) {
-    final time = message.timestamp;
-    final timeStr =
-        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Text(
-        timeStr,
-        style: TextStyle(
-          color: colorScheme.outline,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
 }
 
-/// 用户语音识别预览气泡（识别中的中间态）
+/// 用户语音识别预览气泡
 class TranscriptionPreview extends StatelessWidget {
   final String preview;
+  final bool isDark;
 
-  const TranscriptionPreview({super.key, required this.preview});
+  const TranscriptionPreview({
+    super.key,
+    required this.preview,
+    this.isDark = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     if (preview.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.space1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3, vertical: AppSpacing.space2),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.space3),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.3),
+                  color: AppColors.primary.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.mic, size: 16, color: colorScheme.primary),
-                  const SizedBox(width: 6),
+                  Icon(Icons.mic, size: 16, color: AppColors.primary),
+                  SizedBox(width: AppSpacing.space2),
                   Flexible(
                     child: Text(
                       preview,
                       style: TextStyle(
-                        color: colorScheme.onSurface.withValues(alpha: 0.7),
-                        fontSize: 15,
+                        color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
+                        fontSize: 14,
                         fontStyle: FontStyle.italic,
                       ),
                     ),

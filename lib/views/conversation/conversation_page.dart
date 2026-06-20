@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/widgets/chat_bubble.dart';
 
 /// AI 英语口语对话页面
@@ -35,7 +37,6 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
   @override
   void initState() {
     super.initState();
-    // 自动开始对话
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(conversationProvider.notifier).startConversation(
             sourceType: widget.sourceType,
@@ -67,9 +68,8 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
   @override
   Widget build(BuildContext context) {
     final convState = ref.watch(conversationProvider);
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // 消息变化时滚动到底部
     ref.listen<ConversationStateData>(conversationProvider, (prev, next) {
       if (prev?.messages.length != next.messages.length ||
           prev?.userTranscriptionPreview != next.userTranscriptionPreview) {
@@ -84,13 +84,13 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: isDark ? AppColors.surface : AppColors.lightSurface,
         appBar: _buildAppBar(convState),
         body: SafeArea(
           child: Column(
             children: [
-              Expanded(child: _buildMessageList(convState)),
-              _buildBottomBar(convState),
+              Expanded(child: _buildMessageList(convState, isDark)),
+              _buildBottomBar(convState, isDark),
             ],
           ),
         ),
@@ -99,107 +99,128 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
   }
 
   PreferredSizeWidget _buildAppBar(ConversationStateData convState) {
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+
     return AppBar(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: isDark ? AppColors.surface : AppColors.lightSurface,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios, color: colorScheme.primary, size: 20),
+        icon: Icon(Icons.arrow_back_ios_new, color: colorScheme.primary, size: 20),
         onPressed: () {
           Navigator.pop(context);
         },
       ),
-      title: Column(
-        children: [
-          Text(
-            'AI English Conversation',
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (convState.sourceTitle != null)
-            Text(
-              convState.sourceTitle!,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 12,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-        ],
+      title: Text(
+        widget.sourceTitle ?? 'AI Conversation',
+        style: TextStyle(
+          color: isDark ? AppColors.onSurface : AppColors.lightOnSurface,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
-      centerTitle: true,
       actions: [
-        // 字幕对话开关
-        _buildTranslationToggle(convState),
-        const SizedBox(width: 8),
+        SizedBox(width: AppSpacing.space4),
+        _buildConversationListButton(convState, isDark),
+        SizedBox(width: AppSpacing.space4),
       ],
     );
   }
 
-  Widget _buildTranslationToggle(ConversationStateData convState) {
+  Widget _buildConversationListButton(ConversationStateData convState, bool isDark) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTap: () {
-        ref.read(conversationProvider.notifier).toggleTranslation();
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) => Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceElevated : AppColors.lightSurfaceElevated,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.space6)),
+            ),
+            padding: EdgeInsets.all(AppSpacing.space6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.outline : AppColors.lightOutline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: AppSpacing.space4),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.space4),
+                  child: Text(
+                    '对话历史',
+                    style: TextStyle(
+                      color: isDark ? AppColors.onSurface : AppColors.lightOnSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                SizedBox(height: AppSpacing.space4),
+                ListTile(
+                  leading: Icon(Icons.history, color: colorScheme.primary),
+                  title: Text(
+                    '查看历史对话',
+                    style: TextStyle(
+                      color: isDark ? AppColors.onSurface : AppColors.lightOnSurface,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('对话历史功能开发中...')),
+                    );
+                  },
+                ),
+                SizedBox(height: AppSpacing.space6),
+              ],
+            ),
+          ),
+        );
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        margin: const EdgeInsets.only(right: 4),
-        decoration: BoxDecoration(
-          color: convState.showTranslation
-              ? colorScheme.primary
-              : colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: convState.showTranslation
-                ? colorScheme.primary
-                : colorScheme.outline,
-          ),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.space4,
+          vertical: AppSpacing.space2,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.subtitles,
-              size: 14,
-              color: convState.showTranslation
-                  ? Colors.white
-                  : colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '字幕对话',
-              style: TextStyle(
-                color: convState.showTranslation
-                    ? Colors.white
-                    : colorScheme.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceHighest : AppColors.lightSurfaceHighest,
+          borderRadius: BorderRadius.circular(AppSpacing.space3),
+        ),
+        child: Icon(
+          Icons.format_list_bulleted,
+          size: 18,
+          color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
         ),
       ),
     );
   }
 
-  Widget _buildMessageList(ConversationStateData convState) {
-    final colorScheme = Theme.of(context).colorScheme;
-
+  Widget _buildMessageList(ConversationStateData convState, bool isDark) {
     if (convState.state == ConversationState.connecting) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: colorScheme.primary),
-            const SizedBox(height: 16),
+            CircularProgressIndicator(color: AppColors.primary),
+            SizedBox(height: AppSpacing.space4),
             Text(
               '正在连接 AI 助手...',
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+              style: TextStyle(
+                color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -209,18 +230,21 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
     if (convState.state == ConversationState.error) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.space6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, color: colorScheme.error, size: 48),
-              const SizedBox(height: 16),
+              Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              SizedBox(height: AppSpacing.space4),
               Text(
                 convState.errorMessage ?? '连接出错',
-                style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
+                style: TextStyle(
+                  color: isDark ? AppColors.onSurface : AppColors.lightOnSurface,
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: AppSpacing.space4),
               ElevatedButton(
                 onPressed: () {
                   ref.read(conversationProvider.notifier).startConversation(
@@ -231,8 +255,8 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
                       );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                 ),
                 child: const Text('重新连接'),
               ),
@@ -242,14 +266,16 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
       );
     }
 
-    if (convState.messages.isEmpty &&
-        convState.userTranscriptionPreview == null) {
+    if (convState.messages.isEmpty && convState.userTranscriptionPreview == null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.space6),
           child: Text(
             'AI 助手正在准备提问...\n请等待 AI 说话',
-            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(
+              color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
+              fontSize: 14,
+            ),
             textAlign: TextAlign.center,
           ),
         ),
@@ -258,7 +284,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.space4,
+        vertical: AppSpacing.space4,
+      ),
       itemCount: convState.messages.length +
           (convState.userTranscriptionPreview != null ? 1 : 0),
       itemBuilder: (context, index) {
@@ -266,72 +295,72 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
           return ChatBubble(
             message: convState.messages[index],
             showTranslation: convState.showTranslation,
+            isDark: isDark,
           );
         }
-        // 用户语音识别预览
         return TranscriptionPreview(
           preview: convState.userTranscriptionPreview ?? '',
+          isDark: isDark,
         );
       },
     );
   }
 
-  Widget _buildBottomBar(ConversationStateData convState) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildBottomBar(ConversationStateData convState, bool isDark) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space3, AppSpacing.space4, AppSpacing.space4),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: isDark ? AppColors.surface : AppColors.lightSurface,
         border: Border(
-          top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
+          top: BorderSide(
+            color: isDark ? AppColors.outline : AppColors.lightOutline,
+            width: 0.5,
+          ),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 状态指示
-          _buildStatusBar(convState),
-          const SizedBox(height: 12),
-          // 录音按钮
-          _buildRecordButton(convState),
+          _buildStatusBar(convState, isDark),
+          SizedBox(height: AppSpacing.space3),
+          _buildRecordButton(convState, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildStatusBar(ConversationStateData convState) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildStatusBar(ConversationStateData convState, bool isDark) {
     String statusText;
     Color statusColor;
 
     switch (convState.state) {
       case ConversationState.idle:
         statusText = '准备中';
-        statusColor = colorScheme.onSurfaceVariant;
+        statusColor = isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceDisabled;
         break;
       case ConversationState.connecting:
         statusText = '连接中...';
-        statusColor = Colors.orange;
+        statusColor = AppColors.warning;
         break;
       case ConversationState.aiSpeaking:
         statusText = 'AI 正在说话';
-        statusColor = colorScheme.primary;
+        statusColor = AppColors.primary;
         break;
       case ConversationState.listening:
-        statusText = '等待你说话';
-        statusColor = Colors.green;
+        statusText = '轮到你说话了';
+        statusColor = AppColors.success;
         break;
       case ConversationState.processing:
         statusText = 'AI 思考中...';
-        statusColor = Colors.orange;
+        statusColor = AppColors.warning;
         break;
       case ConversationState.error:
         statusText = '连接出错';
-        statusColor = colorScheme.error;
+        statusColor = AppColors.error;
         break;
       case ConversationState.disconnected:
         statusText = '已断开';
-        statusColor = colorScheme.outline;
+        statusColor = isDark ? AppColors.onSurfaceDisabled : AppColors.lightOnSurfaceDisabled;
         break;
     }
 
@@ -348,25 +377,28 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
             shape: BoxShape.circle,
           ),
         ),
-        const SizedBox(width: 6),
+        SizedBox(width: AppSpacing.space2),
         Text(
           statusText,
-          style: TextStyle(color: statusColor, fontSize: 13),
+          style: TextStyle(
+            color: statusColor,
+            fontSize: 13,
+          ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: AppSpacing.space3),
         Text(
           durationStr,
           style: TextStyle(
-            color: colorScheme.outline,
+            color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
             fontSize: 12,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: AppSpacing.space3),
         Text(
           '${convState.turnCount} 轮',
           style: TextStyle(
-            color: colorScheme.outline,
+            color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
             fontSize: 12,
           ),
         ),
@@ -374,8 +406,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
     );
   }
 
-  Widget _buildRecordButton(ConversationStateData convState) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildRecordButton(ConversationStateData convState, bool isDark) {
     final isDisabled = convState.state == ConversationState.connecting ||
         convState.state == ConversationState.error ||
         convState.state == ConversationState.disconnected;
@@ -383,28 +414,25 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 波形图标
         if (_isHoldingRecord)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: AppSpacing.space2),
             child: Icon(
               Icons.graphic_eq,
-              color: colorScheme.primary,
+              color: AppColors.primary,
               size: 32,
             ),
           ),
-        // 提示文字
         Text(
           _isHoldingRecord ? '松开结束' : '按住说话',
           style: TextStyle(
             color: isDisabled
-                ? colorScheme.outline
-                : colorScheme.onSurfaceVariant,
+                ? (isDark ? AppColors.onSurfaceDisabled : AppColors.lightOnSurfaceDisabled)
+                : (isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant),
             fontSize: 13,
           ),
         ),
-        const SizedBox(height: 8),
-        // 录音按钮
+        SizedBox(height: AppSpacing.space2),
         GestureDetector(
           onTapDown: isDisabled
               ? null
@@ -429,27 +457,27 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
             height: 72,
             decoration: BoxDecoration(
               color: _isHoldingRecord
-                  ? colorScheme.primary
+                  ? AppColors.primary
                   : (isDisabled
-                      ? colorScheme.surfaceContainerHighest
-                      : colorScheme.primary.withValues(alpha: 0.15)),
+                      ? (isDark ? AppColors.surfaceHighest : AppColors.lightSurfaceHighest)
+                      : AppColors.primary.withValues(alpha: 0.15)),
               shape: BoxShape.circle,
               border: Border.all(
                 color: _isHoldingRecord
-                    ? colorScheme.primary
+                    ? AppColors.primary
                     : (isDisabled
-                        ? colorScheme.outline
-                        : colorScheme.primary),
+                        ? (isDark ? AppColors.outline : AppColors.lightOutline)
+                        : AppColors.primary),
                 width: 2,
               ),
             ),
             child: Icon(
               _isHoldingRecord ? Icons.stop : Icons.mic,
               color: _isHoldingRecord
-                  ? Colors.white
+                  ? AppColors.onPrimary
                   : (isDisabled
-                      ? colorScheme.outline
-                      : colorScheme.primary),
+                      ? (isDark ? AppColors.onSurfaceDisabled : AppColors.lightOnSurfaceDisabled)
+                      : AppColors.primary),
               size: 32,
             ),
           ),

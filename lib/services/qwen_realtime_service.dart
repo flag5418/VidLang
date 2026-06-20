@@ -57,6 +57,7 @@ class QwenRealtimeService {
     String outputAudioFormat = 'pcm',
     double vadThreshold = 0.5,
     int silenceDurationMs = 800,
+    String difficulty = 'intermediate',
   }) {
     _sendEvent({
       'event_id': _nextEventId(),
@@ -66,7 +67,7 @@ class QwenRealtimeService {
         'voice': voice,
         'input_audio_format': inputAudioFormat,
         'output_audio_format': outputAudioFormat,
-        'instructions': instructions,
+        'instructions': '$instructions\n\n难度级别: $difficulty\n\n对话流程要求:\n1. AI先提出问题\n2. 等待用户回答\n3. 对用户回答给予评价和建议\n4. 根据评价提出下一个问题\n5. 重复以上流程\n\n注意事项:\n- 每次只问一个问题\n- 问题要符合用户的难度级别\n- 用户回答后要给予积极反馈\n- 适当纠正用户的语法错误\n- 保持对话自然流畅',
         'turn_detection': {
           'type': 'semantic_vad',
           'threshold': vadThreshold,
@@ -108,7 +109,13 @@ class QwenRealtimeService {
     _isConnected = false;
     _subscription?.cancel();
     _subscription = null;
-    _channel?.sink.close();
+    if (_channel?.sink != null) {
+      try {
+        _channel!.sink.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+    }
     _channel = null;
   }
 
