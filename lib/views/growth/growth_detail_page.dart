@@ -273,24 +273,45 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
 
   String _questionTypeLabel(String type) {
     switch (type) {
+      // 新版题型
+      case 'listen_choose':
       case 'listenChoose':
-        return '听音选词';
+        return '原音选择';
+      case 'listen_meaning':
+      case 'listenMeaning':
+        return '听音辩义';
+      case 'listen_reply':
+      case 'listenReply':
+        return '听音回复';
+      case 'definition_choice':
+      case 'definitionChoice':
+        return '释义选择';
+      case 'translate_meaning':
+      case 'translateMeaning':
+        return '英义互译';
+      case 'word_relation':
+      case 'wordRelation':
+        return '词性测试';
+      case 'word_pron':
+      case 'wordPron':
+        return '跟读单词';
+      case 'phrase_pron':
+      case 'phrasePron':
+        return '跟读短语';
+      case 'sentence_pron':
+      case 'sentencePron':
+        return '句子跟读';
+      case 'reorder':
+        return '组句';
+      case 'spelling':
+        return '拼写填空';
+      // 旧版题型
       case 'meaningWrite':
         return '看义写词';
       case 'sentenceDictation':
         return '句中听写';
       case 'translateBoth':
         return '中英互译';
-      case 'wordPron':
-        return '跟读单词';
-      case 'phrasePron':
-        return '跟读短语';
-      case 'sentencePron':
-        return '句子跟读';
-      case 'reorder':
-        return '组句题';
-      case 'spelling':
-        return '拼写填空';
       case 'mcq':
         return '选择题';
       default:

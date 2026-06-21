@@ -78,6 +78,9 @@ dependencies:
   # 录音 - 用于录制用户语音
   record: ^6.0.0
 
+  # 语音识别 - 免费模式下使用原生语音转文字（iOS SFSpeechRecognizer / Android SpeechRecognizer）
+  speech_to_text: ^7.4.0
+
   # 系统 TTS - 调用原生 TTS 引擎朗读字幕/单词
   flutter_tts: ^4.1.0
 

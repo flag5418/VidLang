@@ -90,6 +90,13 @@ class TestGenerator {
         return _genSpelling(targetWord, order, testSessionId);
       case QuestionType.mcq:
         return _genMcq(targetWord, translation, allWords, order, testSessionId);
+      // 新题型通过 Edge Function 出题，本地生成器暂不支持
+      case QuestionType.listenMeaning:
+      case QuestionType.listenReply:
+      case QuestionType.definitionChoice:
+      case QuestionType.translateMeaning:
+      case QuestionType.wordRelation:
+        return null;
     }
   }
 

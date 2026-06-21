@@ -76,6 +76,7 @@ class MainVideoCard extends StatelessWidget {
                 ),
               ),
             ),
+            _buildSubtitleBadge(context, colorScheme),
             _buildMenu(context, colorScheme),
             _buildBottomSection(context, colorScheme),
             _buildPlayButton(context, colorScheme),
@@ -107,57 +108,76 @@ class MainVideoCard extends StatelessWidget {
     );
   }
 
+  Widget _buildSubtitleBadge(BuildContext context, ColorScheme colorScheme) {
+    return Positioned(
+      top: 10,
+      left: 10,
+      child: Container(
+        padding: EdgeInsets.all(5.w),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5.r),
+          color: video.hasSubtitles ? colorScheme.primary : Colors.black.withValues(alpha: 0.5),
+        ),
+        child: Icon(Icons.subtitles, size: 14.sp, color: video.hasSubtitles ? Colors.white : Colors.white38),
+      ),
+    );
+  }
+
   Widget _buildMenu(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
       bottom: 14,
       right: 12,
-      child: PopupMenuButton<String>(
-        onSelected: (value) {
-          switch (value) {
-            case 'rename':
-              onRename?.call();
-              break;
-            case 'importSubtitle':
-              onImportSubtitle?.call();
-              break;
-            case 'aiConversation':
-              onAiConversation?.call();
-              break;
-            case 'unitTest':
-              onUnitTest?.call();
-              break;
-            case 'delete':
-              onDelete?.call();
-              break;
-          }
-        },
-        offset: const Offset(-100, 0),
-        color: colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 6,
-        child: Container(
-          width: 28.r,
-          height: 28.r,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6.r), color: Colors.black.withValues(alpha: 0.65)),
-          child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
+      // 用 GestureDetector 拦截点击，防止冒泡到外层 onTap: onPlay
+      child: GestureDetector(
+        onTap: () {},
+        child: PopupMenuButton<String>(
+          onSelected: (value) {
+            switch (value) {
+              case 'rename':
+                onRename?.call();
+                break;
+              case 'importSubtitle':
+                onImportSubtitle?.call();
+                break;
+              case 'aiConversation':
+                onAiConversation?.call();
+                break;
+              case 'unitTest':
+                onUnitTest?.call();
+                break;
+              case 'delete':
+                onDelete?.call();
+                break;
+            }
+          },
+          offset: const Offset(-100, 0),
+          color: colorScheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          elevation: 6,
+          child: Container(
+            width: 28.r,
+            height: 28.r,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(6.r), color: Colors.black.withValues(alpha: 0.65)),
+            child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
+          ),
+          itemBuilder: (context) {
+            final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
+            if (!video.hasSubtitles && onImportSubtitle != null) {
+              items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
+            }
+            if (video.hasSubtitles && onAiConversation != null) {
+              items.add(PopupMenuItem(value: 'aiConversation', child: _menuRow(context, Icons.forum_outlined, 'AI 对话', colorScheme)));
+            }
+            if (onUnitTest != null) {
+              items.add(PopupMenuItem(value: 'unitTest', child: _menuRow(context, Icons.quiz_outlined, '单元测试', colorScheme)));
+            }
+            items.addAll([
+              const PopupMenuDivider(height: 1),
+              PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
+            ]);
+            return items;
+          },
         ),
-        itemBuilder: (context) {
-          final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
-          if (!video.hasSubtitles && onImportSubtitle != null) {
-            items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
-          }
-          if (video.hasSubtitles && onAiConversation != null) {
-            items.add(PopupMenuItem(value: 'aiConversation', child: _menuRow(context, Icons.forum_outlined, 'AI 对话', colorScheme)));
-          }
-          if (onUnitTest != null) {
-            items.add(PopupMenuItem(value: 'unitTest', child: _menuRow(context, Icons.quiz_outlined, '单元测试', colorScheme)));
-          }
-          items.addAll([
-            const PopupMenuDivider(height: 1),
-            PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
-          ]);
-          return items;
-        },
       ),
     );
   }

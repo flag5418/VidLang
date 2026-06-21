@@ -1033,6 +1033,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final video = n.currentVideo;
     final lang = video?.language ?? 'en';
     final code = s.videoCode ?? '';
+    final subState = ref.read(subscriptionProvider);
 
     // 内联渲染：直接返回 Positioned Widget，不创建新路由，避免视频黑屏
     return Positioned(
@@ -1068,6 +1069,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           currentSubtitleIndex: s.currentSubtitleIndex,
           nextSentence: () async => n.nextSentence(),
           previousSentence: () async => n.previousSentence(),
+          subscriptionMode: subState.mode,
         ),
         heightFactor: 0.55,
         onClose: () => setState(() => _showReadAloud = false),

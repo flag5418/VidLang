@@ -35,12 +35,38 @@ class TestPage extends StatefulWidget {
 class _TestPageState extends State<TestPage> {
   static const _uuid = Uuid();
 
-  int _reorderCount = 2;
+  // 听
+  int _listenChooseCount = 2;
+  int _listenMeaningCount = 2;
+  int _listenReplyCount = 2;
+
+  // 读
+  int _definitionChoiceCount = 2;
   int _spellingCount = 2;
-  int _mcqCount = 2;
+  int _reorderCount = 2;
+  int _translateMeaningCount = 2;
+  int _wordRelationCount = 2;
+
+  // 说
+  int _wordPronCount = 0;
+  int _phrasePronCount = 0;
+  int _sentencePronCount = 0;
 
   bool _loading = false;
   String? _error;
+
+  int get _totalCount =>
+      _listenChooseCount +
+      _listenMeaningCount +
+      _listenReplyCount +
+      _definitionChoiceCount +
+      _spellingCount +
+      _reorderCount +
+      _translateMeaningCount +
+      _wordRelationCount +
+      _wordPronCount +
+      _phrasePronCount +
+      _sentencePronCount;
 
   Future<void> _start() async {
     if (_loading) return;
@@ -63,32 +89,18 @@ class _TestPageState extends State<TestPage> {
       final prefs = await SharedPreferences.getInstance();
       final difficulty = widget.difficulty ?? prefs.getString('app_difficulty_level') ?? 'intermediate';
 
-      // Apply config overrides
-      if (widget.questionsPerWord != null) {
-        setState(() {
-          _reorderCount = widget.questionsPerWord!;
-          _spellingCount = widget.questionsPerWord!;
-          _mcqCount = widget.questionsPerWord!;
-        });
-      }
-      if (widget.questionTypes != null) {
-        final types = widget.questionTypes!;
-        setState(() {
-          _reorderCount = types.contains('reorder') ? _reorderCount : 0;
-          _spellingCount = types.contains('spelling') ? _spellingCount : 0;
-          _mcqCount = types.contains('definition_choice') ? _mcqCount : 0;
-          if (types.contains('example_cloze') || types.contains('speaking')) {
-            _reorderCount = types.contains('reorder') ? _reorderCount : 0;
-            _spellingCount = types.contains('spelling') ? _spellingCount : 0;
-            _mcqCount = types.contains('definition_choice') ? _mcqCount : 0;
-          }
-        });
-      }
-
       final config = {
-        'reorder_count': widget.isWordBookMode ? 0 : _reorderCount,
+        'listen_choose_count': _listenChooseCount,
+        'listen_meaning_count': _listenMeaningCount,
+        'listen_reply_count': _listenReplyCount,
+        'definition_choice_count': _definitionChoiceCount,
         'spelling_count': _spellingCount,
-        'mcq_count': _mcqCount,
+        'reorder_count': widget.isWordBookMode ? 0 : _reorderCount,
+        'translate_meaning_count': _translateMeaningCount,
+        'word_relation_count': _wordRelationCount,
+        'word_pron_count': _wordPronCount,
+        'phrase_pron_count': _phrasePronCount,
+        'sentence_pron_count': _sentencePronCount,
       };
       final res = await client.functions.invoke(
         'ai-test-plan',
@@ -157,88 +169,270 @@ class _TestPageState extends State<TestPage> {
       appBar: AppBar(
         title: Text('综合测试', style: TextStyle(fontSize: 16.sp)),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 顶部标题
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
+            child: Text(
               widget.videoTitle,
               style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 12.h),
-            if (!widget.isWordBookMode) ...[
-              _CounterRow(title: '组句题', value: _reorderCount, onChanged: (v) => setState(() => _reorderCount = v)),
-              SizedBox(height: 10.h),
-            ],
-            _CounterRow(title: '拼写填空', value: _spellingCount, onChanged: (v) => setState(() => _spellingCount = v)),
-            SizedBox(height: 10.h),
-            _CounterRow(title: '选择题', value: _mcqCount, onChanged: (v) => setState(() => _mcqCount = v)),
-            if (widget.isWordBookMode) ...[
-              SizedBox(height: 10.h),
-              Text(
-                '生词本测试按所选单词出题，提交后会累计复习次数。',
-                style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+          ),
+          // 题型配置滚动区域
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.isWordBookMode) ...[
+                    Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Text(
+                        '生词本测试按所选单词出题，提交后会累计复习次数。',
+                        style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                  ],
+                  // 听
+                  _QuestionGroupSection(
+                    icon: Icons.headphones,
+                    title: '听',
+                    children: [
+                      _QuestionTypeCard(
+                        title: '原音选择',
+                        description: '播放音频，选择当前播放的内容',
+                        value: _listenChooseCount,
+                        onChanged: (v) => setState(() => _listenChooseCount = v),
+                      ),
+                      _QuestionTypeCard(
+                        title: '听音辩义',
+                        description: '播放音频，选择和原义类似的解释',
+                        value: _listenMeaningCount,
+                        onChanged: (v) => setState(() => _listenMeaningCount = v),
+                      ),
+                      _QuestionTypeCard(
+                        title: '听音回复',
+                        description: '播放一个问题，根据听到的内容选择回答',
+                        value: _listenReplyCount,
+                        onChanged: (v) => setState(() => _listenReplyCount = v),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                  // 读
+                  _QuestionGroupSection(
+                    icon: Icons.menu_book,
+                    title: '读',
+                    children: [
+                      _QuestionTypeCard(
+                        title: '释义选择',
+                        description: '根据给出的单词或翻译，选择正确的释义',
+                        value: _definitionChoiceCount,
+                        onChanged: (v) => setState(() => _definitionChoiceCount = v),
+                      ),
+                      _QuestionTypeCard(
+                        title: '拼写填空',
+                        description: '根据句子提示，拼写缺失的单词',
+                        value: _spellingCount,
+                        onChanged: (v) => setState(() => _spellingCount = v),
+                      ),
+                      if (!widget.isWordBookMode)
+                        _QuestionTypeCard(
+                          title: '组句',
+                          description: '将打乱的词块排列成正确语序的句子',
+                          value: _reorderCount,
+                          onChanged: (v) => setState(() => _reorderCount = v),
+                        ),
+                      _QuestionTypeCard(
+                        title: '英义互译',
+                        description: '阅读英文段落，选择与原文类似的中文解释',
+                        value: _translateMeaningCount,
+                        onChanged: (v) => setState(() => _translateMeaningCount = v),
+                      ),
+                      _QuestionTypeCard(
+                        title: '词性测试',
+                        description: '根据单词选择同义词、反义词等（可多选）',
+                        value: _wordRelationCount,
+                        onChanged: (v) => setState(() => _wordRelationCount = v),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+                  // 说
+                  _QuestionGroupSection(
+                    icon: Icons.mic,
+                    title: '说',
+                    children: [
+                      _QuestionTypeCard(
+                        title: '跟读单词',
+                        description: '跟读展示的单词，录音评分',
+                        value: _wordPronCount,
+                        onChanged: (v) => setState(() => _wordPronCount = v),
+                      ),
+                      _QuestionTypeCard(
+                        title: '跟读短语',
+                        description: '跟读展示的短语，录音评分',
+                        value: _phrasePronCount,
+                        onChanged: (v) => setState(() => _phrasePronCount = v),
+                      ),
+                      _QuestionTypeCard(
+                        title: '跟读句子',
+                        description: '跟读展示的句子，录音评分',
+                        value: _sentencePronCount,
+                        onChanged: (v) => setState(() => _sentencePronCount = v),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12.h),
+                  // 错误提示
+                  if (_error != null)
+                    Container(
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(color: colorScheme.errorContainer, borderRadius: BorderRadius.circular(12.r)),
+                      child: Text(
+                        _error!,
+                        style: TextStyle(fontSize: 13.sp, color: colorScheme.onErrorContainer),
+                      ),
+                    ),
+                  SizedBox(height: 16.h),
+                ],
               ),
-            ],
-            SizedBox(height: 16.h),
-            if (_error != null)
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(color: colorScheme.errorContainer, borderRadius: BorderRadius.circular(12.r)),
-                child: Text(
-                  _error!,
-                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onErrorContainer),
+            ),
+          ),
+          // 底部操作栏
+          Container(
+            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.quiz_outlined, size: 14.sp, color: colorScheme.onSurfaceVariant),
+                    SizedBox(width: 6.w),
+                    Text(
+                      '共 $_totalCount 题 · 每次随机出题，请认真作答',
+                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
                 ),
-              ),
-            const Spacer(),
-            SizedBox(
-              height: 48.h,
-              child: FilledButton(
-                onPressed: _loading ? null : _start,
-                child: _loading
-                    ? SizedBox(
-                        width: 18.r,
-                        height: 18.r,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary),
-                      )
-                    : Text('开始', style: TextStyle(fontSize: 15.sp)),
-              ),
+                SizedBox(height: 10.h),
+                SizedBox(
+                  height: 48.h,
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: (_loading || _totalCount == 0) ? null : _start,
+                    child: _loading
+                        ? SizedBox(
+                            width: 18.r,
+                            height: 18.r,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary),
+                          )
+                        : Text('开始', style: TextStyle(fontSize: 15.sp)),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 12.h),
-            Text(
-              '每次题目都是随机，请认真作答',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _CounterRow extends StatelessWidget {
+/// 题型分组区域
+class _QuestionGroupSection extends StatelessWidget {
+  final IconData icon;
   final String title;
+  final List<Widget> children;
+
+  const _QuestionGroupSection({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18.sp, color: colorScheme.primary),
+            SizedBox(width: 6.w),
+            Text(
+              title,
+              style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700, color: colorScheme.primary),
+            ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        ...children.expand((child) => [child, SizedBox(height: 8.h)]),
+      ],
+    );
+  }
+}
+
+/// 题型配置卡片：标题 + 说明 + 数量计数器
+class _QuestionTypeCard extends StatelessWidget {
+  final String title;
+  final String description;
   final int value;
   final ValueChanged<int> onChanged;
 
-  const _CounterRow({required this.title, required this.value, required this.onChanged});
+  const _QuestionTypeCard({
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12.r)),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500, color: colorScheme.onSurface),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
+          SizedBox(width: 8.w),
           _StepButton(icon: Icons.remove, onTap: value <= 0 ? null : () => onChanged(value - 1)),
           SizedBox(width: 10.w),
           SizedBox(
@@ -257,6 +451,7 @@ class _CounterRow extends StatelessWidget {
   }
 }
 
+/// 步进按钮
 class _StepButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -270,13 +465,13 @@ class _StepButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 34.r,
-        height: 34.r,
+        width: 32.r,
+        height: 32.r,
         decoration: BoxDecoration(
           color: disabled ? colorScheme.surfaceContainerHighest : colorScheme.primary,
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(8.r),
         ),
-        child: Icon(icon, size: 18.sp, color: disabled ? colorScheme.onSurfaceVariant : colorScheme.onPrimary),
+        child: Icon(icon, size: 16.sp, color: disabled ? colorScheme.onSurfaceVariant : colorScheme.onPrimary),
       ),
     );
   }
@@ -309,6 +504,8 @@ class _TestRunPageState extends State<_TestRunPage> {
   final List<String> _reorderSelected = [];
   String _spellingTyped = '';
   int? _mcqSelected;
+  final Set<int> _multiSelected = {};
+  bool _ttsPlayed = false;
 
   Map<String, dynamic> get _item => widget.items[_index];
 
@@ -316,8 +513,14 @@ class _TestRunPageState extends State<_TestRunPage> {
     _reorderSelected.clear();
     _spellingTyped = '';
     _mcqSelected = null;
+    _multiSelected.clear();
+    _ttsPlayed = false;
     _submitted = false;
     _isCorrect = false;
+  }
+
+  bool _isPronType(String type) {
+    return type == 'word_pron' || type == 'phrase_pron' || type == 'sentence_pron';
   }
 
   void _submit() {
@@ -331,9 +534,17 @@ class _TestRunPageState extends State<_TestRunPage> {
     } else if (type == 'spelling') {
       final ans = (_item['answer'] as String?)?.toLowerCase() ?? '';
       ok = _spellingTyped.toLowerCase() == ans;
-    } else if (type == 'mcq') {
+    } else if (type == 'mcq' || type == 'listen_choose' || type == 'listen_meaning' ||
+        type == 'listen_reply' || type == 'definition_choice' || type == 'translate_meaning') {
       final idx = _item['answer_index'] as int? ?? -1;
       ok = _mcqSelected != null && _mcqSelected == idx;
+    } else if (type == 'word_relation') {
+      final answerIndices = (_item['answer_indices'] as List?)?.whereType<int>().toSet() ?? <int>{};
+      ok = _multiSelected.length == answerIndices.length &&
+          _multiSelected.every((i) => answerIndices.contains(i));
+    } else if (_isPronType(type)) {
+      // 跟读题暂不评分（需声通API）
+      ok = true;
     }
 
     setState(() {
@@ -514,8 +725,15 @@ class _TestRunPageState extends State<_TestRunPage> {
       final ans = (_item['answer'] as String?) ?? '';
       return _spellingTyped.length == ans.length && ans.isNotEmpty;
     }
-    if (type == 'mcq') {
+    if (type == 'mcq' || type == 'listen_choose' || type == 'listen_meaning' ||
+        type == 'listen_reply' || type == 'definition_choice' || type == 'translate_meaning') {
       return _mcqSelected != null;
+    }
+    if (type == 'word_relation') {
+      return _multiSelected.isNotEmpty;
+    }
+    if (_isPronType(type)) {
+      return true; // 跟读题直接提交
     }
     return false;
   }
@@ -525,6 +743,13 @@ class _TestRunPageState extends State<_TestRunPage> {
     if (type == 'reorder') return _buildReorder();
     if (type == 'spelling') return _buildSpelling();
     if (type == 'mcq') return _buildMcq();
+    if (type == 'listen_choose') return _buildListenMcq('听发音，选择你听到的单词');
+    if (type == 'listen_meaning') return _buildListenMcq('听发音，选择与该词意思最接近的选项');
+    if (type == 'listen_reply') return _buildListenMcq('听问题，选择最佳回答');
+    if (type == 'definition_choice') return _buildDefinitionChoice();
+    if (type == 'translate_meaning') return _buildTranslateMeaning();
+    if (type == 'word_relation') return _buildWordRelation();
+    if (_isPronType(type)) return _buildPronunciation();
     return Center(child: Text('未知题型: $type'));
   }
 
@@ -806,6 +1031,327 @@ class _TestRunPageState extends State<_TestRunPage> {
           ),
         ),
       ],
+    );
+  }
+
+  // ─── 听力类题型（带TTS播放按钮 + 单选） ───
+
+  Widget _buildListenMcq(String hint) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final promptCn = (_item['prompt_cn'] as String?) ?? '';
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    final answerIndex = _item['answer_index'] as int? ?? -1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // TTS播放按钮
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12.r)),
+          child: Column(
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => _ttsPlayed = true),
+                child: Container(
+                  width: 56.r,
+                  height: 56.r,
+                  decoration: BoxDecoration(
+                    color: _ttsPlayed ? colorScheme.primary.withValues(alpha: 0.15) : colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _ttsPlayed ? Icons.replay : Icons.volume_up,
+                    size: 24.sp,
+                    color: _ttsPlayed ? colorScheme.primary : colorScheme.onPrimary,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                _ttsPlayed ? '点击重新播放' : '点击播放音频',
+                style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        if (promptCn.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: 8.h),
+            child: Text(promptCn, style: TextStyle(fontSize: 12.sp, color: colorScheme.outline)),
+          ),
+        Expanded(
+          child: ListView.separated(
+            itemCount: options.length,
+            separatorBuilder: (_, _) => SizedBox(height: 10.h),
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── 释义选择 ───
+
+  Widget _buildDefinitionChoice() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final prompt = (_item['prompt'] as String?) ?? '';
+    final promptCn = (_item['prompt_cn'] as String?) ?? '';
+    final displayText = (_item['display_text'] as String?) ?? '';
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    final answerIndex = _item['answer_index'] as int? ?? -1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12.r)),
+          child: Column(
+            children: [
+              Text(displayText, style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+              SizedBox(height: 6.h),
+              Text(prompt, style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        if (promptCn.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: 8.h),
+            child: Text(promptCn, style: TextStyle(fontSize: 12.sp, color: colorScheme.outline)),
+          ),
+        Expanded(
+          child: ListView.separated(
+            itemCount: options.length,
+            separatorBuilder: (_, _) => SizedBox(height: 10.h),
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── 英义互译 ───
+
+  Widget _buildTranslateMeaning() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final promptCn = (_item['prompt_cn'] as String?) ?? '';
+    final displayText = (_item['display_text'] as String?) ?? '';
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    final answerIndex = _item['answer_index'] as int? ?? -1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12.r)),
+          child: Text(displayText, style: TextStyle(fontSize: 14.sp, height: 1.5, color: colorScheme.onSurface)),
+        ),
+        SizedBox(height: 8.h),
+        if (promptCn.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: 8.h),
+            child: Text(promptCn, style: TextStyle(fontSize: 12.sp, color: colorScheme.outline)),
+          ),
+        Expanded(
+          child: ListView.separated(
+            itemCount: options.length,
+            separatorBuilder: (_, _) => SizedBox(height: 10.h),
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex, maxLines: 3),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── 词性测试（多选） ───
+
+  Widget _buildWordRelation() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final prompt = (_item['prompt'] as String?) ?? '';
+    final promptCn = (_item['prompt_cn'] as String?) ?? '';
+    final displayText = (_item['display_text'] as String?) ?? '';
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    final answerIndices = (_item['answer_indices'] as List?)?.whereType<int>().toSet() ?? <int>{};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12.r)),
+          child: Column(
+            children: [
+              Text(displayText, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+              SizedBox(height: 6.h),
+              Text(prompt, style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        if (promptCn.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: 4.h),
+            child: Text(promptCn, style: TextStyle(fontSize: 12.sp, color: colorScheme.outline)),
+          ),
+        Padding(
+          padding: EdgeInsets.only(bottom: 8.h),
+          child: Text('（可多选）', style: TextStyle(fontSize: 11.sp, color: colorScheme.primary)),
+        ),
+        Expanded(
+          child: ListView.separated(
+            itemCount: options.length,
+            separatorBuilder: (_, _) => SizedBox(height: 10.h),
+            itemBuilder: (context, i) {
+              final selected = _multiSelected.contains(i);
+              final showCorrect = _submitted && answerIndices.contains(i);
+              final showWrong = _submitted && selected && !answerIndices.contains(i);
+              final bg = showCorrect
+                  ? colorScheme.tertiaryContainer
+                  : showWrong
+                      ? colorScheme.errorContainer
+                      : selected
+                          ? colorScheme.primary.withValues(alpha: 0.12)
+                          : colorScheme.surfaceContainerHighest;
+              return GestureDetector(
+                onTap: _submitted
+                    ? null
+                    : () => setState(() {
+                          if (_multiSelected.contains(i)) {
+                            _multiSelected.remove(i);
+                          } else {
+                            _multiSelected.add(i);
+                          }
+                        }),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                  decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12.r)),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 22.r,
+                        height: 22.r,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selected ? colorScheme.primary : Colors.transparent,
+                          border: Border.all(color: selected ? colorScheme.primary : colorScheme.outline, width: 1.5),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: selected ? Icon(Icons.check, size: 14.sp, color: colorScheme.onPrimary) : null,
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(child: Text(options[i], style: TextStyle(fontSize: 14.sp))),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── 跟读题 ───
+
+  Widget _buildPronunciation() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final promptCn = (_item['prompt_cn'] as String?) ?? '';
+    final refText = (_item['ref_text'] as String?) ?? '';
+    final type = (_item['type'] as String?) ?? '';
+    final typeLabel = type == 'word_pron' ? '跟读单词' : type == 'phrase_pron' ? '跟读短语' : '跟读句子';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(12.r)),
+          child: Column(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999.r),
+                ),
+                child: Text(typeLabel, style: TextStyle(fontSize: 11.sp, color: colorScheme.primary)),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                refText,
+                style: TextStyle(fontSize: type == 'word_pron' ? 24.sp : 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 8.h),
+              if (promptCn.isNotEmpty)
+                Text(promptCn, style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+        SizedBox(height: 20.h),
+        Center(
+          child: GestureDetector(
+            onTap: _submitted ? null : () => setState(() => _submitted = true),
+            child: Container(
+              width: 72.r,
+              height: 72.r,
+              decoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle),
+              child: Icon(Icons.mic, size: 32.sp, color: colorScheme.onPrimary),
+            ),
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Text(
+          _submitted ? '已录音，点击提交' : '点击录音',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
+  // ─── 通用选项组件 ───
+
+  Widget _buildOptionTile(ColorScheme colorScheme, int i, String text, int answerIndex, {int maxLines = 1}) {
+    final selected = _mcqSelected == i;
+    final showCorrect = _submitted && i == answerIndex;
+    final showWrong = _submitted && selected && i != answerIndex;
+    final bg = showCorrect
+        ? colorScheme.tertiaryContainer
+        : showWrong
+            ? colorScheme.errorContainer
+            : selected
+                ? colorScheme.primary.withValues(alpha: 0.12)
+                : colorScheme.surfaceContainerHighest;
+    return GestureDetector(
+      onTap: _submitted ? null : () => setState(() => _mcqSelected = i),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12.r)),
+        child: Row(
+          children: [
+            Container(
+              width: 22.r,
+              height: 22.r,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: selected ? colorScheme.primary : colorScheme.outline.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(999.r),
+              ),
+              child: Text(
+                String.fromCharCode(65 + i),
+                style: TextStyle(fontSize: 12.sp, color: selected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(child: Text(text, style: TextStyle(fontSize: 14.sp), maxLines: maxLines, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      ),
     );
   }
 }

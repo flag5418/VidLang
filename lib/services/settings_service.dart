@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:vidlang/models/config.dart';
 import 'package:vidlang/models/playback_settings.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -280,6 +282,9 @@ class SettingsService {
     await _upsertConfig(categoryPlayer, keyAudioOriginalVolumeMusic, ValueType.number, value.clamp(0.0, 1.0).toString());
   }
 
+  static const String categoryWordDisplay = 'word_display';
+  static const String keyWordDisplaySections = 'sections_order';
+
   static Future<bool> getAudioPronunciationVisible() async {
     final row = await _findConfig(categoryPlayer, keyAudioPronunciationVisible);
     final v = row?.value;
@@ -289,5 +294,25 @@ class SettingsService {
 
   static Future<void> setAudioPronunciationVisible(bool value) async {
     await _upsertConfig(categoryPlayer, keyAudioPronunciationVisible, ValueType.boolean, value ? 'true' : 'false');
+  }
+
+  static Future<List<String?>> getWordDisplaySections() async {
+    final row = await _findConfig(categoryWordDisplay, keyWordDisplaySections);
+    if (row?.value == null) return [];
+    try {
+      final list = jsonDecode(row!.value!) as List;
+      return list.whereType<String>().toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> setWordDisplaySections(List<String> sections) async {
+    await _upsertConfig(
+      categoryWordDisplay,
+      keyWordDisplaySections,
+      ValueType.json,
+      jsonEncode(sections),
+    );
   }
 }

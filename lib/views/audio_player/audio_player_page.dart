@@ -26,6 +26,7 @@ import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/views/audio_player/recognition_prompt_dialog.dart';
 import 'package:vidlang/views/audio_player/subtitle_list_widget.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
@@ -232,7 +233,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
   void _showNoSubtitlePrompt() {
     final video = ref.read(playerEngineProvider.notifier).currentVideo;
-    showDialog(
+    DialogUtils.show(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => RecognitionPromptDialog(
@@ -267,7 +268,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     }
 
     if (!mounted) return;
-    showDialog(context: context, barrierDismissible: false, builder: (_) => _buildProgressDialog());
+    DialogUtils.show(context: context, barrierDismissible: false, builder: (_) => _buildProgressDialog());
 
     try {
       if (widget.audioType == 'music') {
@@ -316,7 +317,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     final titleCtrl = TextEditingController(text: currentName);
     final artistCtrl = TextEditingController();
     final cs = Theme.of(context).colorScheme;
-    return showDialog<Map<String, String>>(
+    return DialogUtils.show<Map<String, String>>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(

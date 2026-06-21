@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
 
@@ -40,10 +41,16 @@ class WordDetailPanel extends StatefulWidget {
 
 class _WordDetailPanelState extends State<WordDetailPanel> {
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _settingsScrollController = ScrollController();
   final Map<WordDetailSection, GlobalKey> _sectionKeys = {};
 
   WordDetailSection? _currentSection;
   List<WordDetailSection> _effectiveSections = const [];
+
+  // ─── 设置视图状态 ───
+  bool _showSettings = false;
+  late List<WordDetailSection> _settingsSections;
+  bool _settingsSaving = false;
 
   @override
   void initState() {
@@ -68,6 +75,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _settingsScrollController.dispose();
     super.dispose();
   }
 
@@ -210,8 +218,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final isLandscape = screenSize.width > screenSize.height && screenSize.width >= 600;
 
     // 横竖屏尺寸参数
-    final cardWidth = screenSize.width * (isLandscape ? 0.65 : 0.78);
-    final maxHeight = screenSize.height * (isLandscape ? 0.82 : 0.45);
+    final cardWidth = screenSize.width * (isLandscape ? 0.65 : 0.9);
+    final maxHeight = screenSize.height * (isLandscape ? 0.82 : 0.5);
     final navWidth = isLandscape ? 120.0 : 96.0;
 
     final bgColor = Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0EDE8) : cs.surfaceContainerHigh;
@@ -226,68 +234,104 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
-        child: Column(
-          children: [
-            // 顶部 Header
-            Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 0), child: _buildHeader()),
-            const Divider(height: 16, thickness: 0.5, indent: 16, endIndent: 16),
-            // 下方：左导航 + 右内容
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: _showSettings
+            ? _buildSettingsView(cs)
+            : Column(
                 children: [
-                  // 左侧固定导航
-                  SizedBox(width: navWidth, child: _buildNavList(cs, isLandscape)),
-                  // 分割线
-                  Container(width: 0.5, color: cs.outlineVariant.withValues(alpha: 0.3)),
-                  // 右侧可滚动内容
+                  // 顶部 Header
+                  Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 0), child: _buildHeader()),
+                  const Divider(height: 16, thickness: 0.5, indent: 16, endIndent: 16),
+                  // 下方：左导航 + 右内容
                   Expanded(
-                    child: SingleChildScrollView(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 左侧固定导航
+                        SizedBox(width: navWidth, child: _buildNavList(cs, isLandscape)),
+                        // 分割线
+                        Container(width: 0.5, color: cs.outlineVariant.withValues(alpha: 0.3)),
+                        // 右侧可滚动内容
+                        Expanded(
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  _buildBottomBar(),
                 ],
               ),
-            ),
-            _buildBottomBar(),
-          ],
-        ),
       ),
     );
   }
 
-  /// 左侧导航列表
+  /// 左侧导航列表（含底部设置按钮）
   Widget _buildNavList(ColorScheme cs, bool isLandscape) {
-    return ListView(
-      padding: EdgeInsets.symmetric(vertical: 4, horizontal: isLandscape ? 8 : 4),
-      children: _effectiveSections.map((s) {
-        final isActive = s == _currentSection;
-        return GestureDetector(
-          onTap: () => _scrollToSection(s),
+    final scrollableChildren = _effectiveSections.map((s) {
+      final isActive = s == _currentSection;
+      return GestureDetector(
+        onTap: () => _scrollToSection(s),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 2),
+          padding: EdgeInsets.symmetric(horizontal: isLandscape ? 12 : 8, vertical: isLandscape ? 10 : 8),
+          decoration: BoxDecoration(
+            color: isActive ? cs.primary.withValues(alpha: 0.10) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border(left: BorderSide(color: isActive ? cs.primary : Colors.transparent, width: 2.5)),
+          ),
+          child: Text(
+            s.label,
+            style: TextStyle(
+              color: isActive ? cs.primary : cs.onSurfaceVariant,
+              fontSize: isLandscape ? 13 : 12,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      );
+    }).toList();
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.symmetric(vertical: 4, horizontal: isLandscape ? 8 : 4),
+            children: scrollableChildren,
+          ),
+        ),
+        const Divider(height: 1, thickness: 0.5),
+        GestureDetector(
+          onTap: _enterSettings,
           behavior: HitTestBehavior.opaque,
           child: Container(
-            margin: const EdgeInsets.only(bottom: 2),
-            padding: EdgeInsets.symmetric(horizontal: isLandscape ? 12 : 8, vertical: isLandscape ? 10 : 8),
-            decoration: BoxDecoration(
-              color: isActive ? cs.primary.withValues(alpha: 0.10) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: Border(left: BorderSide(color: isActive ? cs.primary : Colors.transparent, width: 2.5)),
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isLandscape ? 12 : 8,
+              vertical: isLandscape ? 10 : 8,
             ),
-            child: Text(
-              s.label,
-              style: TextStyle(
-                color: isActive ? cs.primary : cs.onSurfaceVariant,
-                fontSize: isLandscape ? 13 : 12,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.settings_outlined, size: isLandscape ? 16 : 14, color: cs.onSurfaceVariant),
+                const SizedBox(width: 4),
+                Text(
+                  '显示设置',
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: isLandscape ? 12 : 11,
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 
@@ -303,6 +347,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   Widget _buildSection(WordDetailSection section) {
     switch (section) {
+      case WordDetailSection.chineseMeaning:
+        return _buildChineseMeaning();
       case WordDetailSection.sentenceTranslation:
         return _buildSentenceTranslation();
       case WordDetailSection.definitions:
@@ -419,56 +465,149 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     );
   }
 
-  // ─── Section: 语境释义 ─────────────────────────────────
+  // ─── Section: 中文释义 ─────────────────────────────────
+
+  Widget _buildChineseMeaning() {
+    final definitions = widget.data.definitions;
+    if (definitions.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+
+    final List<Widget> items = [];
+    for (final d in definitions) {
+      final meaning = d.chineseMeaning.trim();
+      if (meaning.isEmpty) continue;
+
+      items.add(Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (d.partOfSpeech != null)
+              Container(
+                margin: const EdgeInsets.only(right: 8, top: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
+                child: Text(
+                  d.partOfSpeech!,
+                  style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            Expanded(
+              child: Text(meaning, style: TextStyle(color: cs.onSurface, fontSize: 15, height: 1.5)),
+            ),
+          ],
+        ),
+      ));
+    }
+
+    return _buildSectionContainer(
+      title: WordDetailSection.chineseMeaning.label,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: items),
+    );
+  }
+
+  // ─── Section: 当前句释义 ─────────────────────────────────
 
   Widget _buildSentenceTranslation() {
-    if (widget.data.sentenceTranslation == null &&
-        widget.data.translation == null &&
-        widget.data.wordMeaningInContext == null &&
-        widget.data.contextSentence == null) {
+    if (widget.data.contextSentence == null && widget.data.sentenceTranslation == null && widget.data.translation == null) {
       return const SizedBox.shrink();
     }
+    final cs = Theme.of(context).colorScheme;
+    // 收集所有中文释义用于高亮
+    final chineseMeanings = widget.data.definitions
+        .map((d) => d.chineseMeaning.trim())
+        .where((m) => m.isNotEmpty)
+        .toList();
     return _buildSectionContainer(
       title: WordDetailSection.sentenceTranslation.label,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.data.contextSentence != null) ...[_buildRichContextSentence(), const SizedBox(height: 6)],
-          if (widget.data.wordMeaningInContext != null) ...[
-            Text(widget.data.wordMeaningInContext!, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 15, height: 1.5)),
-            const SizedBox(height: 4),
+          // 英文句子（高亮当前单词）
+          if (widget.data.contextSentence != null) ...[
+            _buildRichContextSentence(chineseMeanings: chineseMeanings),
+            const SizedBox(height: 8),
           ],
+          // 中文翻译（高亮中文释义）
           if (widget.data.sentenceTranslation != null || widget.data.translation != null)
-            Text(
-              widget.data.sentenceTranslation ?? widget.data.translation!,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4),
-            ),
+            _buildRichChineseTranslation(chineseMeanings: chineseMeanings, cs: cs),
         ],
       ),
     );
   }
 
-  Widget _buildRichContextSentence() {
+  /// 高亮英文句子中的单词
+  Widget _buildRichContextSentence({required List<String> chineseMeanings}) {
     final sentence = widget.data.contextSentence!;
-    final word = widget.data.word.toLowerCase();
-    final index = sentence.toLowerCase().indexOf(word);
-    if (index == -1) {
-      return Text(sentence, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14));
+    final word = widget.data.word;
+    // 先尝试精确匹配原词
+    final escapedWord = RegExp.escape(word);
+    final regex = RegExp(escapedWord, caseSensitive: false);
+    final match = regex.firstMatch(sentence);
+
+    if (match == null) {
+      return Text(sentence, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14, height: 1.5));
     }
+
+    final start = match.start;
+    final end = match.end;
     return RichText(
       text: TextSpan(
         style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14, height: 1.5),
         children: [
-          TextSpan(text: sentence.substring(0, index)),
+          TextSpan(text: sentence.substring(0, start)),
           TextSpan(
-            text: sentence.substring(index, index + word.length),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
+            text: sentence.substring(start, end),
+            style: const TextStyle(
+              color: Color(0xFF1976D2),
               fontWeight: FontWeight.bold,
-              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
             ),
           ),
-          TextSpan(text: sentence.substring(index + word.length)),
+          TextSpan(text: sentence.substring(end)),
+        ],
+      ),
+    );
+  }
+
+  /// 高亮中文翻译中的释义
+  Widget _buildRichChineseTranslation({required List<String> chineseMeanings, required ColorScheme cs}) {
+    final translation = widget.data.sentenceTranslation ?? widget.data.translation!;
+    if (chineseMeanings.isEmpty) {
+      return Text(translation, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4));
+    }
+
+    // 找到最长的匹配释义
+    String? bestMatch;
+    int bestStart = -1;
+    int bestEnd = -1;
+    for (final meaning in chineseMeanings) {
+      final index = translation.indexOf(meaning);
+      if (index != -1) {
+        if (meaning.length > (bestMatch?.length ?? 0)) {
+          bestMatch = meaning;
+          bestStart = index;
+          bestEnd = index + meaning.length;
+        }
+      }
+    }
+
+    if (bestMatch == null || bestStart == -1) {
+      return Text(translation, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
+        children: [
+          TextSpan(text: translation.substring(0, bestStart)),
+          TextSpan(
+            text: bestMatch,
+            style: const TextStyle(
+              color: Color(0xFF1976D2),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          TextSpan(text: translation.substring(bestEnd)),
         ],
       ),
     );
@@ -853,6 +992,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   bool _shouldShowSection(WordDetailSection section) {
     final data = widget.data;
     switch (section) {
+      case WordDetailSection.chineseMeaning:
+        return data.definitions.any((d) => d.chineseMeaning.trim().isNotEmpty);
       case WordDetailSection.sentenceTranslation:
         return (data.sentenceTranslation != null && data.sentenceTranslation!.trim().isNotEmpty) ||
             (data.translation != null && data.translation!.trim().isNotEmpty) ||
@@ -873,6 +1014,185 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       case WordDetailSection.mnemonic:
         return data.mnemonic != null && data.mnemonic!.trim().isNotEmpty;
     }
+  }
+
+  // ─── 显示设置（内联视图切换） ─────────────────────────────────
+
+  void _enterSettings() {
+    setState(() {
+      _settingsSections = List.from(widget.config.sections);
+      _showSettings = true;
+    });
+  }
+
+  Future<void> _exitSettings({bool save = true}) async {
+    if (_settingsSaving) return;
+
+    if (save) {
+      setState(() => _settingsSaving = true);
+      final effectiveSections = _settingsSections.isEmpty
+          ? [WordDetailSection.chineseMeaning, WordDetailSection.sentenceTranslation]
+          : _settingsSections;
+      final newConfig = widget.config.copyWith(sections: effectiveSections);
+      final container = ProviderScope.containerOf(context);
+      await newConfig.saveToSettings();
+      container.read(displayConfigProvider.notifier).updateConfig(newConfig);
+    }
+
+    if (mounted) {
+      setState(() {
+        _showSettings = false;
+        _settingsSaving = false;
+      });
+    }
+  }
+
+  void _settingsMoveUp(int index) {
+    if (index <= 0) return;
+    setState(() {
+      final item = _settingsSections.removeAt(index);
+      _settingsSections.insert(index - 1, item);
+    });
+  }
+
+  void _settingsMoveDown(int index) {
+    if (index >= _settingsSections.length - 1) return;
+    setState(() {
+      final item = _settingsSections.removeAt(index);
+      _settingsSections.insert(index + 1, item);
+    });
+  }
+
+  void _settingsToggle(WordDetailSection section) {
+    setState(() {
+      if (_settingsSections.contains(section)) {
+        _settingsSections.remove(section);
+      } else {
+        _settingsSections.add(section);
+      }
+    });
+  }
+
+  /// 设置视图：顶部返回+标题 + 可滚动设置列表
+  Widget _buildSettingsView(ColorScheme cs) {
+    final hidden = WordDetailSection.values.where((s) => !_settingsSections.contains(s)).toList();
+
+    return Column(
+      children: [
+        // 顶部栏：返回按钮 + 标题
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: _settingsSaving ? null : () => _exitSettings(save: true),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(Icons.arrow_back_ios_new, size: 18, color: cs.onSurface),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '显示设置',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: cs.onSurface),
+              ),
+              const Spacer(),
+              if (_settingsSaving)
+                SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary)),
+            ],
+          ),
+        ),
+        const Divider(height: 16, thickness: 0.5, indent: 16, endIndent: 16),
+        // 可滚动设置区域
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _settingsScrollController,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '拖动调整顺序，点击开关控制显示',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(height: 12),
+                // 已显示的区块
+                ..._settingsSections.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final section = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Row(
+                      children: [
+                        Icon(Icons.drag_handle, size: 18, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(section.label, style: TextStyle(fontSize: 14, color: cs.onSurface)),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.arrow_upward, size: 16,
+                              color: index == 0 ? cs.onSurface.withValues(alpha: 0.2) : cs.onSurfaceVariant),
+                          onPressed: index == 0 ? null : () => _settingsMoveUp(index),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.arrow_downward, size: 16,
+                              color: index == _settingsSections.length - 1 ? cs.onSurface.withValues(alpha: 0.2) : cs.onSurfaceVariant),
+                          onPressed: index == _settingsSections.length - 1 ? null : () => _settingsMoveDown(index),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(4),
+                          constraints: const BoxConstraints(),
+                        ),
+                        Switch(
+                          value: true,
+                          onChanged: (_) => _settingsToggle(section),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                // 未显示的区块
+                if (hidden.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(height: 1, thickness: 0.5),
+                  ),
+                  Text('未显示的区块', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  ...hidden.map((section) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: Text(section.label, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: () => _settingsToggle(section),
+                            icon: const Icon(Icons.add, size: 14),
+                            label: const Text('添加', style: TextStyle(fontSize: 12)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   // ─── 底部栏 ─────────────────────────────────

@@ -17,12 +17,12 @@ import 'package:vidlang/models/ai_evaluation_log.dart';
 import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
-import 'package:vidlang/services/audio_recognition_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/score_service.dart';
-import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/services/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 
@@ -77,6 +77,8 @@ class ShadowReaderConfig {
   final Future<void> Function(int)? seekToSubtitle;
   final Future<void> Function()? nextSentence;
   final Future<void> Function()? previousSentence;
+  final SubscriptionMode? subscriptionMode;
+  final Future<void> Function()? onFreeModeSpeechResult;
 
   String get followLabel => isMusic ? '跟唱' : '跟读';
 
@@ -113,6 +115,8 @@ class ShadowReaderConfig {
     this.seekToSubtitle,
     this.nextSentence,
     this.previousSentence,
+    this.subscriptionMode,
+    this.onFreeModeSpeechResult,
   });
 }
 
@@ -158,6 +162,7 @@ class ShadowReaderComponent extends ConsumerStatefulWidget {
 class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     with SingleTickerProviderStateMixin {
   late final AudioRecorder _recorder = AudioRecorder();
+  SpeechToTextService? _speechToText;
   ShengtongEvaluator? _evaluator;
   final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
   Timer? _autoStopTimer;
@@ -173,6 +178,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   bool _isMuted = false;
   double _savedVolume = 0.6;
   bool _isComparing = false;
+  String _liveTranscription = '';
 
   double? _overallScore;
   double? _fluencyScore;
@@ -188,6 +194,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
     _recordingTimer?.cancel();
+    _speechToText?.dispose();
     _evaluator?.dispose();
     _audioPlayer.dispose();
     _recorder.stop();
@@ -276,7 +283,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
   Widget _buildRecognitionRow(ShadowReaderConfig cfg) {
     final sub = cfg.subtitle;
-    final hasWords = _recognizedWords.isNotEmpty;
+    final hasWords = _recognizedWords.isNotEmpty || _liveTranscription.isNotEmpty;
     final refWords = sub.content.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final refLookup = <String, RecognizedWord>{};
     for (final rw in _recognizedWords) {
@@ -606,6 +613,8 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   Future<void> _stopRecording(BuildContext context, ShadowReaderConfig cfg) async {
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
+    _speechToText?.stop();
+    _speechToText?.cancel();
     if (_recordingPath == null) return;
     try { await _recorder.stop(); } catch (_) {}
     cfg.setRecording?.call(false);
@@ -614,8 +623,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     _recordingPath = null;
     if (path == null || !File(path).existsSync()) return;
     _recordingPath = path; // keep path for replay
-    setState(() => _state = 'evaluating');
-    _evaluateRecording(path, cfg);
+
+    final isPremium = cfg.subscriptionMode == SubscriptionMode.premium;
+    if (isPremium) {
+      setState(() => _state = 'evaluating');
+      _evaluateRecording(path, cfg);
+    } else {
+      // 免费模式：直接使用识别结果评分
+      setState(() => _state = 'evaluating');
+      _evaluateFreeModeRecording(path, cfg);
+    }
   }
 
   Future<void> _restartRecording(BuildContext context, ShadowReaderConfig cfg) async {
@@ -637,7 +654,38 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }
 
   void _startLiveRecognition(ShadowReaderConfig cfg) {
-    // TODO: 接入声通流式评测实现实时识别
+    final isPremium = cfg.subscriptionMode == SubscriptionMode.premium;
+    if (isPremium) {
+      // 付费模式：使用声通流式评测（由 _evaluateRecording 处理）
+      // 这里不做任何操作，因为付费模式不需要实时识别
+      return;
+    }
+
+    // 免费模式：使用 speech_to_text 进行实时语音识别
+    _speechToText = SpeechToTextService();
+    _speechToText!.init().then((available) {
+      if (!available) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('语音识别不可用，请确保已安装 Google 服务或设备支持语音识别')));
+        }
+        return;
+      }
+      final localeId = cfg.language == 'en' ? 'en-US' : cfg.language;
+      _speechToText!.start(localeId: localeId).then((success) {
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('语音识别启动失败')));
+        }
+      });
+    });
+
+    _speechToText!.textStream.listen((text) {
+      if (mounted) {
+        setState(() {
+          _liveTranscription = text;
+        });
+        cfg.onFreeModeSpeechResult?.call();
+      }
+    });
   }
 
   // ━━━ 评分逻辑 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -693,6 +741,110 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     }
   }
 
+  /// 免费模式评分：使用语音识别结果进行简单对比评分
+  Future<void> _evaluateFreeModeRecording(String audioPath, ShadowReaderConfig cfg) async {
+    if (_isEvaluating) return;
+    _isEvaluating = true;
+    try {
+      final recognizedText = _liveTranscription.trim().toLowerCase();
+      final refText = cfg.subtitle.content.trim().toLowerCase();
+
+      // 移除标点符号进行比较
+      final cleanRecognized = recognizedText.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(RegExp(r'\s+'), ' ');
+      final cleanRef = refText.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(RegExp(r'\s+'), ' ');
+
+      final refWords = cleanRef.split(' ').where((w) => w.isNotEmpty).toList();
+      final recognizedWords = cleanRecognized.split(' ').where((w) => w.isNotEmpty).toList();
+
+      int matchedCount = 0;
+      final wordScores = <Map<String, dynamic>>[];
+
+      for (final refWord in refWords) {
+        bool found = false;
+        for (final recWord in recognizedWords) {
+          if (recWord == refWord || _isSimilar(refWord, recWord)) {
+            matchedCount++;
+            found = true;
+            break;
+          }
+        }
+        wordScores.add({
+          'word': refWord,
+          'score': found ? 90 : 20,
+        });
+      }
+
+      final accuracy = refWords.isNotEmpty ? (matchedCount / refWords.length * 100).toDouble() : 0.0;
+      final double overall = accuracy;
+      final double fluency = accuracy > 70 ? 85 : 60;
+      final double completeness = accuracy > 80 ? 90 : 50;
+
+      final recordingDurationMs = _recordingStartTime != null ? DateTime.now().difference(_recordingStartTime!).inMilliseconds : 0;
+      final record = RecordingRecord(
+        resourceCode: cfg.resourceCode, resourceType: cfg.resourceType, scope: cfg.scope,
+        chapterCode: cfg.chapterCode, sentenceCode: cfg.subtitle.code, audioPath: audioPath,
+        durationMs: recordingDurationMs, overallScore: overall, fluencyScore: fluency,
+        accuracyScore: accuracy, completenessScore: completeness, rawResultJson: jsonEncode({
+          'recognized_text': _liveTranscription,
+          'ref_text': cfg.subtitle.content,
+          'matched_words': matchedCount,
+          'total_words': refWords.length,
+        }),
+        language: cfg.language, refText: cfg.subtitle.content, subtitleIndex: cfg.currentSubtitleIndex,
+        speed: cfg.currentSpeed ?? 1.0, headphoneMode: await cfg.getHeadphoneMode?.call(),
+      );
+      await DatabaseService.insert(record);
+      if (cfg.setLastFollowScore != null) await cfg.setLastFollowScore!(overall);
+
+      _setFreeModeRecognitionResult(wordScores);
+      if (mounted) {
+        setState(() {
+          _state = 'scored';
+          _overallScore = overall;
+          _fluencyScore = fluency;
+          _accuracyScore = accuracy;
+          _completenessScore = completeness;
+        });
+        await cfg.onScore?.call(
+          overall: overall,
+          fluency: fluency,
+          accuracy: accuracy,
+          completeness: completeness,
+          rawResult: {
+            'recognized_text': _liveTranscription,
+            'ref_text': cfg.subtitle.content,
+            'matched_words': matchedCount,
+            'total_words': refWords.length,
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) { setState(() => _state = 'idle'); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('评分失败: $e'))); }
+    } finally {
+      _isEvaluating = false;
+    }
+  }
+
+  bool _isSimilar(String word1, String word2) {
+    // 简单的相似度判断：编辑距离
+    if (word1.length != word2.length) {
+      if ((word1.length - word2.length).abs() > 1) return false;
+    }
+    if (word1 == word2) return true;
+    for (int i = 0; i < word1.length; i++) {
+      if (word1[i] != word2[i]) {
+        if (word1.length == word2.length) {
+          return word1.substring(0, i) + word1.substring(i + 1) == word2;
+        } else if (word1.length > word2.length) {
+          return word1.substring(0, i) + word1.substring(i + 1) == word2;
+        } else {
+          return word2.substring(0, i) + word2.substring(i + 1) == word1;
+        }
+      }
+    }
+    return true;
+  }
+
   void _setRecognitionResult(ShadowReaderConfig cfg, Map<String, dynamic> result) {
     final wordScores = result['word_scores'] as List<dynamic>?;
     if (wordScores != null) {
@@ -702,6 +854,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         return RecognizedWord(word: word, correct: score >= 70, score: score.toDouble());
       }).toList();
     }
+  }
+
+  void _setFreeModeRecognitionResult(List<Map<String, dynamic>> wordScores) {
+    _recognizedWords = wordScores.map((ws) {
+      final word = ws['word'] as String? ?? '';
+      final score = (ws['score'] as num?)?.toInt() ?? 0;
+      return RecognizedWord(word: word, correct: score >= 70, score: score.toDouble());
+    }).toList();
   }
 
   Future<void> _requestAiEvaluation(ShadowReaderConfig cfg, double? overall) async {

@@ -4,19 +4,40 @@ import 'package:vidlang/models/base_entity.dart';
 
 // ─── 题型枚举 ───
 
+/// 题型维度分类
+enum QuestionCategory { listen, read, speak }
+
 /// 评测题型标识
 enum QuestionType {
-  /// 听音选词：TTS 发音 → 从选项中选择正确单词
+  // ─── 听 ───
+
+  /// 原音选择：播放音频 → 选择当前播放的内容（单选）
   listenChoose,
 
-  /// 看义写词：千问生成中文释义 → 用户拼写英文单词
-  meaningWrite,
+  /// 听音辩义：播放音频 → 选择和原义类似的解释（单选）
+  listenMeaning,
 
-  /// 句中听写：TTS 朗读句子 → 千问语义判分
-  sentenceDictation,
+  /// 听音回复：播放问题 → 根据问题选择回答（单选）
+  listenReply,
 
-  /// 中英互译：千问翻译判分
-  translateBoth,
+  // ─── 读 ───
+
+  /// 释义选择：英→中 / 中→英（单选，2种子类型）
+  definitionChoice,
+
+  /// 拼写填空：挖空单词 → 补全拼写
+  spelling,
+
+  /// 组句：打乱词块 → 排列成正确句子
+  reorder,
+
+  /// 英义互译：给出英文 → 选择类似含义的解释（单选）
+  translateMeaning,
+
+  /// 词性测试：选择同义词/反义词等（多选）
+  wordRelation,
+
+  // ─── 说 ───
 
   /// 跟读单词：声通 word.eval
   wordPron,
@@ -27,59 +48,120 @@ enum QuestionType {
   /// 句子跟读：声通 sent.eval（长句）
   sentencePron,
 
-  /// 组句题（已有）
-  reorder,
+  // ─── 旧版保留（test_home_page 链路使用） ───
 
-  /// 拼写填空（已有）
-  spelling,
+  /// @deprecated 看义写词（旧版保留）
+  meaningWrite,
 
-  /// 选择题（已有）
+  /// @deprecated 句中听写（旧版保留）
+  sentenceDictation,
+
+  /// @deprecated 中英互译（旧版保留）
+  translateBoth,
+
+  /// @deprecated 选择题（旧版保留，新系统使用 definitionChoice）
   mcq,
 }
 
 extension QuestionTypeLabel on QuestionType {
   String get label {
     switch (this) {
+      // 听
       case QuestionType.listenChoose:
-        return '听音选词';
-      case QuestionType.meaningWrite:
-        return '看义写词';
-      case QuestionType.sentenceDictation:
-        return '句中听写';
-      case QuestionType.translateBoth:
-        return '中英互译';
+        return '原音选择';
+      case QuestionType.listenMeaning:
+        return '听音辩义';
+      case QuestionType.listenReply:
+        return '听音回复';
+      // 读
+      case QuestionType.definitionChoice:
+        return '释义选择';
+      case QuestionType.spelling:
+        return '拼写填空';
+      case QuestionType.reorder:
+        return '组句';
+      case QuestionType.translateMeaning:
+        return '英义互译';
+      case QuestionType.wordRelation:
+        return '词性测试';
+      // 说
       case QuestionType.wordPron:
         return '跟读单词';
       case QuestionType.phrasePron:
         return '跟读短语';
       case QuestionType.sentencePron:
         return '句子跟读';
-      case QuestionType.reorder:
-        return '组句题';
-      case QuestionType.spelling:
-        return '拼写填空';
+      // 旧版
+      case QuestionType.meaningWrite:
+        return '看义写词';
+      case QuestionType.sentenceDictation:
+        return '句中听写';
+      case QuestionType.translateBoth:
+        return '中英互译';
       case QuestionType.mcq:
         return '选择题';
     }
   }
 
-  /// 学习目标分组：听 / 读 / 写 / 说
-  String get category {
+  /// 题型所属维度
+  QuestionCategory get category {
     switch (this) {
       case QuestionType.listenChoose:
-      case QuestionType.sentenceDictation:
-        return '听';
-      case QuestionType.mcq:
-      case QuestionType.reorder:
-        return '读';
+      case QuestionType.listenMeaning:
+      case QuestionType.listenReply:
+        return QuestionCategory.listen;
+      case QuestionType.definitionChoice:
       case QuestionType.spelling:
-      case QuestionType.meaningWrite:
-      case QuestionType.translateBoth:
-        return '写';
+      case QuestionType.reorder:
+      case QuestionType.translateMeaning:
+      case QuestionType.wordRelation:
+        return QuestionCategory.read;
       case QuestionType.wordPron:
       case QuestionType.phrasePron:
       case QuestionType.sentencePron:
-        return '说';
+        return QuestionCategory.speak;
+      // 旧版归类到读
+      case QuestionType.meaningWrite:
+      case QuestionType.sentenceDictation:
+      case QuestionType.translateBoth:
+      case QuestionType.mcq:
+        return QuestionCategory.read;
+    }
+  }
+
+  /// 题型作答说明
+  String get description {
+    switch (this) {
+      case QuestionType.listenChoose:
+        return '播放音频，选择当前播放的内容';
+      case QuestionType.listenMeaning:
+        return '播放音频，选择和原义类似的解释';
+      case QuestionType.listenReply:
+        return '播放一个问题，根据听到的内容选择回答';
+      case QuestionType.definitionChoice:
+        return '根据给出的单词或翻译，选择正确的释义';
+      case QuestionType.spelling:
+        return '根据句子提示，拼写缺失的单词';
+      case QuestionType.reorder:
+        return '将打乱的词块排列成正确语序的句子';
+      case QuestionType.translateMeaning:
+        return '阅读英文段落，选择与原文类似的中文解释';
+      case QuestionType.wordRelation:
+        return '根据单词选择同义词、反义词等（可多选）';
+      case QuestionType.wordPron:
+        return '跟读展示的单词，录音评分';
+      case QuestionType.phrasePron:
+        return '跟读展示的短语，录音评分';
+      case QuestionType.sentencePron:
+        return '跟读展示的句子，录音评分';
+      case QuestionType.meaningWrite:
+        return '根据中文释义拼写英文单词';
+      case QuestionType.sentenceDictation:
+        return '听句子，写出你听到的内容';
+      case QuestionType.translateBoth:
+        return '将英文翻译为中文或中文翻译为英文';
+      case QuestionType.mcq:
+        return '从选项中选择正确答案';
     }
   }
 }

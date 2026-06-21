@@ -358,21 +358,30 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     final colorScheme = Theme.of(context).colorScheme;
     final hint = _isKnowledgeBase ? '搜索句子或备注' : '搜索单词或上下文';
     final hasText = _searchController.text.isNotEmpty;
+    final isIOS = Platform.isIOS;
+
+    Widget? suffix;
+    if (hasText) {
+      suffix = IconButton(
+        onPressed: () {
+          _searchController.clear();
+        },
+        icon: const Icon(Icons.close),
+      );
+    } else if (isIOS && !_isKnowledgeBase) {
+      suffix = IconButton(
+        onPressed: _handleCameraTranslate,
+        icon: const Icon(Icons.camera_alt_outlined),
+      );
+    }
+
     return TextField(
       controller: _searchController,
       onSubmitted: (_) => _handleSearchSubmit(),
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: hasText
-            ? IconButton(
-                onPressed: () {
-                  _searchController.clear();
-                  // _onSearchChanged 会通过 listener 自动触发
-                },
-                icon: const Icon(Icons.close),
-              )
-            : null,
+        suffixIcon: suffix,
         filled: true,
         fillColor: colorScheme.surfaceContainerLow,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14.r), borderSide: BorderSide.none),
@@ -409,10 +418,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     TtsService().speakWord(word);
   }
 
-  /// 功能按钮行：测试、复习、拍照翻译（iOS）
+  /// 功能按钮行：测试、复习
   Widget _buildActionBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isIOS = Platform.isIOS;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -440,19 +448,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
           ),
         ),
-        if (isIOS && !_isKnowledgeBase) ...[          
-          SizedBox(width: 12.w),
-          OutlinedButton.icon(
-            onPressed: _handleCameraTranslate,
-            icon: const Icon(Icons.camera_alt_outlined, size: 18),
-            label: const Text('拍照翻译'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.onSurfaceVariant,
-              side: BorderSide(color: colorScheme.outlineVariant),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-            ),
-          ),
-        ],
       ],
     );
   }

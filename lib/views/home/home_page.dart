@@ -10,7 +10,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/components/folder_card.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -160,7 +159,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
-                    spacing: AppSpacing.md.h,
+                    spacing: AppSpacing.md,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildBanner(colorScheme),
@@ -178,7 +177,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildBanner(ColorScheme colorScheme) {
     return Container(
-      height: 160.h,
+      height: 160,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -192,15 +191,15 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.school, size: 32.w, color: colorScheme.primary.withValues(alpha: 0.6)),
+            Icon(Icons.school, size: 32, color: colorScheme.primary.withValues(alpha: 0.6)),
             SizedBox(height: AppSpacing.sm),
             Text(
               'VidLang',
-              style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
             ),
             Text(
               '看视频、听英语，读文章、轻松学英语',
-              style: TextStyle(fontSize: 10.sp, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -220,13 +219,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             Text(
               title,
-              style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
             TextButton(
               onPressed: () => _goToResources(type),
               child: Text(
                 '更多',
-                style: TextStyle(fontSize: 13.sp, color: colorScheme.primary),
+                style: TextStyle(fontSize: 13, color: colorScheme.primary),
               ),
             ),
           ],
@@ -254,16 +253,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         child: Column(
           children: [
-            Icon(icon, size: 22.w * 1.2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            Icon(icon, size: 22 * 1.2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
             SizedBox(height: AppSpacing.sm),
             Text(
               '暂无$typeName',
-              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14.sp),
+              style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
             ),
             SizedBox(height: 4),
             Text(
               '点击进入资源页创建第一个$typeName',
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 12, color: colorScheme.outline),
             ),
           ],
         ),
@@ -273,7 +272,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildFolderRow(ColorScheme colorScheme, List<VideoFolder> folders) {
     return SizedBox(
-      height: 160.h,
+      height: 160,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: folders.length,
@@ -283,8 +282,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           final isPlaying = index == 0 && folder.lastPlayDate != null;
 
           return SizedBox(
-            width: 160.w,
-            height: 140.h,
+            width: 160,
+            height: 140,
             child: Stack(
               children: [
                 FolderCard(folder: folder, onTap: () => _openFolder(folder), onLongPress: () {}),
@@ -341,7 +340,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           Text(
             '学习数据',
-            style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            style: TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
           ),
           SizedBox(height: AppSpacing.md),
           Row(
@@ -349,16 +348,16 @@ class _HomePageState extends ConsumerState<HomePage> {
               return Expanded(
                 child: Column(
                   children: [
-                    Icon(item.icon, size: 22.w, color: item.color),
+                    Icon(item.icon, size: 22, color: item.color),
                     SizedBox(height: 4),
                     Text(
                       item.value,
-                      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                     ),
                     SizedBox(height: 2),
                     Text(
                       item.label,
-                      style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),

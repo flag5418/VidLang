@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -84,10 +83,10 @@ class FolderCard extends StatelessWidget {
                   Expanded(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        padding: EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
                           folder.name,
-                          style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
@@ -107,16 +106,16 @@ class FolderCard extends StatelessWidget {
 
   Widget _buildTopRow(Color typeColor, int count) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(12.w, 12.w, 10.w, 0),
+      padding: EdgeInsets.fromLTRB(12, 12, 10, 0),
       child: 
       
       Row(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
-            spacing: 4.w,
+            spacing: 4,
             children: [
-              Icon(ResourceIcons.displayIconFor(_type), size: 28.w, color: typeColor),
+              Icon(ResourceIcons.displayIconFor(_type), size: 28, color: typeColor),
                
               if (count > 0)
                 _buildBadge(count, typeColor),
@@ -130,16 +129,16 @@ class FolderCard extends StatelessWidget {
 
   Widget _buildBottomRow(ColorScheme colorScheme, String? currentTitle) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(12.w, 4.h, 12.w, 12.h),
+      padding: EdgeInsets.fromLTRB(12, 4, 12, 12),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.play_arrow_rounded, size: 13.sp, color: colorScheme.onSurfaceVariant),
-          SizedBox(width: 4.w),
+          Icon(Icons.play_arrow_rounded, size: 13, color: colorScheme.onSurfaceVariant),
+          SizedBox(width: 4),
           Flexible(
             child: Text(
               currentTitle ?? '',
-              style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -153,7 +152,7 @@ class FolderCard extends StatelessWidget {
     final unit = ResourceIcons.unitLabel(_type);
     return Text(
       '($count$unit)',
-      style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w600, color: typeColor.withValues(alpha: 0.85)),
+      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: typeColor.withValues(alpha: 0.85)),
     );
   }
 }

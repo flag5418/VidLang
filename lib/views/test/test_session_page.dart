@@ -127,7 +127,11 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
   Widget _buildAnswerArea(QuestionType type) {
     switch (type) {
       case QuestionType.listenChoose:
+      case QuestionType.listenMeaning:
+      case QuestionType.listenReply:
       case QuestionType.mcq:
+      case QuestionType.definitionChoice:
+      case QuestionType.translateMeaning:
         return _buildMcqArea();
       case QuestionType.meaningWrite:
       case QuestionType.sentenceDictation:
@@ -141,6 +145,8 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
         return _buildSpellingArea();
       case QuestionType.reorder:
         return _buildReorderArea();
+      case QuestionType.wordRelation:
+        return _buildMcqArea(); // 复用选择题区域，后续改为多选
     }
   }
 
@@ -489,6 +495,8 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
 
   bool _isTtsType(QuestionType type) {
     return type == QuestionType.listenChoose ||
+        type == QuestionType.listenMeaning ||
+        type == QuestionType.listenReply ||
         type == QuestionType.sentenceDictation;
   }
 }
