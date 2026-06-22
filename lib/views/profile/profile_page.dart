@@ -86,18 +86,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final brightness = Theme.of(context).brightness;
     final subState = ref.watch(subscriptionProvider);
     final difficulty = ref.watch(difficultyProvider);
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: AppColors.getSurface(brightness: brightness),
       appBar: AppBar(
         title: Text(
           '我的',
           style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
         elevation: 0,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: AppColors.getSurface(brightness: brightness),
         scrolledUnderElevation: 0.5,
       ),
       body: SafeArea(
@@ -181,7 +182,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Container(
         padding: EdgeInsets.all(AppSpacing.space5),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         child: Row(
@@ -324,7 +325,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Container(
         padding: EdgeInsets.all(AppSpacing.space4),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         child: Row(
@@ -375,7 +376,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildSettingsCard(ColorScheme colorScheme, List<_SettingItem> items) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
@@ -431,7 +432,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return Container(
       padding: EdgeInsets.all(AppSpacing.space4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(

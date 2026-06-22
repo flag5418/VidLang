@@ -37,6 +37,7 @@ class _MainPageState extends ConsumerState<MainPage> {
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final brightness = Theme.of(context).brightness;
 
     final pages = [const HomePage(), const FileListPage(), const CollectionPage(), const ProfilePage()];
 

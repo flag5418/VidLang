@@ -18,7 +18,7 @@ class AppTheme {
     primaryColor: AppColors.primary,
     scaffoldBackgroundColor: AppColors.lightBackground,
     canvasColor: AppColors.lightSurface,
-    dividerColor: AppColors.lightDivider,
+    dividerColor: const Color(0x1A000000),
 
     appBarTheme: AppBarTheme(
       elevation: 0,
@@ -59,7 +59,7 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
         minimumSize: const Size(0, AppSpacing.space10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
-        side: BorderSide(color: AppColors.lightOutline),
+        side: const BorderSide(color: Color(0xFFDDDDDD)),
         textStyle: const TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600),
       ),
     ),
@@ -123,7 +123,7 @@ class AppTheme {
         borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
       ),
       showDragHandle: true,
-      dragHandleColor: AppColors.lightOutlineVariant,
+      dragHandleColor: const Color(0xFFCCCCCC),
     ),
 
     snackBarTheme: SnackBarThemeData(

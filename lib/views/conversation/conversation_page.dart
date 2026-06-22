@@ -151,7 +151,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: isDark ? AppColors.outline : AppColors.lightOutline,
+                    color: isDark ? AppColors.outline : const Color(0xFFDDDDDD),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -313,7 +313,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
         color: isDark ? AppColors.surface : AppColors.lightSurface,
         border: Border(
           top: BorderSide(
-            color: isDark ? AppColors.outline : AppColors.lightOutline,
+            color: isDark ? AppColors.outline : const Color(0xFFDDDDDD),
             width: 0.5,
           ),
         ),
@@ -466,7 +466,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
                 color: _isHoldingRecord
                     ? AppColors.primary
                     : (isDisabled
-                        ? (isDark ? AppColors.outline : AppColors.lightOutline)
+                        ? (isDark ? AppColors.outline : const Color(0xFFDDDDDD))
                         : AppColors.primary),
                 width: 2,
               ),

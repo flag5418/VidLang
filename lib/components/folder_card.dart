@@ -53,10 +53,7 @@ class _FolderCardState extends State<FolderCard> {
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        child: InkWell(
-          onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: Container(
+        child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.card),
               color: bgColor,
@@ -69,7 +66,7 @@ class _FolderCardState extends State<FolderCard> {
                 ),
               ],
             ),
-            child: ClipRRect(
+              child: ClipRRect(
               borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2 : AppRadius.card),
               child: FutureBuilder<_FolderInfo>(
                 future: _loadFolderInfo(),
@@ -78,14 +75,14 @@ class _FolderCardState extends State<FolderCard> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildTopRow(typeColor, info?.count ?? 0),
+                      _buildTopRow(context, typeColor, info?.count ?? 0),
                       Expanded(
                         child: Center(
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3),
                             child: Text(
                               widget.folder.name,
-                              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
+                              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700, color: AppColors.getOnSurface(brightness: brightness)),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
@@ -93,11 +90,10 @@ class _FolderCardState extends State<FolderCard> {
                           ),
                         ),
                       ),
-                      _buildBottomRow(info?.currentTitle),
+                      _buildBottomRow(brightness, info?.currentTitle),
                     ],
                   );
                 },
-              ),
             ),
           ),
         ),
@@ -128,7 +124,8 @@ class _FolderCardState extends State<FolderCard> {
     return _FolderInfo(videos.length, title);
   }
 
-  Widget _buildTopRow(Color typeColor, int count) {
+  Widget _buildTopRow(BuildContext ctx, Color typeColor, int count) {
+    final cs = Theme.of(ctx).colorScheme;
     return Padding(
       padding: EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space4, 10, 0),
       child: Row(
@@ -145,19 +142,19 @@ class _FolderCardState extends State<FolderCard> {
     );
   }
 
-  Widget _buildBottomRow(String? currentTitle) {
+  Widget _buildBottomRow(Brightness br, String? currentTitle) {
     if (currentTitle == null || currentTitle.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.fromLTRB(AppSpacing.space4, 4, AppSpacing.space4, AppSpacing.space4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.play_arrow_rounded, size: 12.sp, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          Icon(Icons.play_arrow_rounded, size: 12.sp, color: AppColors.getOnSurfaceVariant(brightness: br)),
           SizedBox(width: 4),
           Flexible(
             child: Text(
               currentTitle,
-              style: TextStyle(fontSize: 11.sp, color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 11.sp, color: AppColors.getOnSurfaceVariant(brightness: br), fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

@@ -65,16 +65,17 @@ class _FileListPageState extends ConsumerState<FileListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(fileProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+        backgroundColor: AppColors.getSurface(brightness: brightness),
       appBar: AppBar(
         title: Text(
           '资源',
           style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
         elevation: 0,
-        backgroundColor: colorScheme.surface,
+      backgroundColor: AppColors.getSurface(brightness: brightness),
         scrolledUnderElevation: 0.5,
         actions: [
           IconButton(
@@ -116,7 +117,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
     final currentTab = _currentTab;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       padding: EdgeInsets.all(3.w),
@@ -243,7 +244,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.card),
-          color: AppColors.surfaceElevated,
+          color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
         ),
         child: Column(

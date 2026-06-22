@@ -12,16 +12,43 @@ class AppColors {
   AppColors._();
 
   // ─── 背景层级 ─────────────────────────────────
-  // 极黑基底 → 逐层抬升，层级分明
+  // 暗色主题
   static const Color background = Color(0xFF000000);
   static const Color surface = Color(0xFF121212);
   static const Color surfaceElevated = Color(0xFF1E1E1E);
   static const Color surfaceHighest = Color(0xFF2C2C2C);
 
+  // 亮色主题
+  static const Color lightBackground = Color(0xFFF5F5F5);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceElevated = Color(0xFFF0F0F0);
+  static const Color lightSurfaceHighest = Color(0xFFE8E8E8);
+
+  /// 根据主题获取背景层级色
+  static Color getBgLayer({required Brightness brightness}) =>
+      brightness == Brightness.dark ? surface : lightSurface;
+  static Color getScaffoldBg({required Brightness brightness}) =>
+      brightness == Brightness.dark ? background : lightBackground;
+  static Color getSurface({required Brightness brightness}) =>
+      brightness == Brightness.dark ? surface : lightSurface;
+  static Color getSurfaceElevated({required Brightness brightness}) =>
+      brightness == Brightness.dark ? surfaceElevated : lightSurfaceElevated;
+  static Color getSurfaceHighest({required Brightness brightness}) =>
+      brightness == Brightness.dark ? surfaceHighest : lightSurfaceHighest;
+
   // ─── 前景/文字 ─────────────────────────────────
   static const Color onSurface = Color(0xFFFFFFFF);
   static const Color onSurfaceVariant = Color(0xFF999999);
   static const Color onSurfaceDisabled = Color(0xFF555555);
+  static const Color lightOnSurface = Color(0xFF1A1A1A);
+  static const Color lightOnSurfaceVariant = Color(0xFF666666);
+  static const Color lightOnSurfaceDisabled = Color(0xFFAAAAAA);
+
+  /// 根据主题获取前景文字色
+  static Color getOnSurface({required Brightness brightness}) =>
+      brightness == Brightness.dark ? onSurface : lightOnSurface;
+  static Color getOnSurfaceVariant({required Brightness brightness}) =>
+      brightness == Brightness.dark ? onSurfaceVariant : lightOnSurfaceVariant;
 
   // ─── 强调色（电光蓝 → 暖橙渐变） ────
   /// 主色：电光蓝
@@ -99,22 +126,6 @@ class AppColors {
     shadow: Color(0x00000000),
   );
 
-  // ─── 亮色主题背景层级 ─────────────────────────────
-  static const Color lightBackground = Color(0xFFF5F5F5);
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceElevated = Color(0xFFF0F0F0);
-  static const Color lightSurfaceHighest = Color(0xFFE8E8E8);
-
-  // ─── 亮色主题前景/文字 ────────────────────────────
-  static const Color lightOnSurface = Color(0xFF1A1A1A);
-  static const Color lightOnSurfaceVariant = Color(0xFF666666);
-  static const Color lightOnSurfaceDisabled = Color(0xFFAAAAAA);
-
-  // ─── 亮色主题功能性 ──────────────────────────────
-  static const Color lightOutline = Color(0xFFDDDDDD);
-  static const Color lightOutlineVariant = Color(0xFFCCCCCC);
-  static const Color lightDivider = Color(0x1A000000);
-
   // ─── 亮色主题图标/导航 ────────────────────────────
   static const Color lightIconDefault = Color(0xFF888888);
   static const Color lightIconActive = Color(0xFF4284FC);
@@ -133,8 +144,8 @@ class AppColors {
     surfaceContainerLow: Color(0xFFFAFAFA),
     surfaceContainer: Color(0xFFF5F5F5),
     surfaceContainerHigh: Color(0xFFEEEEEE),
-    outline: lightOutline,
-    outlineVariant: lightOutlineVariant,
+    outline: Color(0xFFDDDDDD),
+    outlineVariant: Color(0xFFCCCCCC),
     error: error,
     onError: Color(0xFFFFFFFF),
     shadow: Color(0x00000000),
