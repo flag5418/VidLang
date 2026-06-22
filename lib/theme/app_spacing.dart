@@ -1,46 +1,6 @@
 /// 间距系统
 /// 
-/// 基于8pt网格系统的间距规范，确保一致的间距体验。
-/// 
-/// 基础间距值（0-64）：
-/// | 名称 | 值 | 计算 |
-/// |------|-----|------|
-/// | 0 | 0px | - |
-/// | 1 | 4px | 4 × 1 |
-/// | 2 | 8px | 4 × 2 |
-/// | 3 | 12px | 4 × 3 |
-/// | 4 | 16px | 4 × 4 |
-/// | 5 | 20px | 4 × 5 |
-/// | 6 | 24px | 4 × 6 |
-/// | 7 | 28px | 4 × 7 |
-/// | 8 | 32px | 4 × 8 |
-/// | 9 | 36px | 4 × 9 |
-/// | 10 | 40px | 4 × 10 |
-/// | 11 | 44px | 4 × 11 |
-/// | 12 | 48px | 4 × 12 |
-/// | 14 | 56px | 4 × 14 |
-/// | 16 | 64px | 4 × 16 |
-/// 
-/// 语义化间距：
-/// | 名称 | 移动端 | 平板 | 桌面 |
-/// |------|--------|------|------|
-/// | xs | 4px | 4px | 4px |
-/// | sm | 8px | 8px | 8px |
-/// | md | 12px | 16px | 16px |
-/// | lg | 16px | 24px | 24px |
-/// | xl | 24px | 32px | 32px |
-/// | xxl | 32px | 48px | 48px |
-/// 
-/// 使用方式：
-/// ```dart
-/// import 'package:vidlang/theme/design_tokens.dart';
-/// 
-/// // 使用语义化间距
-/// Padding(padding: EdgeInsets.all(DesignTokens.spacing.large))
-/// 
-/// // 使用基础间距
-/// SizedBox(height: DesignTokens.spacing.base)
-/// ```
+/// 基于8pt网格系统的间距规范，iPhone专用。
 library;
 
 /// 应用间距类
@@ -118,30 +78,27 @@ class AppSpacing {
   /// 用于：标签内间距、小组件间距
   static const double sm = 8;
   
-  /// 中间距 - 12px/16px
+  /// 中间距 - 16px
   /// 
   /// 用于：卡片内间距、列表项间距
   static const double md = 16;
   
-  /// 大间距 - 16px/24px
+  /// 大间距 - 24px
   /// 
   /// 用于：区块间间距、卡片间距
   static const double lg = 24;
   
-  /// 超大间距 - 24px/32px
+  /// 超大间距 - 32px
   /// 
   /// 用于：页面区块间间距
   static const double xl = 32;
   
-  /// 2倍超大间距 - 32px/48px
+  /// 2倍超大间距 - 48px
   /// 
   /// 用于：页面间间距、大区块间距
   static const double xxl = 48;
 
   /// 获取语义化间距
-  /// 
-  /// 根据断点返回响应式间距值
-  /// [size] 间距名称：xs, sm, md, lg, xl, xxl
   static double getSpacing(String size) {
     switch (size) {
       case 'xs':
@@ -165,28 +122,14 @@ class AppSpacing {
   // 页面内边距
   // ============================================================
   
-  /// 页面水平内边距 - 移动端
-  static const double pagePaddingHorizontalMobile = 16;
+  /// 页面水平内边距 - iPhone
+  static const double pagePaddingHorizontal = 16;
   
-  /// 页面水平内边距 - 平板
-  static const double pagePaddingHorizontalTablet = 24;
-  
-  /// 页面水平内边距 - 桌面
-  static const double pagePaddingHorizontalDesktop = 32;
+  /// 页面内边距（别名，等同于 pagePaddingHorizontal）
+  static const double pagePadding = 16;
   
   /// 页面垂直内边距
   static const double pagePaddingVertical = 24;
-
-  /// 获取页面水平内边距（根据屏幕宽度）
-  static double getPagePaddingHorizontal(double screenWidth) {
-    if (screenWidth < 640) {
-      return pagePaddingHorizontalMobile;
-    } else if (screenWidth < 1024) {
-      return pagePaddingHorizontalTablet;
-    } else {
-      return pagePaddingHorizontalDesktop;
-    }
-  }
 
   // ============================================================
   // 组件间距
@@ -214,29 +157,15 @@ class AppSpacing {
   // Grid间距
   // ============================================================
   
-  /// Grid列间距
-  static const double gridColumnSpacing = 16;
+  /// Grid间距
+  static const double gridSpacing = 12;
   
-  /// Grid行间距
-  static const double gridRowSpacing = 16;
+  /// Grid列间距（别名）
+  static const double gridColumnSpacing = 12;
   
-  /// Grid列数（移动端）
-  static const int gridColumnsMobile = 2;
+  /// Grid行间距（别名）
+  static const double gridRowSpacing = 12;
   
-  /// Grid列数（平板）
-  static const int gridColumnsTablet = 4;
-  
-  /// Grid列数（桌面）
-  static const int gridColumnsDesktop = 6;
-
-  /// 获取Grid列数
-  static int getGridColumns(double screenWidth) {
-    if (screenWidth < 640) {
-      return gridColumnsMobile;
-    } else if (screenWidth < 1024) {
-      return gridColumnsTablet;
-    } else {
-      return gridColumnsDesktop;
-    }
-  }
+  /// Grid列数（iPhone）
+  static const int gridColumnsPhone = 2;
 }

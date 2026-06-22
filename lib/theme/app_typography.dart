@@ -69,15 +69,15 @@ class AppTypography {
   // 字体大小（基于1.25倍比例尺）
   // ============================================================
   
-  /// 超小字体 - 10px
+  /// 超小字体 - 12px (最低可读字号)
   /// 
   /// 用于：辅助说明、标签等
-  static const double fontSizeXSmall = 10.0;
+  static const double fontSizeXSmall = 12.0;
   
-  /// 小字体 - 13px
+  /// 小字体 - 14px
   /// 
   /// 用于：次要文本、辅助信息等
-  static const double fontSizeSmall = 13.0;
+  static const double fontSizeSmall = 14.0;
   
   /// 基础字体 - 16px
   /// 
@@ -229,6 +229,7 @@ class AppTypography {
     fontSize: fontSize2XLarge,
     fontWeight: fontWeightBold,
     height: lineHeightTight,
+    letterSpacing: 0.5,
   );
   
   /// 中标题样式
@@ -240,6 +241,7 @@ class AppTypography {
     fontSize: fontSizeXLarge,
     fontWeight: fontWeightSemiBold,
     height: lineHeightTight,
+    letterSpacing: 0.3,
   );
   
   /// 小标题样式
@@ -251,6 +253,7 @@ class AppTypography {
     fontSize: fontSizeLarge,
     fontWeight: fontWeightSemiBold,
     height: 1.3,
+    letterSpacing: 0.2,
   );
   
   /// 正文样式
@@ -277,7 +280,7 @@ class AppTypography {
   
   /// 小正文样式
   /// 
-  /// fontSize: 13px (sm)
+  /// fontSize: 14px (sm)
   /// fontWeight: 400 (regular)
   /// lineHeight: 1.5
   static const TextStyle bodySmall = TextStyle(
@@ -288,7 +291,7 @@ class AppTypography {
   
   /// 辅助文本样式
   /// 
-  /// fontSize: 13px (sm)
+  /// fontSize: 14px (sm)
   /// fontWeight: 400 (regular)
   /// lineHeight: 1.4
   static const TextStyle label = TextStyle(

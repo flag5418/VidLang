@@ -580,7 +580,7 @@ class _DetailTile extends StatelessWidget {
       decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(999.r)),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+        style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -701,7 +701,7 @@ class _TrendChart extends StatelessWidget {
                   child: Text(
                     point.date.substring(5),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 10.sp, color: Theme.of(context).colorScheme.outline),
+                    style: TextStyle(fontSize: 12.sp, color: Theme.of(context).colorScheme.outline),
                   ),
                 ),
             ],
@@ -747,7 +747,7 @@ class _TrendPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: points[i].total.toStringAsFixed(2),
-          style: TextStyle(color: color, fontSize: 10.sp),
+          style: TextStyle(color: color, fontSize: 12.sp),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

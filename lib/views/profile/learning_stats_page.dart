@@ -173,7 +173,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface.withValues(alpha: 0.38),
               ),
@@ -550,7 +550,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                             Text(
                               '${t.minutes}',
                               style: TextStyle(
-                                fontSize: 10.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,
                                 color: t.minutes > 0
                                     ? colorScheme.primary
@@ -583,7 +583,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                             Text(
                               weekday,
                               style: TextStyle(
-                                fontSize: 10.sp,
+                                fontSize: 12.sp,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -591,7 +591,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                             Text(
                               dateStr,
                               style: TextStyle(
-                                fontSize: 9.sp,
+                                fontSize: 12.sp,
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                               ),
                             ),

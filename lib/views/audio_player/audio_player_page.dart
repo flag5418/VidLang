@@ -684,7 +684,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               decoration: BoxDecoration(color: _scoreColor(s.lastFollowScore!).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10)),
               child: Text(
                 '🎤${s.lastFollowScore!.round()}',
-                style: TextStyle(color: _scoreColor(s.lastFollowScore!), fontSize: 10.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _scoreColor(s.lastFollowScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
               ),
             ),
           _topBtn(
@@ -755,7 +755,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         children: [
           Text(
             _fmtDuration(s.position),
-            style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+            style: TextStyle(color: Colors.white54, fontSize: 12.sp),
           ),
           Expanded(
             child: SliderTheme(
@@ -772,7 +772,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           ),
           Text(
             _fmtDuration(s.duration),
-            style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+            style: TextStyle(color: Colors.white54, fontSize: 12.sp),
           ),
         ],
       ),
@@ -851,7 +851,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           label,
           style: TextStyle(
             color: active ? AppColors.primary : Colors.white70,
-            fontSize: 11.sp,
+            fontSize: 13.sp,
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -942,7 +942,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               const Spacer(),
               Text(
                 '原音:',
-                style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+                style: TextStyle(color: Colors.white54, fontSize: 12.sp),
               ),
               SizedBox(
                 width: 100,
@@ -959,7 +959,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               ),
               Text(
                 '${(s.originalVolume * 100).round()}%',
-                style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+                style: TextStyle(color: Colors.white54, fontSize: 12.sp),
               ),
             ],
           ),
@@ -974,7 +974,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   const SizedBox(width: 4),
                   Text(
                     '建议佩戴耳机',
-                    style: TextStyle(color: AppColors.warning, fontSize: 10.sp),
+                    style: TextStyle(color: AppColors.warning, fontSize: 12.sp),
                   ),
                 ],
               ),
@@ -1198,7 +1198,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   Widget _settingLabel(String label) {
     return Text(
       label,
-      style: TextStyle(color: _drawerTextVariant(), fontSize: 11.sp, fontWeight: FontWeight.w500),
+      style: TextStyle(color: _drawerTextVariant(), fontSize: 13.sp, fontWeight: FontWeight.w500),
     );
   }
 
@@ -1319,7 +1319,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                                         v.hasSubtitles ? '有字幕' : '无字幕',
                                         style: TextStyle(
                                           color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white30,
-                                          fontSize: 10.sp,
+                                          fontSize: 12.sp,
                                         ),
                                       ),
                                       const SizedBox(width: 10),
@@ -1328,14 +1328,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                                       const SizedBox(width: 3),
                                       Text(
                                         durationStr,
-                                        style: TextStyle(color: Colors.white38, fontSize: 10.sp),
+                                        style: TextStyle(color: Colors.white38, fontSize: 12.sp),
                                       ),
                                       if (v.artist != null && v.artist!.isNotEmpty) ...[
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
                                             v.artist!,
-                                            style: TextStyle(color: Colors.white30, fontSize: 10.sp),
+                                            style: TextStyle(color: Colors.white30, fontSize: 12.sp),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -1589,7 +1589,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+          style: TextStyle(color: Colors.white54, fontSize: 12.sp),
         ),
       ],
     );

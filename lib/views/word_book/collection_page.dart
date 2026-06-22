@@ -290,7 +290,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
           ),
           child: Text(
             '${_allWords.length}$unitLabel',
-            style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
+            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
           ),
         ),
         const Spacer(),

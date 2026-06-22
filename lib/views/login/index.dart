@@ -116,7 +116,9 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
-        child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          alignment: Alignment.center,
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,

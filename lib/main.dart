@@ -113,7 +113,7 @@ void main() {
         logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
       }
 
-      await DeviceUtils.init();
+      await DeviceUtils.initialize();
 
       runApp(const ProviderScope(child: VidLangApp()));
     },

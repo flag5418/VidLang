@@ -90,30 +90,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             // 可滚动区域
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(AppSpacing.md.w),
+                padding: EdgeInsets.all(AppSpacing.pagePadding.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 标题
                     Text(
                       '我的',
-                      style: TextStyle(fontSize: AppTypography.fontSizeLarge.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: AppTypography.fontSizeLarge.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface, letterSpacing: 0.3),
                     ),
-                    SizedBox(height: AppSpacing.md.h),
+                    SizedBox(height: AppSpacing.lg.h),
 
                     // 1. 个人信息卡片
                     _buildProfileCard(colorScheme),
-                    SizedBox(height: AppSpacing.md.h),
+                    SizedBox(height: AppSpacing.lg.h),
 
                     // 2. 模式切换
                     _buildModeSwitch(colorScheme, subState),
-                    SizedBox(height: AppSpacing.md.h),
+                    SizedBox(height: AppSpacing.lg.h),
 
                     // 3. 学习统计
                     _buildSectionTitle('学习统计', colorScheme),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: 10.h),
                     _buildLearningStats(colorScheme),
-                    SizedBox(height: AppSpacing.md.h),
+                    SizedBox(height: AppSpacing.lg.h),
 
                     // 4. 设置
                     _buildSectionTitle('设置', colorScheme),
@@ -149,12 +149,41 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     return GestureDetector(
       onTap: () => _navigateToEditProfile(),
       child: Container(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16.r), color: _cardColor(colorScheme)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
+          gradient: LinearGradient(
+            colors: [colorScheme.primary, const Color(0xFF6366F1)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withValues(alpha: 0.25),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+              spreadRadius: -2,
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(AppSpacing.space5),
         child: Row(
           children: [
-            // 头像
-            _buildAvatarWidget(colorScheme, avatarPath, displayName),
-            SizedBox(width: 14.w),
+            // 头像 with glowing ring
+            Container(
+              padding: EdgeInsets.all(3.w),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [Colors.white.withValues(alpha: 0.5), Colors.white.withValues(alpha: 0.1)],
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 30.r,
+                backgroundColor: colorScheme.surface,
+                child: _buildAvatarInner(avatarPath, displayName),
+              ),
+            ),
+            SizedBox(width: 16.w),
             // 昵称 + 登录名
             Expanded(
               child: Column(
@@ -162,25 +191,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 children: [
                   Text(
                     displayName,
-                    style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: 19.sp, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.2),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     loginName,
-                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(fontSize: 13.sp, color: Colors.white.withValues(alpha: 0.75)),
                   ),
                 ],
               ),
             ),
             // 右箭头
-            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant, size: 24.w),
+            Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.7), size: 24.w),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAvatarWidget(ColorScheme colorScheme, String? avatarPath, String displayName) {
+  Widget _buildAvatarInner(String? avatarPath, String displayName) {
     if (avatarPath != null && avatarPath.isNotEmpty) {
       final file = File(avatarPath);
       if (file.existsSync()) {
@@ -189,13 +218,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         );
       }
     }
-    return CircleAvatar(
-      radius: 28.r,
-      backgroundColor: colorScheme.primary.withValues(alpha: 0.15),
-      child: Text(
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: colorScheme.primary),
-      ),
+    return Text(
+      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+      style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
     );
   }
 
@@ -315,7 +340,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 children: [
                                   Text(
                                     '当日消费',
-                                    style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+                                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
                                   ),
                                   SizedBox(height: 4.h),
                                   Text(
@@ -420,11 +445,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Row(
         children: [
           _statCard(Icons.calendar_today, '学习天数', '${_summaryStats.totalDays}', colorScheme),
-          SizedBox(width: 8.w),
+          SizedBox(width: AppSpacing.sm.w),
           _statCard(Icons.movie, '视频', '${_summaryStats.videoTotal}', colorScheme),
-          SizedBox(width: 8.w),
+          SizedBox(width: AppSpacing.sm.w),
           _statCard(Icons.music_note, '音频', '${_summaryStats.audioTotal}', colorScheme),
-          SizedBox(width: 8.w),
+          SizedBox(width: AppSpacing.sm.w),
           _statCard(Icons.menu_book, '文章', '${_summaryStats.articleTotal}', colorScheme),
         ],
       ),
@@ -439,19 +464,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         },
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r), color: _cardColor(colorScheme)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.md.r), color: _cardColor(colorScheme)),
           child: Column(
             children: [
-              Icon(icon, size: 22.w, color: colorScheme.primary.withValues(alpha: 0.7)),
+              Icon(icon, size: 20.sp, color: colorScheme.primary.withValues(alpha: 0.7)),
               SizedBox(height: 8.h),
               Text(
                 value,
-                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
               SizedBox(height: 4.h),
               Text(
                 label,
-                style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(fontSize: AppTypography.fontSizeXSmall, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -492,19 +517,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildMenuItem(IconData icon, String title, String subtitle, ColorScheme colorScheme, {VoidCallback? onTap, bool isDestructive = false}) {
     return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, size: 22.w, color: isDestructive ? colorScheme.error : colorScheme.onSurfaceVariant),
+      contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.space2, vertical: AppSpacing.space1),
+      minTileHeight: 48,
+      leading: Icon(icon, size: 20.sp, color: isDestructive ? colorScheme.error : colorScheme.onSurfaceVariant),
       title: Text(
         title,
-        style: TextStyle(fontSize: 14.sp, color: isDestructive ? colorScheme.error : colorScheme.onSurface),
+        style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, color: isDestructive ? colorScheme.error : colorScheme.onSurface, letterSpacing: 0.1),
       ),
       subtitle: subtitle.isNotEmpty
           ? Text(
               subtitle,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: colorScheme.onSurfaceVariant),
             )
           : null,
-      trailing: Icon(Icons.chevron_right, size: 18.w, color: colorScheme.onSurfaceVariant),
+      trailing: Icon(Icons.chevron_right, size: 20.sp, color: colorScheme.onSurfaceVariant),
       onTap: onTap,
     );
   }

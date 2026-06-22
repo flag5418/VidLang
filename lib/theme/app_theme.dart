@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'app_colors.dart';
 import 'app_radius.dart';
+import 'app_shadows.dart';
 import 'app_spacing.dart';
 import 'app_typography.dart';
 
@@ -31,12 +32,13 @@ class AppTheme {
     ),
 
     cardTheme: CardThemeData(
-      elevation: 0,
+      elevation: 2,
       color: AppColors.lightSurface,
-      surfaceTintColor: Colors.transparent,
+      surfaceTintColor: AppColors.primary.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-      margin: EdgeInsets.zero,
+      margin: EdgeInsets.all(AppSpacing.sm),
       clipBehavior: Clip.antiAlias,
+      shadowColor: AppColors.primary.withValues(alpha: 0.12),
     ),
 
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -44,7 +46,7 @@ class AppTheme {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.buttonPaddingHorizontal, vertical: AppSpacing.buttonPaddingVertical),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
         minimumSize: const Size(0, AppSpacing.space10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         textStyle: const TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600),
@@ -54,7 +56,7 @@ class AppTheme {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.buttonPaddingHorizontal, vertical: AppSpacing.buttonPaddingVertical),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
         minimumSize: const Size(0, AppSpacing.space10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         side: BorderSide(color: AppColors.lightOutline),
@@ -104,8 +106,8 @@ class AppTheme {
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.lightOnSurfaceVariant,
       type: BottomNavigationBarType.fixed,
-      selectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeXSmall, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeXSmall),
+      selectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeSmall),
     ),
 
     dialogTheme: DialogThemeData(
@@ -150,7 +152,7 @@ class AppTheme {
       headlineLarge: TextStyle(color: AppColors.lightOnSurface),
       headlineMedium: TextStyle(color: AppColors.lightOnSurface),
       headlineSmall: TextStyle(color: AppColors.lightOnSurface),
-      titleLarge: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: AppColors.lightOnSurface),
+      titleLarge: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: AppColors.lightOnSurface, letterSpacing: 0.2),
       titleMedium: TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w500, color: AppColors.lightOnSurface),
       titleSmall: TextStyle(fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.w500, color: AppColors.lightOnSurface),
       bodyLarge: TextStyle(color: AppColors.lightOnSurface),
@@ -184,12 +186,13 @@ class AppTheme {
     ),
 
     cardTheme: CardThemeData(
-      elevation: 0,
+      elevation: 2,
       color: AppColors.surfaceElevated,
-      surfaceTintColor: Colors.transparent,
+      surfaceTintColor: AppColors.primary.withValues(alpha: 0.06),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-      margin: EdgeInsets.zero,
+      margin: EdgeInsets.all(AppSpacing.sm),
       clipBehavior: Clip.antiAlias,
+      shadowColor: Colors.white.withValues(alpha: 0.06),
     ),
 
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -197,7 +200,7 @@ class AppTheme {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.buttonPaddingHorizontal, vertical: AppSpacing.buttonPaddingVertical),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
         minimumSize: const Size(0, AppSpacing.space10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         textStyle: const TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600),
@@ -207,7 +210,7 @@ class AppTheme {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.buttonPaddingHorizontal, vertical: AppSpacing.buttonPaddingVertical),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
         minimumSize: const Size(0, AppSpacing.space10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
         side: const BorderSide(color: AppColors.outline),
@@ -257,8 +260,8 @@ class AppTheme {
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.onSurfaceVariant,
       type: BottomNavigationBarType.fixed,
-      selectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeXSmall, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeXSmall),
+      selectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: TextStyle(fontSize: AppTypography.fontSizeSmall),
     ),
 
     dialogTheme: DialogThemeData(
@@ -303,7 +306,7 @@ class AppTheme {
       headlineLarge: TextStyle(color: AppColors.onSurface),
       headlineMedium: TextStyle(color: AppColors.onSurface),
       headlineSmall: TextStyle(color: AppColors.onSurface),
-      titleLarge: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+      titleLarge: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: AppColors.onSurface, letterSpacing: 0.2),
       titleMedium: TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w500, color: AppColors.onSurface),
       titleSmall: TextStyle(fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.w500, color: AppColors.onSurface),
       bodyLarge: TextStyle(color: AppColors.onSurface),

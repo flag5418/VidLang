@@ -13,9 +13,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/theme/app_radius.dart';
+import 'package:vidlang/theme/app_spacing.dart';
+import 'package:vidlang/theme/app_typography.dart';
 
-class ArticleHeroCard extends StatelessWidget {
+class ArticleHeroCard extends StatefulWidget {
   final Article article;
   final VoidCallback? onRead;
   final VoidCallback? onRename;
@@ -30,23 +32,37 @@ class ArticleHeroCard extends StatelessWidget {
   });
 
   @override
+  State<ArticleHeroCard> createState() => _ArticleHeroCardState();
+}
+
+class _ArticleHeroCardState extends State<ArticleHeroCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardHeight = (screenWidth - 32) * 9 / 16;
-    final clampedHeight = cardHeight.clamp(220.0, 420.0);
-    final cardColor = AppColors.articleColorFor(article.title);
-    final hasActions = onRename != null || onDelete != null;
-    final letter = article.title.isNotEmpty ? article.title[0].toUpperCase() : '?';
+    final cardHeight = (screenWidth - AppSpacing.space8) * 9 / 16;
+    final clampedHeight = cardHeight.clamp(200.0, 400.0);
+    final cardColor = AppColors.articleColorFor(widget.article.title);
+    final hasActions = widget.onRename != null || widget.onDelete != null;
+    final letter = widget.article.title.isNotEmpty ? widget.article.title[0].toUpperCase() : '?';
 
     return GestureDetector(
-      onTap: onRead,
-      child: Container(
+      onTap: widget.onRead,
+      onPanDown: (_) => setState(() => _isPressed = true),
+      onPanEnd: (_) => setState(() => _isPressed = false),
+      onPanCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0, 1.0, 1.0),
         width: double.infinity,
         height: clampedHeight,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           color: cardColor,
+          boxShadow: [BoxShadow(color: Color(0x20000000), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -62,8 +78,8 @@ class ArticleHeroCard extends StatelessWidget {
             _buildPlayButton(colorScheme),
             if (hasActions)
               Positioned(
-                bottom: 14,
-                right: 12,
+                bottom: AppSpacing.space4,
+                right: AppSpacing.space3,
                 child: _buildMenu(colorScheme),
               ),
           ],
@@ -73,13 +89,13 @@ class ArticleHeroCard extends StatelessWidget {
   }
 
   Widget _buildBottomSection(ColorScheme colorScheme, Color cardColor) {
-    final progress = article.progress.clamp(0.0, 1.0);
+    final progress = widget.article.progress.clamp(0.0, 1.0);
     final percent = (progress * 100).round();
 
     final metaParts = <String>[];
-    if (article.totalParagraphs > 0) metaParts.add('${article.totalParagraphs}段');
-    if (article.totalSentences > 0) metaParts.add('${article.totalSentences}句');
-    if (article.wordCount > 0) metaParts.add('${article.wordCount}词');
+    if (widget.article.totalParagraphs > 0) metaParts.add('${widget.article.totalParagraphs}段');
+    if (widget.article.totalSentences > 0) metaParts.add('${widget.article.totalSentences}句');
+    if (widget.article.wordCount > 0) metaParts.add('${widget.article.wordCount}词');
 
     return Positioned(
       bottom: 0,
@@ -97,7 +113,7 @@ class ArticleHeroCard extends StatelessWidget {
             ),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space3, AppSpacing.space4, AppSpacing.space4),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -110,8 +126,8 @@ class ArticleHeroCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  article.title,
-                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
+                  widget.article.title,
+                  style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -119,7 +135,7 @@ class ArticleHeroCard extends StatelessWidget {
                 if (metaParts.isNotEmpty)
                   Text(
                     metaParts.join(' · '),
-                    style: TextStyle(fontSize: 11.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white70, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -127,10 +143,10 @@ class ArticleHeroCard extends StatelessWidget {
                 if (progress > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: Colors.white.withValues(alpha: 0.2)),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm), color: Colors.white.withValues(alpha: 0.2)),
                     child: Text(
                       '已读 $percent%',
-                      style: TextStyle(fontSize: 10.sp, color: Colors.white, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white, fontWeight: FontWeight.w500),
                     ),
                   ),
               ],
@@ -144,14 +160,14 @@ class ArticleHeroCard extends StatelessWidget {
   Widget _buildPlayButton(ColorScheme colorScheme) {
     return Center(
       child: Container(
-        width: 34.w,
-        height: 34.w,
+        width: 36.w,
+        height: 36.w,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.92),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        child: Icon(Icons.play_arrow_rounded, size: 18.w, color: Colors.white),
+        child: Icon(Icons.play_arrow_rounded, size: 20.w, color: Colors.white),
       ),
     );
   }
@@ -161,30 +177,30 @@ class ArticleHeroCard extends StatelessWidget {
       onSelected: (value) {
         switch (value) {
           case 'rename':
-            onRename?.call();
+            widget.onRename?.call();
             break;
           case 'delete':
-            onDelete?.call();
+            widget.onDelete?.call();
             break;
         }
       },
       offset: const Offset(-120, 0),
       color: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       elevation: 6,
       child: Container(
         width: 28.r,
         height: 28.r,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6.r),
+          borderRadius: BorderRadius.circular(AppRadius.sm.r),
           color: Colors.black.withValues(alpha: 0.65),
         ),
         child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
       ),
       itemBuilder: (context) => [
-        if (onRename != null)
+        if (widget.onRename != null)
           PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme)),
-        if (onDelete != null) ...[
+        if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
           PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
         ],
@@ -196,8 +212,8 @@ class ArticleHeroCard extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 18.sp, color: cs.onSurfaceVariant),
-        const SizedBox(width: 8),
-        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14.sp)),
+        const SizedBox(width: AppSpacing.space2),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: AppTypography.fontSizeBase.sp)),
       ],
     );
   }

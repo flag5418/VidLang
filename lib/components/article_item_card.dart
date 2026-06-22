@@ -1,6 +1,6 @@
 /// 文章单资源卡片（文件夹详情网格）
 ///
-/// 风格与 VideoCard 统一（音频明细的直接复用）：
+/// 风格与 VideoCard 统一：
 /// - 彩色背景 + 大首字母居中显示
 /// - 底部渐变遮罩叠加标题 + 元数据
 /// - 右下竖三点菜单
@@ -10,9 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/theme/app_radius.dart';
+import 'package:vidlang/theme/app_spacing.dart';
+import 'package:vidlang/theme/app_typography.dart';
 
-class ArticleItemCard extends StatelessWidget {
+class ArticleItemCard extends StatefulWidget {
   final Article article;
   final VoidCallback onTap;
   final VoidCallback? onRename;
@@ -27,21 +29,35 @@ class ArticleItemCard extends StatelessWidget {
   });
 
   @override
+  State<ArticleItemCard> createState() => _ArticleItemCardState();
+}
+
+class _ArticleItemCardState extends State<ArticleItemCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final cardColor = AppColors.articleColorFor(article.title);
-    final hasActions = onRename != null || onDelete != null;
-    final letter = article.title.isNotEmpty ? article.title[0].toUpperCase() : '?';
+    final cardColor = AppColors.articleColorFor(widget.article.title);
+    final hasActions = widget.onRename != null || widget.onDelete != null;
+    final letter = widget.article.title.isNotEmpty ? widget.article.title[0].toUpperCase() : '?';
 
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
+      onTap: widget.onTap,
+      onPanDown: (_) => setState(() => _isPressed = true),
+      onPanEnd: (_) => setState(() => _isPressed = false),
+      onPanCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        transform: Matrix4.identity()..scale(_isPressed ? 0.96 : 1.0, 1.0, 1.0),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           color: cardColor,
+          boxShadow: [BoxShadow(color: Color(0x18000000), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -54,8 +70,8 @@ class ArticleItemCard extends StatelessWidget {
               _buildBottomOverlay(colorScheme),
               if (hasActions)
                 Positioned(
-                  bottom: 6,
-                  right: 6,
+                  bottom: AppSpacing.space2,
+                  right: AppSpacing.space2,
                   child: _buildMoreButton(colorScheme),
                 ),
             ],
@@ -67,16 +83,16 @@ class ArticleItemCard extends StatelessWidget {
 
   Widget _buildBottomOverlay(ColorScheme colorScheme) {
     final metaParts = <String>[];
-    if (article.totalParagraphs > 0) metaParts.add('${article.totalParagraphs}段');
-    if (article.totalSentences > 0) metaParts.add('${article.totalSentences}句');
-    if (article.wordCount > 0) metaParts.add('${article.wordCount}词');
+    if (widget.article.totalParagraphs > 0) metaParts.add('${widget.article.totalParagraphs}段');
+    if (widget.article.totalSentences > 0) metaParts.add('${widget.article.totalSentences}句');
+    if (widget.article.wordCount > 0) metaParts.add('${widget.article.wordCount}词');
 
     return Positioned(
       bottom: 0,
       left: 0,
       right: 0,
       child: Container(
-        padding: EdgeInsets.fromLTRB(10, 24, 10, 10),
+        padding: EdgeInsets.fromLTRB(AppSpacing.space3, 20.h, AppSpacing.space3, AppSpacing.space3),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -89,8 +105,8 @@ class ArticleItemCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              article.title,
-              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.2),
+              widget.article.title,
+              style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.2),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -98,7 +114,7 @@ class ArticleItemCard extends StatelessWidget {
             if (metaParts.isNotEmpty)
               Text(
                 metaParts.join(' · '),
-                style: TextStyle(fontSize: 10.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white70, fontWeight: FontWeight.w500),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -113,27 +129,27 @@ class ArticleItemCard extends StatelessWidget {
       onSelected: (value) {
         switch (value) {
           case 'rename':
-            onRename?.call();
+            widget.onRename?.call();
             break;
           case 'delete':
-            onDelete?.call();
+            widget.onDelete?.call();
             break;
         }
       },
       offset: const Offset(-120, 0),
       color: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       elevation: 6,
       child: Container(
         width: 26.r,
         height: 26.r,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(6.r), color: Colors.black.withValues(alpha: 0.65)),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm.r), color: Colors.black.withValues(alpha: 0.65)),
         child: Icon(Icons.more_vert, size: 16.sp, color: Colors.white),
       ),
       itemBuilder: (context) => [
-        if (onRename != null)
+        if (widget.onRename != null)
           PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme)),
-        if (onDelete != null) ...[
+        if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
           PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
         ],
@@ -145,8 +161,8 @@ class ArticleItemCard extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 18.sp, color: cs.onSurfaceVariant),
-        const SizedBox(width: 8),
-        Text(title, style: TextStyle(color: cs.onSurface, fontSize: 14.sp)),
+        const SizedBox(width: AppSpacing.space2),
+        Text(title, style: TextStyle(color: cs.onSurface, fontSize: AppTypography.fontSizeBase.sp)),
       ],
     );
   }

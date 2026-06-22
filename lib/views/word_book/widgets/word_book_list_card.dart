@@ -131,7 +131,7 @@ class WordBookListCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 11.sp,
+                                fontSize: 13.sp,
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                               ),
                             ),
@@ -157,7 +157,7 @@ class WordBookListCard extends StatelessWidget {
                               child: Text(
                                 tag.name,
                                 style: TextStyle(
-                                  fontSize: 11.sp,
+                                  fontSize: 13.sp,
                                   color: colorScheme.primary,
                                 ),
                               ),

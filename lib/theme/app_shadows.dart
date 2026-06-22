@@ -57,13 +57,13 @@ class AppShadows {
   
   /// 小阴影 - 轻微浮起效果
   /// 
-  /// color: rgba(0, 0, 0, 0.08)
+  /// color: rgba(0, 0, 0, 0.15)
   /// blur: 6px
   /// offset: (0, 2)
   /// 用于：按钮、输入框
   static const List<BoxShadow> sm = [
     BoxShadow(
-      color: Color(0x14000000),
+      color: Color(0x26000000),
       blurRadius: 6,
       offset: Offset(0, 2),
     ),
@@ -71,13 +71,13 @@ class AppShadows {
   
   /// 中阴影 - 卡片悬浮效果
   /// 
-  /// color: rgba(0, 0, 0, 0.10)
+  /// color: rgba(0, 0, 0, 0.20)
   /// blur: 12px
   /// offset: (0, 4)
   /// 用于：卡片、弹窗
   static const List<BoxShadow> md = [
     BoxShadow(
-      color: Color(0x1A000000),
+      color: Color(0x33000000),
       blurRadius: 12,
       offset: Offset(0, 4),
     ),
@@ -85,13 +85,13 @@ class AppShadows {
   
   /// 大阴影 - 模态框效果
   /// 
-  /// color: rgba(0, 0, 0, 0.15)
+  /// color: rgba(0, 0, 0, 0.25)
   /// blur: 24px
   /// offset: (0, 8)
   /// 用于：模态框、大卡片
   static const List<BoxShadow> lg = [
     BoxShadow(
-      color: Color(0x26000000),
+      color: Color(0x40000000),
       blurRadius: 24,
       offset: Offset(0, 8),
     ),

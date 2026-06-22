@@ -16,9 +16,9 @@ import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_radius.dart';
+import 'package:vidlang/theme/app_shadows.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
-import 'package:vidlang/utils/device_utils.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
@@ -79,7 +79,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md.w),
+          padding: EdgeInsets.all(AppSpacing.pagePadding.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -172,83 +172,91 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
   Widget _buildTypeBar(ColorScheme colorScheme) {
     final currentTab = _currentTab;
 
-    return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12.r), color: colorScheme.surfaceContainerHighest),
-      child: Column(
-        spacing: 10.h,
-        children: [
-          // 类型切换
-          Padding(
-            padding: EdgeInsets.all(4.w),
-            child: Row(
-              children: List.generate(_resourceTypes.length, (index) {
-                final isSelected = index == currentTab;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      ref.read(resourceTabProvider.notifier).state = index;
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? colorScheme.primary : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Icon removed - text only tab
-                          Text(
-                            _resourceLabels[index],
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg.r),
+            color: colorScheme.surfaceContainerHighest,
+            boxShadow: AppShadows.xs,
+          ),
+          padding: EdgeInsets.all(3.w),
+          child: Row(
+            children: List.generate(_resourceTypes.length, (index) {
+              final isSelected = index == currentTab;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(resourceTabProvider.notifier).state = index;
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? colorScheme.surface : Colors.transparent,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        _resourceLabels[index],
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
-                );
-              }),
-            ),
-          ),
-          // 搜索栏
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (v) => setState(() => _searchQuery = v),
-              style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall.sp),
-              decoration: InputDecoration(
-                hintText: '搜索${_resourceLabels[_currentTab]}...',
-                hintStyle: TextStyle(color: colorScheme.outline, fontSize: AppTypography.fontSizeSmall.sp),
-                prefixIcon: Icon(AppIcons.search, size: 18.sp, color: colorScheme.outline),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? GestureDetector(
-                        onTap: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                        child: Icon(Icons.clear, size: 18.sp, color: colorScheme.outline),
-                      )
-                    : null,
-                filled: true,
-                fillColor: colorScheme.surface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5), width: 1),
                 ),
-              ),
+              );
+            }),
+          ),
+        ),
+        SizedBox(height: AppSpacing.md.h),
+        // 搜索栏
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            color: colorScheme.surfaceContainerHighest,
+            boxShadow: AppShadows.xs,
+          ),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (v) => setState(() => _searchQuery = v),
+            style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall.sp),
+            decoration: InputDecoration(
+              hintText: '搜索${_resourceLabels[_currentTab]}...',
+              hintStyle: TextStyle(color: colorScheme.outline, fontSize: AppTypography.fontSizeSmall.sp),
+              prefixIcon: Icon(AppIcons.search, size: 18.sp, color: colorScheme.onSurfaceVariant),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                      child: Icon(Icons.clear, size: 18.sp, color: colorScheme.onSurfaceVariant),
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.transparent,
+              contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: 8),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -294,15 +302,12 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
   }
 
   Widget _buildFolderGrid(List<VideoFolder> folders) {
-    final crossAxisCount = DeviceUtils.getGridColumns(context);
-    final gridSpacing = DeviceUtils.getGridSpacing(context);
-
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: gridSpacing,
-        mainAxisSpacing: gridSpacing,
-        childAspectRatio: crossAxisCount == 2 ? 1.3 : 1.15,
+        crossAxisCount: 2,
+        crossAxisSpacing: AppSpacing.gridSpacing,
+        mainAxisSpacing: AppSpacing.gridSpacing,
+        childAspectRatio: 1.3,
       ),
       itemCount: folders.length + 1,
       itemBuilder: (context, index) {

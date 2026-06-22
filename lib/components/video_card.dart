@@ -14,9 +14,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
-import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/app_radius.dart';
+import 'package:vidlang/theme/app_spacing.dart';
+import 'package:vidlang/theme/app_typography.dart';
 
-class VideoCard extends StatelessWidget {
+class VideoCard extends StatefulWidget {
   final VideoInfo video;
   final bool isCurrentPlaying;
   final VoidCallback onTap;
@@ -39,28 +42,42 @@ class VideoCard extends StatelessWidget {
   });
 
   @override
+  State<VideoCard> createState() => _VideoCardState();
+}
+
+class _VideoCardState extends State<VideoCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
+      onTap: widget.onTap,
+      onPanDown: (_) => setState(() => _isPressed = true),
+      onPanEnd: (_) => setState(() => _isPressed = false),
+      onPanCancel: () => setState(() => _isPressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        transform: Matrix4.identity()..scale(_isPressed ? 0.96 : 1.0, 1.0, 1.0),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           color: AppColors.cardThumbnailBg,
-          border: isCurrentPlaying ? Border.all(color: colorScheme.primary, width: 2.5) : null,
+          border: widget.isCurrentPlaying ? Border.all(color: colorScheme.primary, width: 2.5) : null,
+          boxShadow: [BoxShadow(color: Color(0x20000000), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(isCurrentPlaying ? 7.5 : 10),
+          borderRadius: BorderRadius.circular(widget.isCurrentPlaying ? AppRadius.md - 2.5 : AppRadius.md),
           child: Stack(
             fit: StackFit.expand,
             children: [
               _buildThumbnail(context, colorScheme),
               _buildBottomOverlay(context, colorScheme),
               _buildSubtitleBadge(context, colorScheme),
-              if (video.lastFollowScore != null) _buildScoreBadge(context),
+              if (widget.video.lastFollowScore != null) _buildScoreBadge(context),
               _buildMoreButton(context, colorScheme),
-              if (isCurrentPlaying) _buildPlayingBadge(context, colorScheme),
+              if (widget.isCurrentPlaying) _buildPlayingBadge(context, colorScheme),
             ],
           ),
         ),
@@ -69,7 +86,7 @@ class VideoCard extends StatelessWidget {
   }
 
   Widget _buildThumbnail(BuildContext context, ColorScheme colorScheme) {
-    final cover = (video.currentCover != null && video.currentCover!.isNotEmpty) ? video.currentCover : video.cover;
+    final cover = (widget.video.currentCover != null && widget.video.currentCover!.isNotEmpty) ? widget.video.currentCover : widget.video.cover;
 
     if (cover != null && cover.isNotEmpty) {
       return FutureBuilder<String>(
@@ -90,19 +107,18 @@ class VideoCard extends StatelessWidget {
     return Container(
       color: AppColors.cardThumbnailBg,
       child: Center(
-        child: Icon(Icons.movie_outlined, size: 22.w, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+        child: Icon(Icons.movie_outlined, size: 22.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
       ),
     );
   }
 
   Widget _buildBottomOverlay(BuildContext context, ColorScheme colorScheme) {
-    final isTablet = MediaQuery.of(context).size.shortestSide >= 600;
     return Positioned(
       bottom: 0,
       left: 0,
       right: 0,
       child: Container(
-        padding: EdgeInsets.fromLTRB(10, 24, 10, isTablet ? 12 : 10),
+        padding: EdgeInsets.fromLTRB(AppSpacing.space3, 20.h, AppSpacing.space3, AppSpacing.space3),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -115,20 +131,20 @@ class VideoCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              video.name,
-              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.2),
+              widget.video.name,
+              style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.2),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: isTablet ? 4 : 2),
+            SizedBox(height: 2.h),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.schedule, size: 10.sp, color: Colors.white70),
                 SizedBox(width: 4.w),
                 Text(
-                  '${video.currentPositionString} / ${video.durationString}',
-                  style: TextStyle(fontSize: 10.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                  '${widget.video.currentPositionString} / ${widget.video.durationString}',
+                  style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white70, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -140,29 +156,29 @@ class VideoCard extends StatelessWidget {
 
   Widget _buildSubtitleBadge(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
-      top: 6.h,
-      left: 6.w,
+      top: AppSpacing.space2.h,
+      left: AppSpacing.space2.w,
       child: Container(
         padding: EdgeInsets.all(4.w),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4.r),
-          color: video.hasSubtitles ? colorScheme.primary : Colors.black.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(AppRadius.xs.r),
+          color: widget.video.hasSubtitles ? colorScheme.primary : Colors.black.withValues(alpha: 0.5),
         ),
-        child: Icon(Icons.subtitles, size: 12.sp, color: video.hasSubtitles ? Colors.white : Colors.white38),
+        child: Icon(Icons.subtitles, size: 12.sp, color: widget.video.hasSubtitles ? Colors.white : Colors.white38),
       ),
     );
   }
 
   Widget _buildScoreBadge(BuildContext context) {
-    final score = video.lastFollowScore!;
+    final score = widget.video.lastFollowScore!;
     final color = _scoreColor(score);
     return Positioned(
-      top: 6.h,
+      top: AppSpacing.space2.h,
       left: 28.w,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4.r),
+          borderRadius: BorderRadius.circular(AppRadius.xs.r),
           color: color.withValues(alpha: 0.85),
         ),
         child: Row(
@@ -172,7 +188,7 @@ class VideoCard extends StatelessWidget {
             SizedBox(width: 2.w),
             Text(
               '${score.round()}',
-              style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, fontWeight: FontWeight.bold, color: Colors.white),
             ),
           ],
         ),
@@ -189,47 +205,47 @@ class VideoCard extends StatelessWidget {
 
   Widget _buildMoreButton(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
-      bottom: 6,
-      right: 6,
+      bottom: AppSpacing.space2,
+      right: AppSpacing.space2,
       child: PopupMenuButton<String>(
         onSelected: (value) {
           switch (value) {
             case 'rename':
-              onRename?.call();
+              widget.onRename?.call();
               break;
             case 'importSubtitle':
-              onImportSubtitle?.call();
+              widget.onImportSubtitle?.call();
               break;
             case 'aiConversation':
-              onAiConversation?.call();
+              widget.onAiConversation?.call();
               break;
             case 'unitTest':
-              onUnitTest?.call();
+              widget.onUnitTest?.call();
               break;
             case 'delete':
-              onDelete?.call();
+              widget.onDelete?.call();
               break;
           }
         },
         offset: const Offset(-120, 0),
         color: colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
         elevation: 6,
         child: Container(
           width: 26.r,
           height: 26.r,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(6.r), color: Colors.black.withValues(alpha: 0.65)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm.r), color: Colors.black.withValues(alpha: 0.65)),
           child: Icon(Icons.more_vert, size: 16.sp, color: Colors.white),
         ),
         itemBuilder: (context) {
           final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
-          if (!video.hasSubtitles && onImportSubtitle != null) {
+          if (!widget.video.hasSubtitles && widget.onImportSubtitle != null) {
             items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
           }
-          if (video.hasSubtitles && onAiConversation != null) {
+          if (widget.video.hasSubtitles && widget.onAiConversation != null) {
             items.add(PopupMenuItem(value: 'aiConversation', child: _menuRow(context, Icons.forum_outlined, 'AI 对话', colorScheme)));
           }
-          if (onUnitTest != null) {
+          if (widget.onUnitTest != null) {
             items.add(PopupMenuItem(value: 'unitTest', child: _menuRow(context, Icons.quiz_outlined, '单元测试', colorScheme)));
           }
           items.addAll([
@@ -246,10 +262,10 @@ class VideoCard extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 18.sp, color: cs.onSurfaceVariant),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.space2),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: 14.sp),
+          style: TextStyle(color: cs.onSurface, fontSize: AppTypography.fontSizeBase.sp),
         ),
       ],
     );
@@ -257,11 +273,11 @@ class VideoCard extends StatelessWidget {
 
   Widget _buildPlayingBadge(BuildContext context, ColorScheme colorScheme) {
     return Positioned(
-      bottom: 6,
-      left: 6,
+      bottom: AppSpacing.space2,
+      left: AppSpacing.space2,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: colorScheme.primary),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm), color: colorScheme.primary),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -269,7 +285,7 @@ class VideoCard extends StatelessWidget {
             const SizedBox(width: 3),
             Text(
               '播放中',
-              style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.w600, color: Colors.white),
+              style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),

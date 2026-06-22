@@ -158,7 +158,7 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                           children: [
                             Text('不认识', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
                             Text('留在生词本',
-                                style: TextStyle(fontSize: 11.sp, color: cs.error.withValues(alpha: 0.7))),
+                                style: TextStyle(fontSize: 13.sp, color: cs.error.withValues(alpha: 0.7))),
                           ],
                         ),
                       ),
@@ -182,7 +182,7 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                           children: [
                             Text('认识', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
                             Text('移入已掌握',
-                                style: TextStyle(fontSize: 11.sp, color: cs.onPrimary.withValues(alpha: 0.7))),
+                                style: TextStyle(fontSize: 13.sp, color: cs.onPrimary.withValues(alpha: 0.7))),
                           ],
                         ),
                       ),

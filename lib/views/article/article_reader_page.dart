@@ -1325,7 +1325,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             SizedBox(height: 2.h),
             Text(
               label,
-              style: TextStyle(fontSize: 10.sp, color: cs.onSurfaceVariant),
+              style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant),
             ),
           ],
         ),
@@ -1393,7 +1393,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             child: Text(
                               '${paraIdx + 1}',
                               style: TextStyle(
-                                fontSize: 10.sp,
+                                fontSize: 12.sp,
                                 color: isActive ? cs.onPrimary : isRead ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.5),
                                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                               ),
@@ -1422,7 +1422,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     ),
                     Text(
                       '${currentPage + 1}/$totalPages',
-                      style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant),
+                      style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant),
                     ),
                     IconButton(
                       icon: Icon(Icons.chevron_right, size: 18.sp, color: cs.onSurfaceVariant),
@@ -1471,11 +1471,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                         children: [
                           Text(
                             '第 ${_activeParagraphPosition + 1} 段 / 共 $totalParas 段',
-                            style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                            style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
                           ),
                           Text(
                             '$percent%',
-                            style: TextStyle(fontSize: 11.sp, color: cs.primary, fontWeight: FontWeight.w500),
+                            style: TextStyle(fontSize: 13.sp, color: cs.primary, fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -1496,7 +1496,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     padding: EdgeInsets.only(right: 4.w),
                     child: Text(
                       '(${_markRecords.length})',
-                      style: TextStyle(fontSize: 10.sp, color: cs.primary),
+                      style: TextStyle(fontSize: 12.sp, color: cs.primary),
                     ),
                   ),
                 IconButton(
@@ -1617,7 +1617,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                         ),
                                         child: Text(
                                           '当前',
-                                          style: TextStyle(fontSize: 10.sp, color: cs.onPrimary),
+                                          style: TextStyle(fontSize: 12.sp, color: cs.onPrimary),
                                         ),
                                       ),
                                   ],
@@ -1685,7 +1685,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         children: [
           Icon(icon, size: 12.sp, color: cs.onSurfaceVariant),
           SizedBox(width: 4.w),
-          Text(label, style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant)),
+          Text(label, style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant)),
         ],
       ),
     );

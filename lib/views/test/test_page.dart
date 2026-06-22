@@ -425,7 +425,7 @@ class _QuestionTypeCard extends StatelessWidget {
                 SizedBox(height: 2.h),
                 Text(
                   description,
-                  style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1199,7 +1199,7 @@ class _TestRunPageState extends State<_TestRunPage> {
           ),
         Padding(
           padding: EdgeInsets.only(bottom: 8.h),
-          child: Text('（可多选）', style: TextStyle(fontSize: 11.sp, color: colorScheme.primary)),
+          child: Text('（可多选）', style: TextStyle(fontSize: 13.sp, color: colorScheme.primary)),
         ),
         Expanded(
           child: ListView.separated(
@@ -1278,7 +1278,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                   color: colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(999.r),
                 ),
-                child: Text(typeLabel, style: TextStyle(fontSize: 11.sp, color: colorScheme.primary)),
+                child: Text(typeLabel, style: TextStyle(fontSize: 13.sp, color: colorScheme.primary)),
               ),
               SizedBox(height: 12.h),
               Text(

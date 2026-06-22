@@ -169,7 +169,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
     return Column(
       children: [
         Text('${score.round()}', style: TextStyle(color: _scoreColor(score), fontSize: 18.sp, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 10.sp)),
+        Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
       ],
     );
   }
@@ -195,7 +195,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
         Icon(icon, color: AppColors.primary, size: 20),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 10.sp)),
+        Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
       ],
     );
   }
@@ -230,7 +230,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-          child: Text('${score.round()}', style: TextStyle(color: color, fontSize: 11.sp, fontWeight: FontWeight.bold)),
+          child: Text('${score.round()}', style: TextStyle(color: color, fontSize: 13.sp, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -307,12 +307,12 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                     Icon(Icons.refresh, size: 14, color: AppColors.primary),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text(text, style: TextStyle(color: Colors.white70, fontSize: 11.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(text, style: TextStyle(color: Colors.white70, fontSize: 13.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(color: ScoreService.scoreColor(score).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-                      child: Text('${score.round()}', style: TextStyle(color: ScoreService.scoreColor(score), fontSize: 10.sp, fontWeight: FontWeight.bold)),
+                      child: Text('${score.round()}', style: TextStyle(color: ScoreService.scoreColor(score), fontSize: 12.sp, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -339,7 +339,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                 videoCode: widget.videoCode,
                 videoTitle: widget.videoTitle,
               ),
-              child: Text('查看详情', style: TextStyle(color: AppColors.primary, fontSize: 11.sp)),
+              child: Text('查看详情', style: TextStyle(color: AppColors.primary, fontSize: 13.sp)),
             ),
           ],
         ),
@@ -360,18 +360,18 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                         color: _scoreColor(e.resourceScore!).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text('${e.resourceScore!.round()}', style: TextStyle(color: _scoreColor(e.resourceScore!), fontSize: 11.sp, fontWeight: FontWeight.bold)),
+                      child: Text('${e.resourceScore!.round()}', style: TextStyle(color: _scoreColor(e.resourceScore!), fontSize: 13.sp, fontWeight: FontWeight.bold)),
                     ),
                   const SizedBox(width: 8),
                   if (e.overallLevel != null)
-                    Text(e.overallLevel!, style: TextStyle(color: Colors.white54, fontSize: 11.sp)),
+                    Text(e.overallLevel!, style: TextStyle(color: Colors.white54, fontSize: 13.sp)),
                   const Spacer(),
-                  Text(_fmtDate(e.evaluatedAt), style: TextStyle(color: Colors.white38, fontSize: 9.sp)),
+                  Text(_fmtDate(e.evaluatedAt), style: TextStyle(color: Colors.white38, fontSize: 12.sp)),
                 ],
               ),
               if (e.summary != null && e.summary!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(e.summary!, style: TextStyle(color: Colors.white70, fontSize: 11.sp, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(e.summary!, style: TextStyle(color: Colors.white70, fontSize: 13.sp, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ],
           ),
@@ -400,13 +400,13 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                     color: _scoreColor(r.overallScore!).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text('${r.overallScore!.round()}', style: TextStyle(color: _scoreColor(r.overallScore!), fontSize: 11.sp, fontWeight: FontWeight.bold)),
+                  child: Text('${r.overallScore!.round()}', style: TextStyle(color: _scoreColor(r.overallScore!), fontSize: 13.sp, fontWeight: FontWeight.bold)),
                 )
               else
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(6)),
-                  child: Text('--', style: TextStyle(color: Colors.white38, fontSize: 11.sp)),
+                  child: Text('--', style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
                 ),
               const SizedBox(width: 10),
               Expanded(
@@ -419,7 +419,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
               ),
               Text(
                 r.scope == 'sentence' ? '单句' : '全文',
-                style: TextStyle(color: Colors.white38, fontSize: 9.sp),
+                style: TextStyle(color: Colors.white38, fontSize: 12.sp),
               ),
             ],
           ),

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// 配色系统 — 日落渐变方案
+/// 配色系统 — 蓝橙渐变方案
 ///
 /// 设计原则：
 /// - 纯黑背景与浮层之间有清晰的层级分离
-/// - 主色调为珊瑚红(#FF6B6B)，辅色为暖橙(#FF8E53)，形成日落渐变
+/// - 主色调为电光蓝(#4284FC)，辅色为暖橙(#FF8E53)，形成视觉渐变
 /// - 文字/前景色保持高对比度
 /// - 表面色有足够区分度，不糊在一起
 /// - 非活跃元素统一用较低透明度，避免灰色喧宾夺主
@@ -23,21 +23,31 @@ class AppColors {
   static const Color onSurfaceVariant = Color(0xFF999999);
   static const Color onSurfaceDisabled = Color(0xFF555555);
 
-  // ─── 强调色（日落渐变：珊瑚红 → 暖橙） ────
-  /// 主色：珊瑚红
+  // ─── 强调色（电光蓝 → 暖橙渐变） ────
+  /// 主色：电光蓝
   static const Color primary = Color(0xFF4284FC);
 
   /// 辅色/渐变终点：暖橙
   static const Color secondary = Color(0xFFFF8E53);
-  static const Color primaryContainer = Color(0xFF552020);
+  static const Color primaryContainer = Color(0xFF203555);
   static const Color onPrimary = Color(0xFFFFFFFF);
 
-  // ─── 日落渐变（用于按钮、进度条等强调元素）────
-  static const LinearGradient sunsetGradient = LinearGradient(colors: [primary, secondary], begin: Alignment.centerLeft, end: Alignment.centerRight);
+  // ─── 蓝橙渐变（用于按钮、进度条等强调元素）────
+  static const LinearGradient primaryGradient = LinearGradient(colors: [primary, secondary], begin: Alignment.centerLeft, end: Alignment.centerRight);
 
-  /// 用日落渐变装饰的 BoxDecoration（圆角按钮/胶囊）
-  static BoxDecoration sunsetBoxDecoration({double radius = 20}) =>
-      BoxDecoration(gradient: sunsetGradient, borderRadius: BorderRadius.circular(radius));
+  /// 反向蓝橙渐变
+  static const LinearGradient primaryGradientReverse = LinearGradient(colors: [secondary, primary], begin: Alignment.centerLeft, end: Alignment.centerRight);
+
+  /// 蓝色径向渐变（用于光晕效果）
+  static const RadialGradient primaryRadialGradient = RadialGradient(colors: [Color(0x4C4284FC), Color(0x004284FC)], stops: [0.0, 1.0]);
+
+  /// 用蓝橙渐变装饰的 BoxDecoration（圆角按钮/胶囊）
+  static BoxDecoration gradientBoxDecoration({double radius = 20}) =>
+      BoxDecoration(gradient: primaryGradient, borderRadius: BorderRadius.circular(radius));
+
+  /// 日落渐变（向后兼容，等同于 primaryGradient）
+  @Deprecated('Use primaryGradient instead')
+  static const LinearGradient sunsetGradient = primaryGradient;
 
   // ─── 语义色 ────────────────────────────────────
   static const Color error = Color(0xFFFF453A);
@@ -52,14 +62,14 @@ class AppColors {
   // ─── 播放器专用 ─────────────────────────────────
   static const Color playerOverlayGradient = Color(0xCC000000);
   static const Color playerButtonDim = Color(0x1AFFFFFF);
-  static const Color playerButtonActive = Color(0xFFFF6B6B);
+  static const Color playerButtonActive = Color(0xFF4284FC);
   static const Color playerButtonInactive = Color(0x33FFFFFF);
   static const Color playerButtonDisabledText = Color(0xFF555555);
   static const Color playerProgressBuffered = Color(0x33FFFFFF);
   static const Color playerProgressInactive = Color(0x1AFFFFFF);
   static const Color playerProgressActive = Color(0xFFFFFFFF);
   static const Color playerPopupBackground = Color(0xF0101010);
-  static const Color playerTimerChipColor = Color(0xFFFF6B6B);
+  static const Color playerTimerChipColor = Color(0xFF4284FC);
   static const Color playerSubtitleBg = Color(0x99000000);
   static const Color playerSubtitleTranslate = Color(0xFFFFE082);
 

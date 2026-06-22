@@ -162,7 +162,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final state = ref.watch(playerEngineProvider);
     final notifier = ref.read(playerEngineProvider.notifier);
     final subtitlesList = notifier.subtitles;
-    final isTablet = DeviceUtils.isTablet(context); // MediaQuery.of(context).size.shortestSide >= 600;
+    final isTablet = false; // iPhone only
     final hasSubtitles = subtitlesList.isNotEmpty;
     final idx = state.currentSubtitleIndex;
     final currentSub = (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length) ? subtitlesList[idx] : null;
@@ -279,18 +279,25 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               child: Container(color: _drawerOverlay()),
             ),
 
-          // Drawer panel
+          // Drawer panel with slide animation
           if (drawerOpen && !_showWordPopup)
-            Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: isTablet ? 500 : 340,
-                color: _drawerBg(),
-                child: SafeArea(
-                  left: false,
-                  child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
+            AnimatedSlide(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              offset: Offset(1.0, 0.0),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: drawerOpen ? 1.0 : 0.0,
+                child: SizedBox(
+                  width: 340,
+                  height: double.infinity,
+                  child: Container(
+                    color: _drawerBg(),
+                    child: SafeArea(
+                      left: false,
+                      child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -312,7 +319,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         width: 44.r,
         height: 44.r,
         child: Center(
-          child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 12.sp),
+                  child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 14.sp),
         ),
       ),
     );
@@ -336,15 +343,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               // 时间显示（始终可见，纯白）
               Text(
                 _fmtDuration(s.position),
-                style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
               ),
               Text(
                 ' / ',
-                style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
               ),
               Text(
                 _fmtDuration(s.duration),
-                style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
               ),
               const SizedBox(width: 6),
               // 上一句（仅字幕可用时显示）
@@ -461,7 +468,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           label,
           style: TextStyle(
             color: onTap == null ? Colors.white24 : (active ? AppColors.primary : Colors.white),
-            fontSize: 6.sp,
+            fontSize: AppTypography.fontSizeSmall,
             fontWeight: active ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -676,13 +683,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(color: active ? AppColors.primary : AppColors.surfaceHighest, borderRadius: BorderRadius.circular(8)),
-              child: Text(
-                '${sp}X',
-                style: TextStyle(
-                  color: active ? Colors.white : Colors.white,
-                  fontSize: 6.sp,
-                  fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                ),
+                child: Text(
+                  '${sp}X',
+                  style: TextStyle(
+                    color: active ? Colors.white : Colors.white,
+                    fontSize: AppTypography.fontSizeXSmall,
+                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                  ),
               ),
             ),
           );
@@ -705,12 +712,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             children: [
               Text(
                 '视频列表',
-                style: TextStyle(color: _drawerText(), fontSize: 11.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _drawerText(), fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
                 '共 ${list.length} 集',
-                style: TextStyle(color: _drawerTextVariant(), fontSize: 9.sp),
+                style: TextStyle(color: _drawerTextVariant(), fontSize: AppTypography.fontSizeXSmall),
               ),
             ],
           ),
@@ -763,7 +770,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             children: [
               Text(
                 '播放设置',
-                style: TextStyle(color: _drawerText(), fontSize: 10.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(color: _drawerText(), fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -840,7 +847,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     padding: EdgeInsets.only(bottom: 10),
     child: Text(
       text,
-      style: TextStyle(color: Colors.white, fontSize: 7.sp, fontWeight: FontWeight.bold),
+      style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeSmall, fontWeight: FontWeight.bold),
     ),
   );
 
@@ -865,7 +872,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 child: Text(
                   opts[i],
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: a ? Colors.white : Colors.white, fontSize: 6.sp, fontWeight: a ? FontWeight.bold : FontWeight.normal),
+                  style: TextStyle(color: a ? Colors.white : Colors.white, fontSize: AppTypography.fontSizeXSmall, fontWeight: a ? FontWeight.bold : FontWeight.normal),
                 ),
               ),
             ),
@@ -889,7 +896,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 children: [
                   Text(
                     '小',
-                    style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
                   ),
                   Text(
                     '${state.subtitleFontSize.toInt()}',
@@ -897,7 +904,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   ),
                   Text(
                     '大',
-                    style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
                   ),
                 ],
               ),
@@ -938,12 +945,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                  style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
                 ),
                 if (sub != null)
                   Text(
                     sub,
-                    style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
                   ),
               ],
             ),
@@ -1118,72 +1125,85 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
   Widget build(BuildContext context) {
     final v = widget.video;
     final cur = widget.isCurrent;
-    final t = MediaQuery.of(context).size.shortestSide >= 600;
     final cover = _resolvedCoverPath;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: SizedBox(
-        height: t ? 88 : 76,
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 300),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset((1 - value) * 12, 0),
+            child: child,
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
         child: GestureDetector(
           onTap: widget.onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               color: cur ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceElevated,
               border: cur ? Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5) : null,
+              boxShadow: [BoxShadow(color: Color(0x15000000), blurRadius: 6, offset: const Offset(0, 2))],
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                  borderRadius: BorderRadius.horizontal(left: Radius.circular(AppRadius.md)),
                   child: Container(
-                    width: t ? 140 : 110,
+                    width: 110,
+                    height: 76,
                     color: AppColors.cardThumbnailBg,
                     child: (cover != null && File(cover).existsSync())
-                        ? Image.file(File(cover), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(t))
-                        : _placeholder(t),
+                        ? Image.file(File(cover), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder())
+                        : _placeholder(),
                   ),
                 ),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(10),
+                    padding: EdgeInsets.all(AppSpacing.space3),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           v.name,
-                          style: TextStyle(color: Colors.white, fontSize: 8.sp, fontWeight: cur ? FontWeight.bold : FontWeight.w500),
+                          style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeBase.sp, fontWeight: cur ? FontWeight.bold : FontWeight.w500, letterSpacing: 0.1),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.schedule, size: 12, color: Colors.white),
+                            Icon(Icons.schedule, size: 12.sp, color: Colors.white),
                             SizedBox(width: 3),
                             Text(
                               v.durationString,
-                              style: TextStyle(color: Colors.white, fontSize: 6.sp),
+                              style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall.sp),
                             ),
                             if (v.hasSubtitles) ...[
                               SizedBox(width: 8),
-                              Icon(Icons.subtitles, size: 12, color: AppColors.primary.withValues(alpha: 0.7)),
+                              Icon(Icons.subtitles, size: 12.sp, color: AppColors.primary.withValues(alpha: 0.7)),
                               SizedBox(width: 3),
                               Text(
                                 '字幕',
-                                style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: t ? 12 : 10),
+                                style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: AppTypography.fontSizeXSmall.sp),
                               ),
                             ],
                             if (cur) ...[
                               SizedBox(width: 8),
                               Container(
                                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
+                                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(AppRadius.xs)),
                                 child: Text(
                                   '播放中',
-                                  style: TextStyle(color: Colors.white, fontSize: 6.sp, fontWeight: FontWeight.w600),
+                                  style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall.sp, fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],
@@ -1202,7 +1222,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
     );
   }
 
-  Widget _placeholder(bool t) => Center(
-    child: Icon(Icons.movie_outlined, size: 22.w * 1.2, color: Colors.white24),
+  Widget _placeholder() => Center(
+    child: Icon(Icons.movie_outlined, size: 22.sp, color: Colors.white24),
   );
 }

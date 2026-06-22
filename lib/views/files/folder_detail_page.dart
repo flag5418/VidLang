@@ -316,8 +316,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         child: ListView(children: [SizedBox(height: MediaQuery.of(context).size.height * 0.6, child: _buildEmptyState(colorScheme, FolderContentType.article))]),
       );
     }
-    final crossAxisCount = DeviceUtils.getGridColumns(context);
-    final gridSpacing = DeviceUtils.getGridSpacing(context);
+    final crossAxisCount = 2;
+    final gridSpacing = 12.0;
 
     // 选"主文章"：最后阅读的（按 lastStudyDate），没有则取第一篇
     final readArticles = _articles.where((a) => a.lastStudyDate != null).toList()
@@ -372,8 +372,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 
   Widget _buildVideoList(FileState state) {
-    final crossAxisCount = DeviceUtils.getGridColumns(context);
-    final gridSpacing = DeviceUtils.getGridSpacing(context);
+    final crossAxisCount = 2;
+    final gridSpacing = 12.0;
     final mainVideo = state.currentVideo ?? (state.videos.isNotEmpty ? state.videos.first : null);
     final gridVideos = mainVideo == null ? state.videos : state.videos.where((v) => v.code != mainVideo.code).toList();
 

@@ -393,7 +393,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 10.sp)),
+        Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
       ],
     );
   }
@@ -424,14 +424,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           Expanded(
             child: Text(
               h.summary ?? '无点评内容',
-              style: TextStyle(color: Colors.white70, fontSize: 11.sp),
+              style: TextStyle(color: Colors.white70, fontSize: 13.sp),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             _fmtDate(h.evaluatedAt),
-            style: TextStyle(color: Colors.white38, fontSize: 9.sp),
+            style: TextStyle(color: Colors.white38, fontSize: 12.sp),
           ),
         ],
       ),

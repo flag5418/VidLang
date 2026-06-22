@@ -109,7 +109,7 @@ class SnippetListCard extends StatelessWidget {
                           Text(
                             '复习${snippet.reviewCount}',
                             style: TextStyle(
-                              fontSize: 11.sp,
+                              fontSize: 13.sp,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -134,7 +134,7 @@ class SnippetListCard extends StatelessWidget {
                               child: Text(
                                 tag.name,
                                 style: TextStyle(
-                                  fontSize: 11.sp,
+                                  fontSize: 13.sp,
                                   color: colorScheme.primary,
                                 ),
                               ),

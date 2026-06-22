@@ -18,38 +18,87 @@ import 'package:vidlang/views/word_book/collection_page.dart';
 /// - 资源：资源管理（视频/文章/音频分类切换）
 /// - 收藏：单词收藏和知识库
 /// - 我的：设置、用户管理、免费/付费模式切换
-class MainPage extends ConsumerWidget {
+class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends ConsumerState<MainPage> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     final pages = [const HomePage(), const FileListPage(), const CollectionPage(), const ProfilePage()];
 
     return Scaffold(
-      body: IndexedStack(index: currentIndex, children: pages),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          ref.read(navigationIndexProvider.notifier).setIndex(index);
+        },
+        physics: const ClampingScrollPhysics(),
+        children: List.generate(pages.length, (index) {
+          return AnimatedBuilder(
+            animation: _pageController,
+            builder: (context, child) {
+              final position = _pageController.position;
+              final pageOffset = position.hasPixels ? (position.pixels - index * position.viewportDimension) / position.viewportDimension : 0.0;
+              final isVisible = index == currentIndex;
+              final scale = isVisible ? 1.0 : 1.0 - pageOffset.abs().clamp(0.0, 0.05);
+              final opacity = isVisible ? 1.0 : 1.0 - pageOffset.abs().clamp(0.0, 0.15);
+
+              return Transform.scale(
+                scale: scale,
+                child: Opacity(
+                  opacity: opacity.clamp(0.0, 1.0),
+                  child: pages[index],
+                ),
+              );
+            },
+          );
+        }),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colorScheme.outline.withOpacity(0.2))),
+          border: Border(top: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2))),
         ),
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           onTap: (index) {
+            _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+            );
             ref.read(navigationIndexProvider.notifier).setIndex(index);
           },
           elevation: 0,
           backgroundColor: colorScheme.surface,
           selectedItemColor: AppColors.iconActive,
           unselectedItemColor: AppColors.iconDefault,
-          selectedLabelStyle: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: TextStyle(fontSize: 10.sp),
+          selectedLabelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: TextStyle(fontSize: 12.sp),
           type: BottomNavigationBarType.fixed,
           items: navigationItems.map((item) {
             final isActive = currentIndex == navigationItems.indexOf(item);
 
-            // 测试 Hugeicons：首页图标使用 Hugeicons 替代 Flutter 自带图标
             if (item.id == NavigationPage.home) {
               return BottomNavigationBarItem(
                 icon: HugeIcon(

@@ -199,7 +199,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(6.r),
       ),
-      child: Text(text, style: TextStyle(fontSize: 11.sp, color: colorScheme.onSurfaceVariant)),
+      child: Text(text, style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
     );
   }
 }
