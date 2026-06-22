@@ -22,7 +22,7 @@ class AppColors {
   static const Color lightBackground = Color(0xFFF5F5F5);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightSurfaceElevated = Color(0xFFF0F0F0);
-  static const Color lightSurfaceHighest = Color(0xFFE8E8E8);
+  static const Color lightSurfaceHighest = Color(0xFFF5F6FC);
 
   /// 根据主题获取背景层级色
   static Color getBgLayer({required Brightness brightness}) =>
