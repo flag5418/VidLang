@@ -143,14 +143,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-        backgroundColor: AppColors.getSurface(brightness: brightness),
+        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
       appBar: AppBar(
         title: Text(
           'VidLang',
           style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
         elevation: 0,
-      backgroundColor: AppColors.getScaffoldBg(brightness: brightness),
+      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
         scrolledUnderElevation: 0.5,
       ),
       body: RefreshIndicator(
@@ -190,7 +190,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       padding: EdgeInsets.all(AppSpacing.space5),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        color: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
+        color: AppColors.getSurface(brightness: Theme.of(context).brightness),
       ),
       child: Row(
         children: stats.map((item) {
