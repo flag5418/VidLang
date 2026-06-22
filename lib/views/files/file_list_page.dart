@@ -1,7 +1,7 @@
 /// 资源管理页面
 ///
-/// 展示3类资源（视频/文章/音频）的文件夹列表
-/// 顶部：类型切换SegmentedControl + 搜索栏
+/// 展示3类资源的文件夹列表
+/// 顶部：AppBar 标题 + 类型切换Tab + 搜索栏
 /// 主体：网格文件夹卡片
 library;
 
@@ -14,9 +14,9 @@ import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_shadows.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
@@ -24,10 +24,6 @@ import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 
-/// 资源管理页面
-///
-/// 通过类型Tab筛选显示不同类别的文件夹，
-/// 支持创建、搜索、WiFi传输等功能。
 class FileListPage extends ConsumerStatefulWidget {
   const FileListPage({super.key});
 
@@ -35,18 +31,13 @@ class FileListPage extends ConsumerStatefulWidget {
   ConsumerState<FileListPage> createState() => _FileListPageState();
 }
 
-class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerProviderStateMixin {
+class _FileListPageState extends ConsumerState<FileListPage> {
   final TextEditingController _folderNameController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  final bool _isImporting = false;
-  final int _importCurrent = 0;
-  final int _importTotal = 0;
 
-  /// 资源类型标签
   static const _resourceTypes = ['video', 'music', 'article'];
   static const _resourceLabels = ['视频', '音频', '文章'];
-  // static const _resourceIcons = [Icons.videocam, Icons.article, Icons.headphones];
 
   @override
   void dispose() {
@@ -77,34 +68,41 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
+      appBar: AppBar(
+        title: Text(
+          '资源',
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+        ),
+        elevation: 0,
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 0.5,
+        actions: [
+          IconButton(
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage()));
+              if (!mounted) return;
+              await ref.read(fileProvider.notifier).loadFolders();
+            },
+            icon: Icon(Icons.wifi_tethering_outlined, size: 22.sp),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.pagePadding.w),
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 顶部标题 + 按钮
-              _buildHeader(colorScheme),
-              SizedBox(height: AppSpacing.sm.h),
-              // 类型切换 + 搜索
-              _buildTypeBar(colorScheme),
-              SizedBox(height: AppSpacing.md.h),
-
+              // 类型切换
+              _buildTypeTabs(colorScheme),
+              SizedBox(height: AppSpacing.sm),
+              // 搜索栏
+              _buildSearchBar(colorScheme),
+              SizedBox(height: AppSpacing.md),
               // 文件夹列表
               Expanded(
-                child: state.isLoading || _isImporting
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const CircularProgressIndicator(),
-                            if (_isImporting && _importTotal > 0) ...[
-                              SizedBox(height: AppSpacing.md),
-                              Text('正在导入 $_importCurrent / $_importTotal', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                            ],
-                          ],
-                        ),
-                      )
+                child: state.isLoading
+                    ? const Center(child: CircularProgressIndicator())
                     : _buildContent(colorScheme, state),
               ),
             ],
@@ -114,157 +112,76 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme) {
-    return Row(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '资源',
-              style: TextStyle(fontSize: AppTypography.fontSizeLarge.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
-            ),
-            SizedBox(width: AppSpacing.sm.w),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10.r)),
-              child: Text(
-                '${_filteredFolders(ref.watch(fileProvider).folders).length}',
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
+  Widget _buildTypeTabs(ColorScheme colorScheme) {
+    final currentTab = _currentTab;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      padding: EdgeInsets.all(3.w),
+      child: Row(
+        children: List.generate(_resourceTypes.length, (index) {
+          final isSelected = index == currentTab;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => ref.read(resourceTabProvider.notifier).state = index,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? colorScheme.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  _resourceLabels[index],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
-
-        Spacer(),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage()));
-                if (!mounted) return;
-                await ref.read(fileProvider.notifier).loadFolders();
-              },
-              child: Container(
-                width: 40.r,
-                height: 40.r,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(40.r), color: colorScheme.surfaceContainerHighest),
-                child: Icon(Icons.wifi_tethering, size: 18.sp, color: colorScheme.onSurfaceVariant),
-              ),
-            ),
-            SizedBox(width: AppSpacing.space2.w),
-            GestureDetector(
-              onTap: _showAddMenu,
-              child: Container(
-                width: 40.r,
-                height: 40.r,
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(40.r), color: colorScheme.primary),
-                child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
-              ),
-            ),
-          ],
-        ),
-      ],
+          );
+        }),
+      ),
     );
   }
 
-  Widget _buildTypeBar(ColorScheme colorScheme) {
-    final currentTab = _currentTab;
-
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.lg.r),
-            color: colorScheme.surfaceContainerHighest,
-            boxShadow: AppShadows.xs,
-          ),
-          padding: EdgeInsets.all(3.w),
-          child: Row(
-            children: List.generate(_resourceTypes.length, (index) {
-              final isSelected = index == currentTab;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    ref.read(resourceTabProvider.notifier).state = index;
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected ? colorScheme.surface : Colors.transparent,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Center(
-                      child: Text(
-                        _resourceLabels[index],
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-        SizedBox(height: AppSpacing.md.h),
-        // 搜索栏
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            color: colorScheme.surfaceContainerHighest,
-            boxShadow: AppShadows.xs,
-          ),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (v) => setState(() => _searchQuery = v),
-            style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall.sp),
-            decoration: InputDecoration(
-              hintText: '搜索${_resourceLabels[_currentTab]}...',
-              hintStyle: TextStyle(color: colorScheme.outline, fontSize: AppTypography.fontSizeSmall.sp),
-              prefixIcon: Icon(AppIcons.search, size: 18.sp, color: colorScheme.onSurfaceVariant),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                      child: Icon(Icons.clear, size: 18.sp, color: colorScheme.onSurfaceVariant),
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.transparent,
-              contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: 8),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-            ),
-          ),
-        ),
-      ],
+  Widget _buildSearchBar(ColorScheme colorScheme) {
+    return TextField(
+      controller: _searchController,
+      onChanged: (v) => setState(() => _searchQuery = v),
+      style: TextStyle(color: colorScheme.onSurface, fontSize: AppTypography.fontSizeSmall.sp),
+      decoration: InputDecoration(
+        hintText: '搜索${_resourceLabels[_currentTab]}...',
+        hintStyle: TextStyle(color: AppColors.onSurfaceDisabled, fontSize: AppTypography.fontSizeSmall.sp),
+        prefixIcon: Icon(AppIcons.search, size: 18.sp, color: colorScheme.onSurfaceVariant),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? GestureDetector(
+                onTap: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+                child: Icon(Icons.clear, size: 18.sp, color: colorScheme.onSurfaceVariant),
+              )
+            : null,
+        filled: true,
+        fillColor: AppColors.surfaceElevated,
+        contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.3))),
+      ),
     );
   }
 
   List<VideoFolder> _filteredFolders(List<VideoFolder> folders) {
     final currentType = _resourceTypes[_currentTab];
-    // 先按类型过滤
     var filtered = folders.where((f) => f.folderType.name == currentType).toList();
-    // 再按搜索词过滤
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.trim().toLowerCase();
       filtered = filtered.where((f) => f.name.toLowerCase().contains(q)).toList();
@@ -274,26 +191,25 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
 
   Widget _buildContent(ColorScheme colorScheme, FileState state) {
     final folders = _filteredFolders(state.folders);
-
-    return folders.isEmpty ? _buildEmptyState(colorScheme, _searchQuery.isNotEmpty) : _buildFolderGrid(folders);
+    return folders.isEmpty ? _buildEmptyState(colorScheme) : _buildFolderGrid(folders);
   }
 
-  Widget _buildEmptyState(ColorScheme colorScheme, bool isSearch) {
+  Widget _buildEmptyState(ColorScheme colorScheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(isSearch ? Icons.search_off : Icons.folder_outlined, size: 22.w * 2, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+          Icon(Icons.folder_outlined, size: 48.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
           SizedBox(height: AppSpacing.md),
           Text(
-            isSearch ? '没有匹配的文件夹' : '暂无${_resourceLabels[_currentTab]}',
-            style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
+            _searchQuery.isNotEmpty ? '没有匹配的文件夹' : '暂无${_resourceLabels[_currentTab]}',
+            style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, color: colorScheme.onSurfaceVariant),
           ),
-          if (!isSearch) ...[
+          if (_searchQuery.isEmpty) ...[
             SizedBox(height: AppSpacing.sm),
             Text(
-              '点击右上角 + 创建第一个文件夹',
-              style: TextStyle(fontSize: 13.sp, color: colorScheme.outline),
+              '点击右上角 + 创建',
+              style: TextStyle(fontSize: AppTypography.fontSizeSmall.sp, color: AppColors.onSurfaceDisabled),
             ),
           ],
         ],
@@ -322,49 +238,40 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
 
   Widget _buildAddFolderCard() {
     final colorScheme = Theme.of(context).colorScheme;
-
     return GestureDetector(
       onTap: _showCreateFolderDialog,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.card),
-          color: colorScheme.surfaceContainerHighest,
+          color: AppColors.surfaceElevated,
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 40.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colorScheme.outline, width: 2),
-                  ),
-                  child: Icon(Icons.add, size: 20.sp, color: colorScheme.outline),
+        child: Column(
+          children: [
+            const Spacer(flex: 2),
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colorScheme.primary.withValues(alpha: 0.1),
                 ),
+                child: Icon(Icons.add, size: 24.sp, color: colorScheme.primary),
               ),
-              const Spacer(flex: 1),
-              Padding(
-                padding: EdgeInsets.only(bottom: 14.h),
-                child: Text(
-                  '新建',
-                  style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: colorScheme.outline),
-                ),
+            ),
+            const Spacer(flex: 1),
+            Padding(
+              padding: EdgeInsets.only(bottom: 14.h),
+              child: Text(
+                '新建',
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  void _showAddMenu() {
-    // 直接弹出创建对话框，预设当前类型
-    _showCreateFolderDialog();
   }
 
   void _showCreateFolderDialog() async {
@@ -387,8 +294,8 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
           hintText: '文件夹名称',
           hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          fillColor: AppColors.surfaceElevated,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
         ),
       ),
     );
@@ -396,7 +303,7 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       final name = _folderNameController.text.trim();
       if (name.isEmpty) return;
       try {
-        final folder = await ref.read(fileProvider.notifier).createFolder(name, contentType: currentType);
+        await ref.read(fileProvider.notifier).createFolder(name, contentType: currentType);
       } catch (e) {
         _showMessage('Failed: $e', theme: MessageTheme.error);
       }
@@ -414,7 +321,6 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
       context,
       items: [
         AppBottomSheetMenuItem(text: '重命名', icon: Icons.edit_outlined, onTap: () => _showRenameDialog(folder)),
-        AppBottomSheetMenuItem(text: '单元测试', subtitle: '测试文件夹内所有资源', icon: Icons.quiz_outlined, onTap: () => _showUnitTest(folder)),
         AppBottomSheetMenuItem(text: '删除', icon: Icons.delete_outline, destructive: true, onTap: () => _confirmDeleteFolder(folder)),
       ],
     );
@@ -436,8 +342,8 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
         style: TextStyle(color: colorScheme.onSurface),
         decoration: InputDecoration(
           filled: true,
-          fillColor: colorScheme.surfaceContainerHighest,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          fillColor: AppColors.surfaceElevated,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
         ),
       ),
     );
@@ -457,25 +363,15 @@ class _FileListPageState extends ConsumerState<FileListPage> with SingleTickerPr
   void _confirmDeleteFolder(VideoFolder folder) async {
     final result = await AppConfirmDialog.show(
       context,
-      title: 'Delete "${folder.name}"?',
-      content: 'All resources in this folder will be deleted.',
+      title: '确认删除 "${folder.name}"?',
+      content: '该文件夹内的所有资源将被删除。',
       confirmText: '删除',
-      cancelText: 'Cancel',
+      cancelText: '取消',
       destructive: true,
     );
     if (result == true) {
       await ref.read(fileProvider.notifier).deleteFolder(folder.code!);
     }
-  }
-
-  void _showComprehensiveTest() {
-    final type = _resourceTypes[_currentTab];
-    final label = _resourceLabels[_currentTab];
-    _showMessage('Comprehensive test for $label coming soon', theme: MessageTheme.info);
-  }
-
-  void _showUnitTest(VideoFolder folder) {
-    _showMessage('单元测试 "${folder.name}" coming soon', theme: MessageTheme.info);
   }
 
   void _showMessage(String content, {MessageTheme theme = MessageTheme.info}) {

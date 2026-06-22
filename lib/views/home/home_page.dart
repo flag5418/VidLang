@@ -143,122 +143,74 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadData,
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.all(AppSpacing.pagePadding),
-                  child: Column(
-                    spacing: AppSpacing.lg,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildBanner(colorScheme),
-                      _buildStatsSection(colorScheme),
-                      _buildResourceSection(colorScheme, 'video', '视频', Icons.movie),
-                      _buildResourceSection(colorScheme, 'music', '音频', Icons.music_note),
-                      _buildResourceSection(colorScheme, 'article', '文章', Icons.menu_book),
-                    ],
-                  ),
-                ),
+      appBar: AppBar(
+        title: Text(
+          'VidLang',
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
+        elevation: 0,
+        backgroundColor: colorScheme.surface,
+        scrolledUnderElevation: 0.5,
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding, vertical: AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStatsSection(colorScheme),
+                    SizedBox(height: AppSpacing.lg),
+                    _buildResourceSection(colorScheme, 'video', '视频', Icons.movie_outlined),
+                    SizedBox(height: AppSpacing.lg),
+                    _buildResourceSection(colorScheme, 'music', '音频', Icons.music_note_outlined),
+                    SizedBox(height: AppSpacing.lg),
+                    _buildResourceSection(colorScheme, 'article', '文章', Icons.menu_book_outlined),
+                    SizedBox(height: AppSpacing.md),
+                  ],
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildBanner(ColorScheme colorScheme) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 600),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - value) * 20),
-            child: child,
-          ),
-        );
-      },
-      child: Container(
-        height: 170,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          gradient: LinearGradient(
-            colors: [colorScheme.primary, const Color(0xFF6366F1), const Color(0xFFA855F7)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: const [0.0, 0.6, 1.0],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.primary.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-              spreadRadius: -4,
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(top: -20, right: -20, child: Container(width: 120, height: 120, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.08)))),
-            Positioned(bottom: -30, left: -30, child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.05)))),
-            Positioned(top: 20, right: 30, child: Container(width: 40, height: 40, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2)))),
-            Positioned(bottom: 30, left: 40, child: Container(width: 20, height: 20, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.15)))),
-            Positioned(
-              top: 30,
-              left: 20,
-              child: Container(
-                width: 3,
-                height: 40,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            Positioned(
-              bottom: 20,
-              right: 20,
-              child: Container(
-                width: 40,
-                height: 3,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.space5),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8.r),
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.2)),
-                      child: Icon(Icons.school_rounded, size: 32.sp, color: Colors.white),
-                    ),
-                    SizedBox(height: AppSpacing.sm),
-                    ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: [Colors.white, Colors.white.withValues(alpha: 0.8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ).createShader(bounds),
-                      child: Text(
-                        'VidLang',
-                        style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0),
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      '看视频、听英语，读文章、轻松学英语',
-                      style: TextStyle(fontSize: 13.sp, color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w500),
-                    ),
-                  ],
+  Widget _buildStatsSection(ColorScheme colorScheme) {
+    final stats = [
+      _StatItem(icon: Icons.local_fire_department, label: '连续', value: '${_stats.streakDays} 天', color: Colors.orange),
+      _StatItem(icon: Icons.timer_outlined, label: '今日', value: _formatDuration(_stats.todayDuration), color: colorScheme.primary),
+      _StatItem(icon: Icons.book, label: '生词', value: '${_stats.wordCount}', color: Colors.green),
+      _StatItem(icon: Icons.check_circle_outline, label: '已学', value: '${_stats.resourceCount}', color: Colors.purple),
+    ];
+
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.space5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: AppColors.surfaceElevated,
+      ),
+      child: Row(
+        children: stats.map((item) {
+          return Expanded(
+            child: Column(
+              children: [
+                Icon(item.icon, size: 20.sp, color: item.color),
+                SizedBox(height: 6.h),
+                Text(
+                  item.value,
+                  style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
                 ),
-              ),
+                SizedBox(height: 2.h),
+                Text(
+                  item.label,
+                  style: TextStyle(fontSize: AppTypography.fontSizeXSmall, color: colorScheme.onSurfaceVariant),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -267,41 +219,28 @@ class _HomePageState extends ConsumerState<HomePage> {
     final folders = _recentFolders[type] ?? [];
     final hasResources = folders.isNotEmpty;
 
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 400),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - value) * 16),
-            child: child,
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface, letterSpacing: 0.3),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            ),
+            TextButton(
+              onPressed: () => _goToResources(type),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              child: Text(
+                '更多',
+                style: TextStyle(fontSize: AppTypography.fontSizeSmall, color: colorScheme.primary),
               ),
-              TextButton(
-                onPressed: () => _goToResources(type),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                child: Text(
-                  '更多',
-                  style: TextStyle(fontSize: AppTypography.fontSizeSmall, color: colorScheme.primary),
-                ),
-              ),
-            ],
-          ),
-          if (!hasResources) _buildEmptySection(colorScheme, icon, type) else _buildFolderRow(colorScheme, folders),
-        ],
-      ),
+            ),
+          ],
+        ),
+        if (!hasResources) _buildEmptySection(colorScheme, icon, type) else _buildFolderRow(colorScheme, folders),
+      ],
     );
   }
 
@@ -349,92 +288,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         separatorBuilder: (_, __) => SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
           final folder = folders[index];
-          return TweenAnimationBuilder<double>(
-            duration: Duration(milliseconds: 300 + index * 80),
-            tween: Tween(begin: 0.0, end: 1.0),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset((1 - value) * 20, 0),
-                  child: child,
-                ),
-              );
-            },
-            child: SizedBox(
-              width: 150,
-              height: 140,
-              child: Stack(
-                children: [
-                  FolderCard(folder: folder, onTap: () => _openFolder(folder), onLongPress: () {}),
-                ],
-              ),
-            ),
+          return SizedBox(
+            width: 150,
+            height: 140,
+            child: FolderCard(folder: folder, onTap: () => _openFolder(folder), onLongPress: () {}),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildStatsSection(ColorScheme colorScheme) {
-    final stats = [
-      _StatItem(icon: Icons.local_fire_department, label: '连续', value: '${_stats.streakDays} 天', color: Colors.orange),
-      _StatItem(icon: Icons.timer_outlined, label: '今日', value: _formatDuration(_stats.todayDuration), color: colorScheme.primary),
-      _StatItem(icon: Icons.menu_book, label: '生词', value: '${_stats.wordCount}', color: Colors.green),
-      _StatItem(icon: Icons.check_circle_outline, label: '已学', value: '${_stats.resourceCount}', color: Colors.purple),
-    ];
-
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 500),
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - value) * 16),
-            child: child,
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.space5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          color: colorScheme.surfaceContainerHighest,
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '学习数据',
-              style: TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600, color: colorScheme.onSurface, letterSpacing: 0.3),
-            ),
-            SizedBox(height: AppSpacing.md),
-            Row(
-              children: stats.map((item) {
-                return Expanded(
-                  child: Column(
-                    children: [
-                      Icon(item.icon, size: 22.sp, color: item.color),
-                      SizedBox(height: 4),
-                      Text(
-                        item.value,
-                        style: TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        item.label,
-                        style: TextStyle(fontSize: AppTypography.fontSizeXSmall, color: colorScheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,9 +1,9 @@
 /// 资源集卡片（首页 / 资源列表）
 ///
-/// 圆角矩形卡片风格：
+/// 圆角矩形卡片：
 /// - 类型色背景 + 圆角
-/// - 左上角 Material 类型图标 + 右上角数量角标
-/// - 居中大号文件夹名称
+/// - 左上角 Material 类型图标 + 数量
+/// - 居中文件夹名称
 /// - 底部当前学习/首个资源标题
 library;
 
@@ -38,32 +38,11 @@ class FolderCard extends StatefulWidget {
   State<FolderCard> createState() => _FolderCardState();
 }
 
-class _FolderCardState extends State<FolderCard> with TickerProviderStateMixin {
+class _FolderCardState extends State<FolderCard> {
   bool _isPressed = false;
-  late AnimationController _rippleController;
-  late Animation<double> _rippleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _rippleController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
-    _rippleAnimation = Tween<double>(begin: 0.0, end: 0.15).animate(CurvedAnimation(parent: _rippleController, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _rippleController.dispose();
-    super.dispose();
-  }
-
-  void _handleTap() {
-    _rippleController.forward();
-    widget.onTap();
-  }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final brightness = Theme.of(context).brightness;
     final typeColor = AppColors.colorForType(widget.folder.folderType.name, brightness: brightness);
     final bgColor = AppColors.cardBgForType(widget.folder.folderType.name, brightness: brightness);
@@ -71,93 +50,55 @@ class _FolderCardState extends State<FolderCard> with TickerProviderStateMixin {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _handleTap,
+        onTap: widget.onTap,
         onLongPress: widget.onLongPress,
-        splashColor: typeColor.withValues(alpha: 0.2),
-        highlightColor: typeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.card),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeInOut,
-          transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0, 1.0, 1.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            gradient: LinearGradient(
-              colors: [bgColor.withValues(alpha: 1.0), bgColor.withValues(alpha: 0.85)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              color: bgColor,
+              border: widget.isSelected ? Border.all(color: typeColor, width: 2) : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            border: widget.isSelected
-                ? Border.all(color: typeColor, width: 2.5)
-                : Border.all(color: typeColor.withValues(alpha: 0.08), width: 1),
-            boxShadow: [
-              ...AppShadows.sm,
-              BoxShadow(
-                color: typeColor.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2.5 : AppRadius.card),
-                child: FutureBuilder<_FolderInfo>(
-                  future: _loadFolderInfo(),
-                  builder: (context, snapshot) {
-                    final info = snapshot.data;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildTopRow(typeColor, info?.count ?? 0),
-                        Expanded(
-                          child: Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4),
-                              child: Text(
-                                widget.folder.name,
-                                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700, color: colorScheme.onSurface, letterSpacing: 0.2),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2 : AppRadius.card),
+              child: FutureBuilder<_FolderInfo>(
+                future: _loadFolderInfo(),
+                builder: (context, snapshot) {
+                  final info = snapshot.data;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTopRow(typeColor, info?.count ?? 0),
+                      Expanded(
+                        child: Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3),
+                            child: Text(
+                              widget.folder.name,
+                              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
-                        _buildBottomRow(colorScheme, info?.currentTitle),
-                      ],
-                    );
-                  },
-                ),
-              ),
-              Align(
-                alignment: Alignment.topCenter,
-                child: AnimatedBuilder(
-                  animation: _rippleAnimation,
-                  builder: (context, child) {
-                    return Container(
-                      height: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(widget.isSelected ? AppRadius.card - 2.5 : AppRadius.card),
-                          topRight: Radius.circular(widget.isSelected ? AppRadius.card - 2.5 : AppRadius.card),
-                        ),
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: _rippleAnimation.value),
-                            Colors.transparent,
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
                       ),
-                    );
-                  },
-                ),
+                      _buildBottomRow(info?.currentTitle),
+                    ],
+                  );
+                },
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -192,46 +133,37 @@ class _FolderCardState extends State<FolderCard> with TickerProviderStateMixin {
       padding: EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space4, 10, 0),
       child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            spacing: 4,
-            children: [
-              Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: 26.sp, color: typeColor),
-              if (count > 0) _buildBadge(count, typeColor),
-            ],
-          ),
-          Expanded(child: Container()),
+          Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: 24.sp, color: typeColor),
+          SizedBox(width: 4),
+          if (count > 0)
+            Text(
+              '($count${ResourceIcons.unitLabel(widget.folder.folderType.name)})',
+              style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w600, color: typeColor.withValues(alpha: 0.8)),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomRow(ColorScheme colorScheme, String? currentTitle) {
+  Widget _buildBottomRow(String? currentTitle) {
+    if (currentTitle == null || currentTitle.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.fromLTRB(AppSpacing.space4, 4, AppSpacing.space4, AppSpacing.space4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.play_arrow_rounded, size: 13.sp, color: colorScheme.onSurfaceVariant),
+          Icon(Icons.play_arrow_rounded, size: 12.sp, color: Theme.of(context).colorScheme.onSurfaceVariant),
           SizedBox(width: 4),
           Flexible(
             child: Text(
-              currentTitle ?? '',
-              style: TextStyle(fontSize: AppTypography.fontSizeXSmall, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+              currentTitle,
+              style: TextStyle(fontSize: 11.sp, color: Theme.of(context).colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBadge(int count, Color typeColor) {
-    final unit = ResourceIcons.unitLabel(widget.folder.folderType.name);
-    return Text(
-      '($count$unit)',
-      style: TextStyle(fontSize: AppTypography.fontSizeXSmall, fontWeight: FontWeight.w600, color: typeColor.withValues(alpha: 0.85)),
     );
   }
 }
