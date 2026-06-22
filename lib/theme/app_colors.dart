@@ -50,6 +50,10 @@ class AppColors {
   static Color getOnSurfaceVariant({required Brightness brightness}) =>
       brightness == Brightness.dark ? onSurfaceVariant : lightOnSurfaceVariant;
 
+  /// 根据主题获取边框/分隔色
+  static Color getOutline({required Brightness brightness}) =>
+      brightness == Brightness.dark ? outline : const Color(0xFFDDDDDD);
+
   // ─── 强调色（电光蓝 → 暖橙渐变） ────
   /// 主色：电光蓝
   static const Color primary = Color(0xFF4284FC);

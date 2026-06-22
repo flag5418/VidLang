@@ -1,7 +1,7 @@
 /// 资源集卡片（首页 / 资源列表）
 ///
 /// 圆角矩形卡片：
-/// - 类型色背景 + 圆角
+/// - 纯色背景 + 类型色左侧装饰条
 /// - 左上角 Material 类型图标 + 数量
 /// - 居中文件夹名称
 /// - 底部当前学习/首个资源标题
@@ -16,7 +16,6 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_shadows.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
 
@@ -45,7 +44,8 @@ class _FolderCardState extends State<FolderCard> {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final typeColor = AppColors.colorForType(widget.folder.folderType.name, brightness: brightness);
-    final bgColor = AppColors.cardBgForType(widget.folder.folderType.name, brightness: brightness);
+    final cardBg = AppColors.getSurface(brightness: brightness);
+    final cardBorder = AppColors.getOutline(brightness: brightness);
 
     return Material(
       color: Colors.transparent,
@@ -54,46 +54,68 @@ class _FolderCardState extends State<FolderCard> {
         onLongPress: widget.onLongPress,
         borderRadius: BorderRadius.circular(AppRadius.card),
         child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              color: bgColor,
-              border: widget.isSelected ? Border.all(color: typeColor, width: 2) : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            color: cardBg,
+            border: widget.isSelected
+                ? Border.all(color: typeColor, width: 2)
+                : Border.all(color: cardBorder.withValues(alpha: 0.12), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2 : AppRadius.card),
+            child: Stack(
+              children: [
+                // 左侧类型色条
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 4,
+                  child: Container(color: typeColor),
                 ),
-              ],
-            ),
-              child: ClipRRect(
-              borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2 : AppRadius.card),
-              child: FutureBuilder<_FolderInfo>(
-                future: _loadFolderInfo(),
-                builder: (context, snapshot) {
-                  final info = snapshot.data;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildTopRow(context, typeColor, info?.count ?? 0),
-                      Expanded(
-                        child: Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3),
-                            child: Text(
-                              widget.folder.name,
-                              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700, color: AppColors.getOnSurface(brightness: brightness)),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
+                // 内容
+                Padding(
+                  padding: EdgeInsets.only(left: AppSpacing.space4),
+                  child: FutureBuilder<_FolderInfo>(
+                    future: _loadFolderInfo(),
+                    builder: (context, snapshot) {
+                      final info = snapshot.data;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildTopRow(context, typeColor, info?.count ?? 0),
+                          Expanded(
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3),
+                                child: Text(
+                                  widget.folder.name,
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.getOnSurface(brightness: brightness),
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      _buildBottomRow(brightness, info?.currentTitle),
-                    ],
-                  );
-                },
+                          _buildBottomRow(brightness, info?.currentTitle),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -125,9 +147,8 @@ class _FolderCardState extends State<FolderCard> {
   }
 
   Widget _buildTopRow(BuildContext ctx, Color typeColor, int count) {
-    final cs = Theme.of(ctx).colorScheme;
     return Padding(
-      padding: EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space4, 10, 0),
+      padding: EdgeInsets.fromLTRB(0, AppSpacing.space4, 10, 0),
       child: Row(
         children: [
           Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: 24.sp, color: typeColor),
@@ -145,7 +166,7 @@ class _FolderCardState extends State<FolderCard> {
   Widget _buildBottomRow(Brightness br, String? currentTitle) {
     if (currentTitle == null || currentTitle.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: EdgeInsets.fromLTRB(AppSpacing.space4, 4, AppSpacing.space4, AppSpacing.space4),
+      padding: EdgeInsets.fromLTRB(0, 4, AppSpacing.space4, AppSpacing.space4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -154,7 +175,11 @@ class _FolderCardState extends State<FolderCard> {
           Flexible(
             child: Text(
               currentTitle,
-              style: TextStyle(fontSize: 11.sp, color: AppColors.getOnSurfaceVariant(brightness: br), fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: AppColors.getOnSurfaceVariant(brightness: br),
+                fontWeight: FontWeight.w500,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
