@@ -79,14 +79,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           orderBy: 'last_study_date DESC, updated_at DESC',
         );
         if (articles.isNotEmpty && mounted) {
-          Article target = articles.firstWhere(
-            (a) => a.lastStudyDate != null,
-            orElse: () => articles.first,
-          );
+          Article target = articles.firstWhere((a) => a.lastStudyDate != null, orElse: () => articles.first);
           if (!mounted) return;
-          await Navigator.push(context, MaterialPageRoute(
-            builder: (_) => ArticleReaderPage(articleCode: target.code!),
-          ));
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => ArticleReaderPage(articleCode: target.code!)));
           if (!mounted) return;
           await _loadData();
           return;
@@ -143,14 +138,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     final brightness = Theme.of(context).brightness;
 
     return Scaffold(
-        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
       appBar: AppBar(
         title: Text(
           'VidLang',
           style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
         elevation: 0,
-      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
         scrolledUnderElevation: 0.5,
       ),
       body: RefreshIndicator(
@@ -219,27 +214,41 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildResourceSection(ColorScheme colorScheme, String type, String title, IconData icon) {
     final folders = _recentFolders[type] ?? [];
     final hasResources = folders.isNotEmpty;
+    final typeColor = AppColors.colorForType(type, brightness: Theme.of(context).brightness);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Icon(icon, size: 20.sp, color: typeColor),
+            SizedBox(width: 8.w),
             Text(
               title,
-              style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
-            TextButton(
-              onPressed: () => _goToResources(type),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Text(
-                '更多',
-                style: TextStyle(fontSize: AppTypography.fontSizeSmall, color: colorScheme.primary),
+            const Spacer(),
+            InkWell(
+              onTap: () => _goToResources(type),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '更多',
+                      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant),
+                    ),
+                    SizedBox(width: 2.w),
+                    Icon(Icons.chevron_right_rounded, size: 16.sp, color: colorScheme.onSurfaceVariant),
+                  ],
+                ),
               ),
             ),
           ],
         ),
+        SizedBox(height: 12.h),
         if (!hasResources) _buildEmptySection(colorScheme, icon, type) else _buildFolderRow(colorScheme, folders),
       ],
     );
@@ -282,16 +291,16 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildFolderRow(ColorScheme colorScheme, List<VideoFolder> folders) {
     return SizedBox(
-      height: 160,
+      height: 170.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: folders.length,
-        separatorBuilder: (_, __) => SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (_, _) => SizedBox(width: 12.w),
         itemBuilder: (context, index) {
           final folder = folders[index];
           return SizedBox(
-            width: 150,
-            height: 140,
+            width: 154.w,
+            height: 170.h,
             child: FolderCard(folder: folder, onTap: () => _openFolder(folder), onLongPress: () {}),
           );
         },
