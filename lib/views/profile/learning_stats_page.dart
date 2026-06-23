@@ -547,17 +547,17 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text(
-                              '${t.minutes}',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                color: t.minutes > 0
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurfaceVariant,
+                            if (t.minutes > 0) ...[
+                              Text(
+                                '${t.minutes}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.primary,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 4.h),
+                              SizedBox(height: 4.h),
+                            ],
                             Container(
                               height: barHeight,
                               decoration: BoxDecoration(
@@ -583,7 +583,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                             Text(
                               weekday,
                               style: TextStyle(
-                                fontSize: 12.sp,
+                                fontSize: 11,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -591,7 +591,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                             Text(
                               dateStr,
                               style: TextStyle(
-                                fontSize: 12.sp,
+                                fontSize: 10,
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                               ),
                             ),

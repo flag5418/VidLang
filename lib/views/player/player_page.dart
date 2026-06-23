@@ -204,11 +204,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         Navigator.pop(context);
                       },
                       borderRadius: BorderRadius.circular(22),
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                      ),
+                      child: SizedBox(width: 44, height: 44, child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20)),
                     ),
                   ),
 
@@ -351,6 +347,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  SizedBox(width: 16),
                   Text(
                     _fmtDuration(s.position),
                     style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
