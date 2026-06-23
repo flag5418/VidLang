@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:vidlang/utils/english_segmenter.dart';
 
@@ -39,13 +40,7 @@ class EnglishWord {
   double x, y, width, height;
   int wordRow;
 
-  EnglishWord({required this.word, required this.index})
-      : containerKey = GlobalKey(),
-        x = 0,
-        y = 0,
-        width = 0,
-        height = 0,
-        wordRow = 0;
+  EnglishWord({required this.word, required this.index}) : containerKey = GlobalKey(), x = 0, y = 0, width = 0, height = 0, wordRow = 0;
 }
 
 class SelectableEnglishLineState extends State<SelectableEnglishLine> {
@@ -128,8 +123,7 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
 
         for (int s = 0; s < words.length; s++) {
           final w = words[s];
-          if (localPos.dx >= w.x - 4 && localPos.dx <= w.x + w.width + 4 &&
-              localPos.dy >= w.y - 2 && localPos.dy <= w.y + w.height + 2) {
+          if (localPos.dx >= w.x - 4 && localPos.dx <= w.x + w.width + 4 && localPos.dy >= w.y - 2 && localPos.dy <= w.y + w.height + 2) {
             if (_dragStartIdx == null) {
               _dragStartIdx = w.index;
               _selectedWords = [w.word];
@@ -181,11 +175,7 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
         children: [
           // 选词高亮背景
           CustomPaint(
-            painter: _SelectionBgPainter(
-              words: words,
-              selectedWords: _selectedWords,
-              backgroundColor: widget.selectedBgColor,
-            ),
+            painter: _SelectionBgPainter(words: words, selectedWords: _selectedWords, backgroundColor: widget.selectedBgColor),
           ),
           // 单词行
           Wrap(
@@ -206,7 +196,7 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
                     fontSize: widget.fontSize,
                     fontWeight: FontWeight.bold,
                     color: isSel ? Colors.black : widget.fontColor,
-                    height: 1.3,
+                    height: 1.6,
                   ),
                 ),
               );
@@ -224,8 +214,7 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
     final localPos = targetRenderBox.globalToLocal(globalPos);
 
     for (final w in words) {
-      if (localPos.dx >= w.x - 4 && localPos.dx <= w.x + w.width + 4 &&
-          localPos.dy >= w.y - 2 && localPos.dy <= w.y + w.height + 2) {
+      if (localPos.dx >= w.x - 4 && localPos.dx <= w.x + w.width + 4 && localPos.dy >= w.y - 2 && localPos.dy <= w.y + w.height + 2) {
         _dragStartIdx = w.index;
         _selectedWords = [w.word];
         setState(() {});
@@ -241,8 +230,7 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
     final localPos = targetRenderBox.globalToLocal(globalPos);
 
     for (final w in words) {
-      if (localPos.dx >= w.x - 4 && localPos.dx <= w.x + w.width + 4 &&
-          localPos.dy >= w.y - 2 && localPos.dy <= w.y + w.height + 2) {
+      if (localPos.dx >= w.x - 4 && localPos.dx <= w.x + w.width + 4 && localPos.dy >= w.y - 2 && localPos.dy <= w.y + w.height + 2) {
         // 点击单词回调
         widget.onTapWord?.call(w.word);
         // 同时触发选词弹窗（单个单词）
@@ -287,11 +275,7 @@ class _SelectionBgPainter extends CustomPainter {
   final List<String> selectedWords;
   final Color backgroundColor;
 
-  _SelectionBgPainter({
-    required this.words,
-    required this.selectedWords,
-    required this.backgroundColor,
-  });
+  _SelectionBgPainter({required this.words, required this.selectedWords, required this.backgroundColor});
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -43,8 +43,8 @@ class SelectableParagraphText extends StatefulWidget {
   /// 点击（非划词模式）
   final VoidCallback? onTap;
 
-  /// 划词结束回调 (selectedWords, toolbarPosition)
-  final void Function(List<String> selectedWords, Offset position)? onSelectionDone;
+  /// 划词结束回调 (selectedWords, toolbarPosition, startIndex, endIndex)
+  final void Function(List<String> selectedWords, Offset position, int startIndex, int endIndex)? onSelectionDone;
 
   /// 开始划词（父组件应禁用滚动）
   final VoidCallback? onStartSelection;
@@ -53,8 +53,8 @@ class SelectableParagraphText extends StatefulWidget {
   final bool isSpeaking;
   final int ttsCurrentWordIndex;
 
-  /// 标记词颜色
-  final Map<String, Color> markedWords;
+  /// 标记词 (仅传入当前段落的标记)
+  final List<dynamic> marks; // 使用 dynamic 避免循环引用，实际是 MarkRecord
 
   const SelectableParagraphText({
     super.key,
@@ -68,7 +68,7 @@ class SelectableParagraphText extends StatefulWidget {
     this.onStartSelection,
     this.isSpeaking = false,
     this.ttsCurrentWordIndex = -1,
-    this.markedWords = const {},
+    this.marks = const [],
   });
 
   @override
@@ -123,11 +123,7 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
     final regex = RegExp(r'\b\w+\b|[^\w\s]|\s+');
     _cachedWords = regex.allMatches(text).toList().asMap().entries.map((e) {
       final match = e.value.group(0)!;
-      return _ParagraphWord(
-        text: match,
-        index: e.key,
-        isWord: RegExp(r'\w').hasMatch(match),
-      );
+      return _ParagraphWord(text: match, index: e.key, isWord: RegExp(r'\w').hasMatch(match));
     }).toList();
     _lastText = text;
     return _cachedWords!;
@@ -241,13 +237,11 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
   void _handlePanEnd(DragEndDetails details) {
     if (_selectedIndices.isNotEmpty && widget.onSelectionDone != null) {
       final words = _splitWords(widget.text);
-      final selectedWords = _selectedIndices
-          .map((idx) => words[idx].text.trim())
-          .where((t) => t.isNotEmpty)
-          .toList();
+      final sortedIndices = _selectedIndices.toList()..sort();
+      final selectedWords = sortedIndices.map((idx) => words[idx].text.trim()).where((t) => t.isNotEmpty).toList();
 
       // 计算工具栏位置（最后一个选中词的上方）
-      final lastIdx = _selectedIndices.last;
+      final lastIdx = sortedIndices.last;
       if (lastIdx < words.length) {
         final lastWord = words[lastIdx];
         final key = lastWord.key;
@@ -255,7 +249,7 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
           final box = key.currentContext!.findRenderObject() as RenderBox?;
           if (box != null) {
             final pos = box.localToGlobal(Offset.zero);
-            widget.onSelectionDone!(selectedWords, pos);
+            widget.onSelectionDone!(selectedWords, pos, sortedIndices.first, sortedIndices.last);
           }
         }
       }
@@ -269,6 +263,31 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
     widget.onTap?.call();
   }
 
+  void _handleLongPressStart(LongPressStartDetails details) {
+    widget.onStartSelection?.call();
+    final word = _hitTestWord(details.localPosition);
+    if (word == null) return;
+    setState(() {
+      _selectedIndices
+        ..clear()
+        ..add(word.index);
+    });
+
+    if (widget.onSelectionDone != null) {
+      final words = _splitWords(widget.text);
+      final selectedWords = [words[word.index].text.trim()];
+
+      final key = word.key;
+      if (key.currentContext != null) {
+        final box = key.currentContext!.findRenderObject() as RenderBox?;
+        if (box != null) {
+          final pos = box.localToGlobal(Offset.zero);
+          widget.onSelectionDone!(selectedWords, pos, word.index, word.index);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final words = _splitWords(widget.text);
@@ -279,6 +298,7 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
       onPanDown: _handlePanDown,
       onPanUpdate: _handlePanUpdate,
       onPanEnd: _handlePanEnd,
+      onLongPressStart: _handleLongPressStart,
       onTap: _handleTap,
       child: Wrap(
         key: _wrapKey,
@@ -294,50 +314,51 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
             ttsIdx = isWordIdx;
             isWordIdx++;
           }
-          final isTtsHighlight = widget.isSpeaking &&
-              ttsIdx == widget.ttsCurrentWordIndex &&
-              word.isWord;
+          final isTtsHighlight = widget.isSpeaking && ttsIdx == widget.ttsCurrentWordIndex && word.isWord;
 
           // 标记词
-          final lower = word.text.toLowerCase();
-          final markColor = widget.markedWords[lower] ?? widget.markedWords[word.text];
+          dynamic activeMark;
+          for (final mark in widget.marks) {
+            if (index >= mark.startIndex && index <= mark.endIndex) {
+              activeMark = mark;
+              break;
+            }
+          }
+          final markColor = activeMark?.color;
 
-           Color? bgColor;
-           Color textColor = widget.textColor;
-           FontWeight fontWeight = FontWeight.normal;
-           TextDecoration? decoration;
-           TextDecorationStyle decorationStyle = TextDecorationStyle.solid;
-           Color? underlineColor;
+          Color? bgColor;
+          Color textColor = widget.textColor;
+          FontWeight fontWeight = FontWeight.normal;
+          TextDecoration? decoration;
+          TextDecorationStyle decorationStyle = TextDecorationStyle.solid;
+          Color? underlineColor;
 
-           if (isTtsHighlight) {
-             bgColor = widget.colorScheme.primary.withValues(alpha: 0.2);
-             textColor = widget.colorScheme.primary;
-             fontWeight = FontWeight.w600;
-           } else if (isSelected) {
-             bgColor = widget.colorScheme.primary.withValues(alpha: 0.25);
-             textColor = widget.colorScheme.primary;
-             fontWeight = FontWeight.w600;
-           } else if (markColor != null) {
-             bgColor = markColor.withValues(alpha: 0.2);
-             decoration = TextDecoration.underline;
-             decorationStyle = TextDecorationStyle.dotted;
-             underlineColor = markColor;
+          if (isTtsHighlight) {
+            bgColor = widget.colorScheme.primary.withValues(alpha: 0.2);
+            textColor = widget.colorScheme.primary;
+            fontWeight = FontWeight.w600;
+          } else if (isSelected) {
+            bgColor = widget.colorScheme.primary.withValues(alpha: 0.25);
+            textColor = widget.colorScheme.primary;
+            fontWeight = FontWeight.w600;
+          } else if (markColor != null) {
+            bgColor = markColor.withValues(alpha: 0.2);
+            decoration = TextDecoration.underline;
+            decorationStyle = TextDecorationStyle.dotted;
+            underlineColor = markColor;
             decorationStyle = TextDecorationStyle.dotted;
           }
 
           return Container(
             key: word.key,
             padding: EdgeInsets.symmetric(horizontal: 1.w, vertical: 2.h),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(3.r),
-            ),
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(3.r)),
             child: Text(
               word.text,
               style: TextStyle(
-                fontSize: widget.fontSize.sp,
+                fontSize: 16,
                 color: textColor,
-                fontWeight: fontWeight,
+                fontWeight: FontWeight.w500,
                 height: 1.6,
                 decoration: decoration,
                 decorationStyle: decorationStyle,

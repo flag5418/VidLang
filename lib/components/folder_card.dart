@@ -73,24 +73,32 @@ class _FolderCardState extends State<FolderCard> {
             border: Border.all(color: borderColor, width: widget.isSelected ? 1.5 : 1),
             boxShadow: [BoxShadow(color: shadowColor, blurRadius: 8, offset: const Offset(0, 2))],
           ),
-          child: FutureBuilder<_FolderInfo>(
-            future: _loadFolderInfo(),
-            builder: (context, snapshot) {
-              final info = snapshot.data;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTopRow(context, typeColor, info?.count ?? 0),
-                  const Spacer(),
-                  Text(
-                    widget.folder.name,
-                    style: TextStyle(fontSize: 16.sp, height: 1.4, fontWeight: FontWeight.w600, color: titleColor),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 8.h),
-                  _buildBottomRow(subtitleColor, info?.currentTitle),
-                ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 在横竖屏切换时，可能会出现极端的压缩约束（如 h=7.0），直接返回空避免 RenderFlex 溢出崩溃
+              if (constraints.maxHeight < 60) {
+                return const SizedBox.shrink();
+              }
+              return FutureBuilder<_FolderInfo>(
+                future: _loadFolderInfo(),
+                builder: (context, snapshot) {
+                  final info = snapshot.data;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTopRow(context, typeColor, info?.count ?? 0),
+                      const Spacer(),
+                      Text(
+                        widget.folder.name,
+                        style: TextStyle(fontSize: 16.sp, height: 1.4, fontWeight: FontWeight.w600, color: titleColor),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 8.h),
+                      _buildBottomRow(subtitleColor, info?.currentTitle),
+                    ],
+                  );
+                },
               );
             },
           ),

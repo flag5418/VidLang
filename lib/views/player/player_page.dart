@@ -188,7 +188,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 32, bottom: 8) + EdgeInsets.symmetric(horizontal: pageH(context)),
+              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 32, bottom: 8) + EdgeInsets.symmetric(horizontal: _horizontalMargin),
 
               decoration: const BoxDecoration(
                 gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
@@ -204,10 +204,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         Navigator.pop(context);
                       },
                       borderRadius: BorderRadius.circular(22),
-                      child: Container(
+                      child: SizedBox(
+                        width: 44,
                         height: 44,
-                        padding: const EdgeInsets.only(right: 16),
-                        alignment: Alignment.centerLeft,
                         child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
                       ),
                     ),
@@ -308,7 +307,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     );
   }
 
-  double pageH(BuildContext c) => MediaQuery.of(c).size.width > 600 ? 24.0 : 16.0;
+  double get _horizontalMargin {
+    final w = MediaQuery.of(context).size.width;
+    final h = MediaQuery.of(context).size.height;
+    // 横屏时考虑刘海屏/圆角安全区域
+    final insets = MediaQuery.of(context).padding;
+    final safeSide = (w > h) ? insets.left.toDouble() : 16.0;
+    return safeSide > 0 ? safeSide : 16.0;
+  }
 
   Widget _topBtn(IconData icon, VoidCallback onTap, {bool active = false}) {
     return Material(
@@ -333,12 +339,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       children: [
         if (cs != null)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: pageH(context)),
+            padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
             child: _buildSelectableSubtitle(s, cs, t),
           ),
         _buildProgressBar(s, n),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
           child: Row(
             children: [
               // 左侧组：时间、上一句、播放、下一句
@@ -681,7 +687,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   Widget _buildProgressBar(PlayerEngineState s, PlayerEngineNotifier n) {
     final p = s.duration.inMilliseconds > 0 ? s.position.inMilliseconds / s.duration.inMilliseconds : 0.0;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: pageH(context)),
+      padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
       child: SliderTheme(
         data: SliderThemeData(
           trackHeight: 4,

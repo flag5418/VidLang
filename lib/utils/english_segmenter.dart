@@ -11,44 +11,10 @@ class EnglishSegmenter {
   static List<String> segment(String text) {
     if (text.isEmpty) return [];
 
-    // 如果文本已有空格，直接拆分
+    // 直接按空格拆分。不再对无空格的单词进行强制的单字母贪心拆分
+    // 因为这会导致正常的单单词（如 "plants"）被拆分为 p, l, a, n, t, s
     final spaceSplit = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    if (spaceSplit.length > 1) return spaceSplit;
-
-    // 单词粘连情况：使用贪心最长匹配
-    final result = <String>[];
-    final lower = text.toLowerCase();
-    int i = 0;
-
-    while (i < text.length) {
-      // 跳过非字母字符（保留为单独 token）
-      if (!_isLetter(text[i])) {
-        result.add(text[i]);
-        i++;
-        continue;
-      }
-
-      // 从最长开始匹配（最大单词长度 15）
-      int bestLen = 1;
-      for (int len = _maxWordLen; len >= 2; len--) {
-        if (i + len > text.length) continue;
-        final candidate = lower.substring(i, i + len);
-        if (_commonWords.contains(candidate)) {
-          bestLen = len;
-          break;
-        }
-      }
-
-      // 如果单字符也是常见词或没有更好匹配
-      if (bestLen == 1 && _commonWords.contains(lower[i])) {
-        bestLen = 1;
-      }
-
-      result.add(text.substring(i, i + bestLen));
-      i += bestLen;
-    }
-
-    return result;
+    return spaceSplit;
   }
 
   static bool _isLetter(String ch) {

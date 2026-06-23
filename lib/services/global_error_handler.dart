@@ -44,6 +44,17 @@ class GlobalErrorHandler {
   // ──────────────────────── Flutter 框架层 ────────────────────────
 
   void _handleFlutterError(FlutterErrorDetails details) {
+    // 忽略渲染库的布局溢出错误（RenderFlex overflowed），这些是非致命的布局问题
+    final exceptionStr = details.exception.toString();
+    if (exceptionStr.contains('RenderFlex overflowed') || exceptionStr.contains('RenderBox was not laid out')) {
+      // 仅记录日志，不弹窗
+      logger.debug('Ignored rendering overflow: $exceptionStr', tag: 'ErrorHandler');
+      if (kDebugMode) {
+        FlutterError.presentError(details);
+      }
+      return;
+    }
+
     // debug 模式下保留默认的红屏行为，方便开发调试
     if (kDebugMode) {
       FlutterError.presentError(details);
