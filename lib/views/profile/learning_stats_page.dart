@@ -530,12 +530,12 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
             children: [
               // 柱状图
               SizedBox(
-                height: 140.h,
+                height: 120.h,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: _weeklyTrend.map((t) {
                     final ratio = maxMinutes > 0 ? t.minutes / maxMinutes : 0.0;
-                    final barHeight = (120.h * ratio).clamp(4.h, 120.h);
+                    final barHeight = (100.h * ratio).clamp(4.h, 100.h);
                     // 从日期中提取星期
                     final dateStr = t.date.substring(5); // MM-DD
                     final weekday = _getWeekdayLabel(t.date);
@@ -551,12 +551,12 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                               Text(
                                 '${t.minutes}',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.primary,
                                 ),
                               ),
-                              SizedBox(height: 4.h),
+                              SizedBox(height: 2.h),
                             ],
                             Container(
                               height: barHeight,
@@ -579,19 +579,19 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                                     : colorScheme.outline.withValues(alpha: 0.2),
                               ),
                             ),
-                            SizedBox(height: 6.h),
+                            SizedBox(height: 4.h),
                             Text(
                               weekday,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            SizedBox(height: 2.h),
+                            SizedBox(height: 1.h),
                             Text(
                               dateStr,
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 9,
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                               ),
                             ),
