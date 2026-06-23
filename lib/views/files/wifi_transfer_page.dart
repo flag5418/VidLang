@@ -68,12 +68,7 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
-        actions: [
-          TextButton(
-            onPressed: service.isRunning ? _stop : null,
-            child: Text('停止', style: TextStyle(color: service.isRunning ? colorScheme.error : colorScheme.outline)),
-          ),
-        ],
+         
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -90,35 +85,51 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('状态', style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                  const SizedBox(height: 8),
-                  if (_starting) ...[
-                    Row(
-                      children: [
-                        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-                        const SizedBox(width: 10),
-                        Text('正在启动（端口 9999）…', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('状态', style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+                      if (_starting) ...[
+                        SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      ] else if (_error != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: colorScheme.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                          child: Text('启动失败', style: TextStyle(color: colorScheme.error, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ),
+                      ] else if (service.isRunning) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                          child: Text('已启动', style: TextStyle(color: colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                          child: Text('未启动', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ),
                       ],
-                    ),
+                    ],
+                  ),
+                  if (_starting) ...[
+                    const SizedBox(height: 8),
+                    Text('正在启动（端口 ${service.port ?? 9999}）…', style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   ] else if (_error != null) ...[
-                    Text('启动失败：$_error', style: TextStyle(color: colorScheme.error)),
+                    const SizedBox(height: 8),
+                    Text('$_error', style: TextStyle(color: colorScheme.error, fontSize: 12)),
                   ] else if (service.isRunning) ...[
-                    Text('已启动', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
-                    Text('在电脑浏览器打开：', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                    const SizedBox(height: 6),
-                    SelectableText(url ?? '-', style: TextStyle(fontSize: 16, color: colorScheme.onSurface)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
+                    Text('在电脑浏览器打开：', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    SelectableText(url ?? '-', style: TextStyle(fontSize: 14, color: colorScheme.primary)),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: url == null
-                                ? null
-                                : () {
-                                    TDToast.showText(url, context: context);
-                                  },
-                            child: const Text('复制/提示地址'),
+                            onPressed: url == null ? null : () => TDToast.showText(url, context: context),
+                            child: const Text('复制地址'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -130,10 +141,12 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text('说明：Web 端仅支持新建/重命名文件夹与上传视频，不提供删除。', style: TextStyle(color: colorScheme.onSurfaceVariant)),
                   ] else ...[
-                    Text('未启动', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                      onPressed: _start,
+                      child: const Text('启动服务'),
+                    ),
                   ],
                 ],
               ),
