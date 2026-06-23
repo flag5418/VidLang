@@ -7,7 +7,6 @@ import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:omni_player/omni_player.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
@@ -189,7 +188,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             left: 0,
             right: 0,
             child: Container(
-              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 32.h, bottom: 8.h) + EdgeInsets.symmetric(horizontal: pageH(context)),
+              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 32, bottom: 8) + EdgeInsets.symmetric(horizontal: pageH(context)),
 
               decoration: const BoxDecoration(
                 gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
@@ -204,15 +203,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         _unlockOrientation();
                         Navigator.pop(context);
                       },
-                      borderRadius: BorderRadius.circular(22.r),
+                      borderRadius: BorderRadius.circular(22),
                       child: Padding(
-                        padding: EdgeInsets.only(right: 8.w),
+                        padding: EdgeInsets.only(right: 8),
                         child: SizedBox(
-                          width: 44.r,
-                          height: 44.r,
-                          child: Center(
-                            child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                          ),
+                          width: 44,
+                          height: 44,
+                          child: Center(child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20)),
                         ),
                       ),
                     ),
@@ -228,7 +225,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     ),
                   ),
                   Row(
-                    spacing: 10.w,
+                    spacing: 10,
                     children: [
                       _topBtn(
                         Icons.format_list_bulleted_rounded,
@@ -292,7 +289,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    width: 320.w,
+                    width: 320,
                     decoration: BoxDecoration(
                       color: AppColors.surface.withValues(alpha: 0.85),
                       border: Border(left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
@@ -313,20 +310,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     );
   }
 
-  double pageH(BuildContext c) => 14.w;
+  double pageH(BuildContext c) => MediaQuery.of(c).size.width > 600 ? 24.0 : 16.0;
 
   Widget _topBtn(IconData icon, VoidCallback onTap, {bool active = false}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22.r),
+        borderRadius: BorderRadius.circular(22),
         child: SizedBox(
-          width: 44.r,
-          height: 44.r,
-          child: Center(
-            child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 20),
-          ),
+          width: 44,
+          height: 44,
+          child: Center(child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 24)),
         ),
       ),
     );
@@ -344,120 +339,122 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           ),
         _buildProgressBar(s, n),
         Padding(
-          padding: EdgeInsets.fromLTRB(pageH(context), 0, pageH(context), 6.w),
+          padding: EdgeInsets.fromLTRB(pageH(context), 0, pageH(context), 6),
           child: Row(
             children: [
-              // 时间显示（始终可见，纯白）
-              Text(
-                _fmtDuration(s.position),
-                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
+              // 左侧组：时间、上一句、播放、下一句
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _fmtDuration(s.position),
+                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
+                  ),
+                  Text(
+                    ' / ',
+                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
+                  ),
+                  Text(
+                    _fmtDuration(s.duration),
+                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
+                  ),
+                  const SizedBox(width: 8),
+                  if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => n.togglePlayPause(),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.primary),
+                        child: Icon(
+                          s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (hs) _smallCtrl(Icons.skip_next_rounded, (idx ?? 0) < sl.length - 1 ? () => n.nextSentence() : null, t),
+                ],
               ),
-              Text(
-                ' / ',
-                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
-              ),
-              Text(
-                _fmtDuration(s.duration),
-                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
-              ),
-              const SizedBox(width: 6),
-              // 上一句（仅字幕可用时显示）
-              if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
-              // 播放/暂停（始终可见，日落渐变）
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => n.togglePlayPause(),
-                  borderRadius: BorderRadius.circular(20.sp),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.sunsetGradient),
-                    child: Icon(
-                      s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 24,
+              const SizedBox(width: 16),
+              // 右侧组：两端对齐，靠右侧的滚动区域
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hs) ...[
+                          _featureTextBtn(
+                            "跟读",
+                            _showReadAloud,
+                            () => setState(() {
+                              _showReadAloud = !_showReadAloud;
+                            }),
+                            t,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        _featureTextBtn(
+                          "清晰朗读",
+                          hs ? _isTtsSpeaking : false,
+                          (hs && !_isTtsSpeaking)
+                              ? () {
+                                  final wasPlaying = s.playerState == PlayerState.playing;
+                                  setState(() => _isTtsSpeaking = true);
+                                  if (wasPlaying) {
+                                    n.player.pause();
+                                  }
+                                  final subState = ref.read(subscriptionProvider);
+                                  if (subState.mode == SubscriptionMode.premium) {
+                                    _speakClarityPremium(cs!.content, wasPlaying, n);
+                                  } else {
+                                    TtsService().speakClarity(
+                                      text: cs!.content,
+                                      audioPlayer: _aliAudioPlayer,
+                                      onComplete: () {
+                                        if (!mounted) return;
+                                        setState(() => _isTtsSpeaking = false);
+                                        if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+                                          n.player.play();
+                                        }
+                                      },
+                                    );
+                                  }
+                                }
+                              : null,
+                          t,
+                          highlightBg: true,
+                        ),
+                        if (hs) ...[
+                          const SizedBox(width: 8),
+                          _featureTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible(), t),
+                          const SizedBox(width: 8),
+                          _featureTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible(), t),
+                          const SizedBox(width: 8),
+                          _featureTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause(), t),
+                          const SizedBox(width: 8),
+                          _featureTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence(), t),
+                        ],
+                      ],
                     ),
                   ),
                 ),
               ),
-              // 下一句（仅字幕可用时显示）
-              if (hs) _smallCtrl(Icons.skip_next_rounded, (idx ?? 0) < sl.length - 1 ? () => n.nextSentence() : null, t),
-              const SizedBox(width: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 以下功能按钮：仅字幕可用时显示，无字幕时完全隐藏
-                      if (hs) ...[
-                        _featureTextBtn(
-                          "跟读",
-                          _showReadAloud,
-                          () => setState(() {
-                            _showReadAloud = !_showReadAloud;
-                          }),
-                          t,
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      // 清晰朗读：始终可见，仅字幕存在时可点击
-                      // 付费模式走 Edge Function ai_tts，免费模式走阿里云/系统 TTS
-                      _featureTextBtn(
-                        "清晰朗读",
-                        hs ? _isTtsSpeaking : false,
-                        (hs && !_isTtsSpeaking)
-                            ? () {
-                                final wasPlaying = s.playerState == PlayerState.playing;
-                                setState(() => _isTtsSpeaking = true);
-                                if (wasPlaying) {
-                                  n.player.pause();
-                                }
-                                final subState = ref.read(subscriptionProvider);
-                                if (subState.mode == SubscriptionMode.premium) {
-                                  _speakClarityPremium(cs!.content, wasPlaying, n);
-                                } else {
-                                  TtsService().speakClarity(
-                                    text: cs!.content,
-                                    audioPlayer: _aliAudioPlayer,
-                                    onComplete: () {
-                                      if (!mounted) return;
-                                      setState(() => _isTtsSpeaking = false);
-                                      if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
-                                        n.player.play();
-                                      }
-                                    },
-                                  );
-                                }
-                              }
-                            : null,
-                        t,
-                        highlightBg: true,
-                      ),
-                      if (hs) ...[
-                        const SizedBox(width: 8),
-                        _featureTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible(), t),
-                        const SizedBox(width: 8),
-                        _featureTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible(), t),
-                        const SizedBox(width: 8),
-                        _featureTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause(), t),
-                        const SizedBox(width: 8),
-                        _featureTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence(), t),
-                      ],
-                      const SizedBox(width: 8),
-                      // 速度按钮：始终可见，放在功能按钮最后
-                      _featureTextBtn(
-                        "${s.speed.toStringAsFixed(1)}X",
-                        s.speed != 1.0,
-                        () => setState(() {
-                          _showSpeedPicker = !_showSpeedPicker;
-                        }),
-                        t,
-                      ),
-                    ],
-                  ),
-                ),
+              const SizedBox(width: 8),
+              _featureTextBtn(
+                "${s.speed.toStringAsFixed(1)}X",
+                s.speed != 1.0,
+                () => setState(() {
+                  _showSpeedPicker = !_showSpeedPicker;
+                }),
+                t,
               ),
             ],
           ),
@@ -472,10 +469,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   }
 
   Widget _smallCtrl(IconData icon, VoidCallback? onTap, bool t) {
-    return IconButton(
-      icon: Icon(icon, color: onTap != null ? Colors.white : Colors.white24, size: 22),
-      onPressed: onTap,
-      padding: EdgeInsets.zero,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(icon, color: onTap != null ? Colors.white : Colors.white24, size: 28),
+        ),
+      ),
     );
   }
 
@@ -487,16 +490,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: (highlightBg || active) ? AppColors.primary.withValues(alpha: active ? 0.2 : 0.0) : Colors.transparent,
+            color: active ? AppColors.primary : (highlightBg ? Colors.white.withValues(alpha: 0.1) : Colors.transparent),
             borderRadius: BorderRadius.circular(16),
-            border: active ? Border.all(color: AppColors.primary.withValues(alpha: 0.3)) : Border.all(color: Colors.transparent),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: onTap == null ? Colors.white24 : (active ? AppColors.primary : Colors.white70),
+              color: onTap == null ? Colors.white24 : (active ? Colors.white : Colors.white70),
               fontSize: 13,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
@@ -679,7 +681,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   Widget _buildProgressBar(PlayerEngineState s, PlayerEngineNotifier n) {
     final p = s.duration.inMilliseconds > 0 ? s.position.inMilliseconds / s.duration.inMilliseconds : 0.0;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6.w),
+      padding: EdgeInsets.symmetric(horizontal: pageH(context) - 6),
       child: SliderTheme(
         data: SliderThemeData(
           trackHeight: 4,
@@ -764,10 +766,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     children: [
                       Icon(Icons.video_library_outlined, size: 48, color: Colors.white24),
                       const SizedBox(height: 8),
-                      Text(
-                        '暂无可播视频',
-                        style: TextStyle(color: _drawerTextVariant(), fontSize: 14),
-                      ),
+                      Text('暂无可播视频', style: TextStyle(color: _drawerTextVariant(), fontSize: 14)),
                     ],
                   ),
                 )
@@ -909,11 +908,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                   child: Text(
                     opts[i],
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: a ? Colors.white : Colors.white,
-                      fontSize: 12,
-                      fontWeight: a ? FontWeight.bold : FontWeight.normal,
-                    ),
+                    style: TextStyle(color: a ? Colors.white : Colors.white, fontSize: 12, fontWeight: a ? FontWeight.bold : FontWeight.normal),
                   ),
                 ),
               ),
@@ -1196,10 +1191,9 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.horizontal(left: Radius.circular(AppRadius.md)),
-                    child: Container(
+                    child: SizedBox(
                       width: 110,
                       height: 76,
-                      color: AppColors.cardThumbnailBg,
                       child: (cover != null && File(cover).existsSync())
                           ? Image.file(File(cover), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder())
                           : _placeholder(),
@@ -1230,7 +1224,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                               SizedBox(width: 3),
                               Text(
                                 v.durationString,
-                                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall.sp),
+                                style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
                               ),
                               if (v.hasSubtitles) ...[
                                 SizedBox(width: 8),
@@ -1238,7 +1232,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                                 SizedBox(width: 3),
                                 Text(
                                   '字幕',
-                                  style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: AppTypography.fontSizeXSmall.sp),
+                                  style: TextStyle(color: AppColors.primary.withValues(alpha: 0.7), fontSize: AppTypography.fontSizeXSmall),
                                 ),
                               ],
                               if (cur) ...[
@@ -1248,7 +1242,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                                   decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(AppRadius.xs)),
                                   child: Text(
                                     '播放中',
-                                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall.sp, fontWeight: FontWeight.w600),
+                                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
@@ -1268,7 +1262,5 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
     );
   }
 
-  Widget _placeholder() => Center(
-    child: Icon(Icons.movie_outlined, size: 48, color: Colors.white24),
-  );
+  Widget _placeholder() => Center(child: Icon(Icons.movie_outlined, size: 48, color: Colors.white24));
 }

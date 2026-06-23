@@ -109,8 +109,15 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final viewport = scrollableCtx.findRenderObject() as RenderBox?;
     if (viewport == null) return;
     final pos = box.localToGlobal(Offset.zero, ancestor: viewport);
-    final targetOffset = (_scrollController.offset + pos.dy - 8).clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(targetOffset, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+    final targetOffset = (_scrollController.offset + pos.dy - 8).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
     setState(() => _currentSection = section);
   }
 
@@ -119,7 +126,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     _effectiveSections = _buildEffectiveSections();
 
     return MediaQuery(
-      data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: const TextScaler.linear(1.0)),
       child: GestureDetector(
         onTap: widget.onClose,
         behavior: HitTestBehavior.opaque,
@@ -139,7 +148,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     if (widget.isLoading) {
       return _buildLoadingState();
     }
-    if (!widget.data.success && widget.data.error != null && !widget.data.isInsufficientBalance) {
+    if (!widget.data.success &&
+        widget.data.error != null &&
+        !widget.data.isInsufficientBalance) {
       return _buildErrorState();
     }
     return _buildContentLayout();
@@ -158,7 +169,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0EDE8) : cs.surfaceContainerHigh,
+          color: Theme.of(context).brightness == Brightness.light
+              ? const Color(0xFFF0EDE8)
+              : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
@@ -167,9 +180,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           children: [
             _buildHeader(),
             const SizedBox(height: 24),
-            SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary)),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: cs.primary,
+              ),
+            ),
             const SizedBox(height: 12),
-            Text('正在查询「${widget.data.word}」...', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+            Text(
+              '正在查询「${widget.data.word}」...',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -190,7 +213,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.6),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.light ? const Color(0xFFF0EDE8) : cs.surfaceContainerHigh,
+          color: Theme.of(context).brightness == Brightness.light
+              ? const Color(0xFFF0EDE8)
+              : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.15)),
         ),
@@ -219,7 +244,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   Widget _buildContentLayout() {
     final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
-    final isLandscape = screenSize.width > screenSize.height && screenSize.width >= 600;
+    final isLandscape =
+        screenSize.width > screenSize.height && screenSize.width >= 600;
 
     // 横竖屏尺寸参数
     final cardWidth = screenSize.width * (isLandscape ? 0.65 : 0.9);
@@ -237,8 +263,16 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           color: bgColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 24, offset: const Offset(0, 8)),
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: _showSettings
@@ -246,23 +280,38 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             : Column(
                 children: [
                   // 顶部 Header
-                  Padding(padding: const EdgeInsets.fromLTRB(24, 20, 24, 16), child: _buildHeader()),
-                  Container(height: 1, color: cs.outlineVariant.withValues(alpha: 0.2)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                    child: _buildHeader(),
+                  ),
+                  Container(
+                    height: 1,
+                    color: cs.outlineVariant.withValues(alpha: 0.2),
+                  ),
                   // 下方：左导航 + 右内容
                   Expanded(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 左侧固定导航
-                        SizedBox(width: navWidth, child: _buildNavList(cs, isLandscape)),
+                        SizedBox(
+                          width: navWidth,
+                          child: _buildNavList(cs, isLandscape),
+                        ),
                         // 分割线
-                        Container(width: 1, color: cs.outlineVariant.withValues(alpha: 0.2)),
+                        Container(
+                          width: 1,
+                          color: cs.outlineVariant.withValues(alpha: 0.2),
+                        ),
                         // 右侧可滚动内容
                         Expanded(
                           child: SingleChildScrollView(
                             controller: _scrollController,
                             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: _buildAllSections(_effectiveSections)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: _buildAllSections(_effectiveSections),
+                            ),
                           ),
                         ),
                       ],
@@ -284,9 +333,14 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         behavior: HitTestBehavior.opaque,
         child: Container(
           margin: EdgeInsets.only(bottom: 4.h, left: 8.w, right: 8.w),
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: isLandscape ? 10.h : 8.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8.w,
+            vertical: isLandscape ? 10.h : 8.h,
+          ),
           decoration: BoxDecoration(
-            color: isActive ? cs.primaryContainer.withValues(alpha: 0.3) : Colors.transparent,
+            color: isActive
+                ? cs.primaryContainer.withValues(alpha: 0.3)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -321,12 +375,20 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.settings_rounded, size: isLandscape ? 16 : 14, color: cs.onSurfaceVariant),
+                Icon(
+                  Icons.settings_rounded,
+                  size: isLandscape ? 16 : 14,
+                  color: cs.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     '显示设置',
-                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: isLandscape ? 12 : 11, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: isLandscape ? 12 : 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -344,7 +406,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   List<Widget> _buildAllSections(List<WordDetailSection> sections) {
     final List<Widget> children = [];
     for (final section in sections) {
-      children.add(Container(key: _sectionKeys[section], child: _buildSection(section)));
+      children.add(
+        Container(key: _sectionKeys[section], child: _buildSection(section)),
+      );
     }
     return children;
   }
@@ -377,7 +441,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   Widget _buildHeader() {
     final pronounce = widget.data.pronounce;
     final hasPhonetic =
-        (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty) || (pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty);
+        (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty) ||
+        (pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,7 +464,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               ),
             ),
             // 发音按钮
-            _buildPronounceButton(text: widget.data.word, icon: Icons.volume_up_rounded, size: 24.sp),
+            _buildPronounceButton(
+              text: widget.data.word,
+              icon: Icons.volume_up_rounded,
+              size: 24.sp,
+            ),
             SizedBox(width: 12.w),
             // 收藏按钮
             _buildSaveButton(),
@@ -411,18 +480,25 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             padding: EdgeInsets.only(top: 8.h),
             child: Row(
               children: [
-                if (pronounce.ukPhonetic != null && pronounce.ukPhonetic!.isNotEmpty) ...[
+                if (pronounce.ukPhonetic != null &&
+                    pronounce.ukPhonetic!.isNotEmpty) ...[
                   Text(
                     'UK ',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     '/${pronounce.ukPhonetic!}/',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14.sp, fontWeight: FontWeight.w400),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
                 if (pronounce.ukPhonetic != null &&
@@ -430,18 +506,25 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     pronounce.usPhonetic != null &&
                     pronounce.usPhonetic!.isNotEmpty)
                   SizedBox(width: 16.w),
-                if (pronounce.usPhonetic != null && pronounce.usPhonetic!.isNotEmpty) ...[
+                if (pronounce.usPhonetic != null &&
+                    pronounce.usPhonetic!.isNotEmpty) ...[
                   Text(
                     'US ',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     '/${pronounce.usPhonetic!}/',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14.sp, fontWeight: FontWeight.w400),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ],
               ],
@@ -451,17 +534,27 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     );
   }
 
-  Widget _buildPronounceButton({required String text, IconData icon = Icons.volume_up_outlined, double size = 18}) {
+  Widget _buildPronounceButton({
+    required String text,
+    IconData icon = Icons.volume_up_outlined,
+    double size = 18,
+  }) {
     return InkWell(
       onTap: () => widget.onSpeak?.call(),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: size),
+        child: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.primary,
+          size: size,
+        ),
       ),
     );
   }
@@ -478,16 +571,27 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       child: Container(
         padding: EdgeInsets.all(8.w),
         decoration: BoxDecoration(
-          color: isSaved ? cs.primaryContainer.withValues(alpha: 0.3) : cs.surfaceContainerHighest.withValues(alpha: 0.5),
+          color: isSaved
+              ? cs.primaryContainer.withValues(alpha: 0.3)
+              : cs.surfaceContainerHighest.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
         ),
         child: isSaving
             ? SizedBox(
                 width: 24.sp,
                 height: 24.sp,
-                child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: cs.primary,
+                ),
               )
-            : Icon(isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded, size: 24.sp, color: isSaved ? cs.primary : cs.onSurfaceVariant),
+            : Icon(
+                isSaved
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_outline_rounded,
+                size: 24.sp,
+                color: isSaved ? cs.primary : cs.onSurfaceVariant,
+              ),
       ),
     );
   }
@@ -513,15 +617,32 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               if (d.partOfSpeech != null)
                 Container(
                   margin: const EdgeInsets.only(right: 8, top: 1),
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(3)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                   child: Text(
                     d.partOfSpeech!,
-                    style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: cs.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               Expanded(
-                child: Text(meaning, style: TextStyle(color: cs.onSurface, fontSize: 15, height: 1.5)),
+                child: Text(
+                  meaning,
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
+                ),
               ),
             ],
           ),
@@ -531,29 +652,44 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
     return _buildSectionContainer(
       title: WordDetailSection.chineseMeaning.label,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: items),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items,
+      ),
     );
   }
 
   // ─── Section: 当前句释义 ─────────────────────────────────
 
   Widget _buildSentenceTranslation() {
-    if (widget.data.contextSentence == null && widget.data.sentenceTranslation == null && widget.data.translation == null) {
+    if (widget.data.contextSentence == null &&
+        widget.data.sentenceTranslation == null &&
+        widget.data.translation == null) {
       return const SizedBox.shrink();
     }
     final cs = Theme.of(context).colorScheme;
     // 收集所有中文释义用于高亮
-    final chineseMeanings = widget.data.definitions.map((d) => d.chineseMeaning.trim()).where((m) => m.isNotEmpty).toList();
+    final chineseMeanings = widget.data.definitions
+        .map((d) => d.chineseMeaning.trim())
+        .where((m) => m.isNotEmpty)
+        .toList();
     return _buildSectionContainer(
       title: WordDetailSection.sentenceTranslation.label,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 英文句子（高亮当前单词）
-          if (widget.data.contextSentence != null) ...[_buildRichContextSentence(chineseMeanings: chineseMeanings), const SizedBox(height: 8)],
+          if (widget.data.contextSentence != null) ...[
+            _buildRichContextSentence(chineseMeanings: chineseMeanings),
+            const SizedBox(height: 8),
+          ],
           // 中文翻译（高亮中文释义）
-          if (widget.data.sentenceTranslation != null || widget.data.translation != null)
-            _buildRichChineseTranslation(chineseMeanings: chineseMeanings, cs: cs),
+          if (widget.data.sentenceTranslation != null ||
+              widget.data.translation != null)
+            _buildRichChineseTranslation(
+              chineseMeanings: chineseMeanings,
+              cs: cs,
+            ),
         ],
       ),
     );
@@ -569,19 +705,33 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final match = regex.firstMatch(sentence);
 
     if (match == null) {
-      return Text(sentence, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14, height: 1.5));
+      return Text(
+        sentence,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+          fontSize: 14,
+          height: 1.5,
+        ),
+      );
     }
 
     final start = match.start;
     final end = match.end;
     return RichText(
       text: TextSpan(
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 14, height: 1.5),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+          fontSize: 14,
+          height: 1.5,
+        ),
         children: [
           TextSpan(text: sentence.substring(0, start)),
           TextSpan(
             text: sentence.substring(start, end),
-            style: const TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Color(0xFF1976D2),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           TextSpan(text: sentence.substring(end)),
         ],
@@ -590,10 +740,17 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   }
 
   /// 高亮中文翻译中的释义
-  Widget _buildRichChineseTranslation({required List<String> chineseMeanings, required ColorScheme cs}) {
-    final translation = widget.data.sentenceTranslation ?? widget.data.translation!;
+  Widget _buildRichChineseTranslation({
+    required List<String> chineseMeanings,
+    required ColorScheme cs,
+  }) {
+    final translation =
+        widget.data.sentenceTranslation ?? widget.data.translation!;
     if (chineseMeanings.isEmpty) {
-      return Text(translation, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4));
+      return Text(
+        translation,
+        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
+      );
     }
 
     // 找到最长的匹配释义
@@ -612,7 +769,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     }
 
     if (bestMatch == null || bestStart == -1) {
-      return Text(translation, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4));
+      return Text(
+        translation,
+        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
+      );
     }
 
     return RichText(
@@ -622,7 +782,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           TextSpan(text: translation.substring(0, bestStart)),
           TextSpan(
             text: bestMatch,
-            style: const TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Color(0xFF1976D2),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           TextSpan(text: translation.substring(bestEnd)),
         ],
@@ -651,11 +814,21 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     if (d.partOfSpeech != null) ...[
                       Container(
                         margin: const EdgeInsets.only(right: 8, top: 2),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                         child: Text(
                           d.partOfSpeech!,
-                          style: TextStyle(color: cs.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: cs.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -663,11 +836,24 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(d.chineseMeaning, style: TextStyle(color: cs.onSurface, fontSize: 15, height: 1.5)),
+                          Text(
+                            d.chineseMeaning,
+                            style: TextStyle(
+                              color: cs.onSurface,
+                              fontSize: 15,
+                              height: 1.5,
+                            ),
+                          ),
                           if (d.englishMeaning != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
-                              child: Text(d.englishMeaning!, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                              child: Text(
+                                d.englishMeaning!,
+                                style: TextStyle(
+                                  color: cs.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -692,9 +878,21 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                                   children: [
                                     Text(
                                       ex.english,
-                                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, fontStyle: FontStyle.italic),
+                                      style: TextStyle(
+                                        color: cs.onSurfaceVariant,
+                                        fontSize: 13,
+                                        fontStyle: FontStyle.italic,
+                                      ),
                                     ),
-                                    Text(ex.chinese, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 11)),
+                                    Text(
+                                      ex.chinese,
+                                      style: TextStyle(
+                                        color: cs.onSurface.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -733,9 +931,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('• ', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+                Text(
+                  '• ',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+                ),
                 Expanded(
-                  child: Text(m, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, height: 1.5)),
+                  child: Text(
+                    m,
+                    style: TextStyle(
+                      color: cs.onSurfaceVariant,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -771,7 +979,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             ),
             child: Text(
               pos,
-              style: TextStyle(color: cs.primary, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: cs.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           );
         }).toList(),
@@ -800,10 +1012,20 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     children: [
                       Text(
                         ex.english,
-                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, fontStyle: FontStyle.italic),
+                        style: TextStyle(
+                          color: cs.onSurfaceVariant,
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                       const SizedBox(height: 2),
-                      Text(ex.chinese, style: TextStyle(color: cs.onSurface.withValues(alpha: 0.5), fontSize: 12)),
+                      Text(
+                        ex.chinese,
+                        style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -822,7 +1044,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final cs = Theme.of(context).colorScheme;
     final diff = widget.data.difficulty;
     // 始终显示难度 section，即使未知也显示“未知”
-    final color = diff == DifficultyLevel.unknown ? cs.outline : Color(diff.colorValue);
+    final color = diff == DifficultyLevel.unknown
+        ? cs.outline
+        : Color(diff.colorValue);
     return _buildSectionContainer(
       title: WordDetailSection.difficulty.label,
       child: Wrap(
@@ -843,7 +1067,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 const SizedBox(width: 6),
                 Text(
                   widget.data.difficulty.label,
-                  style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -873,30 +1101,57 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       '最高级': morph.superlative,
     };
 
-    final effectiveForms = Map.fromEntries(forms.entries.where((e) => e.value != null && e.value!.isNotEmpty));
+    final effectiveForms = Map.fromEntries(
+      forms.entries.where((e) => e.value != null && e.value!.isNotEmpty),
+    );
 
     if (effectiveForms.isNotEmpty) {
       items.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Table(
-            columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+            columnWidths: const {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: effectiveForms.entries.map((e) {
               return TableRow(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-                    child: Text(e.key, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 3,
+                      horizontal: 4,
+                    ),
+                    child: Text(
+                      e.key,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 3,
+                      horizontal: 4,
+                    ),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(6)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cs.onSurface.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Text(
                         e.value!,
-                        style: TextStyle(color: cs.onSurface, fontSize: 13, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
@@ -918,7 +1173,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             children: [
               SizedBox(
                 width: 60,
-                child: Text('同义', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                child: Text(
+                  '同义',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+                ),
               ),
               Expanded(
                 child: Wrap(
@@ -926,9 +1184,21 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   runSpacing: 4,
                   children: morph.synonyms.map((s) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: const Color(0xFF4CAF50).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-                      child: Text(s, style: const TextStyle(color: Color(0xFF81C784), fontSize: 12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        s,
+                        style: const TextStyle(
+                          color: Color(0xFF81C784),
+                          fontSize: 12,
+                        ),
+                      ),
                     );
                   }).toList(),
                 ),
@@ -947,7 +1217,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           children: [
             SizedBox(
               width: 60,
-              child: Text('反义', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+              child: Text(
+                '反义',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+              ),
             ),
             Expanded(
               child: Wrap(
@@ -955,9 +1228,21 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 runSpacing: 4,
                 children: morph.antonyms.map((a) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: const Color(0xFFFF5252).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-                    child: Text(a, style: const TextStyle(color: Color(0xFFEF9A9A), fontSize: 12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5252).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      a,
+                      style: const TextStyle(
+                        color: Color(0xFFEF9A9A),
+                        fontSize: 12,
+                      ),
+                    ),
                   );
                 }).toList(),
               ),
@@ -971,14 +1256,18 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
     return _buildSectionContainer(
       title: WordDetailSection.morphology.label,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: items),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items,
+      ),
     );
   }
 
   // ─── Section: 记忆技巧 ─────────────────────────────────
 
   Widget _buildMnemonic() {
-    if (widget.data.mnemonic == null || widget.data.mnemonic!.isEmpty) return const SizedBox.shrink();
+    if (widget.data.mnemonic == null || widget.data.mnemonic!.isEmpty)
+      return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
     return _buildSectionContainer(
       title: WordDetailSection.mnemonic.label,
@@ -988,7 +1277,14 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           Icon(Icons.lightbulb_outline, size: 18, color: cs.primary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(widget.data.mnemonic!, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, height: 1.5)),
+            child: Text(
+              widget.data.mnemonic!,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
@@ -1012,18 +1308,27 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       case WordDetailSection.chineseMeaning:
         return data.definitions.any((d) => d.chineseMeaning.trim().isNotEmpty);
       case WordDetailSection.sentenceTranslation:
-        return (data.sentenceTranslation != null && data.sentenceTranslation!.trim().isNotEmpty) ||
+        return (data.sentenceTranslation != null &&
+                data.sentenceTranslation!.trim().isNotEmpty) ||
             (data.translation != null && data.translation!.trim().isNotEmpty) ||
-            (data.wordMeaningInContext != null && data.wordMeaningInContext!.trim().isNotEmpty) ||
-            (data.contextSentence != null && data.contextSentence!.trim().isNotEmpty);
+            (data.wordMeaningInContext != null &&
+                data.wordMeaningInContext!.trim().isNotEmpty) ||
+            (data.contextSentence != null &&
+                data.contextSentence!.trim().isNotEmpty);
       case WordDetailSection.definitions:
         return data.definitions.isNotEmpty;
       case WordDetailSection.englishMeaning:
-        return data.definitions.any((d) => d.englishMeaning != null && d.englishMeaning!.trim().isNotEmpty);
+        return data.definitions.any(
+          (d) =>
+              d.englishMeaning != null && d.englishMeaning!.trim().isNotEmpty,
+        );
       case WordDetailSection.partOfSpeech:
-        return data.definitions.any((d) => d.partOfSpeech != null && d.partOfSpeech!.trim().isNotEmpty);
+        return data.definitions.any(
+          (d) => d.partOfSpeech != null && d.partOfSpeech!.trim().isNotEmpty,
+        );
       case WordDetailSection.examples:
-        return data.standaloneExamples.isNotEmpty || data.definitions.any((d) => d.examples.isNotEmpty);
+        return data.standaloneExamples.isNotEmpty ||
+            data.definitions.any((d) => d.examples.isNotEmpty);
       case WordDetailSection.difficulty:
         return true;
       case WordDetailSection.morphology:
@@ -1048,7 +1353,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     if (save) {
       setState(() => _settingsSaving = true);
       final effectiveSections = _settingsSections.isEmpty
-          ? [WordDetailSection.chineseMeaning, WordDetailSection.sentenceTranslation]
+          ? [
+              WordDetailSection.chineseMeaning,
+              WordDetailSection.sentenceTranslation,
+            ]
           : _settingsSections;
       final newConfig = widget.config.copyWith(sections: effectiveSections);
       final container = ProviderScope.containerOf(context);
@@ -1092,7 +1400,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   /// 设置视图：顶部返回+标题 + 可滚动设置列表
   Widget _buildSettingsView(ColorScheme cs) {
-    final hidden = WordDetailSection.values.where((s) => !_settingsSections.contains(s)).toList();
+    final hidden = WordDetailSection.values
+        .where((s) => !_settingsSections.contains(s))
+        .toList();
 
     return Column(
       children: [
@@ -1106,16 +1416,32 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Icon(Icons.arrow_back_ios_new, size: 18, color: cs.onSurface),
+                  child: Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 18,
+                    color: cs.onSurface,
+                  ),
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 '显示设置',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: cs.onSurface),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
               ),
               const Spacer(),
-              if (_settingsSaving) SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary)),
+              if (_settingsSaving)
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: cs.primary,
+                  ),
+                ),
             ],
           ),
         ),
@@ -1128,7 +1454,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('拖动调整顺序，点击开关控制显示', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                Text(
+                  '拖动调整顺序，点击开关控制显示',
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
                 const SizedBox(height: 12),
                 // 已显示的区块
                 ..._settingsSections.asMap().entries.map((entry) {
@@ -1138,14 +1467,29 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     padding: const EdgeInsets.only(bottom: 2),
                     child: Row(
                       children: [
-                        Icon(Icons.drag_handle, size: 18, color: cs.onSurfaceVariant),
+                        Icon(
+                          Icons.drag_handle,
+                          size: 18,
+                          color: cs.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(section.label, style: TextStyle(fontSize: 14, color: cs.onSurface)),
+                          child: Text(
+                            section.label,
+                            style: TextStyle(fontSize: 14, color: cs.onSurface),
+                          ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.arrow_upward, size: 16, color: index == 0 ? cs.onSurface.withValues(alpha: 0.2) : cs.onSurfaceVariant),
-                          onPressed: index == 0 ? null : () => _settingsMoveUp(index),
+                          icon: Icon(
+                            Icons.arrow_upward,
+                            size: 16,
+                            color: index == 0
+                                ? cs.onSurface.withValues(alpha: 0.2)
+                                : cs.onSurfaceVariant,
+                          ),
+                          onPressed: index == 0
+                              ? null
+                              : () => _settingsMoveUp(index),
                           visualDensity: VisualDensity.compact,
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(),
@@ -1154,24 +1498,40 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                           icon: Icon(
                             Icons.arrow_downward,
                             size: 16,
-                            color: index == _settingsSections.length - 1 ? cs.onSurface.withValues(alpha: 0.2) : cs.onSurfaceVariant,
+                            color: index == _settingsSections.length - 1
+                                ? cs.onSurface.withValues(alpha: 0.2)
+                                : cs.onSurfaceVariant,
                           ),
-                          onPressed: index == _settingsSections.length - 1 ? null : () => _settingsMoveDown(index),
+                          onPressed: index == _settingsSections.length - 1
+                              ? null
+                              : () => _settingsMoveDown(index),
                           visualDensity: VisualDensity.compact,
                           padding: const EdgeInsets.all(4),
                           constraints: const BoxConstraints(),
                         ),
-                        Switch(value: true, onChanged: (_) => _settingsToggle(section), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                        Switch(
+                          value: true,
+                          onChanged: (_) => _settingsToggle(section),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
                       ],
                     ),
                   );
                 }),
                 // 未显示的区块
                 if (hidden.isNotEmpty) ...[
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1, thickness: 0.5)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(height: 1, thickness: 0.5),
+                  ),
                   Text(
                     '未显示的区块',
-                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   ...hidden.map((section) {
@@ -1181,14 +1541,26 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                         children: [
                           const SizedBox(width: 24),
                           Expanded(
-                            child: Text(section.label, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+                            child: Text(
+                              section.label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
                           ),
                           OutlinedButton.icon(
                             onPressed: () => _settingsToggle(section),
                             icon: const Icon(Icons.add, size: 14),
-                            label: const Text('添加', style: TextStyle(fontSize: 12)),
+                            label: const Text(
+                              '添加',
+                              style: TextStyle(fontSize: 12),
+                            ),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               minimumSize: const Size(0, 0),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
@@ -1214,7 +1586,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   // ─── 通用 Section 容器 ─────────────────────────────────
 
-  Widget _buildSectionContainer({required String title, required Widget child}) {
+  Widget _buildSectionContainer({
+    required String title,
+    required Widget child,
+  }) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.only(bottom: 24.h),
@@ -1228,12 +1603,20 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 Container(
                   width: 4.w,
                   height: 16.h,
-                  decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(4)),
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
                 SizedBox(width: 8.w),
                 Text(
                   title,
-                  style: TextStyle(color: cs.onSurface, fontSize: 14.sp, fontWeight: FontWeight.w600, letterSpacing: 0.2),
+                  style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ],
             ),

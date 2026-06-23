@@ -52,7 +52,11 @@ class _MainVideoCardState extends State<MainVideoCard> {
     final cardHeight = (screenWidth - AppSpacing.space8) * 9 / 16;
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
 
-    final cover = (widget.video.currentCover != null && widget.video.currentCover!.isNotEmpty) ? widget.video.currentCover : widget.video.cover;
+    final cover =
+        (widget.video.currentCover != null &&
+            widget.video.currentCover!.isNotEmpty)
+        ? widget.video.currentCover
+        : widget.video.cover;
 
     return GestureDetector(
       onTap: widget.onPlay,
@@ -65,7 +69,13 @@ class _MainVideoCardState extends State<MainVideoCard> {
         transform: Matrix4.identity()..scale(_isPressed ? 0.97 : 1.0, 1.0, 1.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: [const BoxShadow(color: Color(0x20000000), blurRadius: 12, offset: Offset(0, 4))],
+          boxShadow: [
+            const BoxShadow(
+              color: Color(0x20000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: _buildCard(clampedHeight, cover, colorScheme),
       ),
@@ -76,7 +86,10 @@ class _MainVideoCardState extends State<MainVideoCard> {
     return Container(
       width: double.infinity,
       height: height,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.lg), color: AppColors.cardThumbnailBg),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: AppColors.cardThumbnailBg,
+      ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         fit: StackFit.expand,
@@ -87,7 +100,12 @@ class _MainVideoCardState extends State<MainVideoCard> {
               builder: (context, snapshot) {
                 final path = snapshot.data;
                 if (path != null && File(path).existsSync()) {
-                  return Image.file(File(path), fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder(context, colorScheme));
+                  return Image.file(
+                    File(path),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        _placeholder(context, colorScheme),
+                  );
                 }
                 return _placeholder(context, colorScheme);
               },
@@ -99,27 +117,38 @@ class _MainVideoCardState extends State<MainVideoCard> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.75)],
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.75),
+                ],
               ),
             ),
           ),
           _buildSubtitleBadge(context, colorScheme),
-          _buildMenu(context, colorScheme),
           _buildBottomSection(context, colorScheme),
+          _buildMenu(context, colorScheme),
           _buildPlayButton(context, colorScheme),
         ],
       ),
     );
   }
 
-  Widget _menuRow(BuildContext context, IconData icon, String title, ColorScheme cs) {
+  Widget _menuRow(
+    BuildContext context,
+    IconData icon,
+    String title,
+    ColorScheme cs,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 18.sp, color: cs.onSurfaceVariant),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: AppTypography.fontSizeBase.sp),
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: AppTypography.fontSizeBase.sp,
+          ),
         ),
       ],
     );
@@ -129,7 +158,11 @@ class _MainVideoCardState extends State<MainVideoCard> {
     return Container(
       color: AppColors.cardThumbnailBg,
       child: Center(
-        child: Icon(Icons.movie_outlined, size: 24.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+        child: Icon(
+          Icons.movie_outlined,
+          size: 24.sp,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+        ),
       ),
     );
   }
@@ -142,9 +175,15 @@ class _MainVideoCardState extends State<MainVideoCard> {
         padding: EdgeInsets.all(4.w),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.xs),
-          color: widget.video.hasSubtitles ? colorScheme.primary : Colors.black.withValues(alpha: 0.5),
+          color: widget.video.hasSubtitles
+              ? colorScheme.primary
+              : Colors.black.withValues(alpha: 0.5),
         ),
-        child: Icon(Icons.subtitles, size: 14.sp, color: widget.video.hasSubtitles ? Colors.white : Colors.white38),
+        child: Icon(
+          Icons.subtitles,
+          size: 14.sp,
+          color: widget.video.hasSubtitles ? Colors.white : Colors.white38,
+        ),
       ),
     );
   }
@@ -154,7 +193,8 @@ class _MainVideoCardState extends State<MainVideoCard> {
       bottom: AppSpacing.space4,
       right: AppSpacing.space3,
       child: GestureDetector(
-        onTap: () {},
+        onTap: () {}, // Prevent tap from reaching the card
+        onPanDown: (_) {}, // Prevent pan from reaching the card
         child: PopupMenuButton<String>(
           onSelected: (value) {
             switch (value) {
@@ -177,28 +217,81 @@ class _MainVideoCardState extends State<MainVideoCard> {
           },
           offset: const Offset(-100, 0),
           color: colorScheme.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
           elevation: 6,
           child: Container(
             width: 28.r,
             height: 28.r,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm.r), color: Colors.black.withValues(alpha: 0.65)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.sm.r),
+              color: Colors.black.withValues(alpha: 0.65),
+            ),
             child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
           ),
           itemBuilder: (context) {
-            final items = <PopupMenuEntry<String>>[PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme))];
+            final items = <PopupMenuEntry<String>>[
+              PopupMenuItem(
+                value: 'rename',
+                child: _menuRow(
+                  context,
+                  Icons.edit_outlined,
+                  '重命名',
+                  colorScheme,
+                ),
+              ),
+            ];
             if (!widget.video.hasSubtitles && widget.onImportSubtitle != null) {
-              items.add(PopupMenuItem(value: 'importSubtitle', child: _menuRow(context, Icons.closed_caption, '导入字幕', colorScheme)));
+              items.add(
+                PopupMenuItem(
+                  value: 'importSubtitle',
+                  child: _menuRow(
+                    context,
+                    Icons.closed_caption,
+                    '导入字幕',
+                    colorScheme,
+                  ),
+                ),
+              );
             }
             if (widget.video.hasSubtitles && widget.onAiConversation != null) {
-              items.add(PopupMenuItem(value: 'aiConversation', child: _menuRow(context, Icons.forum_outlined, 'AI 对话', colorScheme)));
+              items.add(
+                PopupMenuItem(
+                  value: 'aiConversation',
+                  child: _menuRow(
+                    context,
+                    Icons.forum_outlined,
+                    'AI 对话',
+                    colorScheme,
+                  ),
+                ),
+              );
             }
             if (widget.onUnitTest != null) {
-              items.add(PopupMenuItem(value: 'unitTest', child: _menuRow(context, Icons.quiz_outlined, '单元测试', colorScheme)));
+              items.add(
+                PopupMenuItem(
+                  value: 'unitTest',
+                  child: _menuRow(
+                    context,
+                    Icons.quiz_outlined,
+                    '单元测试',
+                    colorScheme,
+                  ),
+                ),
+              );
             }
             items.addAll([
               const PopupMenuDivider(height: 1),
-              PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
+              PopupMenuItem(
+                value: 'delete',
+                child: _menuRow(
+                  context,
+                  Icons.delete_outline,
+                  '删除',
+                  colorScheme,
+                ),
+              ),
             ]);
             return items;
           },
@@ -208,7 +301,9 @@ class _MainVideoCardState extends State<MainVideoCard> {
   }
 
   Widget _buildBottomSection(BuildContext context, ColorScheme colorScheme) {
-    final progress = widget.video.duration > 0 ? widget.video.currentPosition / widget.video.duration : 0.0;
+    final progress = widget.video.duration > 0
+        ? widget.video.currentPosition / widget.video.duration
+        : 0.0;
     return Positioned(
       bottom: 0,
       left: 0,
@@ -223,12 +318,20 @@ class _MainVideoCardState extends State<MainVideoCard> {
           ),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space3, AppSpacing.space4, AppSpacing.space4),
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.space4,
+              AppSpacing.space3,
+              AppSpacing.space4,
+              AppSpacing.space4,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.black.withValues(alpha: 0.3), Colors.black.withValues(alpha: 0.85)],
+                colors: [
+                  Colors.black.withValues(alpha: 0.3),
+                  Colors.black.withValues(alpha: 0.85),
+                ],
               ),
             ),
             child: Column(
@@ -237,7 +340,12 @@ class _MainVideoCardState extends State<MainVideoCard> {
               children: [
                 Text(
                   widget.video.name,
-                  style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
+                  style: TextStyle(
+                    fontSize: AppTypography.fontSizeBase.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 0.3,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -248,7 +356,11 @@ class _MainVideoCardState extends State<MainVideoCard> {
                     SizedBox(width: 4.w),
                     Text(
                       '${widget.video.currentPositionString} / ${widget.video.durationString}',
-                      style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: AppTypography.fontSizeXSmall.sp,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -268,9 +380,19 @@ class _MainVideoCardState extends State<MainVideoCard> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.92),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Icon(Icons.play_arrow_rounded, size: 20.w, color: AppColors.primary),
+        child: Icon(
+          Icons.play_arrow_rounded,
+          size: 20.w,
+          color: AppColors.primary,
+        ),
       ),
     );
   }
