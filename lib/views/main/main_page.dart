@@ -25,16 +25,6 @@ class _MainPageState extends ConsumerState<MainPage> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    // 监听 provider 变化，驱动 PageView 翻页
-    ref.listen<int>(navigationIndexProvider, (previous, next) {
-      if (previous != next && mounted) {
-        _pageController.animateToPage(
-          next,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-        );
-      }
-    });
   }
 
   @override
@@ -48,6 +38,17 @@ class _MainPageState extends ConsumerState<MainPage> {
     final currentIndex = ref.watch(navigationIndexProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final brightness = Theme.of(context).brightness;
+
+    // 监听 provider 变化，驱动 PageView 翻页
+    ref.listen<int>(navigationIndexProvider, (previous, next) {
+      if (previous != next && mounted) {
+        _pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
 
     final pages = [const HomePage(), const FileListPage(), const CollectionPage(), const ProfilePage()];
 
