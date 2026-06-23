@@ -382,8 +382,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       child: Column(
         children: List.generate(items.length, (i) {
           final item = items[i];
-          return GestureDetector(
+          final isLast = i == items.length - 1;
+          return InkWell(
             onTap: item.onTap,
+            borderRadius: BorderRadius.circular(AppRadius.md),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: AppSpacing.space3),
               child: Row(
@@ -421,6 +423,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
             ),
           );
+          // Add divider except for last item
         }),
       ),
     );
