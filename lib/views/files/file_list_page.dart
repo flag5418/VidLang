@@ -171,7 +171,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
               )
             : null,
         filled: true,
-        fillColor: AppColors.surfaceElevated,
+        fillColor: AppColors.getSurfaceElevated(brightness: Theme.of(context).brightness),
         contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: 8),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),

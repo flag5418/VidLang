@@ -1,7 +1,8 @@
 /// 资源集卡片（首页 / 资源列表）
 ///
 /// 圆角矩形卡片：
-/// - 纯色背景 + 类型色左侧装饰条
+/// - 白色/纯黑背景 + 类型色左侧装饰条
+/// - 全圆角边框 + 阴影
 /// - 左上角 Material 类型图标 + 数量
 /// - 居中文件夹名称
 /// - 底部当前学习/首个资源标题
@@ -45,78 +46,74 @@ class _FolderCardState extends State<FolderCard> {
     final brightness = Theme.of(context).brightness;
     final typeColor = AppColors.colorForType(widget.folder.folderType.name, brightness: brightness);
     final cardBg = AppColors.getSurface(brightness: brightness);
-    final cardBorder = AppColors.getOutline(brightness: brightness);
+    final borderColor = AppColors.getOutline(brightness: brightness);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            color: cardBg,
-            border: widget.isSelected
-                ? Border.all(color: typeColor, width: 2)
-                : Border.all(color: cardBorder.withValues(alpha: 0.12), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          color: cardBg,
+          border: widget.isSelected
+              ? Border.all(color: typeColor, width: 2)
+              : Border.all(color: borderColor.withValues(alpha: 0.1), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2 : AppRadius.card),
+          child: Stack(
+            children: [
+              // 左侧类型色条
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 4,
+                child: Container(color: typeColor),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(widget.isSelected ? AppRadius.card - 2 : AppRadius.card),
-            child: Stack(
-              children: [
-                // 左侧类型色条
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 4,
-                  child: Container(color: typeColor),
-                ),
-                // 内容
-                Padding(
-                  padding: EdgeInsets.only(left: AppSpacing.space4),
-                  child: FutureBuilder<_FolderInfo>(
-                    future: _loadFolderInfo(),
-                    builder: (context, snapshot) {
-                      final info = snapshot.data;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildTopRow(context, typeColor, info?.count ?? 0),
-                          Expanded(
-                            child: Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3),
-                                child: Text(
-                                  widget.folder.name,
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.getOnSurface(brightness: brightness),
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
+              // 内容
+              Padding(
+                padding: EdgeInsets.only(left: AppSpacing.space4),
+                child: FutureBuilder<_FolderInfo>(
+                  future: _loadFolderInfo(),
+                  builder: (context, snapshot) {
+                    final info = snapshot.data;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildTopRow(context, typeColor, info?.count ?? 0),
+                        Expanded(
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3),
+                              child: Text(
+                                widget.folder.name,
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.getOnSurface(brightness: brightness),
                                 ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
-                          _buildBottomRow(brightness, info?.currentTitle),
-                        ],
-                      );
-                    },
-                  ),
+                        ),
+                        _buildBottomRow(brightness, info?.currentTitle),
+                      ],
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
