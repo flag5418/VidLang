@@ -557,10 +557,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomArea(state, notifier, hasSubtitles, followLabel, currentSub)),
           // 4.5 Follow panel (inline overlay)
           if (_showFollow && currentSub != null && !_drawerOpen)
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              child: _buildFollowPanel(state, notifier, currentSub),
-            ),
+            Positioned(left: 0, right: 0, bottom: 0, child: _buildFollowPanel(state, notifier, currentSub)),
           // 5. Drawer overlay
           if (_drawerOpen)
             GestureDetector(
@@ -569,7 +566,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 _showAudioList = false;
               }),
               behavior: HitTestBehavior.translucent,
-              child: Container(color: _drawerOverlay()),
+              child: Container(color: Colors.black.withValues(alpha: 0.4)),
             ),
           // 6. Drawer panel
           if (_drawerOpen)
@@ -577,12 +574,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               top: 0,
               right: 0,
               bottom: 0,
-              child: Container(
-                width: 320,
-                color: _drawerBg(),
-                child: SafeArea(
-                  left: false,
-                  child: _showSettings ? _buildSettingsContent(state, notifier) : _buildAudioListContent(state, notifier),
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    width: 320.w,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface.withValues(alpha: 0.85),
+                      border: Border(left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
+                    ),
+                    child: SafeArea(
+                      left: false,
+                      child: _showSettings ? _buildSettingsContent(state, notifier) : _buildAudioListContent(state, notifier),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -600,11 +605,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-            child: Image.file(
-              File(coverPath),
-              fit: BoxFit.cover,
-              errorBuilder: (_, e, s) => _buildGradientBackground(),
-            ),
+            child: Image.file(File(coverPath), fit: BoxFit.cover, errorBuilder: (_, e, s) => _buildGradientBackground()),
           ),
         ),
       );
@@ -641,16 +642,19 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       ),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: EdgeInsets.only(right: 8.w),
-              child: SizedBox(
-                width: 44.r,
-                height: 44.r,
-                child: Center(
-                  child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20.sp),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(22.r),
+              child: Padding(
+                padding: EdgeInsets.only(right: 8.w),
+                child: SizedBox(
+                  width: 44.r,
+                  height: 44.r,
+                  child: Center(
+                    child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20.sp),
+                  ),
                 ),
               ),
             ),
@@ -710,14 +714,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _topBtn(IconData icon, VoidCallback onTap, {bool active = false}) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 44.r,
-        height: 44.r,
-        child: Center(
-          child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 20.sp),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22.r),
+        child: SizedBox(
+          width: 44.r,
+          height: 44.r,
+          child: Center(
+            child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 20.sp),
+          ),
         ),
       ),
     );
@@ -790,13 +797,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           // Left: main playback controls
           if (hasSubtitles) _ctrlBtn(Icons.skip_previous_rounded, () => n.previousSentence(), size: 28),
           const SizedBox(width: 8),
-          GestureDetector(
-            onTap: () => n.togglePlayPause(),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.sunsetGradient),
-              child: Icon(s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 28),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => n.togglePlayPause(),
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.sunsetGradient),
+                child: Icon(s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 28),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -824,35 +835,43 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _ctrlBtn(IconData icon, VoidCallback onTap, {double size = 24}) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 44,
-        height: 44,
-        child: Center(
-          child: Icon(icon, color: Colors.white, size: size),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Center(
+            child: Icon(icon, color: Colors.white, size: size),
+          ),
         ),
       ),
     );
   }
 
   Widget _miniBtn(String label, bool active, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary.withValues(alpha: 0.3) : Colors.white12,
-          borderRadius: BorderRadius.circular(14),
-          border: active ? Border.all(color: AppColors.primary.withValues(alpha: 0.5)) : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? AppColors.primary : Colors.white70,
-            fontSize: 13.sp,
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary.withValues(alpha: 0.2) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: active ? Border.all(color: AppColors.primary.withValues(alpha: 0.3)) : Border.all(color: Colors.transparent),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? AppColors.primary : Colors.white70,
+              fontSize: 13.sp,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ),
       ),
@@ -883,32 +902,36 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               const SizedBox(height: 8),
               ..._speedOptions.map((sp) {
                 final active = ref.read(playerEngineProvider).speed == sp;
-                return GestureDetector(
-                  onTap: () {
-                    n.setSpeed(sp);
-                    Navigator.pop(ctx);
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: active ? AppColors.primary.withValues(alpha: 0.2) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                      border: active ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          '${sp}X',
-                          style: TextStyle(
-                            color: active ? AppColors.primary : _drawerTextVariant(),
-                            fontSize: 15.sp,
-                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      n.setSpeed(sp);
+                      Navigator.pop(ctx);
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: active ? AppColors.primary.withValues(alpha: 0.2) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        border: active ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            '${sp}X',
+                            style: TextStyle(
+                              color: active ? AppColors.primary : _drawerTextVariant(),
+                              fontSize: 15.sp,
+                              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            ),
                           ),
-                        ),
-                        const Spacer(),
-                        if (active) Icon(Icons.check_rounded, color: AppColors.primary, size: 18),
-                      ],
+                          const Spacer(),
+                          if (active) Icon(Icons.check_rounded, color: AppColors.primary, size: 18),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -982,27 +1005,35 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: s.isRecording ? null : () => _startFollowRecording(s, n, currentSub),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  decoration: BoxDecoration(color: s.isRecording ? Colors.white24 : AppColors.primary, borderRadius: BorderRadius.circular(20)),
-                  child: Text(
-                    s.isRecording ? '录音中...' : '开始$followLabel',
-                    style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: s.isRecording ? null : () => _startFollowRecording(s, n, currentSub),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    decoration: BoxDecoration(color: s.isRecording ? Colors.white24 : AppColors.primary, borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                      s.isRecording ? '录音中...' : '开始$followLabel',
+                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ),
               if (s.isRecording) ...[
                 const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () => _stopFollowRecording(s, n, currentSub),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(20)),
-                    child: Text(
-                      '停止',
-                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _stopFollowRecording(s, n, currentSub),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(20)),
+                      child: Text(
+                        '停止',
+                        style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                 ),
@@ -1113,14 +1144,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 children: ['single_loop', 'list_loop', 'random'].map((mode) {
                   final labels = {'single_loop': '单曲循环', 'list_loop': '列表循环', 'random': '随机播放'};
                   final active = s.loopingMode == mode;
-                  return GestureDetector(
-                    onTap: () => n.setLoopingMode(mode),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: active ? AppColors.primary : Colors.white12, borderRadius: BorderRadius.circular(10)),
-                      child: Text(
-                        labels[mode] ?? mode,
-                        style: TextStyle(color: active ? Colors.white : Colors.white70, fontSize: 12.sp),
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => n.setLoopingMode(mode),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(color: active ? AppColors.primary : Colors.white12, borderRadius: BorderRadius.circular(10)),
+                        child: Text(
+                          labels[mode] ?? mode,
+                          style: TextStyle(color: active ? Colors.white : Colors.white70, fontSize: 12.sp),
+                        ),
                       ),
                     ),
                   );
@@ -1129,46 +1164,54 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               const SizedBox(height: 16),
               _settingLabel('智能匹配字幕'),
               const SizedBox(height: 4),
-              GestureDetector(
-                onTap: () {
-                  setState(() => _showSettings = false);
-                  _startSmartMatch();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
-                  child: Row(
-                    children: [
-                      Icon(Icons.auto_awesome, size: 16, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        '开始智能匹配',
-                        style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
-                      ),
-                    ],
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() => _showSettings = false);
+                    _startSmartMatch();
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
+                    child: Row(
+                      children: [
+                        Icon(Icons.auto_awesome, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          '开始智能匹配',
+                          style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 8),
               _settingLabel('手动导入字幕'),
               const SizedBox(height: 4),
-               GestureDetector(
-                 onTap: () {
-                   setState(() => _showSettings = false);
-                   _importSubtitle();
-                 },
-                 child: Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                   decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
-                   child: Row(
-                     children: [
-                       Icon(Icons.upload_file_rounded, size: 16, color: AppColors.primary),
-                       const SizedBox(width: 8),
-                       Text(
-                         '选择字幕文件',
-                         style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
-                      ),
-                    ],
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() => _showSettings = false);
+                    _importSubtitle();
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
+                    child: Row(
+                      children: [
+                        Icon(Icons.upload_file_rounded, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          '选择字幕文件',
+                          style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1180,17 +1223,27 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _settingSwitch(String label, bool value, VoidCallback onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: _drawerText(), fontSize: 13.sp),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onChanged,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: TextStyle(color: _drawerText(), fontSize: 13.sp),
+              ),
+              const Spacer(),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(value: value, onChanged: (_) => onChanged(), activeThumbColor: AppColors.primary, inactiveThumbColor: Colors.white38),
+              ),
+            ],
           ),
-          const Spacer(),
-          Switch(value: value, onChanged: (_) => onChanged(), activeThumbColor: AppColors.primary, inactiveThumbColor: Colors.white38),
-        ],
+        ),
       ),
     );
   }
@@ -1228,7 +1281,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => setState(() => _showAudioList = false),
-                child: Icon(Icons.close_rounded, color: _drawerTextVariant(), size: 22),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(Icons.close_rounded, color: _drawerTextVariant(), size: 22),
+                ),
               ),
             ],
           ),
@@ -1255,111 +1311,115 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                     final v = list[i];
                     final isCurrent = v.code == s.videoCode;
                     final durationStr = v.duration > 0 ? _fmtDuration(Duration(milliseconds: v.duration)) : '--:--';
-                    return GestureDetector(
-                      onTap: () {
-                        if (v.code != null && v.code != s.videoCode) {
-                          setState(() => _showAudioList = false);
-                          _switchToAudio(v.code!);
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: isCurrent ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
-                        ),
-                        child: Row(
-                          children: [
-                            // Cover thumbnail or index
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: isCurrent ? AppColors.primary.withValues(alpha: 0.3) : Colors.white12,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: isCurrent
-                                    ? Icon(Icons.equalizer_rounded, color: AppColors.primary, size: 22)
-                                    : Text(
-                                        '${i + 1}',
-                                        style: TextStyle(color: Colors.white54, fontSize: 14.sp, fontWeight: FontWeight.w500),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            // Title + info
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    v.name,
-                                    style: TextStyle(
-                                      color: isCurrent ? AppColors.primary : Colors.white,
-                                      fontSize: 14.sp,
-                                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      // Subtitle status
-                                      Icon(
-                                        v.hasSubtitles ? Icons.subtitles_rounded : Icons.subtitles_off_rounded,
-                                        size: 14,
-                                        color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white24,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        v.hasSubtitles ? '有字幕' : '无字幕',
-                                        style: TextStyle(
-                                          color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white30,
-                                          fontSize: 12.sp,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      // Duration
-                                      Icon(Icons.access_time_rounded, size: 12, color: Colors.white30),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        durationStr,
-                                        style: TextStyle(color: Colors.white38, fontSize: 12.sp),
-                                      ),
-                                      if (v.artist != null && v.artist!.isNotEmpty) ...[
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            v.artist!,
-                                            style: TextStyle(color: Colors.white30, fontSize: 12.sp),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Score badge
-                            if (v.lastFollowScore != null)
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          if (v.code != null && v.code != s.videoCode) {
+                            setState(() => _showAudioList = false);
+                            _switchToAudio(v.code!);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: isCurrent ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
+                          ),
+                          child: Row(
+                            children: [
+                              // Cover thumbnail or index
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                width: 44,
+                                height: 44,
                                 decoration: BoxDecoration(
-                                  color: _scoreColor(v.lastFollowScore!).withValues(alpha: 0.2),
+                                  color: isCurrent ? AppColors.primary.withValues(alpha: 0.3) : Colors.white12,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(
-                                  '${v.lastFollowScore!.round()}',
-                                  style: TextStyle(color: _scoreColor(v.lastFollowScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
+                                child: Center(
+                                  child: isCurrent
+                                      ? Icon(Icons.equalizer_rounded, color: AppColors.primary, size: 22)
+                                      : Text(
+                                          '${i + 1}',
+                                          style: TextStyle(color: Colors.white54, fontSize: 14.sp, fontWeight: FontWeight.w500),
+                                        ),
                                 ),
                               ),
-                          ],
+                              const SizedBox(width: 10),
+                              // Title + info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      v.name,
+                                      style: TextStyle(
+                                        color: isCurrent ? AppColors.primary : Colors.white,
+                                        fontSize: 14.sp,
+                                        fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        // Subtitle status
+                                        Icon(
+                                          v.hasSubtitles ? Icons.subtitles_rounded : Icons.subtitles_off_rounded,
+                                          size: 14,
+                                          color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white24,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          v.hasSubtitles ? '有字幕' : '无字幕',
+                                          style: TextStyle(
+                                            color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white30,
+                                            fontSize: 12.sp,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        // Duration
+                                        Icon(Icons.access_time_rounded, size: 12, color: Colors.white30),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          durationStr,
+                                          style: TextStyle(color: Colors.white38, fontSize: 12.sp),
+                                        ),
+                                        if (v.artist != null && v.artist!.isNotEmpty) ...[
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              v.artist!,
+                                              style: TextStyle(color: Colors.white30, fontSize: 12.sp),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Score badge
+                              if (v.lastFollowScore != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _scoreColor(v.lastFollowScore!).withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${v.lastFollowScore!.round()}',
+                                    style: TextStyle(color: _scoreColor(v.lastFollowScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     );

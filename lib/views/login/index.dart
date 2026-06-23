@@ -7,9 +7,9 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/views/main/main_page.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
 
 enum _AuthMode { login, register, verifyOtp }
+
 enum _LoginTab { supabase, local }
 
 class LoginPage extends StatefulWidget {
@@ -120,28 +120,22 @@ class _LoginPageState extends State<LoginPage> {
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           alignment: Alignment.center,
           child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildLogo(),
-                const SizedBox(height: 40),
-                // _buildTitle(),
-                // const SizedBox(height: 8),
-                // _buildSubtitle(),
-                // const SizedBox(height: 24),
-                if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
-                const SizedBox(height: 16),
-                if (_mode == _AuthMode.verifyOtp)
-                  _buildOtpForm()
-                else if (_tab == _LoginTab.local)
-                  _buildLocalForm()
-                else
-                  _buildAuthForm(),
-                const SizedBox(height: 24),
-                if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
-              ],
-            ),
-          
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildLogo(),
+              const SizedBox(height: 40),
+              // _buildTitle(),
+              // const SizedBox(height: 8),
+              // _buildSubtitle(),
+              // const SizedBox(height: 24),
+              if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
+              const SizedBox(height: 16),
+              if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else if (_tab == _LoginTab.local) _buildLocalForm() else _buildAuthForm(),
+              const SizedBox(height: 24),
+              if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
+            ],
+          ),
         ),
       ),
     );
@@ -150,58 +144,26 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildLogo() {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-       padding: EdgeInsets.only(
-        top: 20,
-        bottom: 20,
-       ),
-      child:
-      Column(
-children: [
-  Icon(Icons.school, color: colorScheme.primary, size: 22.w * 1.8),
-  Text('VidLang', style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
-  Text('看视频、听英语、读文章、轻松学英语', style: TextStyle(fontSize:12.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurfaceVariant)),
-  
-],
-      )
-       
-    );
-  }
-
-  Widget _buildTitle() {
-    final colorScheme = Theme.of(context).colorScheme;
-    if (_tab == _LoginTab.local && _mode != _AuthMode.verifyOtp) {
-      return Text(
-        '本地登录',
-        style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
-        textAlign: TextAlign.center,
-      );
-    }
-    final titles = widget.requireSupabaseReauth
-        ? {_AuthMode.login: '验证主账号', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'}
-        : {_AuthMode.login: '欢迎回来', _AuthMode.register: '创建账号', _AuthMode.verifyOtp: '验证邮箱'};
-    return Text(
-      titles[_mode]!,
-      style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
-      textAlign: TextAlign.center,
-    );
-  }
-
-  Widget _buildSubtitle() {
-    final colorScheme = Theme.of(context).colorScheme;
-    if (_tab == _LoginTab.local && _mode != _AuthMode.verifyOtp) {
-      return Text(
-        '使用本地账号登录',
-        style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
-        textAlign: TextAlign.center,
-      );
-    }
-    final subtitles = widget.requireSupabaseReauth
-        ? {_AuthMode.login: '请输入主账号密码以继续使用', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'}
-        : {_AuthMode.login: '登录你的 VidLang 账号', _AuthMode.register: '注册一个新账号开始学习', _AuthMode.verifyOtp: '验证码已发送至 $_pendingEmail'};
-    return Text(
-      subtitles[_mode]!,
-      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
-      textAlign: TextAlign.center,
+      padding: EdgeInsets.only(top: 40.h, bottom: 32.h),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(color: colorScheme.primaryContainer.withValues(alpha: 0.3), shape: BoxShape.circle),
+            child: Icon(Icons.school_rounded, color: colorScheme.primary, size: 48.w),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            'VidLang',
+            style: TextStyle(fontSize: 28.sp, fontWeight: FontWeight.w800, color: colorScheme.onSurface, letterSpacing: 0.5),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            '看视频、听英语、读文章、轻松学英语',
+            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w400, color: colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
     );
   }
 
@@ -222,7 +184,10 @@ children: [
           GestureDetector(
             onTap: () {},
             child: Center(
-              child: Text('忘记密码？', style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
+              child: Text(
+                '忘记密码？',
+                style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+              ),
             ),
           ),
       ],
@@ -263,7 +228,10 @@ children: [
         GestureDetector(
           onTap: () => setState(() => _mode = _AuthMode.register),
           child: Center(
-            child: Text('返回修改邮箱', style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
+            child: Text(
+              '返回修改邮箱',
+              style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+            ),
           ),
         ),
       ],
@@ -320,28 +288,28 @@ children: [
     final colorScheme = Theme.of(context).colorScheme;
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14.sp),
-      prefixIcon: icon != null ? Icon(icon, color: colorScheme.onSurfaceVariant, size: 20.sp) : null,
+      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 15.sp),
+      prefixIcon: icon != null ? Icon(icon, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8), size: 22.sp) : null,
       filled: true,
-      fillColor: colorScheme.surfaceContainerHighest,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: colorScheme.error, width: 1),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
     );
   }
 
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
     final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
-      height: 34.h * 1.47,
+      height: 52.h,
       child: ElevatedButton(
         onPressed: _loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
@@ -349,12 +317,19 @@ children: [
           foregroundColor: colorScheme.onPrimary,
           disabledBackgroundColor: colorScheme.primary.withAlpha(100),
           disabledForegroundColor: colorScheme.onPrimary.withAlpha(150),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
         ),
         child: _loading
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2))
-            : Text(label, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+            ? SizedBox(
+                width: 24.w,
+                height: 24.w,
+                child: const CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+              )
+            : Text(
+                label,
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+              ),
       ),
     );
   }
@@ -373,7 +348,10 @@ children: [
           Icon(Icons.error_outline, color: colorScheme.error, size: 18.sp),
           SizedBox(width: 8),
           Expanded(
-            child: Text(_error!, style: TextStyle(color: colorScheme.error, fontSize: 13.sp)),
+            child: Text(
+              _error!,
+              style: TextStyle(color: colorScheme.error, fontSize: 13.sp),
+            ),
           ),
         ],
       ),
@@ -388,7 +366,10 @@ children: [
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(isLogin ? '没有账号？' : '已有账号？', style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant)),
+        Text(
+          isLogin ? '没有账号？' : '已有账号？',
+          style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
+        ),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -410,17 +391,9 @@ children: [
   Widget _buildTabSwitcher() {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          _tabButton('账号登录', _LoginTab.supabase),
-          _tabButton('本地登录', _LoginTab.local),
-        ],
-      ),
+      child: Row(children: [_tabButton('账号登录', _LoginTab.supabase), _tabButton('本地登录', _LoginTab.local)]),
     );
   }
 
@@ -437,18 +410,19 @@ children: [
           });
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: EdgeInsets.symmetric(vertical: 10.h),
           decoration: BoxDecoration(
-            color: isActive ? colorScheme.primary : Colors.transparent,
+            color: isActive ? colorScheme.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
+            boxShadow: isActive ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: isActive ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              color: isActive ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -494,7 +468,11 @@ children: [
       style: TextStyle(color: colorScheme.onSurface, fontSize: 15.sp),
       decoration: _inputDecoration('密码', Icons.lock_outlined).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(_obscureLocalPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: colorScheme.onSurfaceVariant, size: 20.sp),
+          icon: Icon(
+            _obscureLocalPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: colorScheme.onSurfaceVariant,
+            size: 20.sp,
+          ),
           onPressed: () => setState(() => _obscureLocalPassword = !_obscureLocalPassword),
         ),
       ),

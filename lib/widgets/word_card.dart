@@ -421,11 +421,11 @@ class _WordCardState extends ConsumerState<WordCard> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.label_outline_rounded, size: 20.sp, color: cs.primary),
+                              Icon(Icons.label_outline_rounded, size: 20, color: cs.primary),
                               SizedBox(width: 8.w),
                               Text(
                                 '设置标签',
-                                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700, color: cs.onSurface),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface),
                               ),
                               const Spacer(),
                               IconButton(onPressed: () => Navigator.of(ctx).pop(), icon: const Icon(Icons.close_rounded)),
@@ -442,7 +442,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                                   decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999.r)),
                                   child: Text(
                                     name,
-                                    style: TextStyle(fontSize: 12.sp, color: cs.primary, fontWeight: FontWeight.w600),
+                                    style: TextStyle(fontSize: 12, color: cs.primary, fontWeight: FontWeight.w600),
                                   ),
                                 );
                               }).toList(),
@@ -481,7 +481,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                                         children: [
                                           Icon(
                                             selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                            size: 20.sp,
+                                            size: 20,
                                             color: selected ? cs.primary : cs.onSurfaceVariant,
                                           ),
                                           SizedBox(width: 10.w),
@@ -489,7 +489,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                                             child: Text(
                                               tag.name,
                                               style: TextStyle(
-                                                fontSize: 14.sp,
+                                                fontSize: 14,
                                                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                                                 color: selected ? cs.primary : cs.onSurface,
                                               ),
@@ -509,10 +509,10 @@ class _WordCardState extends ConsumerState<WordCard> {
                               Expanded(
                                 child: TextField(
                                   controller: newTagController,
-                                  style: TextStyle(fontSize: 14.sp, color: cs.onSurface),
+                                  style: TextStyle(fontSize: 14, color: cs.onSurface),
                                   decoration: InputDecoration(
                                     hintText: '新标签名称',
-                                    hintStyle: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant),
+                                    hintStyle: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                                     isDense: true,
                                     filled: true,
                                     fillColor: cs.surfaceContainerLow,
@@ -549,7 +549,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                               style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r))),
                               child: Text(
                                 '确定',
-                                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),

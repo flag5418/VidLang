@@ -20,6 +20,7 @@ class MainPage extends ConsumerStatefulWidget {
 
 class _MainPageState extends ConsumerState<MainPage> {
   late PageController _pageController;
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -33,22 +34,20 @@ class _MainPageState extends ConsumerState<MainPage> {
     super.dispose();
   }
 
+  void _onTabTapped(int index) {
+    if (_currentPage == index) return;
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+    );
+    ref.read(navigationIndexProvider.notifier).setIndex(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    final brightness = Theme.of(context).brightness;
-
-    // 监听 provider 变化，驱动 PageView 翻页
-    ref.listen<int>(navigationIndexProvider, (previous, next) {
-      if (previous != next && mounted) {
-        _pageController.animateToPage(
-          next,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-        );
-      }
-    });
 
     final pages = [const HomePage(), const FileListPage(), const CollectionPage(), const ProfilePage()];
 
@@ -56,7 +55,10 @@ class _MainPageState extends ConsumerState<MainPage> {
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
-          ref.read(navigationIndexProvider.notifier).setIndex(index);
+          if (_currentPage != index) {
+            _currentPage = index;
+            ref.read(navigationIndexProvider.notifier).setIndex(index);
+          }
         },
         physics: const ClampingScrollPhysics(),
         children: pages,
@@ -71,14 +73,7 @@ class _MainPageState extends ConsumerState<MainPage> {
               final isActive = currentIndex == index;
               return Expanded(
                 child: GestureDetector(
-                  onTap: () {
-                    _pageController.animateToPage(
-                      index,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOutCubic,
-                    );
-                    ref.read(navigationIndexProvider.notifier).setIndex(index);
-                  },
+                  onTap: () => _onTabTapped(index),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

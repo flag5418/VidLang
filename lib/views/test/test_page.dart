@@ -405,11 +405,22 @@ class _QuestionTypeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12.r),
+        color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+        border: isDark ? Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)) : null,
       ),
       child: Row(
         children: [
@@ -420,30 +431,28 @@ class _QuestionTypeCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500, color: colorScheme.onSurface),
+                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: 4.h),
                 Text(
                   description,
-                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: 12.w),
           _StepButton(icon: Icons.remove, onTap: value <= 0 ? null : () => onChanged(value - 1)),
-          SizedBox(width: 10.w),
           SizedBox(
-            width: 28.w,
+            width: 32.w,
             child: Text(
               '$value',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
           ),
-          SizedBox(width: 10.w),
           _StepButton(icon: Icons.add, onTap: value >= 20 ? null : () => onChanged(value + 1)),
         ],
       ),
