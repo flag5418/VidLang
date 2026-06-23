@@ -1,10 +1,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
-import 'package:vidlang/theme/theme.dart';
 
 class WifiTransferPage extends StatefulWidget {
   const WifiTransferPage({super.key});
@@ -63,118 +64,217 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
     final url = service.primaryUrl;
 
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: const Text('WiFi 传输'),
+        title: Text(
+          'WiFi 传输',
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
-         
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20.sp),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                borderRadius: AppRadius.all('lg'),
-                color: colorScheme.surfaceContainerHighest,
-              ),
+      body: _starting
+          ? Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('状态', style: TextStyle(fontSize: AppTypography.fontSizeLarge, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                      if (_starting) ...[
-                        SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-                      ] else if (_error != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: colorScheme.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Text('启动失败', style: TextStyle(color: colorScheme.error, fontSize: 12, fontWeight: FontWeight.w600)),
-                        ),
-                      ] else if (service.isRunning) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Text('已启动', style: TextStyle(color: colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w600)),
-                        ),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Text('未启动', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ],
+                  CircularProgressIndicator(strokeWidth: 3, color: colorScheme.primary),
+                  SizedBox(height: 16.h),
+                  Text(
+                    '正在启动服务...',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14.sp),
                   ),
-                  if (_starting) ...[
-                    const SizedBox(height: 8),
-                    Text('正在启动（端口 ${service.port ?? 9999}）…', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                  ] else if (_error != null) ...[
-                    const SizedBox(height: 8),
-                    Text('$_error', style: TextStyle(color: colorScheme.error, fontSize: 12)),
-                  ] else if (service.isRunning) ...[
-                    const SizedBox(height: 12),
-                    Text('在电脑浏览器打开：', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13)),
-                    const SizedBox(height: 4),
-                    SelectableText(url ?? '-', style: TextStyle(fontSize: 14, color: colorScheme.primary)),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: url == null ? null : () => TDToast.showText(url, context: context),
-                            child: const Text('复制地址'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _stop,
-                            child: const Text('停止并返回'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: _start,
-                      child: const Text('启动服务'),
-                    ),
-                  ],
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Expanded(
-              child: ListView(
-                children: [
-                  Text('可用地址', style: TextStyle(fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                  const SizedBox(height: 8),
-                  if (service.addresses.isEmpty) Text('-', style: TextStyle(color: colorScheme.onSurfaceVariant)),
-                  for (final ip in service.addresses)
+            )
+          : SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 头部图标与状态
                     Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        borderRadius: AppRadius.all('md'),
-                        border: Border.all(color: colorScheme.outlineVariant),
+                        color: service.isRunning ? colorScheme.primary.withValues(alpha: 0.08) : colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
                       ),
-                      child: Text('http://$ip:${service.port ?? 9999}/', style: TextStyle(color: colorScheme.onSurface)),
+                      child: Icon(
+                        service.isRunning ? Icons.wifi_tethering_rounded : Icons.wifi_tethering_off_rounded,
+                        size: 40.w,
+                        color: service.isRunning ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                ],
+                    SizedBox(height: 16.h),
+                    Text(
+                      service.isRunning ? '服务已启动' : '服务未启动',
+                      style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface, letterSpacing: 0.5),
+                    ),
+                    SizedBox(height: 6.h),
+                    Text(
+                      '请确保手机与电脑连接在同一局域网下',
+                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                    ),
+
+                    SizedBox(height: 32.h),
+
+                    // 错误信息提示
+                    if (_error != null)
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        margin: EdgeInsets.only(bottom: 20.h),
+                        decoration: BoxDecoration(color: colorScheme.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12.r)),
+                        child: Text(
+                          _error!,
+                          style: TextStyle(color: colorScheme.error, fontSize: 13.sp),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                    // 核心操作区
+                    if (service.isRunning && url != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(20.r),
+                          border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '在电脑浏览器中输入以下地址',
+                              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                            ),
+                            SizedBox(height: 12.h),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: SelectableText(
+                                url,
+                                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w600, color: colorScheme.primary, letterSpacing: 0.5),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 24.h),
+
+                      // 按钮组
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildActionBtn(
+                              icon: Icons.copy_rounded,
+                              label: '复制地址',
+                              isPrimary: true,
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: url));
+                                TDToast.showText('已复制地址', context: context);
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: _buildActionBtn(icon: Icons.stop_circle_rounded, label: '停止服务', isPrimary: false, onTap: _stop),
+                          ),
+                        ],
+                      ),
+                    ] else if (!service.isRunning && _error == null) ...[
+                      SizedBox(
+                        width: 200.w,
+                        child: _buildActionBtn(icon: Icons.play_circle_fill_rounded, label: '重新启动', isPrimary: true, onTap: _start),
+                      ),
+                    ],
+
+                    // 备用地址列表
+                    if (service.isRunning && service.addresses.length > 1) ...[
+                      SizedBox(height: 32.h),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '备用地址',
+                          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      ...service.addresses.where((ip) => 'http://$ip:${service.port}' != url).map((ip) {
+                        final altUrl = 'http://$ip:${service.port ?? 9999}';
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 8.h),
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.link_rounded, size: 14.sp, color: colorScheme.onSurfaceVariant),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  altUrl,
+                                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurface),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: altUrl));
+                                  TDToast.showText('已复制备用地址', context: context);
+                                },
+                                child: Icon(Icons.copy_rounded, size: 16.sp, color: colorScheme.primary),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ],
+                ),
               ),
             ),
-          ],
+    );
+  }
+
+  Widget _buildActionBtn({required IconData icon, required String label, required bool isPrimary, required VoidCallback onTap}) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: isPrimary ? colorScheme.primary : colorScheme.surface,
+      borderRadius: BorderRadius.circular(12.r),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 14.h),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.r),
+            border: isPrimary ? null : Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.8)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18.sp, color: isPrimary ? colorScheme.onPrimary : colorScheme.onSurface),
+              SizedBox(width: 6.w),
+              Text(
+                label,
+                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isPrimary ? colorScheme.onPrimary : colorScheme.onSurface),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

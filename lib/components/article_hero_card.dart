@@ -23,13 +23,7 @@ class ArticleHeroCard extends StatefulWidget {
   final VoidCallback? onRename;
   final VoidCallback? onDelete;
 
-  const ArticleHeroCard({
-    super.key,
-    required this.article,
-    this.onRead,
-    this.onRename,
-    this.onDelete,
-  });
+  const ArticleHeroCard({super.key, required this.article, this.onRead, this.onRename, this.onDelete});
 
   @override
   State<ArticleHeroCard> createState() => _ArticleHeroCardState();
@@ -46,9 +40,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
     final cardColor = AppColors.articleColorFor(widget.article.title);
     final hasActions = widget.onRename != null || widget.onDelete != null;
-    final letter = widget.article.title.isNotEmpty
-        ? widget.article.title[0].toUpperCase()
-        : '?';
+    final letter = widget.article.title.isNotEmpty ? widget.article.title[0].toUpperCase() : '?';
 
     return GestureDetector(
       onTap: widget.onRead,
@@ -64,13 +56,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           color: cardColor,
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x20000000),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Color(0x20000000), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -79,22 +65,12 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
             Center(
               child: Text(
                 letter,
-                style: TextStyle(
-                  fontSize: 72.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.2),
-                  height: 1,
-                ),
+                style: TextStyle(fontSize: 72.sp, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.2), height: 1),
               ),
             ),
             _buildBottomSection(colorScheme, cardColor),
             _buildPlayButton(colorScheme),
-            if (hasActions)
-              Positioned(
-                bottom: AppSpacing.space4,
-                right: AppSpacing.space3,
-                child: _buildMenu(colorScheme),
-              ),
+            if (hasActions) Positioned(bottom: AppSpacing.space4, right: AppSpacing.space3, child: _buildMenu(colorScheme)),
           ],
         ),
       ),
@@ -106,12 +82,9 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     final percent = (progress * 100).round();
 
     final metaParts = <String>[];
-    if (widget.article.totalParagraphs > 0)
-      metaParts.add('${widget.article.totalParagraphs}段');
-    if (widget.article.totalSentences > 0)
-      metaParts.add('${widget.article.totalSentences}句');
-    if (widget.article.wordCount > 0)
-      metaParts.add('${widget.article.wordCount}词');
+    if (widget.article.totalParagraphs > 0) metaParts.add('${widget.article.totalParagraphs}段');
+    if (widget.article.totalSentences > 0) metaParts.add('${widget.article.totalSentences}句');
+    if (widget.article.wordCount > 0) metaParts.add('${widget.article.wordCount}词');
 
     return Positioned(
       bottom: 0,
@@ -129,20 +102,12 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
             ),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.space4,
-              AppSpacing.space3,
-              AppSpacing.space4,
-              AppSpacing.space4,
-            ),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.space4, AppSpacing.space3, AppSpacing.space4, AppSpacing.space4),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: 0.65),
-                ],
+                colors: [Colors.transparent, Colors.black.withValues(alpha: 0.65)],
               ),
             ),
             child: Column(
@@ -151,12 +116,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
               children: [
                 Text(
                   widget.article.title,
-                  style: TextStyle(
-                    fontSize: AppTypography.fontSizeBase.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
-                  ),
+                  style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -164,32 +124,18 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                 if (metaParts.isNotEmpty)
                   Text(
                     metaParts.join(' · '),
-                    style: TextStyle(
-                      fontSize: AppTypography.fontSizeXSmall.sp,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white70, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 if (progress > 0 && metaParts.isNotEmpty) SizedBox(height: 4.h),
                 if (progress > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm), color: Colors.white.withValues(alpha: 0.2)),
                     child: Text(
                       '已读 $percent%',
-                      style: TextStyle(
-                        fontSize: AppTypography.fontSizeXSmall.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white, fontWeight: FontWeight.w500),
                     ),
                   ),
               ],
@@ -208,13 +154,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.92),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         child: Icon(Icons.play_arrow_rounded, size: 20.w, color: Colors.white),
       ),
@@ -222,69 +162,45 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
   }
 
   Widget _buildMenu(ColorScheme colorScheme) {
-    return GestureDetector(
-      onTap: () {},
-      onPanDown: (_) {},
-      child: PopupMenuButton<String>(
-        onSelected: (value) {
-          switch (value) {
-            case 'rename':
-              widget.onRename?.call();
-              break;
-            case 'delete':
-              widget.onDelete?.call();
-              break;
-          }
-        },
-        offset: const Offset(-120, 0),
-        color: colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        elevation: 6,
-        child: Container(
-          width: 28.r,
-          height: 28.r,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.sm.r),
-            color: Colors.black.withValues(alpha: 0.65),
-          ),
-          child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
-        ),
-        itemBuilder: (context) => [
-          if (widget.onRename != null)
-            PopupMenuItem(
-              value: 'rename',
-              child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme),
-            ),
-          if (widget.onDelete != null) ...[
-            const PopupMenuDivider(height: 1),
-            PopupMenuItem(
-              value: 'delete',
-              child: _menuRow(context, Icons.delete_outline, '删除', colorScheme),
-            ),
-          ],
-        ],
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        switch (value) {
+          case 'rename':
+            widget.onRename?.call();
+            break;
+          case 'delete':
+            widget.onDelete?.call();
+            break;
+        }
+      },
+      offset: const Offset(-120, 0),
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      elevation: 6,
+      child: Container(
+        width: 28.r,
+        height: 28.r,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm.r), color: Colors.black.withValues(alpha: 0.65)),
+        child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
       ),
+      itemBuilder: (context) => [
+        if (widget.onRename != null) PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme)),
+        if (widget.onDelete != null) ...[
+          const PopupMenuDivider(height: 1),
+          PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
+        ],
+      ],
     );
   }
 
-  Widget _menuRow(
-    BuildContext context,
-    IconData icon,
-    String title,
-    ColorScheme cs,
-  ) {
+  Widget _menuRow(BuildContext context, IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
         Icon(icon, size: 18.sp, color: cs.onSurfaceVariant),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
-          style: TextStyle(
-            color: cs.onSurface,
-            fontSize: AppTypography.fontSizeBase.sp,
-          ),
+          style: TextStyle(color: cs.onSurface, fontSize: AppTypography.fontSizeBase.sp),
         ),
       ],
     );
