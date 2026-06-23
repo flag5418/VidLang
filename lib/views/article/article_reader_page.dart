@@ -736,13 +736,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     if (_sentences.isEmpty) return;
     final sortedParas = _getParagraphIndices();
     if (sortedParas.isEmpty) return;
-    final startPara = _activeParagraphIndex ?? sortedParas.first;
     _isReadingAll = true;
-    _readingAllParagraphIndex = startPara;
-    final startPos = sortedParas.indexOf(startPara);
+    _readingAllParagraphIndex = sortedParas.first;
     setState(() {
-      _activeParagraphIndex = startPara;
-      _activeParagraphPosition = startPos >= 0 ? startPos : 0;
+      _activeParagraphIndex = sortedParas.first;
+      _activeParagraphPosition = 0;
+      _readSentenceIndex = _sentences.first.sentenceIndex;
+    });
+    // 滚动到顶部
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToParagraph(sortedParas.first);
     });
     _speakCurrentParagraph();
   }
@@ -811,10 +814,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   void _speakParagraph(int paragraphIndex) {
     final sentences = _sentencesForParagraph(paragraphIndex);
     if (sentences.isEmpty) return;
+    final firstSentence = sentences.first;
     setState(() {
       _activeParagraphIndex = paragraphIndex;
-      final paraIndices = _getParagraphIndices();
-      _activeParagraphPosition = paraIndices.indexOf(paragraphIndex);
+      _activeParagraphPosition = _getParagraphIndices().indexOf(paragraphIndex);
+      _readSentenceIndex = firstSentence.sentenceIndex;
     });
     _scrollToParagraph(paragraphIndex);
     _speakText(sentences.map((s) => s.content).join(' '));
@@ -1371,37 +1375,38 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     final pos = pageStart + i;
                     final isActive = pos == _activeParagraphPosition;
                     final isRead = pos < _activeParagraphPosition;
-                    return Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 2.w),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() => _activeParagraphPosition = pos);
-                          _scrollToParagraph(paraIdx);
-                        },
-                        child: Container(
-                          width: 26.w,
-                          height: 26.w,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isActive ? cs.primary : isRead ? cs.primary.withValues(alpha: 0.15) : Colors.transparent,
-                            border: Border.all(
-                              color: isActive ? cs.primary : isRead ? cs.primary.withValues(alpha: 0.3) : cs.outline.withValues(alpha: 0.15),
-                              width: 1,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${paraIdx + 1}',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: isActive ? cs.onPrimary : isRead ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.5),
-                                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 2.w),
+      child: GestureDetector(
+        onTap: () {
+          final globalPos = pageStart + i;
+          setState(() => _activeParagraphPosition = globalPos);
+          _scrollToParagraph(paraIdx);
+        },
+        child: Container(
+          width: 26.w,
+          height: 26.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? cs.primary : isRead ? cs.primary.withValues(alpha: 0.15) : Colors.transparent,
+            border: Border.all(
+              color: isActive ? cs.primary : isRead ? cs.primary.withValues(alpha: 0.3) : cs.outline.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              '${pos + 1}',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: isActive ? cs.onPrimary : isRead ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.5),
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
                   },
                 ),
               ),
