@@ -18,12 +18,14 @@ import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
+import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
+import 'package:vidlang/widgets/model_download_dialog.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
@@ -62,6 +64,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   // Player overlay is always dark regardless of theme mode
   Color _drawerText() => AppColors.onSurface;
   Color _drawerTextVariant() => AppColors.onSurfaceVariant;
+
+  /// 检查是否可以使用 AI 功能
+  bool get _canUseAiFeatures => LocalModelService.instance.canUseAiFeatures;
 
   Future<void> _showNativeTranslationGuide({required Future<void> Function() onRetry}) async {
     if (!mounted) return;
@@ -829,6 +834,25 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   /// 单词朗读：免费模式走系统 TTS，付费模式走 Edge Function ai_tts
   Future<void> _speakSelectedWord(String word) async {
+    // 检查 AI 功能是否可用
+    if (!_canUseAiFeatures) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('需要下载AI模型才能使用语音功能'),
+            action: SnackBarAction(
+              label: '去下载',
+              onPressed: () {
+                // 显示模型下载弹窗
+                ModelDownloadDialog.show(context);
+              },
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    
     final subState = ref.read(subscriptionProvider);
     if (subState.mode == SubscriptionMode.premium) {
       try {

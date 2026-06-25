@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
+import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
 import 'package:vidlang/views/home/home_page.dart';
 import 'package:vidlang/views/profile/profile_page.dart';
 import 'package:vidlang/views/word_book/collection_page.dart';
+import 'package:vidlang/widgets/model_download_dialog.dart';
 
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
@@ -20,11 +22,47 @@ class MainPage extends ConsumerStatefulWidget {
 class _MainPageState extends ConsumerState<MainPage> {
   late PageController _pageController;
   int _currentPage = 0;
+  bool _hasCheckedModels = false;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    
+    // 延迟检查模型状态，避免阻塞UI
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkModelStatus();
+    });
+  }
+
+  /// 检查模型状态，如果需要下载则显示弹窗
+  Future<void> _checkModelStatus() async {
+    if (_hasCheckedModels) return;
+    _hasCheckedModels = true;
+    
+    try {
+      final localModelService = LocalModelService.instance;
+      final status = await localModelService.checkModelsStatus();
+      
+      // 如果需要下载模型，显示弹窗
+      if (status.shouldShowDownloadDialog && mounted) {
+        // 延迟显示弹窗，确保页面完全加载
+        await Future.delayed(Duration(milliseconds: 500));
+        
+        if (mounted) {
+          await ModelDownloadDialog.show(
+            context,
+            forceShow: status == LocalModelStatus.missing, // 缺少模型时强制下载
+            onDownloadComplete: () {
+              // 下载完成后刷新状态
+              localModelService.reset();
+            },
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('检查模型状态失败: $e');
+    }
   }
 
   @override

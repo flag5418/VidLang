@@ -72,6 +72,9 @@ dependencies:
   # 加密工具 - 用于声通签名生成
   crypto: ^3.0.6
 
+  # 网络请求 - 用于模型下载
+  dio: ^5.7.0
+
   # 音频播放 - 用于播放 TTS 和录音文件
   audioplayers: ^6.1.0
 

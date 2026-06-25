@@ -32,6 +32,7 @@ import 'package:vidlang/views/profile/billing_page.dart';
 import 'package:vidlang/views/profile/edit_profile_page.dart';
 import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
+import 'package:vidlang/views/settings/model_settings_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -134,6 +135,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   title: '学习难度',
                   subtitle: difficulty.label,
                   onTap: () => _showDifficultyPicker(),
+                ),
+                _SettingItem(
+                  icon: Icons.smart_toy_outlined,
+                  title: 'AI 模型设置',
+                  subtitle: '管理本地AI模型',
+                  onTap: () => _navigateToModelSettings(),
                 ),
                 if (_isSupabaseUser)
                   _SettingItem(
@@ -493,6 +500,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   void _navigateToUserSettings() {
     Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSettingsPage()));
+  }
+
+  void _navigateToModelSettings() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const ModelSettingsPage()));
   }
 
   void _navigateToBillingPage() {

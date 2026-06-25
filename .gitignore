@@ -39,3 +39,4 @@ web/firebase-messaging-sw.js
 
 # Supabase CLI local traces / telemetry
 .supabase_cli/
+flutter_01.log

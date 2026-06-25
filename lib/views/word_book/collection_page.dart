@@ -10,7 +10,6 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_tag.dart';
-import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/word_tag_service.dart';
@@ -453,43 +452,12 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     );
   }
 
-  /// 拍照翻译：调用 iOS 原生 OCR + 翻译
   Future<void> _handleCameraTranslate() async {
-    try {
-      final result = await IosNativeFeatures.extractTextFromCamera();
-      if (!mounted) return;
-      if (!result.success || result.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('未识别到文本'), duration: Duration(seconds: 2)),
-        );
-        return;
-      }
-      // 提取识别到的单词并在翻译弹窗中显示
-      final text = result.text.trim();
-      final wordPattern = RegExp(r"([a-zA-Z']+)");
-      final words = wordPattern.allMatches(text).map((m) => m.group(0)!).toList();
-      if (words.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('未识别到英文单词'), duration: Duration(seconds: 2)),
-        );
-        return;
-      }
-      // 显示第一个单词的翻译弹窗
-      final isPaid = AppConfig.currentUser?.authProvider == 'supabase';
-      await WordCard.show(
-        context,
-        word: words.first,
-        isPaidMode: isPaid,
-        onSpeak: () => _speakWord(words.first),
-        sourceType: 'word_book',
-        sourceCode: '',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('拍照翻译失败: $e'), duration: const Duration(seconds: 3)),
-      );
-    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CameraTranslatePage()),
+    );
+    if (mounted) await _reload();
   }
 
   Widget _buildNavPanel() {

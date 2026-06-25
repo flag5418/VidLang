@@ -48,6 +48,7 @@ import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/global_error_handler.dart';
+import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
