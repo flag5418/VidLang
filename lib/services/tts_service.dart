@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart' as ap;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:vidlang/config.dart';
 import 'package:vidlang/services/aliyun_tts_service.dart';
 import 'package:vidlang/services/local_ai_service.dart';
-import 'package:vidlang/services/local_model_service.dart';
 
 /// 跨平台 TTS 朗读服务
 ///
@@ -51,7 +51,7 @@ class TtsService {
       _flutterTts!.setCancelHandler(() => _isSpeaking = false);
       _initialized = true;
     } catch (e) {
-      print('TTS init error: $e');
+      debugPrint('TTS init error: $e');
     }
   }
 
@@ -76,7 +76,7 @@ class TtsService {
       final result = await _flutterTts!.speak(text);
       return result == 1;
     } catch (e) {
-      print('TTS speak error: $e');
+      debugPrint('TTS speak error: $e');
       _isSpeaking = false;
       return false;
     }
@@ -119,7 +119,7 @@ class TtsService {
       
       return true;
     } catch (e) {
-      print('Local Piper TTS speak error: $e');
+      debugPrint('Local Piper TTS speak error: $e');
       _isSpeaking = false;
       return false;
     }
