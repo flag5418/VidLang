@@ -6,15 +6,17 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:vidlang/config.dart';
 import 'package:vidlang/services/aliyun_tts_service.dart';
+import 'package:vidlang/services/local_ai_service.dart';
+import 'package:vidlang/services/local_model_service.dart';
 
 /// 跨平台 TTS 朗读服务
 ///
-/// 提供两种 TTS 引擎：
-/// - 系统 TTS：使用 flutter_tts（免费、离线），适用于基本朗读
+/// 提供三种 TTS 引擎：
+/// - 本地 Piper TTS：使用 sherpa-onnx（高质量、离线），优先使用
+/// - 系统 TTS：使用 flutter_tts（免费、离线），作为降级方案
 /// - 阿里云 TTS：使用 AliyunTtsService（高质量、流式），适用于"清晰朗读"
 ///
-/// 当阿里云 API Key 已配置时，"清晰朗读"会自动使用阿里云 TTS；
-/// 否则降级为系统 TTS。
+/// 优先级：本地 Piper TTS > 系统 TTS > 阿里云 TTS
 class TtsService {
   static final TtsService _instance = TtsService._internal();
   factory TtsService() => _instance;
@@ -27,11 +29,17 @@ class TtsService {
   /// 阿里云 TTS 引擎
   final AliyunTtsService _aliTts = AliyunTtsService();
 
+  /// 本地 AI 服务（用于 Piper TTS）
+  final LocalAiService _localAi = LocalAiService.instance;
+
   /// 是否已初始化
   bool get isInitialized => _initialized;
 
   /// 阿里云 API Key 是否已配置
   bool get hasAliyunConfig => AppConfig.aliDashScopeApiKey.isNotEmpty;
+
+  /// 是否可以使用本地 Piper TTS
+  bool get canUseLocalTts => _localAi.canUseFeature(LocalAiFeature.tts);
 
   /// 初始化系统 TTS
   Future<void> initialize() async {
@@ -74,7 +82,50 @@ class TtsService {
     }
   }
 
-  /// 清晰朗读 — 优先使用阿里云 TTS（高质量），无配置则降级为系统 TTS
+  /// 使用本地 Piper TTS 朗读文本
+  Future<bool> speakWithLocalPiper({
+    required String text,
+    String language = 'en-US',
+  }) async {
+    if (text.isEmpty) return false;
+    if (!canUseLocalTts) return false;
+
+    try {
+      _isSpeaking = true;
+      
+      // 生成音频文件
+      final audioPath = await _localAi.synthesizeToFile(
+        text: text,
+        outputPath: '', // 自动生成临时路径
+      );
+      
+      if (audioPath == null || !await File(audioPath).exists()) {
+        _isSpeaking = false;
+        return false;
+      }
+      
+      // 播放音频
+      final player = ap.AudioPlayer();
+      await player.play(ap.DeviceFileSource(audioPath));
+      
+      // 等待播放完成
+      await player.onPlayerComplete.first;
+      _isSpeaking = false;
+      
+      // 清理临时文件
+      try {
+        await File(audioPath).delete();
+      } catch (_) {}
+      
+      return true;
+    } catch (e) {
+      print('Local Piper TTS speak error: $e');
+      _isSpeaking = false;
+      return false;
+    }
+  }
+
+  /// 清晰朗读 — 优先级：本地 Piper TTS > 阿里云 TTS > 系统 TTS
   ///
   /// [useAliyun] 是否使用阿里云 TTS，默认 true。免费模式下应设为 false
   /// 阿里云 TTS 模式下，使用 [audioPlayer] 播放下载后保存的音频文件。
@@ -91,6 +142,16 @@ class TtsService {
     }
 
     try {
+      // 优先使用本地 Piper TTS
+      if (canUseLocalTts) {
+        final success = await speakWithLocalPiper(text: text);
+        if (success) {
+          if (onComplete != null) onComplete();
+          return;
+        }
+      }
+
+      // 其次使用阿里云 TTS
       if (useAliyun && hasAliyunConfig && audioPlayer != null) {
         // 阿里云 TTS：下载并播放
         final path = await _aliTts.getAudioPath(text);

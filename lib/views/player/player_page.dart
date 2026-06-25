@@ -832,7 +832,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return null;
   }
 
-  /// 单词朗读：免费模式走系统 TTS，付费模式走 Edge Function ai_tts
+  /// 单词朗读：优先使用本地 Piper TTS，系统 TTS 作为降级方案
   Future<void> _speakSelectedWord(String word) async {
     // 检查 AI 功能是否可用
     if (!_canUseAiFeatures) {
@@ -853,6 +853,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       return;
     }
     
+    // 优先使用本地 Piper TTS
+    if (TtsService().canUseLocalTts) {
+      try {
+        await TtsService().speakWithLocalPiper(text: word);
+        return;
+      } catch (e) {
+        // 本地 TTS 失败，降级到系统 TTS
+        debugPrint('Local TTS failed, falling back to system TTS: $e');
+      }
+    }
+    
+    // 降级到系统 TTS
     final subState = ref.read(subscriptionProvider);
     if (subState.mode == SubscriptionMode.premium) {
       try {
@@ -875,8 +887,30 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     }
   }
 
-  /// 付费模式清晰朗读：Edge Function ai_tts
+  /// 付费模式清晰朗读：优先使用本地 Piper TTS，Edge Function ai_tts 作为降级方案
   Future<void> _speakClarityPremium(String text, bool wasPlaying, PlayerEngineNotifier n) async {
+    // 优先使用本地 Piper TTS
+    if (TtsService().canUseLocalTts) {
+      try {
+        await TtsService().speakClarity(
+          text: text,
+          audioPlayer: _aliAudioPlayer,
+          useAliyun: false, // 不使用阿里云 TTS
+          onComplete: () {
+            if (!mounted) return;
+            setState(() => _isTtsSpeaking = false);
+            if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+              n.player.play();
+            }
+          },
+        );
+        return;
+      } catch (e) {
+        // 本地 TTS 失败，降级到云 TTS
+        debugPrint('Local TTS failed, falling back to cloud TTS: $e');
+      }
+    }
+
     try {
       final result = await AiService.getTtsAudio(text: text);
       if (result == null || !mounted) {

@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:developer' as dev;
+import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/services/auth_service.dart';
+import 'package:vidlang/services/local_ai_service.dart';
+import 'package:vidlang/services/local_model_service.dart';
 
 /// 统一调用 ai-proxy Edge Function
 ///
@@ -21,12 +25,22 @@ class AiService {
   static const _functionName = 'ai-proxy';
   static const _uuid = Uuid();
 
+  /// 本地 AI 服务实例
+  static final LocalAiService _localAi = LocalAiService.instance;
+
+  /// 本地模型状态服务实例
+  static final LocalModelService _modelService = LocalModelService.instance;
+
+  /// 是否可以使用本地模型
+  static bool get canUseLocalModels => _modelService.canUseAiFeatures;
+
   // ─── 核心调用 ─────────────────────────────────
 
   /// 调用 AI 接口并返回 WordDetail
   /// - 成功：返回 WordDetail（含释义/翻译/音标）
   /// - 余额不足：返回 WordDetail.error(isInsufficientBalance: true)
   /// - 其他错误：返回 WordDetail.error
+  /// - 本地模型可用时：优先使用本地模型
   static Future<WordDetail> callAiProxy({
     required String ruleCode,
     required String scene,
@@ -42,6 +56,16 @@ class AiService {
     try {
       dev.log('🚀 callAiProxy START: word="$word" ruleCode="$ruleCode" scene="$scene" entry="$entry" requestId=$requestId',
           name: 'AiService');
+
+      // 检查是否可以使用本地模型
+      if (canUseLocalModels) {
+        dev.log('📱 Using local model for: $ruleCode', name: 'AiService');
+        return await _callLocalModel(
+          ruleCode: ruleCode,
+          word: word,
+          params: params,
+        );
+      }
 
       AuthService.instance.ensureActiveSession();
 
@@ -112,10 +136,82 @@ class AiService {
     }
   }
 
+  /// 调用本地模型
+  static Future<WordDetail> _callLocalModel({
+    required String ruleCode,
+    required String word,
+    Map<String, dynamic> params = const {},
+  }) async {
+    try {
+      String result;
+      
+      switch (ruleCode) {
+        case 'ai_definition':
+          final contextSentence = params['context_sentence'] as String?;
+          result = await _localAi.getDefinition(
+            word: word,
+            contextSentence: contextSentence,
+          );
+          break;
+          
+        case 'ai_translate':
+          final text = params['text'] as String? ?? word;
+          final sourceLanguage = params['source_language'] as String? ?? 'English';
+          final targetLanguage = params['target_language'] as String? ?? 'Chinese';
+          result = await _localAi.translate(
+            text: text,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage,
+          );
+          break;
+          
+        case 'ai_translate_conversation':
+          result = await _localAi.translate(
+            text: word,
+            sourceLanguage: 'English',
+            targetLanguage: 'Chinese',
+          );
+          break;
+          
+        default:
+          return WordDetail.error(word, '不支持的本地模型功能: $ruleCode');
+      }
+
+      // 解析本地模型返回的结果
+      return _parseLocalModelResult(word, result);
+    } catch (e) {
+      dev.log('💥 _callLocalModel EXCEPTION: word="$word" error=$e',
+          name: 'AiService');
+      return WordDetail.error(word, '本地模型调用失败: $e');
+    }
+  }
+
+  /// 解析本地模型返回的结果
+  static WordDetail _parseLocalModelResult(String word, String result) {
+    // 尝试解析 JSON 格式的结果
+    try {
+      // 尝试解析为 WordDetail
+      final detail = WordDetail.fromJson({
+        'word': word,
+        'translation': result,
+        'source': 'local_ai',
+      });
+      return detail;
+    } catch (e) {
+      // 解析失败，返回纯文本结果
+      return WordDetail.fromJson({
+        'word': word,
+        'translation': result,
+        'source': 'local_ai',
+      });
+    }
+  }
+
   /// 调用 AI 接口并返回原始 JSON（用于文章翻译等不转 WordDetail 的场景）
   ///
   /// 成功返回 `{'ok': true, 'result': {...}, 'cost_cny': ..., 'balance_after': ...}`
   /// 失败返回 `{'ok': false, 'error': ..., 'message': ...}`
+  /// 本地模型可用时：优先使用本地模型
   static Future<Map<String, dynamic>> callAiProxyRaw({
     required String ruleCode,
     required String scene,
@@ -126,6 +222,16 @@ class AiService {
     Map<String, dynamic>? billing,
   }) async {
     final requestId = _uuid.v4();
+
+    // 检查是否可以使用本地模型
+    if (canUseLocalModels) {
+      dev.log('📱 Using local model for raw call: $ruleCode', name: 'AiService');
+      return await _callLocalModelRaw(
+        ruleCode: ruleCode,
+        params: params,
+      );
+    }
+
     try {
       AuthService.instance.ensureActiveSession();
       final client = sb.Supabase.instance.client;
@@ -156,12 +262,77 @@ class AiService {
     }
   }
 
+  /// 调用本地模型并返回原始 JSON
+  static Future<Map<String, dynamic>> _callLocalModelRaw({
+    required String ruleCode,
+    Map<String, dynamic> params = const {},
+  }) async {
+    try {
+      String result;
+      
+      switch (ruleCode) {
+        case 'ai_translate':
+          final text = params['text'] as String? ?? '';
+          final sourceLanguage = params['source_language'] as String? ?? 'English';
+          final targetLanguage = params['target_language'] as String? ?? 'Chinese';
+          result = await _localAi.translate(
+            text: text,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage,
+          );
+          break;
+          
+        case 'ai_translate_conversation':
+          final text = params['text'] as String? ?? '';
+          result = await _localAi.translate(
+            text: text,
+            sourceLanguage: 'English',
+            targetLanguage: 'Chinese',
+          );
+          break;
+          
+        case 'ai_quiz':
+          final words = (params['words'] as List<dynamic>?)?.cast<String>() ?? [];
+          final questionCount = params['question_count'] as int? ?? 5;
+          result = await _localAi.generateQuiz(
+            words: words,
+            questionCount: questionCount,
+          );
+          break;
+          
+        case 'ai_chat':
+          final message = params['message'] as String? ?? '';
+          result = await _localAi.chat(message: message);
+          break;
+          
+        default:
+          return {'ok': false, 'error': 'unsupported_local_rule', 'message': '不支持的本地模型功能: $ruleCode'};
+      }
+
+      return {
+        'ok': true,
+        'result': {'translation': result},
+        'cost_cny': 0,
+        'balance_after': 0,
+      };
+    } catch (e) {
+      dev.log('💥 _callLocalModelRaw EXCEPTION: ruleCode="$ruleCode" error=$e',
+          name: 'AiService');
+      return {
+        'ok': false,
+        'error': 'local_model_failed',
+        'message': '本地模型调用失败: $e',
+      };
+    }
+  }
+
   // ─── 业务方法 ─────────────────────────────────
 
   /// 调用 AI 释义（ai_definition）
   ///
   /// 优先查询全局缓存（word_cache 表），命中则直接返回，
   /// 未命中才调用 AI，并将结果写入缓存。
+  /// 本地模型可用时：优先使用本地模型
   ///
   /// [word] 目标单词
   /// [contextSentence] 字幕完整句子（可选，有则结合语境）
@@ -188,7 +359,7 @@ class AiService {
       dev.log('word cache read error: $e', name: 'AiService');
     }
 
-    // ② 未命中，调 AI
+    // ② 未命中，调 AI（优先使用本地模型）
     dev.log('word cache MISS: $cacheKey, calling AI', name: 'AiService');
     final detail = await callAiProxy(
       ruleCode: 'ai_definition',
@@ -285,10 +456,26 @@ class AiService {
   }
 
   /// 翻译对话中的英文回复为中文
+  /// 本地模型可用时：优先使用本地模型
   static Future<String?> translateConversationText({
     required String text,
     Map<String, dynamic>? billing,
   }) async {
+    // 检查是否可以使用本地模型
+    if (canUseLocalModels) {
+      dev.log('📱 Using local model for conversation translation', name: 'AiService');
+      try {
+        final result = await _localAi.translate(
+          text: text,
+          sourceLanguage: 'English',
+          targetLanguage: 'Chinese',
+        );
+        return result;
+      } catch (e) {
+        dev.log('💥 Local translation failed, falling back to cloud: $e', name: 'AiService');
+      }
+    }
+
     final requestId = _uuid.v4();
     try {
       AuthService.instance.ensureActiveSession();
@@ -327,6 +514,7 @@ class AiService {
   }
 
   /// 调用 AI TTS（ai_tts）
+  /// 本地模型可用时：优先使用本地 Piper TTS
   static Future<Map<String, dynamic>?> getTtsAudio({
     required String text,
     String language = 'en-US',
@@ -334,6 +522,36 @@ class AiService {
     String? sourceCode,
     Map<String, dynamic>? billing,
   }) async {
+    // 检查是否可以使用本地 TTS
+    if (canUseLocalModels) {
+      dev.log('📱 Using local Piper TTS for: $text', name: 'AiService');
+      try {
+        final audioPath = await _localAi.synthesizeToFile(
+          text: text,
+          outputPath: '',
+        );
+        
+        if (audioPath != null) {
+          // 读取音频文件并转换为 base64
+          final file = File(audioPath);
+          final bytes = await file.readAsBytes();
+          final audioBase64 = base64.encode(bytes);
+          
+          // 清理临时文件
+          try {
+            await file.delete();
+          } catch (_) {}
+          
+          return {
+            'audioBase64': audioBase64,
+            'format': 'wav',
+          };
+        }
+      } catch (e) {
+        dev.log('💥 Local TTS failed, falling back to cloud: $e', name: 'AiService');
+      }
+    }
+
     final requestId = _uuid.v4();
     try {
       AuthService.instance.ensureActiveSession();
