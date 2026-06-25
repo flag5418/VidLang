@@ -75,8 +75,8 @@ dependencies:
   # 网络请求 - 用于模型下载
   dio: ^5.7.0
 
-  # 本地 LLM 推理 - llama.cpp Flutter 绑定，支持 Metal/Vulkan GPU 加速
-  llm_llamacpp: ^0.1.9
+  # 本地 LLM 推理 - LEAP SDK，支持 iOS/Android GPU 加速
+  liquid_ai: ^1.2.0
 
   # 本地语音合成/识别 - sherpa-onnx
   sherpa_onnx: ^1.12.0

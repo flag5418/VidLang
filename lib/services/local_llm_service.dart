@@ -2,17 +2,18 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:llm_llamacpp/llm_llamacpp.dart';
+import 'package:liquid_ai/liquid_ai.dart';
 import 'package:vidlang/services/local_model_service.dart';
 
 /// 本地 LLM 推理服务
-/// 使用 llm_llamacpp 包运行 TranslateGemma 4B 模型
+/// 使用 liquid_ai 包运行本地大语言模型
 class LocalLlmService {
   static LocalLlmService? _instance;
   static LocalLlmService get instance => _instance ??= LocalLlmService._();
   LocalLlmService._();
 
-  LlamaCppChatRepository? _repo;
+  LiquidAi? _liquidAi;
+  ModelRunner? _runner;
   bool _isInitialized = false;
   bool _isLoading = false;
   
@@ -41,17 +42,16 @@ class LocalLlmService {
         return;
       }
       
-      // 创建 LlamaCppChatRepository，启用 GPU 加速
-      _repo = LlamaCppChatRepository(
-        contextSize: 2048,
-        nGpuLayers: 35, // 使用 GPU 加速
-      );
+      // 初始化 LEAP SDK
+      _liquidAi = LiquidAi();
       
-      // 使用 LlamaCppRepository 加载模型
-      final repository = LlamaCppRepository();
-      await repository.loadModel(_modelPath!, options: ModelLoadOptions(
-        nGpuLayers: 35,
-      ));
+      // 加载模型
+      await for (final event in _liquidAi!.loadModelFromPath(_modelPath!)) {
+        if (event is LoadCompleteEvent) {
+          _runner = event.runner;
+          break;
+        }
+      }
       
       _isInitialized = true;
       debugPrint('LLM 引擎初始化成功');
@@ -71,7 +71,7 @@ class LocalLlmService {
     double temperature = 0.7,
     double topP = 0.9,
   }) async {
-    if (!_isInitialized || _repo == null) {
+    if (!_isInitialized || _runner == null) {
       await initialize();
       if (!_isInitialized) {
         return '模型未初始化，请先下载模型';
@@ -79,25 +79,18 @@ class LocalLlmService {
     }
     
     try {
-      // 构建消息列表
-      final messages = <LLMMessage>[];
+      // 创建对话
+      final conversation = await _runner!.createConversation(
+        systemPrompt: systemPrompt.isNotEmpty ? systemPrompt : '你是一个专业的翻译助手。',
+      );
       
-      if (systemPrompt.isNotEmpty) {
-        messages.add(LLMMessage(role: LLMRole.system, content: systemPrompt));
-      }
+      // 生成响应
+      final response = await conversation.generateText(prompt);
       
-      messages.add(LLMMessage(role: LLMRole.user, content: prompt));
+      // 释放对话资源
+      await conversation.dispose();
       
-      // 使用 streamChat 生成，然后收集完整结果
-      final stream = _repo!.streamChat('model', messages: messages);
-      
-      final response = StringBuffer();
-      await for (final chunk in stream) {
-        final content = chunk.message?.content ?? '';
-        response.write(content);
-      }
-      
-      return response.toString();
+      return response;
     } catch (e) {
       debugPrint('LLM 生成失败: $e');
       return '生成失败: $e';
@@ -209,8 +202,9 @@ D. ...
 
   /// 释放资源
   void dispose() {
-    _repo?.dispose();
-    _repo = null;
+    _runner?.dispose();
+    _runner = null;
+    _liquidAi = null;
     _isInitialized = false;
   }
 }
