@@ -45,12 +45,14 @@ class LocalModelService {
       final ttsExists = await _downloadService.isModelDownloaded('tts');
       final sttExists = await _downloadService.isModelDownloaded('stt');
       
-      // 获取远程版本信息
+      // 获取远程版本信息（失败时不强制要求下载）
       ModelConfigResponse? remoteConfig;
+      bool configFetchFailed = false;
       try {
         remoteConfig = await _downloadService.getModelConfig();
       } catch (e) {
         debugPrint('获取远程模型配置失败: $e');
+        configFetchFailed = true;
       }
       
       // 检查版本是否匹配
@@ -71,12 +73,17 @@ class LocalModelService {
       }
       
       // 更新状态
-      if (!llmExists || !ttsExists || !sttExists) {
-        _currentStatus = LocalModelStatus.missing;
+      // 如果本地模型已存在，即使远程配置获取失败也视为 ready
+      if (llmExists && ttsExists && sttExists) {
+        _currentStatus = LocalModelStatus.ready;
       } else if (needsUpdate) {
         _currentStatus = LocalModelStatus.needsUpdate;
-      } else {
-        _currentStatus = LocalModelStatus.ready;
+      } else if (!llmExists || !ttsExists || !sttExists) {
+        // 只有当远程配置获取成功时才标记为 missing
+        // 配置获取失败时标记为 error，不强制弹窗
+        _currentStatus = configFetchFailed 
+            ? LocalModelStatus.error 
+            : LocalModelStatus.missing;
       }
       
       _hasAllModels = llmExists && ttsExists && sttExists;

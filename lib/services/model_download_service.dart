@@ -55,15 +55,48 @@ class ModelDownloadService {
   /// 检查模型是否已下载
   Future<bool> isModelDownloaded(String modelType) async {
     try {
+      // 方法1：检查 applicationDocumentsDirectory
       final modelsDir = await getModelsDirectory();
-      final files = await modelsDir.list().toList();
+      if (await _checkModelsInDir(modelsDir, modelType)) {
+        return true;
+      }
+
+      // 方法2：检查项目 models/ 目录（开发环境）
+      final currentDir = Directory.current.path;
+      final devModelsDir = Directory('$currentDir/models');
+      if (await devModelsDir.exists()) {
+        // TTS 模型在 supertonic/ 子目录
+        if (modelType == 'tts') {
+          final supertonicDir = Directory('${devModelsDir.path}/supertonic');
+          if (await supertonicDir.exists()) {
+            return true;
+          }
+        }
+        // STT 模型检查
+        if (modelType == 'stt') {
+          if (await _checkModelsInDir(devModelsDir, modelType)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (e) {
+      debugPrint('检查模型下载状态失败: $e');
+      return false;
+    }
+  }
+
+  /// 检查目录中是否存在指定类型的模型文件
+  Future<bool> _checkModelsInDir(Directory dir, String modelType) async {
+    try {
+      if (!await dir.exists()) return false;
       
-      // 检查是否存在对应类型的模型文件
+      final files = await dir.list().toList();
       for (final file in files) {
         if (file is File) {
           final fileName = file.path.split('/').last;
           if (_isModelFile(modelType, fileName)) {
-            // 检查文件大小是否合理
             final stat = await file.stat();
             if (stat.size > 0) {
               return true;
@@ -73,7 +106,6 @@ class ModelDownloadService {
       }
       return false;
     } catch (e) {
-      debugPrint('检查模型下载状态失败: $e');
       return false;
     }
   }
@@ -81,9 +113,42 @@ class ModelDownloadService {
   /// 获取本地模型文件路径
   Future<String?> getLocalModelPath(String modelType) async {
     try {
+      // 方法1：检查 applicationDocumentsDirectory
       final modelsDir = await getModelsDirectory();
-      final files = await modelsDir.list().toList();
+      final path = await _findModelInDir(modelsDir, modelType);
+      if (path != null) return path;
+
+      // 方法2：检查项目 models/ 目录（开发环境）
+      final currentDir = Directory.current.path;
+      final devModelsDir = Directory('$currentDir/models');
+      if (await devModelsDir.exists()) {
+        // TTS 模型在 supertonic/ 子目录
+        if (modelType == 'tts') {
+          final supertonicDir = Directory('${devModelsDir.path}/supertonic');
+          if (await supertonicDir.exists()) {
+            return supertonicDir.path;
+          }
+        }
+        // STT 模型检查
+        if (modelType == 'stt') {
+          final sttPath = await _findModelInDir(devModelsDir, modelType);
+          if (sttPath != null) return sttPath;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('获取本地模型路径失败: $e');
+      return null;
+    }
+  }
+
+  /// 在目录中查找模型文件
+  Future<String?> _findModelInDir(Directory dir, String modelType) async {
+    try {
+      if (!await dir.exists()) return null;
       
+      final files = await dir.list().toList();
       for (final file in files) {
         if (file is File) {
           final fileName = file.path.split('/').last;
@@ -94,7 +159,6 @@ class ModelDownloadService {
       }
       return null;
     } catch (e) {
-      debugPrint('获取本地模型路径失败: $e');
       return null;
     }
   }
@@ -267,7 +331,10 @@ class ModelDownloadService {
       case 'llm':
         return fileName.endsWith('.gguf');
       case 'tts':
-        return fileName.endsWith('.onnx') && fileName.contains('amy');
+        // 支持 Piper (amy) 和 Supertonic TTS 模型
+        return fileName.endsWith('.onnx') && 
+               (fileName.contains('amy') || fileName.contains('supertonic') || 
+                fileName.contains('text_encoder') || fileName.contains('vocoder'));
       case 'stt':
         return fileName.endsWith('.bin') && fileName.contains('whisper');
       default:
