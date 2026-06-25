@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/services/dictionary_service.dart';
@@ -18,12 +16,10 @@ class CameraTranslatePage extends ConsumerStatefulWidget {
 
 class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   bool _loading = true;
-  String? _imagePath;
   String _recognizedText = '';
   List<_RecognizedWord> _words = [];
   Map<String, DictEntry?> _dictCache = {};
   String? _selectedWord;
-  bool _translating = false;
   String? _fullTranslation;
 
   @override
@@ -35,27 +31,28 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   Future<void> _takePhoto() async {
     setState(() => _loading = true);
     try {
-      final result = await IosNativeFeatures.extractTextFromCamera();
+      final result = await IosNativeFeatures.openCameraTranslatePage();
       if (!mounted) return;
       if (!result.success || result.text.trim().isEmpty) {
-        setState(() => _loading = false);
         if (result.success && result.text.trim().isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('未识别到文本'), duration: Duration(seconds: 2)),
-          );
+          Navigator.pop(context);
+          return;
         }
+        if (result.error == 'User cancelled') {
+          Navigator.pop(context);
+          return;
+        }
+        setState(() => _loading = false);
         return;
       }
       _recognizedText = result.text.trim();
       _buildWordList();
       await _batchLookup();
+      await _autoTranslate();
       if (mounted) setState(() => _loading = false);
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('拍照识别失败: $e'), duration: const Duration(seconds: 3)),
-      );
     }
   }
 
@@ -75,27 +72,20 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
       final entry = await DictionaryService().lookup(w);
       _dictCache[w] = entry;
     }
-    if (mounted) setState(() {});
   }
 
-  Future<void> _translateFullText() async {
-    if (_translating || _recognizedText.isEmpty) return;
-    setState(() => _translating = true);
+  Future<void> _autoTranslate() async {
+    if (_recognizedText.isEmpty) return;
     try {
       final result = await IosNativeFeatures.translate(
         text: _recognizedText,
         sourceLanguage: 'en',
         targetLanguage: 'zh-Hans',
       );
-      if (mounted) {
-        setState(() {
-          _fullTranslation = result.success ? result.translatedText : null;
-          _translating = false;
-        });
+      if (result.success && mounted) {
+        _fullTranslation = result.translatedText;
       }
-    } catch (_) {
-      if (mounted) setState(() => _translating = false);
-    }
+    } catch (_) {}
   }
 
   void _onWordSelected(List<String> selectedWords) {
@@ -105,7 +95,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   }
 
   void _showWordDetail(String word) {
-    final clean = word.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z']'), '');
+    final clean = word.toLowerCase().replaceAll(RegExp(r"[^a-zA-Z']"), '');
     if (clean.isEmpty) return;
     final canSave = WordBookService.isSingleWord(clean);
     WordCard.show(
@@ -138,26 +128,39 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(cs),
+              const Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(height: 16),
+                      Text('拍照识别中...', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
           children: [
             _buildTopBar(cs),
-            Expanded(
-              child: _loading
-                  ? const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(color: Colors.white),
-                          SizedBox(height: 16),
-                          Text('拍照识别中...', style: TextStyle(color: Colors.white54, fontSize: 14)),
-                        ],
-                      ),
-                    )
-                  : _buildContent(cs),
-            ),
+            Expanded(child: _buildContent(cs)),
           ],
         ),
       ),
@@ -180,73 +183,95 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
             style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
           ),
           const Spacer(),
-          if (_recognizedText.isNotEmpty) ...[
-            IconButton(
-              onPressed: _translateFullText,
-              icon: _translating
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.translate_rounded, color: Colors.white, size: 20),
-              style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.1)),
-              tooltip: '全文翻译',
-            ),
-            const SizedBox(width: 4),
-            IconButton(
-              onPressed: _takePhoto,
-              icon: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
-              style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.1)),
-              tooltip: '重新拍照',
-            ),
-          ],
+          IconButton(
+            onPressed: _takePhoto,
+            icon: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
+            style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.1)),
+            tooltip: '重新拍照',
+          ),
         ],
       ),
     );
   }
 
   Widget _buildContent(ColorScheme cs) {
-    if (_recognizedText.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.camera_alt_outlined, size: 48, color: Colors.white24),
-            const SizedBox(height: 12),
-            Text('未识别到英文文本', style: TextStyle(color: Colors.white38, fontSize: 14)),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _takePhoto,
-              icon: const Icon(Icons.camera_alt_outlined, size: 18),
-              label: const Text('重新拍照'),
-              style: FilledButton.styleFrom(
-                backgroundColor: cs.primary,
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Column(
       children: [
         Expanded(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             decoration: BoxDecoration(
-              color: cs.surfaceContainerLow,
+              color: Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(16),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: _buildRecognizedTextOverlay(cs),
-                  ),
-                ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SelectableEnglishLine(
+                      text: _recognizedText,
+                      fontSize: 20,
+                      fontColor: Colors.white,
+                      selectedBgColor: cs.primary.withValues(alpha: 0.7),
+                      onSelectionChanged: (words) => _onWordSelected(words),
+                      onTapWord: (word) => _showWordDetail(word),
+                    ),
+                    if (_fullTranslation != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _fullTranslation!,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, height: 1.5),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                    if (_words.isNotEmpty && _fullTranslation == null) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        alignment: WrapAlignment.center,
+                        children: _words.map((w) {
+                          final entry = _dictCache[w.word.toLowerCase()];
+                          final trans = entry?.shortTranslation ?? '';
+                          if (trans.isEmpty) return const SizedBox.shrink();
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: cs.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  w.word,
+                                  style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  ' $trans',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -254,78 +279,6 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
         if (_selectedWord != null) _buildWordQuickBar(cs),
         const SizedBox(height: 8),
       ],
-    );
-  }
-
-  Widget _buildRecognizedTextOverlay(ColorScheme cs) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SelectableEnglishLine(
-              text: _recognizedText,
-              fontSize: 20,
-              fontColor: Colors.white,
-              selectedBgColor: cs.primary.withValues(alpha: 0.7),
-              onSelectionChanged: (words) => _onWordSelected(words),
-              onTapWord: (word) => _showWordDetail(word),
-            ),
-            if (_fullTranslation != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _fullTranslation!,
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, height: 1.5),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-            if (_words.isNotEmpty && _fullTranslation == null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                alignment: WrapAlignment.center,
-                children: _words.map((w) {
-                  final entry = _dictCache[w.word.toLowerCase()];
-                  final trans = entry?.shortTranslation ?? '';
-                  if (trans.isEmpty) return const SizedBox.shrink();
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          w.word,
-                          style: TextStyle(color: cs.primary, fontSize: 11, fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          ' $trans',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
@@ -348,20 +301,10 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      word,
-                      style: TextStyle(
-                        color: cs.primary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(word, style: TextStyle(color: cs.primary, fontSize: 16, fontWeight: FontWeight.bold)),
                     if (entry?.phonetic != null && entry!.phonetic!.isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      Text(
-                        '/${entry!.phonetic}/',
-                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
-                      ),
+                      Text('/${entry!.phonetic}/', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
                     ],
                   ],
                 ),

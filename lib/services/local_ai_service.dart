@@ -71,17 +71,13 @@ class LocalAiService {
     }
   }
 
-  /// 翻译文本
+  /// 翻译文本（英→中）
   Future<String> translate({
     required String text,
     String sourceLanguage = 'English',
     String targetLanguage = 'Chinese',
   }) async {
-    if (!_llm.isAvailable) {
-      return '本地 LLM 未集成，请使用云端翻译';
-    }
-
-    return '';
+    return '本地翻译模型未就绪，请使用云端翻译';
   }
 
   /// 获取单词释义

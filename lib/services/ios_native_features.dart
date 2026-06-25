@@ -411,6 +411,23 @@ class IosNativeFeatures {
     }
   }
 
+  /// 打开原生拍照翻译页面（类似 iPhone 翻译 App 的相机模式）
+  /// 返回 OCR 结果供 Flutter 端进一步处理（划词、查词典等）
+  static Future<OcrResult> openCameraTranslatePage() async {
+    if (!_nativeFeaturesImplemented()) {
+      return OcrResult(text: '', lines: [], success: false, error: '拍照翻译功能仅在 iOS 上可用');
+    }
+    try {
+      final result = await _channel.invokeMethod('openCameraTranslatePage');
+      if (result == null) return OcrResult(text: '', lines: [], success: false, error: '未获取到识别结果');
+      return OcrResult.fromJson(_asStringKeyMap(result));
+    } on PlatformException catch (e) {
+      return OcrResult(text: '', lines: [], success: false, error: e.message ?? '识别失败');
+    } catch (e) {
+      return OcrResult(text: '', lines: [], success: false, error: '识别异常: $e');
+    }
+  }
+
   static Future<ImageAnalysisResult> analyzeImage({required String imagePath}) async {
     if (!_nativeFeaturesImplemented()) {
       return ImageAnalysisResult(
