@@ -54,11 +54,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
 
   Future<void> _loadData() async {
     try {
-      final results = await Future.wait([
-        StatsService.getDetailOverview(),
-        StatsService.getDetailByType(),
-        StatsService.getWeeklyTrend(),
-      ]);
+      final results = await Future.wait([StatsService.getDetailOverview(), StatsService.getDetailByType(), StatsService.getWeeklyTrend()]);
       if (!mounted) return;
       setState(() {
         _overview = results[0] as DetailOverview;
@@ -87,11 +83,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         ),
         title: Text(
           '学习统计',
-          style: TextStyle(
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-          ),
+          style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
       ),
       body: _loading
@@ -154,17 +146,11 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
               height: 56.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: colorScheme.surfaceContainerHighest,
-                border: Border.all(
-                  color: colorScheme.outline.withValues(alpha: 0.3),
-                  width: 2,
-                ),
+                color: colorScheme.surface,
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+                border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 1),
               ),
-              child: Icon(
-                badge.icon,
-                size: 26.sp,
-                color: colorScheme.onSurface.withValues(alpha: 0.38),
-              ),
+              child: Icon(badge.icon, size: 26.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
             ),
             SizedBox(height: 6.h),
             Text(
@@ -172,11 +158,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurface.withValues(alpha: 0.38),
-              ),
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
             ),
           ],
         ),
@@ -188,61 +170,70 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
-      backgroundColor: colorScheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (_) {
-        return Padding(
-          padding: EdgeInsets.all(24.w),
+        return Container(
+          padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, MediaQuery.of(context).padding.bottom + 24.h),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                margin: EdgeInsets.only(bottom: 24.h),
+                decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
+              ),
               Container(
                 width: 64.w,
                 height: 64.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: colorScheme.surfaceContainerHighest,
+                  color: colorScheme.surface,
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                  border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2), width: 1),
                 ),
-                child: Icon(badge.icon, size: 30.sp, color: colorScheme.onSurface.withValues(alpha: 0.38)),
+                child: Icon(badge.icon, size: 30.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
               ),
               SizedBox(height: 16.h),
               Text(
                 badge.name,
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                ),
+                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
               ),
               SizedBox(height: 8.h),
               Text(
                 badge.description,
                 style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: 24.h),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.r),
-                  color: colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12.r),
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
-                child: Text(
-                  '解锁条件：${badge.condition}',
-                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                '尚未解锁',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface.withValues(alpha: 0.38),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 16.sp, color: colorScheme.onSurfaceVariant),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        '解锁条件：${badge.condition}',
+                        style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: 16.h),
+              Text(
+                '尚未解锁',
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+              ),
             ],
           ),
         );
@@ -258,9 +249,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
 
     final hours = ov.totalDurationSeconds ~/ 3600;
     final minutes = (ov.totalDurationSeconds % 3600) ~/ 60;
-    final durationText = ov.totalDurationSeconds >= 3600
-        ? '$hours小时$minutes分钟'
-        : '$minutes分钟';
+    final durationText = ov.totalDurationSeconds >= 3600 ? '$hours小时$minutes分钟' : '$minutes分钟';
 
     final String gradeLabel;
     final Color gradeColor;
@@ -285,98 +274,69 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         SizedBox(height: 12.h),
         Row(
           children: [
-            _overviewCard(
-              '累计学习天数',
-              '${ov.totalDays}',
-              '天',
-              Icons.calendar_today,
-              colorScheme,
-            ),
+            _overviewCard('累计学习天数', '${ov.totalDays}', '天', Icons.calendar_today, colorScheme),
             SizedBox(width: 10.w),
-            _overviewCard(
-              '总学习时长',
-              durationText,
-              '',
-              Icons.timer,
-              colorScheme,
-            ),
+            _overviewCard('总学习时长', durationText, '', Icons.timer, colorScheme),
           ],
         ),
         SizedBox(height: 10.h),
         Row(
           children: [
-            _overviewCard(
-              '已学资源数',
-              '${ov.learnedResources}',
-              '个',
-              Icons.play_circle_outline,
-              colorScheme,
-            ),
+            _overviewCard('已学资源数', '${ov.learnedResources}', '个', Icons.play_circle_outline, colorScheme),
             SizedBox(width: 10.w),
-            _overviewCard(
-              '综合评分',
-              ov.compositeScore.toStringAsFixed(0),
-              gradeLabel,
-              Icons.auto_awesome,
-              colorScheme,
-              valueColor: gradeColor,
-            ),
+            _overviewCard('综合评分', ov.compositeScore.toStringAsFixed(0), gradeLabel, Icons.auto_awesome, colorScheme, valueColor: gradeColor),
           ],
         ),
       ],
     );
   }
 
-  Widget _overviewCard(
-    String label,
-    String value,
-    String suffix,
-    IconData icon,
-    ColorScheme colorScheme, {
-    Color? valueColor,
-  }) {
+  Widget _overviewCard(String label, String value, String suffix, IconData icon, ColorScheme colorScheme, {Color? valueColor}) {
     return Expanded(
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14.r),
-          color: colorScheme.surfaceContainerHighest,
+          color: colorScheme.surface,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 22.w, color: colorScheme.primary.withValues(alpha: 0.7)),
-            SizedBox(height: 12.h),
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
+              child: Icon(icon, size: 20.w, color: colorScheme.primary),
+            ),
+            SizedBox(height: 16.h),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 26.sp,
-                    fontWeight: FontWeight.bold,
-                    color: valueColor ?? colorScheme.onSurface,
+                Expanded(
+                  child: Text(
+                    value,
+                    style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: valueColor ?? colorScheme.onSurface, height: 1.1),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (suffix.isNotEmpty) ...[
                   SizedBox(width: 4.w),
                   Padding(
-                    padding: EdgeInsets.only(bottom: 3.h),
+                    padding: EdgeInsets.only(bottom: 2.h),
                     child: Text(
                       suffix,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
               ],
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: 6.h),
             Text(
               label,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
             ),
           ],
         ),
@@ -394,10 +354,12 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
       children: [
         _sectionTitle('分类详情', Icons.category, colorScheme),
         SizedBox(height: 12.h),
-        ..._typeStats.map((ts) => Padding(
-              padding: EdgeInsets.only(bottom: 10.h),
-              child: _typeCard(ts, colorScheme),
-            )),
+        ..._typeStats.map(
+          (ts) => Padding(
+            padding: EdgeInsets.only(bottom: 10.h),
+            child: _typeCard(ts, colorScheme),
+          ),
+        ),
       ],
     );
   }
@@ -406,71 +368,68 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     final progress = ts.total > 0 ? (ts.learned / ts.total).clamp(0.0, 1.0) : 0.0;
     final durationHours = ts.totalDurationSeconds ~/ 3600;
     final durationMins = (ts.totalDurationSeconds % 3600) ~/ 60;
-    final durationText = ts.totalDurationSeconds >= 3600
-        ? '$durationHours小时$durationMins分钟'
-        : '$durationMins分钟';
+    final durationText = ts.totalDurationSeconds >= 3600 ? '$durationHours小时$durationMins分钟' : '$durationMins分钟';
 
     final iconData = ts.icon == 'video_library'
-        ? Icons.video_library
+        ? Icons.video_library_rounded
         : ts.icon == 'music_note'
-            ? Icons.music_note
-            : Icons.article;
+        ? Icons.music_note_rounded
+        : Icons.article_rounded;
 
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14.r),
-        color: colorScheme.surfaceContainerHighest,
+        color: colorScheme.surface,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(iconData, size: 22.w, color: colorScheme.primary),
-              SizedBox(width: 8.w),
-              Text(
-                ts.label,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                ),
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10.r)),
+                child: Icon(iconData, size: 20.w, color: colorScheme.primary),
               ),
-              const Spacer(),
-              Text(
-                '${ts.learned} / ${ts.total}',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.primary,
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ts.label,
+                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      '已完成 ${ts.learned} / 共 ${ts.total}',
+                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 16.h),
           // 进度条
           ClipRRect(
             borderRadius: BorderRadius.circular(4.r),
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6.h,
-              backgroundColor: colorScheme.outline.withValues(alpha: 0.3),
+              backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.3),
               valueColor: AlwaysStoppedAnimation(colorScheme.primary),
             ),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 16.h),
           Row(
             children: [
-              _typeStatChip(Icons.timer, durationText, colorScheme),
+              _typeStatChip(Icons.timer_outlined, durationText, colorScheme),
               SizedBox(width: 16.w),
-              _typeStatChip(
-                Icons.access_time,
-                ts.lastStudyTime != null
-                    ? _formatTimeAgo(ts.lastStudyTime!)
-                    : '暂无',
-                colorScheme,
-              ),
+              _typeStatChip(Icons.access_time_rounded, ts.lastStudyTime != null ? _formatTimeAgo(ts.lastStudyTime!) : '暂无', colorScheme),
             ],
           ),
         ],
@@ -518,24 +477,26 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('学习趋势（近7天）', Icons.show_chart, colorScheme),
+        _sectionTitle('学习趋势（近7天）', Icons.show_chart_rounded, colorScheme),
         SizedBox(height: 12.h),
         Container(
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14.r),
-            color: colorScheme.surfaceContainerHighest,
+            color: colorScheme.surface,
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+            border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
           ),
           child: Column(
             children: [
               // 柱状图
               SizedBox(
-                height: 120.h,
+                height: 140.h, // 增加高度容纳文字和柱子
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: _weeklyTrend.map((t) {
                     final ratio = maxMinutes > 0 ? t.minutes / maxMinutes : 0.0;
-                    final barHeight = (100.h * ratio).clamp(4.h, 100.h);
+                    final barHeight = (80.h * ratio).clamp(4.h, 80.h); // 缩小柱子最大高度以留出空间
                     // 从日期中提取星期
                     final dateStr = t.date.substring(5); // MM-DD
                     final weekday = _getWeekdayLabel(t.date);
@@ -550,51 +511,28 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                             if (t.minutes > 0) ...[
                               Text(
                                 '${t.minutes}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.primary,
-                                ),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: colorScheme.primary),
                               ),
-                              SizedBox(height: 2.h),
+                              SizedBox(height: 4.h),
                             ],
                             Container(
                               height: barHeight,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(4.r),
-                                ),
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(4.r)),
                                 gradient: t.minutes > 0
                                     ? LinearGradient(
                                         begin: Alignment.bottomCenter,
                                         end: Alignment.topCenter,
-                                        colors: [
-                                          colorScheme.primary.withValues(alpha: 0.6),
-                                          colorScheme.primary,
-                                        ],
+                                        colors: [colorScheme.primary.withValues(alpha: 0.6), colorScheme.primary],
                                       )
                                     : null,
-                                color: t.minutes > 0
-                                    ? null
-                                    : colorScheme.outline.withValues(alpha: 0.2),
+                                color: t.minutes > 0 ? null : colorScheme.outlineVariant.withValues(alpha: 0.2),
                               ),
                             ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              weekday,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            SizedBox(height: 1.h),
-                            Text(
-                              dateStr,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                              ),
-                            ),
+                            SizedBox(height: 6.h),
+                            Text(weekday, style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant)),
+                            SizedBox(height: 2.h),
+                            Text(dateStr, style: TextStyle(fontSize: 9, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
                           ],
                         ),
                       ),
@@ -602,8 +540,8 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                   }).toList(),
                 ),
               ),
-              SizedBox(height: 8.h),
-              Divider(color: colorScheme.outline.withValues(alpha: 0.2)),
+              SizedBox(height: 12.h),
+              Divider(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
               SizedBox(height: 8.h),
               // 汇总行
               Row(
@@ -615,11 +553,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                   ),
                   Text(
                     '${_weeklyTrend.fold<int>(0, (s, t) => s + t.minutes)} 分钟',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
+                    style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                   ),
                 ],
               ),
@@ -637,45 +571,35 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return weekdays[dt.weekday - 1];
   }
 
-  // ─── 区域 5: AI 学习建议区 ───
+  // ─── AI 学习建议区 ───
 
   Widget _buildAiSuggestion(ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('AI 学习建议', Icons.psychology, colorScheme),
+        _sectionTitle('AI 学习建议', Icons.psychology_rounded, colorScheme),
         SizedBox(height: 12.h),
         Container(
           width: double.infinity,
           padding: EdgeInsets.all(20.w),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14.r),
-            gradient: LinearGradient(
-              colors: [
-                colorScheme.primary.withValues(alpha: 0.08),
-                colorScheme.secondary.withValues(alpha: 0.04),
-              ],
-            ),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.15),
-            ),
+            color: colorScheme.surface,
+            boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))],
+            border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
           ),
           child: Column(
             children: [
-              Icon(
-                Icons.auto_awesome,
-                size: 32.sp,
-                color: colorScheme.primary.withValues(alpha: 0.5),
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
+                child: Icon(Icons.auto_awesome_rounded, size: 28.sp, color: colorScheme.primary),
               ),
-              SizedBox(height: 12.h),
+              SizedBox(height: 16.h),
               Text(
                 '更多学习数据累积后，AI 将为你生成个性化学习建议',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: colorScheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.9), height: 1.5),
               ),
             ],
           ),
@@ -693,11 +617,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         SizedBox(width: 6.w),
         Text(
           title,
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-          ),
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
         ),
       ],
     );

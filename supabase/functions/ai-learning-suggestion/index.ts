@@ -7,6 +7,7 @@
  */
 
 import { corsHeaders } from '../_shared/cors.ts'
+import { QWEN_MODELS } from '../ai-proxy/clients/qwen-chat.ts'
 
 // ─── 环境变量 ───
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -58,7 +59,7 @@ async function callQwen(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'qwen-plus',
+        model: QWEN_MODELS.TURBO,
         messages,
         max_tokens: 300,
         temperature: 0.7,

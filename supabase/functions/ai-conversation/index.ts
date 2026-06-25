@@ -7,12 +7,17 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { QWEN_MODELS } from '../ai-proxy/clients/qwen-chat.ts'
 import {
   buildArticleInstructions,
   buildSubtitleInstructions,
   type ArticleSentenceItem,
   type SubtitleItem,
 } from './build-instructions.ts'
+
+// ─── 模型配置 ───
+/** 对话实时模型 */
+const CONVERSATION_MODEL = QWEN_MODELS.REALTIME
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -365,7 +370,7 @@ Deno.serve(async (req: Request) => {
 
     // 8. 返回连接参数
     const wsUrl =
-      'wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3.5-omni-plus-realtime'
+      `wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=${CONVERSATION_MODEL}`
 
     return json({
       ok: true,
@@ -374,7 +379,7 @@ Deno.serve(async (req: Request) => {
       api_key: qwenApiKey,
       instructions,
       voice,
-      model: 'qwen3.5-omni-plus-realtime',
+      model: CONVERSATION_MODEL,
       cost_cny: createCost,
       balance_after: balanceAfter,
     })

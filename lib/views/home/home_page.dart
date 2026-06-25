@@ -60,7 +60,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _goToResources(String folderType) {
-    final typeIndex = ['video', 'article', 'music'].indexOf(folderType);
+    final typeIndex = ['video', 'music', 'article'].indexOf(folderType);
     if (typeIndex < 0) return;
     ref.read(resourceTabProvider.notifier).state = typeIndex;
     ref.read(navigationIndexProvider.notifier).setIndex(1);
@@ -89,47 +89,32 @@ class _HomePageState extends ConsumerState<HomePage> {
       } catch (_) {}
     }
 
-    if (folder.lastVideoCode != null && folder.lastVideoCode!.isNotEmpty) {
-      try {
-        final videos = await DatabaseService.findByCondition(
-          () => VideoInfo(),
-          where: 'folder_code = ? AND is_deleted = 0',
-          whereArgs: [code],
-          orderBy: 'order_index ASC, created_at ASC',
+    // 播放第一个资源（按 order_index 排序）
+    try {
+      final videos = await DatabaseService.findByCondition(
+        () => VideoInfo(),
+        where: 'folder_code = ? AND is_deleted = 0',
+        whereArgs: [code],
+        orderBy: 'order_index ASC, created_at ASC',
+      );
+      if (videos.isNotEmpty && mounted) {
+        final firstVideo = videos.first;
+        await ref.read(fileProvider.notifier).loadVideos(code);
+        if (!mounted) return;
+        final isMusic = folder.folderType == FolderContentType.music;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => isMusic
+                ? AudioPlayerPage(videoCode: firstVideo!.code!, folderVideos: videos, audioType: 'music')
+                : PlayerPage(videoCode: firstVideo!.code!, folderVideos: videos),
+          ),
         );
-        if (videos.isNotEmpty && mounted) {
-          VideoInfo? targetVideo;
-          for (final v in videos) {
-            if (v.code == folder.lastVideoCode) {
-              targetVideo = v;
-              break;
-            }
-          }
-          targetVideo ??= videos.first;
-          await ref.read(fileProvider.notifier).loadVideos(code);
-          if (!mounted) return;
-          final isMusic = folder.folderType == FolderContentType.music;
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => isMusic
-                  ? AudioPlayerPage(videoCode: targetVideo!.code!, folderVideos: videos, audioType: 'music')
-                  : PlayerPage(videoCode: targetVideo!.code!, folderVideos: videos),
-            ),
-          );
-          if (!mounted) return;
-          await _loadData();
-          return;
-        }
-      } catch (_) {}
-    }
-
-    if (!mounted) return;
-    await ref.read(fileProvider.notifier).loadVideos(code);
-    if (!mounted) return;
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => FolderDetailPage(folderCode: code)));
-    if (!mounted) return;
-    await _loadData();
+        if (!mounted) return;
+        await _loadData();
+        return;
+      }
+    } catch (_) {}
   }
 
   @override

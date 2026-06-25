@@ -20,6 +20,8 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/dictionary_service.dart';
+import 'package:vidlang/services/ios_native_features.dart';
+import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/app_spacing.dart';
@@ -388,6 +390,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     debugPrint('═══════════════════');
 
     _loadTranslation();
+
+    // 检查并初始化翻译
+    if (_sentences.isNotEmpty && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAndInitializeTranslation();
+      });
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollController.addListener(_onScroll);
     });
@@ -527,6 +537,157 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       }
     } catch (_) {
       if (mounted) setState(() => _loadingTranslation = false);
+    }
+  }
+
+  /// 检查并初始化文章翻译
+  Future<void> _checkAndInitializeTranslation() async {
+    if (_article == null || _sentences.isEmpty) return;
+
+    final isPremium = _isPaidMode;
+
+    final needCount = TranslationInitService.countNeedTranslate(_sentences, isPremium);
+    if (needCount == 0) return;
+
+    // 显示加载提示
+    if (!mounted) return;
+    TDToast.showText('正在进行翻译初始化...', context: context, duration: const Duration(seconds: 2));
+
+    // 执行翻译
+    try {
+      final success = await TranslationInitService.translateArticleSentences(
+        sentences: _sentences,
+        articleCode: widget.articleCode,
+        title: _article!.title,
+        isNative: !isPremium,
+        onProgress: (current, total) {},
+      );
+
+      if (!success && !isPremium && mounted) {
+        final colorScheme = Theme.of(context).colorScheme;
+        final shouldRetry = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) {
+            final bottom = MediaQuery.of(context).padding.bottom;
+            return Container(
+              padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, bottom + 14.h),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 3.h,
+                      decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
+                    ),
+                  ),
+                  SizedBox(height: 10.h),
+                  Text(
+                    '启用系统翻译',
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  ),
+                  SizedBox(height: 6.h),
+                  Text(
+                    '系统翻译需要先准备语言包（English → 中文）。首次使用可能会弹出系统下载/授权提示。',
+                    style: TextStyle(fontSize: 12.sp, height: 1.45, color: colorScheme.onSurfaceVariant),
+                  ),
+                  SizedBox(height: 10.h),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(10.w),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10.r),
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '建议路径',
+                          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          '系统设置 → 通用 → 语言与地区 → 翻译（或在设置里搜索“翻译”）',
+                          style: TextStyle(fontSize: 12.sp, height: 1.45, color: colorScheme.onSurfaceVariant),
+                        ),
+                        Text(
+                          '下载 English / 简体中文 后回到 App 点“重试”。',
+                          style: TextStyle(fontSize: 12.sp, height: 1.45, color: colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            await IosNativeFeatures.openAppSettings();
+                            Navigator.of(context).pop(false);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 10.h),
+                            foregroundColor: colorScheme.primary,
+                            side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                          ),
+                          child: Text(
+                            '打开设置',
+                            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: FilledButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 10.h),
+                            backgroundColor: colorScheme.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                          ),
+                          child: Text(
+                            '我已下载，重试',
+                            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+
+        if (shouldRetry == true && mounted) {
+          await TranslationInitService.translateArticleSentences(
+            sentences: _sentences,
+            articleCode: widget.articleCode,
+            title: _article!.title,
+            isNative: true,
+            onProgress: (current, total) {},
+          );
+        }
+      }
+
+      if (mounted) {
+        setState(() {}); // 刷新 UI 显示翻译
+      }
+    } catch (e) {
+      debugPrint('Article translation init failed: $e');
+      if (mounted) {
+        TDToast.showText('翻译失败: $e', context: context, duration: const Duration(seconds: 3));
+      }
     }
   }
 

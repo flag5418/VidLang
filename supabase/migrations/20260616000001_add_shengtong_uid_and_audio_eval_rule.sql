@@ -12,7 +12,7 @@
 
  -- 确保 ai_audio_evaluation 计费规则存在
  INSERT INTO public.pricing_rule (rule_code, name_zh, description_zh, model, price_cny, status) VALUES
-   ('ai_audio_evaluation', 'AI音频点评', '调用千问分析跟读记录生成评价', 'qwen-plus', 0.05, 'active')
+   ('ai_audio_evaluation', 'AI音频点评', '调用千问分析跟读记录生成评价', 'qwen-turbo', 0.05, 'active')
  ON CONFLICT (rule_code) DO UPDATE SET
    name_zh = excluded.name_zh,
    description_zh = excluded.description_zh,

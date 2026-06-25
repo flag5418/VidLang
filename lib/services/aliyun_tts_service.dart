@@ -306,8 +306,12 @@ class AliyunTtsService {
       final List<Uint8List> pcmChunks = [];
       bool isFirstAudioChunk = true;
 
+      String accumulatedJson = '';
       await for (final chunk in response.transform(utf8.decoder)) {
-        final lines = chunk.split('\n');
+        accumulatedJson += chunk;
+        final lines = accumulatedJson.split('\n');
+        accumulatedJson = lines.removeLast(); // 保留不完整的最后一行
+        
         for (final line in lines) {
           final trimmed = line.trim();
           if (!trimmed.startsWith('data:')) continue;

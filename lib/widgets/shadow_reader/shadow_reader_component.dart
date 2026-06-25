@@ -78,6 +78,7 @@ class ShadowReaderConfig {
   final Future<void> Function(int)? seekToSubtitle;
   final Future<void> Function()? nextSentence;
   final Future<void> Function()? previousSentence;
+  final Future<void> Function(int)? playAtSubtitleIndex;
   final SubscriptionMode? subscriptionMode;
   final Future<void> Function()? onFreeModeSpeechResult;
 
@@ -116,6 +117,7 @@ class ShadowReaderConfig {
     this.seekToSubtitle,
     this.nextSentence,
     this.previousSentence,
+    this.playAtSubtitleIndex,
     this.subscriptionMode,
     this.onFreeModeSpeechResult,
   });
@@ -245,15 +247,15 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
                 decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
           ],
           // ── 字幕区 ──
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch, // 让内部组件能占满横向宽度，避免空心
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Row 1: 亮色字幕
                   Center(
@@ -269,12 +271,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
                       },
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // Row 2: 参考字幕 / 识别着色
-                  Center(child: _buildRecognitionRow(cfg)),
+                  const SizedBox(height: 8),
+                  // Row 2: 识别着色字幕
+                  _buildRecognitionRow(cfg),
                   // 录音计时器
                   if (isListening) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -308,43 +310,44 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
 
   Widget _buildRecognitionRow(ShadowReaderConfig cfg) {
     final sub = cfg.subtitle;
-    final hasWords = _recognizedWords.isNotEmpty || _liveTranscription.isNotEmpty;
+    final isListening = _state == 'listening';
     final refWords = sub.content.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
     final refLookup = <String, RecognizedWord>{};
     for (final rw in _recognizedWords) {
       refLookup[rw.word.toLowerCase()] = rw;
     }
 
-    // 使用与上方字幕完全相同的文本渲染样式，只是颜色不同
-    // 为了实现点击选词的同样体验，我们可以也使用 SelectableEnglishLine
-    // 但是去除了可选中的逻辑和背景，仅用于渲染结构一致的着色文本
-
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 5.5, // 细调以匹配 SelectableEnglishLine 内部单词间距
-      runSpacing: 4.0,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      runSpacing: 4,
+      spacing: 0,
       children: refWords.map((word) {
-        final matched = refLookup[word.toLowerCase()];
         Color color;
-        if (!hasWords) {
-          color = Colors.white30; // 默认灰显
-        } else if (matched != null) {
-          color = matched.correct ? const Color(0xFF4CAF50) : AppColors.error;
+        if (isListening) {
+          color = Colors.white38;
+        } else if (_state == 'scored') {
+          final matched = refLookup[word.toLowerCase()];
+          if (matched != null) {
+            color = matched.correct ? const Color(0xFF4CAF50) : AppColors.error;
+          } else {
+            color = AppColors.error;
+          }
         } else {
-          color = AppColors.error;
+          color = Colors.white30;
         }
 
-        // 匹配 SelectableEnglishLine 内部 Container 的样式
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 2.0),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(4), color: Colors.transparent),
+          margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 0),
           child: Text(
             word,
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: color,
-              fontSize: 18, // 与上方字幕 fontSize: 18 保持完全一致
-              height: 1.5, // 与上方字幕的行高保持一致
-              fontWeight: FontWeight.w500,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              height: 1.6,
             ),
           ),
         );
@@ -430,7 +433,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
               Colors.white70,
               36,
               18,
-              onTap: cfg.previousSentence != null ? () => cfg.previousSentence!() : null,
+              onTap: cfg.previousSentence != null
+                  ? () { _resetRecordingState(); cfg.previousSentence!(); }
+                  : (cfg.playAtSubtitleIndex != null && cfg.currentSubtitleIndex != null
+                      ? () { _resetRecordingState(); cfg.playAtSubtitleIndex!(cfg.currentSubtitleIndex! - 1); }
+                      : null),
               bg: Colors.white10,
             ),
             const SizedBox(width: 6),
@@ -441,7 +448,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
               Colors.white70,
               36,
               18,
-              onTap: cfg.nextSentence != null ? () => cfg.nextSentence!() : null,
+              onTap: cfg.nextSentence != null
+                  ? () { _resetRecordingState(); cfg.nextSentence!(); }
+                  : (cfg.playAtSubtitleIndex != null && cfg.currentSubtitleIndex != null
+                      ? () { _resetRecordingState(); cfg.playAtSubtitleIndex!(cfg.currentSubtitleIndex! + 1); }
+                      : null),
               bg: Colors.white10,
             ),
             const Spacer(),
@@ -518,7 +529,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
           children: [
-            // 顶部：返回（竖屏空间足够时显示）
+            // 顶部：返回
             if (!isLandscape) ...[
               GestureDetector(
                 onTap: () => _navigateBack(),
@@ -573,20 +584,20 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceHighest,
+                  color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.warning),
+                        Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.primary),
                         const SizedBox(width: 6),
                         Text(
                           'AI 评价',
-                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -845,6 +856,31 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
       _currentPage = 'recording';
     });
     await _startRecording(context, cfg);
+  }
+
+  /// 切换字幕时重置录音状态，避免显示上次的匹配结果
+  void _resetRecordingState() {
+    _recordingTimer?.cancel();
+    _autoStopTimer?.cancel();
+    _recognitionTimer?.cancel();
+    _speechToText?.stop();
+    _speechToText?.cancel();
+    _recorder.stop();
+    setState(() {
+      _state = 'idle';
+      _overallScore = null;
+      _fluencyScore = null;
+      _accuracyScore = null;
+      _completenessScore = null;
+      _rawResult = null;
+      _aiSummary = '';
+      _aiSuggestions = '';
+      _recognizedWords.clear();
+      _recordingSeconds = 0;
+      _recordingPath = null;
+      _liveTranscription = '';
+      _currentPage = 'recording';
+    });
   }
 
   void _handleRecordingError(String message, ShadowReaderConfig cfg) {
@@ -1162,12 +1198,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
   }
 
   Future<void> _replayOriginal(ShadowReaderConfig cfg) async {
-    final sub = cfg.subtitle;
     if (cfg.resourceType == 'article') {
-      if (cfg.speakSubtitle != null) await cfg.speakSubtitle!(sub.content);
+      if (cfg.speakSubtitle != null) await cfg.speakSubtitle!(cfg.subtitle.content);
     } else {
-      if (cfg.seekTo != null && cfg.togglePlayPause != null) {
-        await cfg.seekTo!(Duration(milliseconds: sub.startPosition.toInt()));
+      if (cfg.togglePlayPause != null) {
         await cfg.togglePlayPause!();
       }
     }

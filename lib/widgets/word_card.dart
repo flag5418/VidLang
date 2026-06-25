@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_detail.dart';
@@ -410,19 +409,19 @@ class _WordCardState extends ConsumerState<WordCard> {
               child: Center(
                 child: Material(
                   color: cs.surface,
-                  borderRadius: BorderRadius.circular(16.r),
+                  borderRadius: BorderRadius.circular(16),
                   child: SizedBox(
-                    width: 360.w,
+                    width: 360,
                     height: maxHeight,
                     child: Padding(
-                      padding: EdgeInsets.all(16.r),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
                               Icon(Icons.label_outline_rounded, size: 20, color: cs.primary),
-                              SizedBox(width: 8.w),
+                              const SizedBox(width: 8),
                               Text(
                                 '设置标签',
                                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface),
@@ -432,14 +431,14 @@ class _WordCardState extends ConsumerState<WordCard> {
                             ],
                           ),
                           if (selectedTagNames.isNotEmpty) ...[
-                            SizedBox(height: 8.h),
+                            const SizedBox(height: 8),
                             Wrap(
-                              spacing: 8.w,
-                              runSpacing: 8.h,
+                              spacing: 8,
+                              runSpacing: 8,
                               children: selectedTagNames.map((name) {
                                 return Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                                  decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999.r)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
                                   child: Text(
                                     name,
                                     style: TextStyle(fontSize: 12, color: cs.primary, fontWeight: FontWeight.w600),
@@ -448,16 +447,16 @@ class _WordCardState extends ConsumerState<WordCard> {
                               }).toList(),
                             ),
                           ],
-                          SizedBox(height: 12.h),
+                          const SizedBox(height: 12),
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: cs.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
+                              color: cs.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.3)),
                               ),
                               child: ListView.builder(
-                                padding: EdgeInsets.symmetric(vertical: 6.h),
+                                padding: const EdgeInsets.symmetric(vertical: 6),
                                 itemCount: allTags.length,
                                 itemBuilder: (_, index) {
                                   final tag = allTags[index];
@@ -476,7 +475,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                                             });
                                           },
                                     child: Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                       child: Row(
                                         children: [
                                           Icon(
@@ -484,7 +483,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                                             size: 20,
                                             color: selected ? cs.primary : cs.onSurfaceVariant,
                                           ),
-                                          SizedBox(width: 10.w),
+                                          const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
                                               tag.name,
@@ -503,7 +502,7 @@ class _WordCardState extends ConsumerState<WordCard> {
                               ),
                             ),
                           ),
-                          SizedBox(height: 12.h),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
@@ -516,37 +515,37 @@ class _WordCardState extends ConsumerState<WordCard> {
                                     isDense: true,
                                     filled: true,
                                     fillColor: cs.surfaceContainerLow,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r), borderSide: BorderSide.none),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                                   ),
                                   onSubmitted: (_) => _addNewTag(newTagController, allTags, selectedCodes, setDialogState),
                                 ),
                               ),
-                              SizedBox(width: 8.w),
+                              const SizedBox(width: 8),
                               SizedBox(
-                                height: 40.h,
+                                height: 40,
                                 child: FilledButton.tonal(
                                   onPressed: () => _addNewTag(newTagController, allTags, selectedCodes, setDialogState),
                                   style: FilledButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(horizontal: 14.w),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
-                                  child: Text('添加', style: TextStyle(fontSize: 13.sp)),
+                                  child: Text('添加', style: TextStyle(fontSize: 13)),
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: 12.h),
+                          const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
-                            height: 44.h,
+                            height: 44,
                             child: FilledButton(
                               onPressed: () async {
                                 await WordTagService.replaceTags(resolvedCode!, selectedCodes.toList());
                                 if (!mounted) return;
                                 Navigator.of(ctx).pop();
                               },
-                              style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r))),
+                              style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                               child: Text(
                                 '确定',
                                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),

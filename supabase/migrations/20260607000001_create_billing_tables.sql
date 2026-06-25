@@ -74,10 +74,10 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
 
 -- 计费规则初始数据
 INSERT INTO public.pricing_rule (rule_code, name_zh, description_zh, model, price_cny, status) VALUES
-  ('ai_definition', 'AI释义', '查询单词的详细释义、例句、音标', 'qwen-plus', 0.01, 'active'),
-  ('ai_translate', 'AI翻译', '调用通义千问进行句子/段落翻译', 'qwen-plus', 0.03, 'active'),
-  ('ai_tts', 'AI发音', '调用通义千问 TTS 进行 AI 语音合成', 'qwen-tts', 0.02, 'active'),
-  ('ai_word_link', 'AI词联', '根据上下文联想关联词汇、近义词、反义词', 'qwen-plus', 0.02, 'active'),
+  ('ai_definition', 'AI释义', '查询单词的详细释义、例句、音标', 'qwen-turbo', 0.01, 'active'),
+  ('ai_translate', 'AI翻译', '调用通义千问进行句子/段落翻译', 'qwen-turbo', 0.03, 'active'),
+  ('ai_tts', 'AI发音', '调用通义千问 TTS 进行 AI 语音合成', 'qwen3-tts-flash', 0.02, 'active'),
+  ('ai_word_link', 'AI词联', '根据上下文联想关联词汇、近义词、反义词', 'qwen-turbo', 0.02, 'active'),
   ('ai_evaluate', 'AI评测', '调用声通对跟读录音进行发音评分', 'shengtong', 0.05, 'active')
 ON CONFLICT (rule_code) DO NOTHING;
 

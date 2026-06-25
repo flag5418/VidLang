@@ -7,6 +7,23 @@
  * 其中 data 为 Map 结构，前端可以直接转为业务 Model。
  */
 
+// ─── 模型配置（全局统一维护）─────────────────────────────
+
+/** 阿里云百炼模型配置表 — 英语学习 App 专用 */
+export const QWEN_MODELS = {
+  /** 文本大模型：对话/翻译/推理（唯一文本模型） */
+  TURBO: 'qwen-turbo',
+  /** 语音合成 TTS：CosyVoice-v3-Flash */
+  TTS: 'CosyVoice-v3-Flash',
+  /** 语音识别 ASR：fun-asr-realtime */
+  ASR: 'fun-asr-realtime',
+  /** 实时对话：多模态实时模型 */
+  REALTIME: 'qwen3.5-omni-plus-realtime',
+} as const
+
+/** 默认文本对话模型 */
+const DEFAULT_CHAT_MODEL = QWEN_MODELS.TURBO
+
 export interface QwenChatParams {
   prompt: string
   model?: string
@@ -102,7 +119,7 @@ export async function qwenChat(
   baseUrl: string,
   params: QwenChatParams,
 ): Promise<string> {
-  const model = params.model || 'qwen-plus'
+  const model = params.model || DEFAULT_CHAT_MODEL
   const url = `${baseUrl}/chat/completions`
 
   const response = await fetch(url, {
@@ -151,8 +168,9 @@ export async function definition(
   baseUrl: string,
   word: string,
   sentence?: string,
+  model?: string,
 ): Promise<Record<string, any>> {
-  const prompt = `请用中文详细解释英语单词"${word}"，要求返回严格的 JSON 格式（不要 markdown 代码块标记）：
+  let prompt = `请用中文详细解释英语单词"${word}"，要求返回严格的 JSON 格式（不要 markdown 代码块标记）：
 {
   "word": "${word}",
   "phonetic_uk": "英式音标",
@@ -176,6 +194,7 @@ export async function definition(
     prompt,
     temperature: 0.3,
     maxTokens: 800,
+    model: model || DEFAULT_CHAT_MODEL,
   })
 
   const parsed = parseJsonSafe(raw)
@@ -206,6 +225,7 @@ export async function translateText(
   baseUrl: string,
   text: string,
   targetLanguage = '中文',
+  model?: string,
 ): Promise<Record<string, any>> {
   const wordCount = text.split(/\s+/).length
 
@@ -237,6 +257,7 @@ export async function translateText(
     prompt,
     temperature: 0.3,
     maxTokens: wordCount <= 10 ? 1000 : 2000,
+    model: model || DEFAULT_CHAT_MODEL,
   })
 
   // 尝试解析为结构化 JSON
@@ -257,6 +278,7 @@ export async function wordLink(
   baseUrl: string,
   word: string,
   sentence?: string,
+  model?: string,
 ): Promise<Record<string, any>> {
   let prompt = `请对英语单词"${word}"进行词汇联想，返回严格的 JSON 格式（不要 markdown 代码块标记）：
 {
@@ -274,6 +296,7 @@ export async function wordLink(
     prompt,
     temperature: 0.5,
     maxTokens: 500,
+    model: model || DEFAULT_CHAT_MODEL,
   })
 
   const parsed = parseJsonSafe(raw)
@@ -293,6 +316,7 @@ export async function translateConversationResponse(
   apiKey: string,
   baseUrl: string,
   text: string,
+  model?: string,
 ): Promise<Record<string, any>> {
   const prompt = `你是一个专业的英语翻译助手。请将以下英文翻译成中文，要求翻译自然流畅、口语化，适合英语学习者理解。
 返回严格的 JSON 格式（不要 markdown 代码块标记）：
@@ -306,6 +330,7 @@ export async function translateConversationResponse(
     prompt,
     temperature: 0.3,
     maxTokens: 2000,
+    model: model || DEFAULT_CHAT_MODEL,
   })
 
   const parsed = parseJsonSafe(raw)
@@ -330,8 +355,8 @@ export async function aiChat(
   systemPrompt = '你是一个专业的英语学习助手，请用中文回答。',
   temperature = 0.3,
   maxTokens = 2000,
+  model = DEFAULT_CHAT_MODEL,
 ): Promise<Record<string, any>> {
-  const model = 'qwen-plus'
   const url = `${baseUrl}/chat/completions`
 
   const response = await fetch(url, {

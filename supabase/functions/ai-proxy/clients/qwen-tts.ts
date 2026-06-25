@@ -3,6 +3,8 @@
  * 通义千问 TTS API 客户端（语音合成）
  */
 
+import { QWEN_MODELS } from './qwen-chat.ts'
+
 const TTS_URL =
   "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation";
 
@@ -25,7 +27,7 @@ export async function qwenTts(
       "X-DashScope-OssResourceResolve": "enable",
     },
     body: JSON.stringify({
-      model: params.model || "qwen3-tts-flash",
+      model: params.model || QWEN_MODELS.TTS,
       input: { text: params.text },
       parameters: {
         text_type: "PlainText",

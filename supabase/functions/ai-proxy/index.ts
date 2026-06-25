@@ -31,22 +31,26 @@ import {
   translateConversationResponse,
   translateText,
   wordLink,
+  QWEN_MODELS,
 } from './clients/qwen-chat.ts'
 import { qwenTts } from './clients/qwen-tts.ts'
 import { shengtongEvaluate } from './clients/shengtong.ts'
 
 // ─── 路由表 ───
+// 路由处理器签名增加 model 参数，支持从 pricing_rule 透传模型配置
 const ROUTES: Record<
   string,
-  (apiKey: string, baseUrl: string, params: any) => Promise<any>
+  (apiKey: string, baseUrl: string, params: any, model?: string) => Promise<any>
 > = {
-  ai_definition: (key, url, p) => definition(key, url, p.word, p.sentence),
-  ai_translate: (key, url, p) =>
-    translateText(key, url, p.text, p.target_language || '中文'),
-  ai_word_link: (key, url, p) => wordLink(key, url, p.word, p.sentence),
-  ai_translate_conversation: (key, url, p) =>
-    translateConversationResponse(key, url, p.text),
-  ai_chat: (key, url, p) =>
+  ai_definition: (key, url, p, model) =>
+    definition(key, url, p.word, p.sentence, model),
+  ai_translate: (key, url, p, model) =>
+    translateText(key, url, p.text, p.target_language || '中文', model),
+  ai_word_link: (key, url, p, model) =>
+    wordLink(key, url, p.word, p.sentence, model),
+  ai_translate_conversation: (key, url, p, model) =>
+    translateConversationResponse(key, url, p.text, model),
+  ai_chat: (key, url, p, model) =>
     aiChat(
       key,
       url,
@@ -54,8 +58,9 @@ const ROUTES: Record<
       p.system_prompt || '你是一个专业的英语学习助手，请用中文回答。',
       p.temperature ?? 0.3,
       p.max_tokens ?? 2000,
+      model,
     ),
-  ai_translate_article: (key, url, p) =>
+  ai_translate_article: (key, url, p, model) =>
     aiChat(
       key,
       url,
@@ -63,6 +68,7 @@ const ROUTES: Record<
       '你是专业的英文学习翻译助手，请用中文做逐句翻译和段落翻译。',
       p.temperature ?? 0.2,
       p.max_tokens ?? 8192,
+      model,
     ),
 }
 
@@ -283,7 +289,9 @@ Deno.serve(async (req: Request) => {
           400,
         )
       }
-      result = await handler(qwenApiKey, qwenBaseUrl, params)
+      // 优先使用 pricing_rule 表中配置的 model，未配置则使用默认模型
+      const model = rule.model || QWEN_MODELS.TURBO
+      result = await handler(qwenApiKey, qwenBaseUrl, params, model)
     }
 
     // 8. 扣费

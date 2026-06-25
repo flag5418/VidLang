@@ -5,6 +5,7 @@ import Vision
 import Photos
 import NaturalLanguage
 import Speech
+import Translation
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -55,6 +56,7 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate,
                       UINavigationControllerDelegate, SFSpeechRecognizerDelegate {
 
     static let CHANNEL_NAME = "com.yzh.vidlang/ios_features"
+    private static var preparedTranslationPairs: Set<String> = []
 
     static func setup(with controller: FlutterViewController) {
         let channel = FlutterMethodChannel(
@@ -71,6 +73,7 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate,
     func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "translate":               handleTranslate(call, result)
+        case "openAppSettings":         handleOpenAppSettings(result)
         case "lookUp":                  handleLookUp(call, result)
         case "segmentWords":            handleSegmentWords(call, result)
         case "speak":                   handleSpeak(call, result)
@@ -94,6 +97,18 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate,
         case "getDeviceIdiom":                  handleGetDeviceIdiom(result)
         default:
             result(FlutterMethodNotImplemented)
+        }
+    }
+
+    private func handleOpenAppSettings(_ result: @escaping FlutterResult) {
+        DispatchQueue.main.async {
+            guard let url = URL(string: UIApplication.openSettingsURLString),
+                  UIApplication.shared.canOpenURL(url) else {
+                result(false); return
+            }
+            UIApplication.shared.open(url, options: [:]) { ok in
+                result(ok)
+            }
         }
     }
 
@@ -137,55 +152,49 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate,
     }
 
     // ─────────── 翻译 ───────────
-    // 说明：iOS 18 Translation API 是 SwiftUI 专用（TranslationSession 需挂载到 View），
-    //      无法从 FlutterMethodChannel 调用。翻译能力由 Flutter 端的 NativeService
-    //      （付费→AiService→Edge Function Qwen，免费→系统词典+简单翻译）统一处理。
-    //      这里提供简单降级：英文→中文通用词映射 + 返回原文。
     private func handleTranslate(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any],
               let text = args["text"] as? String, !text.isEmpty else {
             result(["success": false, "error": "Invalid arguments"])
             return
         }
+
         let sourceLang = args["sourceLanguage"] as? String ?? "en"
         let targetLang = args["targetLanguage"] as? String ?? "zh-Hans"
 
-        // 简单降级翻译（英文→中文常用词）
-        let translated: String
-        if sourceLang.hasPrefix("en") && targetLang.hasPrefix("zh") {
-            translated = simpleTranslateENtoZH(text)
+        if #available(iOS 26.0, macOS 15.0, *) {
+            Task {
+                do {
+                    let source = Locale.Language(identifier: sourceLang)
+                    let target = Locale.Language(identifier: targetLang)
+                    let session = try TranslationSession(installedSource: source, target: target)
+
+                    let pairKey = "\(sourceLang)->\(targetLang)"
+                    if !NativeFeatures.preparedTranslationPairs.contains(pairKey) {
+                        do {
+                            try await session.prepareTranslation()
+                            NativeFeatures.preparedTranslationPairs.insert(pairKey)
+                        } catch {
+                            result(["success": false, "error": "Translation language download failed: \(error.localizedDescription)"])
+                            return
+                        }
+                    }
+
+                    let response = try await session.translate(text)
+                    result([
+                        "success": true,
+                        "sourceText": text,
+                        "translatedText": response.targetText,
+                        "sourceLanguage": sourceLang,
+                        "targetLanguage": targetLang
+                    ])
+                } catch {
+                    result(["success": false, "error": "Translation failed: \(error.localizedDescription)"])
+                }
+            }
         } else {
-            translated = text
+            result(["success": false, "error": "iOS 26+ required for native translation. Please use AI translation mode."])
         }
-
-        result(["success": true, "sourceText": text, "translatedText": translated,
-                "sourceLanguage": sourceLang, "targetLanguage": targetLang])
-    }
-
-    private func simpleTranslateENtoZH(_ text: String) -> String {
-        let dict: [String: String] = [
-            "hello": "你好", "world": "世界", "good": "好的", "bad": "坏的",
-            "love": "爱", "friend": "朋友", "family": "家庭", "time": "时间",
-            "day": "天", "night": "夜晚", "morning": "早晨", "evening": "傍晚",
-            "happy": "快乐", "sad": "悲伤", "big": "大", "small": "小",
-            "hot": "热", "cold": "冷", "new": "新", "old": "旧",
-            "beautiful": "美丽", "important": "重要", "different": "不同",
-            "yes": "是", "no": "不", "please": "请", "thank": "谢谢",
-            "sorry": "抱歉", "welcome": "欢迎", "goodbye": "再见",
-            "water": "水", "food": "食物", "home": "家", "work": "工作",
-            "school": "学校", "book": "书", "music": "音乐", "art": "艺术",
-            "science": "科学", "history": "历史", "nature": "自然",
-            "people": "人们", "child": "孩子", "man": "男人", "woman": "女人",
-            "name": "名字", "place": "地方", "idea": "想法", "story": "故事",
-            "question": "问题", "answer": "答案", "problem": "困难",
-        ]
-        let lower = text.lowercased()
-        if let match = dict[lower] { return match }
-        // 短语逐词翻译
-        let words = lower.split(separator: " ")
-        let translatedWords = words.map { dict[String($0)] ?? String($0) }
-        let joined = translatedWords.joined(separator: " ")
-        return joined != lower ? joined : text
     }
 
     // MARK: - 词典查询

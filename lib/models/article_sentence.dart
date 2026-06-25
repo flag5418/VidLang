@@ -21,6 +21,9 @@ class ArticleSentence extends BaseEntity {
   /// 翻译文本
   String? contentTranslate;
 
+  /// 翻译来源：-1=无翻译 0=原生翻译 1=AI翻译
+  int translateSource = -1;
+
   /// 阅读时间轴：累计起始位置（毫秒）
   int startPositionMs;
 
@@ -39,6 +42,7 @@ class ArticleSentence extends BaseEntity {
     this.sentenceIndex = 0,
     this.content = '',
     this.contentTranslate,
+    this.translateSource = -1,
     this.startPositionMs = 0,
     this.endPositionMs = 0,
     this.wordCount = 0,
@@ -59,6 +63,7 @@ class ArticleSentence extends BaseEntity {
       'sentence_index': sentenceIndex,
       'content': content,
       'content_translate': contentTranslate,
+      'translate_source': translateSource,
       'start_position_ms': startPositionMs,
       'end_position_ms': endPositionMs,
       'word_count': wordCount,
@@ -83,6 +88,7 @@ class ArticleSentence extends BaseEntity {
     sentenceIndex = map['sentence_index'] ?? 0;
     content = map['content'] ?? '';
     contentTranslate = map['content_translate'];
+    translateSource = map['translate_source'] ?? -1;
     startPositionMs = map['start_position_ms'] ?? 0;
     endPositionMs = map['end_position_ms'] ?? 0;
     wordCount = map['word_count'] ?? 0;

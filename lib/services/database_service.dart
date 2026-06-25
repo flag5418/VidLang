@@ -61,8 +61,17 @@ class DatabaseService {
 
   /// 数据库版本号
   ///
-  /// 用于数据库升级迁移
-  static const int _databaseVersion = 1;
+  /// 用于数据库升级迁移。每次数据库结构发生变更（新增表、修改字段类型、数据迁移等）时，
+  /// 必须递增此版本号，并在 [_onUpgrade] 中编写对应的迁移逻辑。
+  static const int _databaseVersion = 2;
+
+  /// 实体 Schema 哈希存储键名
+  ///
+  /// 用于在 config 表中存储上次启动时的实体结构哈希值
+  static const String _schemaHashKey = 'db_schema_hash';
+
+  /// 上次检测是否通过的标志
+  static bool _schemaCheckPassed = false;
 
   /// 已注册的实体配置映射
   static final Map<String, EntityConfig> _registeredEntities = {};
@@ -128,7 +137,77 @@ class DatabaseService {
 
   static bool _isDatabaseCorrupted(Object e) {
     final s = e.toString().toLowerCase();
-    return s.contains('database disk image is malformed') || s.contains('malformed');
+    return s.contains('database disk image is malformed') ||
+        s.contains('malformed') ||
+        s.contains('database is locked') ||
+        s.contains('disk i/o error') ||
+        s.contains('corrupt');
+  }
+
+  /// 检测数据库连接是否已损坏
+  ///
+  /// 在关键操作前调用，如果数据库已损坏则重置连接
+  static Future<bool> _isConnectionHealthy() async {
+    if (_database == null) return false;
+    try {
+      await _database!.rawQuery('PRAGMA quick_check(1)');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 运行时数据库损坏恢复
+  ///
+  /// 当运行中检测到数据库损坏时调用，
+  /// 关闭损坏的连接，删除损坏文件，重新初始化数据库。
+  static Future<void> _recoverRuntimeCorruption(Object error, StackTrace st) async {
+    final path = await _getDbPath();
+    logger.fatal('database corrupted at runtime', tag: 'DB', error: error, stackTrace: st, extra: {'dbPath': path});
+
+    // 关闭并清空损坏的数据库引用
+    try {
+      if (_database != null) {
+        await _database!.close();
+      }
+    } catch (_) {}
+    _database = null;
+
+    // 等待一小段时间让文件锁释放
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // 备份损坏的数据库文件
+    try {
+      final src = File(path);
+      if (await src.exists()) {
+        final backupPath = '$path.corrupt-${DateTime.now().millisecondsSinceEpoch}';
+        try {
+          await src.copy(backupPath);
+          logger.warning('corrupted db backed up', tag: 'DB', extra: {'backupPath': backupPath});
+        } catch (e) {
+          logger.error('corrupted db backup failed', tag: 'DB', error: e);
+        }
+      }
+    } catch (e) {
+      logger.error('corrupted db backup failed', tag: 'DB', error: e);
+    }
+
+    // 删除损坏的数据库文件
+    try {
+      await deleteDatabase(path);
+      logger.warning('corrupted db deleted for recovery', tag: 'DB', extra: {'dbPath': path});
+    } catch (e) {
+      logger.error('corrupted db delete failed', tag: 'DB', error: e, extra: {'dbPath': path});
+    }
+
+    // 重新初始化数据库
+    try {
+      _database = await _openDatabaseAtPath(path);
+      logger.info('database re-initialized after runtime corruption', tag: 'DB', extra: {'dbPath': path});
+    } catch (e, st) {
+      logger.fatal('database re-init failed after runtime corruption', tag: 'DB', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   static Future<String> _getLegacyDbPath() async {
@@ -180,11 +259,19 @@ class DatabaseService {
     try {
       await db.execute('PRAGMA foreign_keys = ON');
     } catch (_) {}
+    // 使用 DELETE 日志模式 + NORMAL 同步模式，避免 WAL 模式下的数据库损坏问题
+    // WAL 模式在移动设备上（特别是 iOS 后台挂起/恢复时）容易导致 db-shm 和 db-wal 文件同步异常，
+    // 从而造成 "database disk image is malformed" 错误。
+    // DELETE 模式虽然并发性能略低，但单线程写入场景下更稳定可靠。
     try {
-      await db.execute('PRAGMA journal_mode = WAL');
+      await db.execute('PRAGMA journal_mode = DELETE');
     } catch (_) {}
     try {
-      await db.execute('PRAGMA synchronous = FULL');
+      await db.execute('PRAGMA synchronous = NORMAL');
+    } catch (_) {}
+    // 设置 busy timeout，避免并发访问时的锁等待导致操作失败
+    try {
+      await db.execute('PRAGMA busy_timeout = 5000');
     } catch (_) {}
   }
 
@@ -202,7 +289,15 @@ class DatabaseService {
   }
 
   static Future<Database> _openDatabaseAtPath(String path) async {
-    final db = await openDatabase(path, version: _databaseVersion, onConfigure: _onConfigure, onCreate: _onCreate, onOpen: _onOpen);
+    final db = await openDatabase(
+      path,
+      version: _databaseVersion,
+      onConfigure: _onConfigure,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+      onOpen: _onOpen,
+    );
+    // PRAGMA quick_check 失败说明数据库确实损坏了，直接抛出异常让上层恢复
     await _checkDatabaseHealth(db, path);
     return db;
   }
@@ -217,6 +312,9 @@ class DatabaseService {
       }
     } catch (_) {}
     _database = null;
+
+    // 等待一小段时间让文件锁释放
+    await Future.delayed(const Duration(milliseconds: 100));
 
     try {
       final src = File(path);
@@ -247,8 +345,9 @@ class DatabaseService {
 
     try {
       _database = await _openDatabaseAtPath(path);
-    } catch (e) {
-      logger.fatal('database re-init failed', tag: 'DB', error: e);
+    } catch (e, st) {
+      logger.fatal('database re-init failed', tag: 'DB', error: e, stackTrace: st);
+      rethrow;
     }
   }
 
@@ -269,6 +368,196 @@ class DatabaseService {
       BaseEntity entity = config.creator();
       await _createTable(db, entity, config.enableFullTextSearch);
     }
+  }
+
+  /// 数据库升级回调
+  ///
+  /// [db] 数据库实例
+  /// [oldVersion] 旧版本号
+  /// [newVersion] 新版本号
+  ///
+  /// 当应用升级导致数据库版本号增加时调用。
+  /// 按版本号逐步执行迁移脚本，确保每个版本的升级逻辑都被执行。
+  ///
+  /// 迁移原则：
+  /// 1. 新增表：在对应版本号中创建
+  /// 2. 新增字段：优先使用 [_autoMigrateTable] 自动补齐，复杂场景在此处理
+  /// 3. 字段类型变更：SQLite 不支持 ALTER COLUMN，需重建表
+  /// 4. 数据迁移：在此执行数据转换逻辑
+  ///
+  /// 示例：
+  /// ```dart
+  /// if (oldVersion < 2) {
+  ///   // v1 -> v2: 新增 learning_activity 表
+  ///   await _createTable(db, LearningActivity(), false);
+  /// }
+  /// if (oldVersion < 3) {
+  ///   // v2 -> v3: 修改某表字段类型（需重建表）
+  ///   await _rebuildTableWithNewSchema(db, 'some_table', ...);
+  /// }
+  /// ```
+  static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    logger.info('database upgrading', tag: 'DB', extra: {'oldVersion': oldVersion, 'newVersion': newVersion});
+
+    try {
+      // 按版本号逐步执行迁移
+      if (oldVersion < 2) {
+        // v1 -> v2: 自动补齐所有已注册实体的新字段和新表
+        // 此版本引入了系统化的自动迁移机制，确保所有表结构一致
+        for (var entry in _registeredEntities.entries) {
+          BaseEntity entity = entry.value.creator();
+          await _autoMigrateTable(db, entity, enableFTS: entry.value.enableFullTextSearch);
+        }
+      }
+
+      // 后续版本迁移在此继续添加：
+      // if (oldVersion < 3) { ... }
+      // if (oldVersion < 4) { ... }
+
+      logger.info('database upgrade completed', tag: 'DB', extra: {'from': oldVersion, 'to': newVersion});
+    } catch (e, st) {
+      logger.error('database upgrade failed', tag: 'DB', error: e, stackTrace: st, extra: {'oldVersion': oldVersion, 'newVersion': newVersion});
+      rethrow;
+    }
+  }
+
+  // ============================================================
+  // 启动时 Schema 强制检测（防遗忘版本号导致的事故）
+  // ============================================================
+
+  /// 计算当前所有注册实体的 Schema 哈希
+  ///
+  /// 基于所有实体的表名、字段名和字段类型生成唯一指纹。
+  /// 当任何实体新增/删除字段、新增/删除表时，哈希值都会改变。
+  ///
+  /// 返回 SHA-256 哈希字符串
+  static String _computeSchemaHash() {
+    final buffer = StringBuffer();
+
+    // 按表名排序确保顺序一致
+    final sortedEntries = _registeredEntities.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    for (final entry in sortedEntries) {
+      final entity = entry.value.creator();
+      buffer.write('TABLE:${entity.tableName};');
+
+      final map = entity.toMap();
+      // 按字段名排序确保顺序一致
+      final sortedKeys = map.keys.toList()..sort();
+      for (final key in sortedKeys) {
+        final type = _getColumnType(map[key]);
+        buffer.write('$key:$type;');
+      }
+      buffer.write('FTS:${entry.value.enableFullTextSearch};');
+    }
+
+    final bytes = utf8.encode(buffer.toString());
+    return sha256.convert(bytes).toString();
+  }
+
+  /// 启动时强制检测数据库结构一致性
+  ///
+  /// 此方法必须在应用启动时、进入主界面之前调用。
+  /// 它会对比当前代码中的实体定义和数据库实际结构，
+  /// 如果不一致，自动执行迁移修复。
+  ///
+  /// 检测逻辑：
+  /// 1. 计算当前所有注册实体的 Schema 哈希
+  /// 2. 读取数据库中保存的上次哈希
+  /// 3. 如果哈希不一致，执行全量自动迁移
+  /// 4. 保存新的哈希到数据库
+  ///
+  /// 返回 true 表示检测通过（或修复成功），false 表示检测/修复失败
+  static Future<bool> verifySchemaOnStartup() async {
+    if (_schemaCheckPassed) return true;
+
+    try {
+      final db = await database;
+      final currentHash = _computeSchemaHash();
+
+      // 读取上次保存的哈希
+      String? savedHash;
+      try {
+        final rows = await db.rawQuery(
+          'SELECT value FROM config WHERE category = ? AND key = ? AND is_deleted = 0',
+          [_systemCategory, _schemaHashKey],
+        );
+        if (rows.isNotEmpty) {
+          savedHash = rows.first['value'] as String?;
+        }
+      } catch (_) {
+        // config 表可能不存在（首次启动），忽略错误
+      }
+
+      // 如果哈希一致，说明结构没有变化，快速通过
+      if (savedHash == currentHash) {
+        _schemaCheckPassed = true;
+        logger.info('schema check passed (hash match)', tag: 'DB', extra: {'hash': currentHash.substring(0, 16)});
+        return true;
+      }
+
+      // 哈希不一致，需要执行自动迁移
+      logger.warning(
+        'schema mismatch detected, auto migrating',
+        tag: 'DB',
+        extra: {'savedHash': savedHash?.substring(0, 16), 'currentHash': currentHash.substring(0, 16)},
+      );
+
+      // 执行全量自动迁移：补齐所有缺失的表和字段
+      for (final entry in _registeredEntities.entries) {
+        final entity = entry.value.creator();
+        await _autoMigrateTable(db, entity, enableFTS: entry.value.enableFullTextSearch);
+      }
+
+      // 保存新的哈希
+      await _saveSchemaHash(db, currentHash);
+
+      _schemaCheckPassed = true;
+      logger.info('schema auto migration completed', tag: 'DB', extra: {'hash': currentHash.substring(0, 16)});
+      return true;
+    } catch (e, st) {
+      logger.error('schema verification failed', tag: 'DB', error: e, stackTrace: st);
+      return false;
+    }
+  }
+
+  /// 保存 Schema 哈希到数据库
+  static Future<void> _saveSchemaHash(Database db, String hash) async {
+    try {
+      final rows = await db.rawQuery(
+        'SELECT id FROM config WHERE category = ? AND key = ? AND is_deleted = 0',
+        [_systemCategory, _schemaHashKey],
+      );
+
+      final now = DateTime.now().toIso8601String();
+      final map = <String, dynamic>{
+        'category': _systemCategory,
+        'key': _schemaHashKey,
+        'value_type': 'string',
+        'value': hash,
+        'updated_at': now,
+      };
+
+      if (rows.isNotEmpty) {
+        await db.update('config', map, where: 'id = ?', whereArgs: [rows.first['id']]);
+      } else {
+        map['code'] = const Uuid().v4().replaceAll('-', '');
+        map['created_at'] = now;
+        map['is_deleted'] = 0;
+        await db.insert('config', map);
+      }
+    } catch (e, st) {
+      // config 表可能不存在，忽略错误
+      logger.warning('save schema hash failed', tag: 'DB', extra: {'error': e.toString(), 'stackTrace': st.toString()});
+    }
+  }
+
+  /// 重置 Schema 检测状态
+  ///
+  /// 用于测试或需要重新检测的场景
+  static void resetSchemaCheck() {
+    _schemaCheckPassed = false;
   }
 
   /// 数据库打开回调
@@ -388,14 +677,19 @@ class DatabaseService {
   ///
   /// [db] 数据库实例
   /// [entity] 实体实例
+  /// [enableFTS] 是否启用全文检索
   ///
-  /// 自动检测并添加新字段，无需重建表
+  /// 自动检测并添加新字段和新表，无需重建表。
+  /// 对于已存在的表，会：
+  /// 1. 检测实体定义中新增的普通字段，自动执行 ALTER TABLE ADD COLUMN
+  /// 2. 检测 FTS5 虚拟表是否存在，不存在则创建并回填历史数据
+  /// 3. 检测 FTS 触发器是否存在，不存在则创建
   static Future<void> _autoMigrateTable(Database db, BaseEntity entity, {bool enableFTS = false}) async {
     String tableName = entity.tableName;
 
     List<Map<String, dynamic>> existingColumns = await db.rawQuery('PRAGMA table_info($tableName)');
 
-    // 表不存在时直接建表（例如后注册的 study_record）
+    // 表不存在时直接建表（例如后注册的实体）
     if (existingColumns.isEmpty) {
       await _createTable(db, entity, enableFTS);
       return;
@@ -404,6 +698,8 @@ class DatabaseService {
     Set<String> existingColumnNames = existingColumns.map((col) => col['name'] as String).toSet();
 
     Map<String, dynamic> entityMap = entity.toMap();
+    Map<String, String> textColumns = {};
+    bool hasNewColumns = false;
 
     for (var entry in entityMap.entries) {
       String columnName = entry.key;
@@ -413,6 +709,208 @@ class DatabaseService {
       }
       String columnType = _getColumnType(entry.value);
       await db.execute('ALTER TABLE $tableName ADD COLUMN $columnName $columnType');
+      hasNewColumns = true;
+
+      // 记录文本列用于 FTS 检测
+      if (columnType == 'TEXT' && columnName != 'code') {
+        textColumns[columnName] = columnType;
+      }
+    }
+
+    // 如果启用了 FTS，检查并补齐 FTS 虚拟表和触发器
+    if (enableFTS) {
+      await _autoMigrateFTS(db, tableName, entityMap, existingColumnNames);
+    }
+
+    if (hasNewColumns) {
+      logger.info('table auto migrated', tag: 'DB', extra: {'table': tableName, 'newColumns': entityMap.keys.where((k) => k != 'id' && !existingColumnNames.contains(k)).toList()});
+    }
+  }
+
+  /// 自动补齐 FTS5 虚拟表和触发器
+  ///
+  /// [db] 数据库实例
+  /// [tableName] 主表名
+  /// [entityMap] 实体字段映射
+  /// [existingColumnNames] 已存在的列名集合
+  ///
+  /// 检测 FTS 虚拟表和触发器是否存在，不存在则创建，并回填历史数据。
+  static Future<void> _autoMigrateFTS(
+    Database db,
+    String tableName,
+    Map<String, dynamic> entityMap,
+    Set<String> existingColumnNames,
+  ) async {
+    String ftsTableName = '${tableName}_fts';
+
+    // 收集所有文本列（包括新添加的和已存在的）
+    Map<String, String> textColumns = {};
+    for (var entry in entityMap.entries) {
+      String columnName = entry.key;
+      if (columnName == 'id' || columnName == 'code') continue;
+      dynamic value = entry.value;
+      if (value == null || value is String || value is DateTime) {
+        textColumns[columnName] = 'TEXT';
+      }
+    }
+
+    if (textColumns.isEmpty) return;
+
+    String ftsColumns = textColumns.keys.join(', ');
+
+    try {
+      // 检查 FTS 表是否存在
+      final ftsExists = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        [ftsTableName],
+      );
+
+      if (ftsExists.isEmpty) {
+        // 创建 FTS5 虚拟表
+        String createFtsSql =
+            '''
+          CREATE VIRTUAL TABLE IF NOT EXISTS $ftsTableName 
+          USING FTS5($ftsColumns, content=$tableName, content_rowid=id)
+        ''';
+        await db.execute(createFtsSql);
+        logger.info('fts table created', tag: 'DB', extra: {'table': ftsTableName});
+
+        // 回填历史数据
+        await db.execute('''
+          INSERT INTO $ftsTableName(rowid, $ftsColumns)
+          SELECT id, ${textColumns.keys.join(', ')} FROM $tableName WHERE is_deleted = 0
+        ''');
+        logger.info('fts data backfilled', tag: 'DB', extra: {'table': ftsTableName});
+      }
+
+      // 检查并补齐触发器
+      final triggers = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name=?",
+        [tableName],
+      );
+      Set<String> existingTriggerNames = triggers.map((t) => t['name'] as String).toSet();
+
+      String insertTrigger = '${tableName}_after_insert';
+      String updateTrigger = '${tableName}_after_update';
+      String deleteTrigger = '${tableName}_after_delete';
+
+      if (!existingTriggerNames.contains(insertTrigger)) {
+        await db.execute('''
+          CREATE TRIGGER IF NOT EXISTS $insertTrigger 
+          AFTER INSERT ON $tableName BEGIN
+            INSERT INTO $ftsTableName(rowid, $ftsColumns) 
+            VALUES (new.id, ${textColumns.keys.map((k) => 'new.$k').join(', ')});
+          END
+        ''');
+      }
+
+      if (!existingTriggerNames.contains(updateTrigger)) {
+        await db.execute('''
+          CREATE TRIGGER IF NOT EXISTS $updateTrigger 
+          AFTER UPDATE ON $tableName BEGIN
+            UPDATE $ftsTableName SET 
+              ${textColumns.keys.map((k) => '$k = new.$k').join(', ')}
+            WHERE rowid = old.id;
+          END
+        ''');
+      }
+
+      if (!existingTriggerNames.contains(deleteTrigger)) {
+        await db.execute('''
+          CREATE TRIGGER IF NOT EXISTS $deleteTrigger 
+          AFTER DELETE ON $tableName BEGIN
+            DELETE FROM $ftsTableName WHERE rowid = old.id;
+          END
+        ''');
+      }
+    } catch (e) {
+      // FTS5 不支持时静默处理，不影响应用正常运行
+      logger.warning('fts auto migrate skipped', tag: 'DB', extra: {'table': tableName, 'error': e.toString()});
+    }
+  }
+
+  /// 重建表结构（用于字段类型变更等复杂迁移场景）
+  ///
+  /// [db] 数据库实例
+  /// [entity] 新实体实例
+  /// [enableFTS] 是否启用全文检索
+  ///
+  /// SQLite 不支持 ALTER COLUMN，当需要修改字段类型时，需要：
+  /// 1. 创建临时表（使用新结构）
+  /// 2. 将旧数据迁移到临时表
+  /// 3. 删除旧表
+  /// 4. 将临时表重命名为原表名
+  /// 5. 重新创建索引和触发器
+  ///
+  /// 注意：此方法会丢失旧表中实体定义中不存在的字段。
+  /// 如果需要保留旧字段，请在实体中保留对应字段。
+  static Future<void> _rebuildTable(Database db, BaseEntity entity, {bool enableFTS = false}) async {
+    String tableName = entity.tableName;
+    String tempTableName = '${tableName}_temp_${DateTime.now().millisecondsSinceEpoch}';
+
+    logger.info('rebuilding table', tag: 'DB', extra: {'table': tableName, 'temp': tempTableName});
+
+    try {
+      // 1. 创建临时表（使用新结构）
+      Map<String, dynamic> entityMap = entity.toMap();
+      StringBuffer columns = StringBuffer();
+      columns.write('id INTEGER PRIMARY KEY AUTOINCREMENT');
+
+      Map<String, String> textColumns = {};
+      entityMap.forEach((key, value) {
+        if (key != 'id') {
+          String columnType = _getColumnType(value);
+          String nullable = _isNullable(value) ? '' : ' NOT NULL';
+          columns.write(', $key $columnType$nullable');
+          if (columnType == 'TEXT' && key != 'code') {
+            textColumns[key] = columnType;
+          }
+        }
+      });
+
+      await db.execute('CREATE TABLE $tempTableName ($columns)');
+
+      // 2. 获取旧表的列名，只迁移共有的字段
+      List<Map<String, dynamic>> oldColumns = await db.rawQuery('PRAGMA table_info($tableName)');
+      Set<String> oldColumnNames = oldColumns.map((c) => c['name'] as String).toSet();
+      Set<String> newColumnNames = entityMap.keys.toSet();
+      Set<String> commonColumns = oldColumnNames.intersection(newColumnNames);
+
+      if (commonColumns.isNotEmpty) {
+        String commonColumnsStr = commonColumns.join(', ');
+        await db.execute('''
+          INSERT INTO $tempTableName ($commonColumnsStr)
+          SELECT $commonColumnsStr FROM $tableName WHERE is_deleted = 0
+        ''');
+      }
+
+      // 3. 删除旧表相关的 FTS 和触发器
+      try {
+        await db.execute('DROP TABLE IF EXISTS ${tableName}_fts');
+      } catch (_) {}
+      try {
+        await db.execute('DROP TRIGGER IF EXISTS ${tableName}_after_insert');
+      } catch (_) {}
+      try {
+        await db.execute('DROP TRIGGER IF EXISTS ${tableName}_after_update');
+      } catch (_) {}
+      try {
+        await db.execute('DROP TRIGGER IF EXISTS ${tableName}_after_delete');
+      } catch (_) {}
+
+      // 4. 删除旧表并重命名临时表
+      await db.execute('DROP TABLE IF EXISTS $tableName');
+      await db.execute('ALTER TABLE $tempTableName RENAME TO $tableName');
+
+      // 5. 重新创建 FTS 和触发器
+      if (enableFTS && textColumns.isNotEmpty) {
+        await _autoMigrateFTS(db, tableName, entityMap, newColumnNames);
+      }
+
+      logger.info('table rebuild completed', tag: 'DB', extra: {'table': tableName});
+    } catch (e, st) {
+      logger.error('table rebuild failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': tableName});
+      rethrow;
     }
   }
 
@@ -554,10 +1052,21 @@ class DatabaseService {
   /// 返回影响行数
   static Future<int> update(BaseEntity entity) async {
     final db = await database;
+    // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
+    await _autoMigrateEntity(db, entity);
     entity.updatedAt = DateTime.now();
     try {
-      return await db.update(entity.tableName, entity.toMap(), where: 'id = ?', whereArgs: [entity.id]);
+      final map = entity.toMap();
+      map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
+      // 移除 null 值的字段，避免不必要的 NULL 更新
+      map.removeWhere((key, value) => value == null);
+      return await db.update(entity.tableName, map, where: 'id = ?', whereArgs: [entity.id]);
     } catch (e, st) {
+      if (_isDatabaseCorrupted(e)) {
+        logger.fatal('db corrupted during update, attempting recovery', tag: 'DB', error: e, stackTrace: st);
+        await _recoverRuntimeCorruption(e, st);
+        return 0;
+      }
       logger.error('db update failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code});
       await _tryInsertErrorLog(db, {
         'code': const Uuid().v4().replaceAll('-', ''),
@@ -587,15 +1096,35 @@ class DatabaseService {
 
     final db = await database;
     final tableName = entities.first.tableName;
+    // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
+    await _autoMigrateEntity(db, entities.first);
     int updatedCount = 0;
 
-    await db.transaction((txn) async {
-      for (var entity in entities) {
-        entity.updatedAt = DateTime.now();
-        int count = await txn.update(tableName, entity.toMap(), where: 'id = ?', whereArgs: [entity.id]);
-        updatedCount += count;
+    // 批量更新：使用事务但分批提交，避免单事务过大导致数据库问题
+    const batchSize = 100;
+    for (int i = 0; i < entities.length; i += batchSize) {
+      final batch = entities.sublist(i, (i + batchSize < entities.length) ? i + batchSize : entities.length);
+      try {
+        await db.transaction((txn) async {
+          for (var entity in batch) {
+            entity.updatedAt = DateTime.now();
+            final map = entity.toMap();
+            map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
+            // 移除 null 值的字段，避免不必要的 NULL 更新
+            map.removeWhere((key, value) => value == null);
+            int count = await txn.update(tableName, map, where: 'id = ?', whereArgs: [entity.id]);
+            updatedCount += count;
+          }
+        });
+      } catch (e, st) {
+        if (_isDatabaseCorrupted(e)) {
+          logger.fatal('db corrupted during batchUpdate, attempting recovery', tag: 'DB', error: e, stackTrace: st);
+          await _recoverRuntimeCorruption(e, st);
+          return 0;
+        }
+        rethrow;
       }
-    });
+    }
 
     return updatedCount;
   }

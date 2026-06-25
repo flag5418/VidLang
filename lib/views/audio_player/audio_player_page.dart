@@ -745,7 +745,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           // Progress bar
           _buildProgressBar(s, n),
           // Control row
-          _buildControlRow(s, n, hasSubtitles, followLabel),
+          _buildControlRow(s, n, hasSubtitles, followLabel, currentSub),
           const SizedBox(height: 4),
         ],
       ),
@@ -784,7 +784,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     );
   }
 
-  Widget _buildControlRow(PlayerEngineState s, PlayerEngineNotifier n, bool hasSubtitles, String followLabel) {
+  Widget _buildControlRow(PlayerEngineState s, PlayerEngineNotifier n, bool hasSubtitles, String followLabel, Subtitles? currentSub) {
     final video = n.currentVideo;
     final language = video?.language ?? 'en';
     final evalSupported = _supportedEvalLanguages.contains(language);
@@ -842,6 +842,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               } else {
                 setState(() => _showFollow = true);
                 n.enterFollowMode();
+                n.setSingleSentencePause(true);
+                if (currentSub != null) {
+                  n.seekToMs(Duration(milliseconds: currentSub.startPosition.toInt()).inMilliseconds);
+                  Future.microtask(() => n.player.play());
+                }
               }
             }),
           ],
@@ -995,6 +1000,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     final lang = video?.language ?? 'en';
     final isMusic = widget.audioType == 'music';
 
+    Future<void> _playAtSubtitleIndex(int index) async {
+      if (index < 0 || index >= n.subtitles.length) return;
+      final sub = n.subtitles[index];
+      await n.seekToMs(Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds);
+      await n.player.play();
+    }
+
     return ShadowReaderComponent.inline(
       config: ShadowReaderConfig(
         subtitle: currentSub,
@@ -1021,6 +1033,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         currentSubtitleIndex: s.currentSubtitleIndex,
         nextSentence: () async => n.nextSentence(),
         previousSentence: () async => n.previousSentence(),
+        playAtSubtitleIndex: _playAtSubtitleIndex,
       ),
       heightFactor: 0.45,
       onClose: () {
@@ -1031,11 +1044,16 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _buildSettingsContent(PlayerEngineState s, PlayerEngineNotifier n) {
+    final loopModes = [
+      ('single_loop', '单集循环', Icons.repeat_one_rounded),
+      ('list_loop', '列表循环', Icons.repeat_rounded),
+      ('single_play', '单集播放', Icons.play_circle_outline_rounded),
+      ('sequence_play', '顺序播放', Icons.playlist_play_rounded),
+    ];
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(color: Colors.transparent),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               Text(
@@ -1052,12 +1070,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             children: [
               _settingSwitch('字幕显示', s.subtitleVisible, () => n.toggleSubtitleVisible()),
               _settingSwitch('中文注音', s.pronunciationVisible, () => n.togglePronunciationVisible()),
               _settingSwitch('中文翻译', s.translateVisible, () => n.toggleTranslateVisible()),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _settingLabel('字幕字号'),
               SliderTheme(
                 data: SliderThemeData(
@@ -1076,33 +1094,44 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   onChanged: (v) => n.setSubtitleFontSize(v.roundToDouble()),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               _settingLabel('循环模式'),
+              const SizedBox(height: 4),
               Wrap(
-                spacing: 8,
-                children: ['single_loop', 'list_loop', 'random'].map((mode) {
-                  final labels = {'single_loop': '单曲循环', 'list_loop': '列表循环', 'random': '随机播放'};
+                spacing: 6,
+                runSpacing: 6,
+                children: loopModes.map((entry) {
+                  final mode = entry.$1;
+                  final label = entry.$2;
+                  final icon = entry.$3;
                   final active = s.loopingMode == mode;
                   return Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () => n.setLoopingMode(mode),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(color: active ? AppColors.primary : Colors.white12, borderRadius: BorderRadius.circular(10)),
-                        child: Text(
-                          labels[mode] ?? mode,
-                          style: TextStyle(color: active ? Colors.white : Colors.white70, fontSize: 12.sp),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: active ? AppColors.primary : Colors.white12, borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icon, size: 13, color: active ? Colors.white : Colors.white54),
+                            const SizedBox(width: 4),
+                            Text(
+                              label,
+                              style: TextStyle(color: active ? Colors.white : Colors.white70, fontSize: 11.sp),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               _settingLabel('智能匹配字幕'),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -1110,14 +1139,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                     setState(() => _showSettings = false);
                     _startSmartMatch();
                   },
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
                     child: Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
+                        Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
                         Text(
                           '开始智能匹配',
                           style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
@@ -1127,9 +1156,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               _settingLabel('手动导入字幕'),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -1137,14 +1166,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                     setState(() => _showSettings = false);
                     _importSubtitle();
                   },
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
                     child: Row(
                       children: [
-                        Icon(Icons.upload_file_rounded, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
+                        Icon(Icons.upload_file_rounded, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
                         Text(
                           '选择字幕文件',
                           style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
@@ -1168,7 +1197,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         onTap: onChanged,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           child: Row(
             children: [
               Text(
@@ -1176,9 +1205,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 style: TextStyle(color: _drawerText(), fontSize: 13.sp),
               ),
               const Spacer(),
-              Transform.scale(
-                scale: 0.8,
-                child: Switch(value: value, onChanged: (_) => onChanged(), activeThumbColor: AppColors.primary, inactiveThumbColor: Colors.white38),
+              SizedBox(
+                height: 28,
+                child: FittedBox(
+                  child: Switch(value: value, onChanged: (_) => onChanged(), activeThumbColor: AppColors.primary, inactiveThumbColor: Colors.white38, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                ),
               ),
             ],
           ),
@@ -1368,10 +1399,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
   Future<void> _switchToAudio(String code) async {
     final notifier = ref.read(playerEngineProvider.notifier);
-    await notifier.player.pause();
-    await notifier.openAudioByCode(code, widget.audioType);
-    unawaited(notifier.reloadSubtitles(code));
-    await _loadFolderVideos();
+    await notifier.switchToAudio(code, widget.audioType);
     _resolveCover();
     if (mounted) setState(() {});
   }

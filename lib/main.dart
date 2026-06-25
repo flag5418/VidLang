@@ -21,6 +21,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:vidlang/config.dart' as app_config;
 import 'package:vidlang/models/ai_evaluation_log.dart';
@@ -81,46 +82,57 @@ void main() {
       VscodeLogger.instance.init(appName: 'VidLang', minLevel: LogLevel.debug, printToConsole: true);
       GlobalErrorHandler.instance.install(navigatorKey: navigatorKey);
 
-      await Supabase.initialize(url: app_config.AppConfig.supabaseUrl, anonKey: app_config.AppConfig.supabaseAnonKey);
-
-      DatabaseService.registerEntities({
-        'video_folder': EntityConfig(creator: () => VideoFolder(), description: '视频文件夹表'),
-        'video_info': EntityConfig(creator: () => VideoInfo(), description: '视频信息表'),
-        'subtitles': EntityConfig(creator: () => Subtitles(), description: '字幕表（支持全文检索）', enableFullTextSearch: true),
-        'participle': EntityConfig(creator: () => Participle(), description: '分词表（支持全文检索）', enableFullTextSearch: true),
-        'config': EntityConfig(creator: () => Config(), description: '配置表'),
-        'study_record': EntityConfig(creator: () => StudyRecord(), description: '学习记录表'),
-        'user': EntityConfig(creator: () => User(), description: '用户表'),
-        'error_log': EntityConfig(creator: () => ErrorLog(), description: '错误日志表'),
-        'article': EntityConfig(creator: () => Article(), description: '文章表'),
-        'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表（旧版，迁移中）'),
-        'article_paragraph': EntityConfig(creator: () => ArticleParagraph(), description: '文章段落表'),
-        'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
-        'article_bookmark': EntityConfig(creator: () => ArticleBookmark(), description: '文章书签表'),
-        'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
-        'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
-        'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
-        'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
-        'test_session': EntityConfig(creator: () => TestSession(), description: '评测主记录表'),
-        'test_item': EntityConfig(creator: () => TestItem(), description: '单题记录表'),
-        'test_evaluation': EntityConfig(creator: () => TestEvaluation(), description: 'AI评价报告表'),
-        'ai_evaluation_log': EntityConfig(creator: () => AiEvaluationLog(), description: 'AI学习评价日志表'),
-      });
-
-      try {
-        await DatabaseService.database;
-      } catch (e, st) {
-        logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
-      }
-
-      await DeviceUtils.initialize();
-
+      // 先执行 runApp，让 Flutter 能够立刻渲染第一帧（Splash Screen）
+      // 避免因为网络请求或本地数据库初始化过慢导致长时间黑屏/白屏
       runApp(const ProviderScope(child: VidLangApp()));
+
+      // 在后台异步进行各项繁重的初始化任务
+      _initializeAsyncDependencies();
     },
     (error, stack) {
       GlobalErrorHandler.instance.handleZoneError(error, stack);
     },
   );
+}
+
+Future<void> _initializeAsyncDependencies() async {
+  try {
+    await Supabase.initialize(url: app_config.AppConfig.supabaseUrl, anonKey: app_config.AppConfig.supabaseAnonKey);
+
+    DatabaseService.registerEntities({
+      'video_folder': EntityConfig(creator: () => VideoFolder(), description: '视频文件夹表'),
+      'video_info': EntityConfig(creator: () => VideoInfo(), description: '视频信息表'),
+      'subtitles': EntityConfig(creator: () => Subtitles(), description: '字幕表（支持全文检索）', enableFullTextSearch: true),
+      'participle': EntityConfig(creator: () => Participle(), description: '分词表（支持全文检索）', enableFullTextSearch: true),
+      'config': EntityConfig(creator: () => Config(), description: '配置表'),
+      'study_record': EntityConfig(creator: () => StudyRecord(), description: '学习记录表'),
+      'user': EntityConfig(creator: () => User(), description: '用户表'),
+      'error_log': EntityConfig(creator: () => ErrorLog(), description: '错误日志表'),
+      'article': EntityConfig(creator: () => Article(), description: '文章表'),
+      'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表（旧版，迁移中）'),
+      'article_paragraph': EntityConfig(creator: () => ArticleParagraph(), description: '文章段落表'),
+      'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
+      'article_bookmark': EntityConfig(creator: () => ArticleBookmark(), description: '文章书签表'),
+      'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
+      'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
+      'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
+      'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
+      'test_session': EntityConfig(creator: () => TestSession(), description: '评测主记录表'),
+      'test_item': EntityConfig(creator: () => TestItem(), description: '单题记录表'),
+      'test_evaluation': EntityConfig(creator: () => TestEvaluation(), description: 'AI评价报告表'),
+      'ai_evaluation_log': EntityConfig(creator: () => AiEvaluationLog(), description: 'AI学习评价日志表'),
+    });
+
+    try {
+      await DatabaseService.database;
+    } catch (e, st) {
+      logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
+    }
+
+    await DeviceUtils.initialize();
+  } catch (e, st) {
+    logger.error('后台初始化依赖失败', tag: 'INIT', error: e, stackTrace: st);
+  }
 }
 
 /// VidLang应用根组件
@@ -220,26 +232,75 @@ class _AppEntry extends StatefulWidget {
 
 class _AppEntryState extends State<_AppEntry> {
   late final Future<Widget> _target = _resolveTarget();
+  bool _resolved = false;
 
   Future<Widget> _resolveTarget() async {
-    final userCode = await DatabaseService.getCurrentUserCode();
-    if (userCode == null || userCode.isEmpty) return const LoginPage();
-
-    final user = await BaseEntityExtension.findByCode<User>(userCode, () => User());
-    if (user == null) return const LoginPage();
-
-    app_config.AppConfig.currentUser = user;
-
-    if (user.authProvider == 'supabase') {
-      final ok = await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: true);
-      if (!ok) {
-        return LoginPage(initialEmail: user.email ?? user.username);
-      }
-      return const MainPage();
+    // 第一步：强制检测数据库结构一致性（在进入主界面前必须完成）
+    final schemaOk = await _verifyDatabaseSchema();
+    if (!schemaOk) {
+      return const _SchemaErrorPage();
     }
 
-    await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: false);
-    return const MainPage();
+    // 第二步：快速检查本地是否有用户（不等待数据库完全初始化）
+    // 使用优先级更高的检查，避免等待数据库初始化
+    final userCode = await _getQuickUserCode();
+    if (userCode == null || userCode.isEmpty) {
+      return const LoginPage();
+    }
+
+    // 第三步：先返回登录页或主界面，让用户看到 UI
+    // 后台异步验证登录状态
+    try {
+      final user = await BaseEntityExtension.findByCode<User>(userCode, () => User());
+      if (user == null) {
+        return const LoginPage();
+      }
+
+      app_config.AppConfig.currentUser = user;
+
+      // 第四步：异步验证 Supabase session（不阻塞 UI）
+      if (user.authProvider == 'supabase') {
+        final ok = await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: true);
+        if (!ok) {
+          return LoginPage(initialEmail: user.email ?? user.username);
+        }
+      } else {
+        await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: false);
+      }
+
+      return const MainPage();
+    } catch (e) {
+      // 如果验证失败，返回登录页
+      return const LoginPage();
+    }
+  }
+
+  /// 验证数据库 Schema，确保结构一致后才允许进入应用
+  Future<bool> _verifyDatabaseSchema() async {
+    try {
+      // 等待数据库初始化完成后再检测
+      await DatabaseService.database;
+      final ok = await DatabaseService.verifySchemaOnStartup();
+      return ok;
+    } catch (e, st) {
+      logger.error('schema verification failed before entry', tag: 'INIT', error: e, stackTrace: st);
+      return false;
+    }
+  }
+
+  /// 快速获取用户 Code，优先从内存或 SharedPreferences 读取
+  Future<String?> _getQuickUserCode() async {
+    try {
+      // 先尝试从 SharedPreferences 快速读取（如果数据库还没准备好）
+      final prefs = await SharedPreferences.getInstance();
+      final quickCode = prefs.getString('current_user_code');
+      if (quickCode != null && quickCode.isNotEmpty) {
+        return quickCode;
+      }
+    } catch (_) {}
+
+    // 如果 SharedPreferences 没有，再等待数据库初始化
+    return await DatabaseService.getCurrentUserCode();
   }
 
   @override
@@ -247,13 +308,67 @@ class _AppEntryState extends State<_AppEntry> {
     return FutureBuilder<Widget>(
       future: _target,
       builder: (context, snap) {
-        // 初始化未完成时显示启动页面，避免白屏
+        // 第一次构建时立即显示登录页，避免长时间白屏
+        if (!_resolved) {
+          _resolved = true;
+          return const LoginPage();
+        }
+
+        // 初始化未完成时显示启动页面
         if (snap.connectionState != ConnectionState.done) {
           return const SplashScreen();
         }
         if (snap.hasData) return snap.data!;
         return const LoginPage();
       },
+    );
+  }
+}
+
+/// 数据库结构检测失败错误页
+///
+/// 当启动时数据库 Schema 检测失败时显示，
+/// 提示用户数据库初始化异常，建议重启应用或联系支持。
+class _SchemaErrorPage extends StatelessWidget {
+  const _SchemaErrorPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1F2937),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 64),
+              const SizedBox(height: 24),
+              const Text(
+                '数据库初始化异常',
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '应用启动时检测到数据库结构不一致，自动修复失败。\n请尝试重启应用，或联系技术支持。',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () {
+                  DatabaseService.resetSchemaCheck();
+                  // 尝试重新进入
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const _AppEntry()),
+                  );
+                },
+                child: const Text('重试'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

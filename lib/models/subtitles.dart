@@ -38,6 +38,9 @@ class Subtitles extends BaseEntity {
   /// 字幕翻译文本（默认用于中文翻译）
   String? contentTranslate;
 
+  /// 翻译来源：-1=无翻译 0=原生翻译 1=AI翻译
+  int translateSource = -1;
+
   /// 片段类型：subtitle（字幕）/ lyric（歌词）
   /// 默认为 'subtitle'，保持向后兼容
   String type;
@@ -61,6 +64,7 @@ class Subtitles extends BaseEntity {
     this.endPosition = 0,
     this.content = '',
     this.contentTranslate,
+    this.translateSource = -1,
     this.type = 'subtitle',
     this.source,
     this.pronunciation,
@@ -82,6 +86,7 @@ class Subtitles extends BaseEntity {
       'end_position': endPosition,
       'content': content,
       'content_translate': contentTranslate,
+      'translate_source': translateSource,
       'type': type,
       'source': source,
       'pronunciation': pronunciation,
@@ -107,6 +112,7 @@ class Subtitles extends BaseEntity {
     endPosition = map['end_position'] ?? 0;
     content = map['content'] ?? '';
     contentTranslate = map['content_translate'];
+    translateSource = map['translate_source'] ?? -1;
     type = map['type'] ?? 'subtitle';
     source = map['source'];
     pronunciation = map['pronunciation'];

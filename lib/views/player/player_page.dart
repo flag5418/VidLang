@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:ui';
 
@@ -7,14 +8,18 @@ import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:omni_player/omni_player.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -35,30 +40,10 @@ class PlayerPage extends ConsumerStatefulWidget {
 class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObserver {
   bool _initialized = false;
   bool _showVideoList = false;
-  bool _showSettings = false;
-  bool _showSpeedPicker = false;
   bool _showReadAloud = false;
   List<VideoInfo>? _folderVideosOverride;
 
   final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-  double _playbackSpeed = 1.0;
-
-  // Time-based shutdown options
-  final List<Map<String, dynamic>> _timeOptions = [
-    {'label': '不开启', 'value': 0},
-    {'label': '15:00', 'value': 900},
-    {'label': '30:00', 'value': 1800},
-    {'label': '60:00', 'value': 3600},
-    {'label': '自定义', 'value': -1},
-  ];
-  // Episode-based shutdown options
-  final List<Map<String, dynamic>> _episodeOptions = [
-    {'label': '不开启', 'value': 0},
-    {'label': '播完本集', 'value': 1},
-    {'label': '播完2集', 'value': 2},
-    {'label': '播完3集', 'value': 3},
-    {'label': '播完5集', 'value': 5},
-  ];
 
   final List<Map<String, String>> _playModeOptions = [
     {'label': '单集循环', 'value': 'single_loop'},
@@ -75,12 +60,119 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   List<_WordItem> _selectedWords = [];
 
   // Player overlay is always dark regardless of theme mode
-  Color _drawerBg() => AppColors.surface;
-  Color _drawerElevated() => AppColors.surfaceElevated;
   Color _drawerText() => AppColors.onSurface;
   Color _drawerTextVariant() => AppColors.onSurfaceVariant;
-  Color _drawerDivider() => Colors.white12;
-  Color _drawerOverlay() => Colors.black38;
+
+  Future<void> _showNativeTranslationGuide({required Future<void> Function() onRetry}) async {
+    if (!mounted) return;
+    final colorScheme = Theme.of(context).colorScheme;
+    final shouldRetry = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        final bottom = MediaQuery.of(context).padding.bottom;
+        return Container(
+          padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, bottom + 14.h),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(18.r)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 3.h,
+                  decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                '启用系统翻译',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                '系统翻译需要先准备语言包（English → 中文）。首次使用可能会弹出系统下载/授权提示。',
+                style: TextStyle(fontSize: 12.sp, height: 1.45, color: colorScheme.onSurfaceVariant),
+              ),
+              SizedBox(height: 10.h),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10.r),
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '建议路径',
+                      style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      '系统设置 → 通用 → 语言与地区 → 翻译（或在设置里搜索“翻译”）',
+                      style: TextStyle(fontSize: 12.sp, height: 1.45, color: colorScheme.onSurfaceVariant),
+                    ),
+                    Text(
+                      '下载 English / 简体中文 后回到 App 点“重试”。',
+                      style: TextStyle(fontSize: 12.sp, height: 1.45, color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        await IosNativeFeatures.openAppSettings();
+                        Navigator.of(context).pop(false);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        foregroundColor: colorScheme.primary,
+                        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                      child: Text(
+                        '打开设置',
+                        style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: FilledButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        backgroundColor: colorScheme.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                      child: Text(
+                        '我已下载，重试',
+                        style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (shouldRetry == true && mounted) {
+      await onRetry();
+    }
+  }
 
   @override
   void initState() {
@@ -140,6 +232,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     } else {
       await _loadFolderVideos();
     }
+    // 检查并初始化翻译
+    if (mounted) {
+      await _checkAndInitializeTranslation(notifier);
+    }
   }
 
   Future<void> _loadFolderVideos() async {
@@ -156,6 +252,58 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     if (mounted) setState(() => _folderVideosOverride = fv);
   }
 
+  /// 检查并初始化翻译
+  Future<void> _checkAndInitializeTranslation(PlayerEngineNotifier notifier) async {
+    final subtitles = notifier.subtitles;
+    if (subtitles.isEmpty) return;
+
+    final subState = ref.read(subscriptionProvider);
+    final isPremium = subState.mode == SubscriptionMode.premium;
+    final currentTitle = notifier.currentVideo?.name ?? widget.videoCode;
+
+    final needCount = TranslationInitService.countNeedTranslate(subtitles, isPremium);
+    if (needCount == 0) return;
+
+    // 显示加载提示
+    if (!mounted) return;
+    TDMessage.showMessage(context: context, content: '正在进行翻译初始化...', theme: MessageTheme.info, duration: 2000, visible: true);
+
+    // 执行翻译
+    try {
+      final success = await TranslationInitService.translateSubtitles(
+        subtitles: subtitles,
+        videoCode: widget.videoCode,
+        title: currentTitle,
+        isNative: !isPremium,
+        onProgress: (current, total) {},
+      );
+
+      if (!success && !isPremium && mounted) {
+        await _showNativeTranslationGuide(
+          onRetry: () async {
+            await TranslationInitService.translateSubtitles(
+              subtitles: subtitles,
+              videoCode: widget.videoCode,
+              title: currentTitle,
+              isNative: true,
+              onProgress: (current, total) {},
+            );
+            if (mounted) setState(() {});
+          },
+        );
+      }
+
+      if (mounted) {
+        setState(() {}); // 刷新 UI 显示翻译
+      }
+    } catch (e) {
+      dev.log('Translation init failed: $e', name: 'PlayerPage');
+      if (mounted) {
+        TDMessage.showMessage(context: context, content: '翻译初始化失败: $e', theme: MessageTheme.error, duration: 3000, visible: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(playerEngineProvider);
@@ -165,7 +313,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final hasSubtitles = subtitlesList.isNotEmpty;
     final idx = state.currentSubtitleIndex;
     final currentSub = (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length) ? subtitlesList[idx] : null;
-    final drawerOpen = _showVideoList || _showSettings;
+    final drawerOpen = _showVideoList;
 
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -224,20 +372,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                         Icons.format_list_bulleted_rounded,
                         () => setState(() {
                           _showVideoList = !_showVideoList;
-                          _showSettings = false;
-                          _showSpeedPicker = false;
                         }),
                         active: _showVideoList,
-                      ),
-
-                      _topBtn(
-                        Icons.settings_rounded,
-                        () => setState(() {
-                          _showSettings = !_showSettings;
-                          _showVideoList = false;
-                          _showSpeedPicker = false;
-                        }),
-                        active: _showSettings,
                       ),
                     ],
                   ),
@@ -253,7 +389,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               left: 0,
               right: 0,
               child: Container(
-                padding: EdgeInsets.only(bottom: bottomPadding),
+                padding: EdgeInsets.only(bottom: 4),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
                 ),
@@ -266,7 +402,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             GestureDetector(
               onTap: () => setState(() {
                 _showVideoList = false;
-                _showSettings = false;
               }),
               behavior: HitTestBehavior.translucent,
               child: Container(color: Colors.black.withValues(alpha: 0.4)),
@@ -287,10 +422,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                       color: AppColors.surface.withValues(alpha: 0.85),
                       border: Border(left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
                     ),
-                    child: SafeArea(
-                      left: false,
-                      child: _showVideoList ? _buildVideoListContent(state, notifier) : _buildSettingsContent(state, notifier),
-                    ),
+                    child: SafeArea(left: false, child: _buildVideoListContent(state, notifier)),
                   ),
                 ),
               ),
@@ -338,29 +470,17 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
             padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
             child: _buildSelectableSubtitle(s, cs, t),
           ),
-        _buildProgressBar(s, n),
+        // 进度条 + 两端时间
+        _buildProgressBarWithTime(s, n),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
           child: Row(
             children: [
-              // 左侧组：时间、上一句、播放、下一句
+              // 左侧组：上一句、播放、下一句
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(width: 16),
-                  Text(
-                    _fmtDuration(s.position),
-                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
-                  ),
-                  Text(
-                    ' / ',
-                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
-                  ),
-                  Text(
-                    _fmtDuration(s.duration),
-                    style: TextStyle(color: Colors.white, fontSize: AppTypography.fontSizeXSmall),
-                  ),
-                  const SizedBox(width: 8),
                   if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
                   _smallCtrl(
                     s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
@@ -372,7 +492,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                 ],
               ),
               const SizedBox(width: 16),
-              // 右侧组：两端对齐，靠右侧的滚动区域
+              // 右侧组：纯文字按钮，统一间距
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
@@ -382,42 +502,118 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (hs) ...[
-                          _featureTextBtn("跟读", _showReadAloud, () => setState(() => _showReadAloud = !_showReadAloud), t),
-                          const SizedBox(width: 8),
+                          _plainTextBtn("跟读", _showReadAloud, () {
+                            final shouldBeOpen = !_showReadAloud;
+                            if (shouldBeOpen) {
+                              n.player.pause();
+                              n.setSingleSentencePause(true);
+                              if (cs != null) {
+                                n.seekToMs(Duration(milliseconds: cs.startPosition.toInt()).inMilliseconds);
+                                Future.microtask(() => n.player.play());
+                              }
+                            }
+                            setState(() => _showReadAloud = shouldBeOpen);
+                          }),
+                          const SizedBox(width: 12),
                         ],
-                        _featureTextBtn(
+                        _plainTextBtn(
                           "清晰朗读",
                           hs ? _isTtsSpeaking : false,
-                          (hs && !_isTtsSpeaking) ? () => _handleClaritySpeak(n, s, cs!) : null,
-                          t,
-                          highlightBg: true,
+                          hs
+                              ? () {
+                                  if (_isTtsSpeaking) {
+                                    _stopClaritySpeak(n);
+                                  } else {
+                                    _handleClaritySpeak(n, s, cs!);
+                                  }
+                                }
+                              : null,
                         ),
+                        const SizedBox(width: 12),
+                        _plainTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible()),
+                        const SizedBox(width: 12),
+                        _plainTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible()),
                         if (hs) ...[
-                          const SizedBox(width: 8),
-                          _featureTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible(), t),
-                          const SizedBox(width: 8),
-                          _featureTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible(), t),
-                          const SizedBox(width: 8),
-                          _featureTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause(), t),
-                          const SizedBox(width: 8),
-                          _featureTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence(), t),
+                          const SizedBox(width: 12),
+                          _plainTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause()),
+                          const SizedBox(width: 12),
+                          _plainTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence()),
                         ],
                       ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
+              // 循环模式按钮（与倍数按钮样式一致）
+              PopupMenuButton<String>(
+                initialValue: s.loopingMode,
+                onSelected: (mode) => n.setLoopingMode(mode),
+                offset: const Offset(0, -220),
+                color: AppColors.surfaceElevated,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: _plainTextBtn(_loopModeLabel(s.loopingMode), s.loopingMode != 'single_play', null),
+                itemBuilder: (context) {
+                  return _playModeOptions.map((opt) {
+                    final active = s.loopingMode == opt['value'];
+                    return PopupMenuItem<String>(
+                      value: opt['value'],
+                      height: 36,
+                      child: Center(
+                        child: Text(
+                          opt['label']!,
+                          style: TextStyle(
+                            color: active ? AppColors.primary : Colors.white,
+                            fontSize: 13,
+                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
+              const SizedBox(width: 12),
+              // 字体大小按钮（与倍数按钮样式一致）
+              PopupMenuButton<double>(
+                initialValue: s.subtitleFontSize,
+                onSelected: (size) => n.setSubtitleFontSize(size),
+                offset: const Offset(0, -220),
+                color: AppColors.surfaceElevated,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: _plainTextBtn("字号", s.subtitleFontSize != 20.0, null),
+                itemBuilder: (context) {
+                  final fontOptions = [12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 28.0, 32.0, 36.0, 40.0];
+                  return fontOptions.map((size) {
+                    final active = s.subtitleFontSize == size;
+                    return PopupMenuItem<double>(
+                      value: size,
+                      height: 36,
+                      child: Center(
+                        child: Text(
+                          '${size.toInt()}',
+                          style: TextStyle(
+                            color: active ? AppColors.primary : Colors.white,
+                            fontSize: 13,
+                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList();
+                },
+              ),
+              const SizedBox(width: 12),
+              // 倍数按钮
               PopupMenuButton<double>(
                 initialValue: s.speed,
                 onSelected: (sp) {
-                  _playbackSpeed = sp;
                   n.setSpeed(sp);
                 },
                 offset: const Offset(0, -220),
                 color: AppColors.surfaceElevated,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: _featureTextBtn("${s.speed.toStringAsFixed(1)}X", s.speed != 1.0, null, t),
+                child: _plainTextBtn("${s.speed.toString().replaceAll(RegExp(r'\.0$'), '')}X", s.speed != 1.0, null),
                 itemBuilder: (context) {
                   return _speedOptions.map((sp) {
                     final active = s.speed == sp;
@@ -455,7 +651,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     } else {
       TtsService().speakClarity(
         text: cs.content,
-        audioPlayer: _aliAudioPlayer,
+        useAliyun: false,
         onComplete: () {
           if (!mounted) return;
           setState(() => _isTtsSpeaking = false);
@@ -465,6 +661,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         },
       );
     }
+  }
+
+  void _stopClaritySpeak(PlayerEngineNotifier n) {
+    _aliAudioPlayer.stop();
+    setState(() => _isTtsSpeaking = false);
   }
 
   Widget _smallCtrl(IconData icon, VoidCallback? onTap, bool t, {double size = 28}) {
@@ -481,23 +682,19 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     );
   }
 
-  Widget _featureTextBtn(String label, bool active, VoidCallback? onTap, bool t, {bool highlightBg = false}) {
+  /// 纯文字按钮（无边框、无背景，与倍数按钮样式一致）
+  Widget _plainTextBtn(String label, bool active, VoidCallback? onTap) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: active ? AppColors.primary : (highlightBg ? Colors.white.withValues(alpha: 0.1) : Colors.transparent),
-            borderRadius: BorderRadius.circular(16),
-          ),
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Text(
             label,
             style: TextStyle(
-              color: onTap == null ? Colors.white24 : (active ? Colors.white : Colors.white70),
+              color: active ? AppColors.primary : (onTap == null ? Colors.white24 : Colors.white70),
               fontSize: 13,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
@@ -505,6 +702,22 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         ),
       ),
     );
+  }
+
+  /// 循环模式标签映射
+  String _loopModeLabel(String mode) {
+    switch (mode) {
+      case 'single_loop':
+        return '单集循环';
+      case 'list_loop':
+        return '列表循环';
+      case 'single_play':
+        return '单集播放';
+      case 'sequence_play':
+        return '顺序播放';
+      default:
+        return '单集循环';
+    }
   }
 
   // ─── Selectable Subtitle (word-level swipe-to-select) ──
@@ -681,20 +894,40 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     Navigator.of(context).pop();
   }
 
-  Widget _buildProgressBar(PlayerEngineState s, PlayerEngineNotifier n) {
+  Widget _buildProgressBarWithTime(PlayerEngineState s, PlayerEngineNotifier n) {
     final p = s.duration.inMilliseconds > 0 ? s.position.inMilliseconds / s.duration.inMilliseconds : 0.0;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
-      child: SliderTheme(
-        data: SliderThemeData(
-          trackHeight: 4,
-          activeTrackColor: AppColors.secondary,
-          inactiveTrackColor: Colors.white10,
-          thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
-          overlayShape: RoundSliderOverlayShape(overlayRadius: 14),
-          thumbColor: AppColors.primary,
-        ),
-        child: Slider(value: p.clamp(0.0, 1.0), onChanged: (v) => n.seekToMs((v * s.duration.inMilliseconds).round())),
+      child: Row(
+        children: [
+          SizedBox(width: 24),
+          // 左侧当前时间
+          Text(
+            _fmtDuration(s.position),
+            style: TextStyle(color: Colors.white70, fontSize: AppTypography.fontSizeXSmall),
+          ),
+          const SizedBox(width: 8),
+          // 进度条
+          Expanded(
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 4,
+                activeTrackColor: AppColors.secondary,
+                inactiveTrackColor: Colors.white10,
+                thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
+                overlayShape: RoundSliderOverlayShape(overlayRadius: 14),
+                thumbColor: AppColors.primary,
+              ),
+              child: Slider(value: p.clamp(0.0, 1.0), onChanged: (v) => n.seekToMs((v * s.duration.inMilliseconds).round())),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 右侧总时长
+          Text(
+            _fmtDuration(s.duration),
+            style: TextStyle(color: Colors.white70, fontSize: AppTypography.fontSizeXSmall),
+          ),
+        ],
       ),
     );
   }
@@ -747,94 +980,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
                     },
                   ),
                 ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingsContent(PlayerEngineState s, PlayerEngineNotifier n) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(color: Colors.transparent),
-          child: Row(
-            children: [
-              Text(
-                '播放设置',
-                style: TextStyle(color: _drawerText(), fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => setState(() => _showSettings = false),
-                child: Icon(Icons.close_rounded, color: _drawerTextVariant(), size: 22),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _secTitle('播放模式'),
-                _toggleGroup(
-                  _playModeOptions.map((m) => m['label']!).toList(),
-                  _playModeOptions.indexWhere((m) => m['value'] == s.loopingMode),
-                  (i) => n.setLoopingMode(_playModeOptions[i]['value']!),
-                ),
-                _divider(),
-                _secTitle('定时关闭'),
-                // Timer type toggle (time vs episode - mutually exclusive)
-                _toggleGroup(['按时间', '按集数'], s.shutdownTimerType == 'episode' ? 1 : 0, (i) {
-                  n.setShutdownTimerType(i == 0 ? 'time' : 'episode');
-                }),
-                const SizedBox(height: 8),
-                if (s.shutdownTimerType == 'time') ...[
-                  _toggleGroup(
-                    _timeOptions.map((m) => m['label'] as String).toList(),
-                    _timeOptions.indexWhere((m) {
-                      final v = m['value'] as int;
-                      if (v == -1) return false;
-                      if (v == 0 && s.shutdownTimerSeconds == 0) return true;
-                      return v == s.shutdownTimerSeconds;
-                    }),
-                    (i) {
-                      final val = _timeOptions[i]['value'] as int;
-                      if (val == -1) {
-                        _showCustomTimerDialog(n);
-                      } else {
-                        n.setShutdownTimer(val);
-                      }
-                    },
-                  ),
-                ] else ...[
-                  _toggleGroup(
-                    _episodeOptions.map((m) => m['label'] as String).toList(),
-                    _episodeOptions.indexWhere((m) => (m['value'] as int) == s.shutdownEpisodeCount),
-                    (i) => n.setShutdownEpisodeCount(_episodeOptions[i]['value'] as int),
-                  ),
-                ],
-                _divider(),
-                _secTitle('播放速度'),
-                _toggleGroup(_speedOptions.map((sp) => '${sp}X').toList(), _speedOptions.indexOf(s.speed), (i) {
-                  _playbackSpeed = _speedOptions[i];
-                  n.setSpeed(_speedOptions[i]);
-                }),
-                _divider(),
-                _secTitle('字幕字号'),
-                _buildFontSlider(),
-                _divider(),
-                _secTitle('字幕与翻译'),
-                _toggleRow(Icons.subtitles, '字幕显示', null, s.subtitleVisible, (_) => n.toggleSubtitleVisible()),
-                const SizedBox(height: 8),
-                _toggleRow(Icons.translate, '翻译显示', null, s.translateVisible, (_) => n.toggleTranslateVisible()),
-                const SizedBox(height: 8),
-                _toggleRow(Icons.skip_next, '按下一句自动播放', '单句暂停有效', s.singleSentencePause, (_) => n.toggleSingleSentencePause()),
-              ],
-            ),
-          ),
         ),
       ],
     );
@@ -1036,6 +1181,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final code = s.videoCode ?? '';
     final subState = ref.read(subscriptionProvider);
 
+    Future<void> playAtSubtitleIndex(int index) async {
+      if (index < 0 || index >= n.subtitles.length) return;
+      final sub = n.subtitles[index];
+      await n.seekToMs(Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds);
+      await n.player.play();
+    }
+
     // 内联渲染：直接返回 Positioned Widget，不创建新路由，避免视频黑屏
     return Positioned(
       left: 0,
@@ -1070,6 +1222,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           currentSubtitleIndex: s.currentSubtitleIndex,
           nextSentence: () async => n.nextSentence(),
           previousSentence: () async => n.previousSentence(),
+          playAtSubtitleIndex: playAtSubtitleIndex,
           subscriptionMode: subState.mode,
         ),
         heightFactor: 0.55,

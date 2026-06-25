@@ -76,12 +76,14 @@ class TtsService {
 
   /// 清晰朗读 — 优先使用阿里云 TTS（高质量），无配置则降级为系统 TTS
   ///
+  /// [useAliyun] 是否使用阿里云 TTS，默认 true。免费模式下应设为 false
   /// 阿里云 TTS 模式下，使用 [audioPlayer] 播放下载后保存的音频文件。
   /// 阿里云 TTS 需要 [audioPlayer] 参数，系统模式无需。
   Future<void> speakClarity({
     required String text,
     ap.AudioPlayer? audioPlayer,
     FutureOr<void> Function()? onComplete,
+    bool useAliyun = true,
   }) async {
     if (text.isEmpty) {
       if (onComplete != null) onComplete();
@@ -89,7 +91,7 @@ class TtsService {
     }
 
     try {
-      if (hasAliyunConfig && audioPlayer != null) {
+      if (useAliyun && hasAliyunConfig && audioPlayer != null) {
         // 阿里云 TTS：下载并播放
         final path = await _aliTts.getAudioPath(text);
         if (path != null && await File(path).exists()) {

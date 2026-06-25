@@ -1,6 +1,7 @@
 // @ts-nocheck
 // deno-lint-ignore-file no-explicit-any
 import { corsHeaders } from '../_shared/cors.ts'
+import { QWEN_MODELS } from '../ai-proxy/clients/qwen-chat.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -56,7 +57,7 @@ async function callQwen(apiKey: string, baseUrl: string, messages: any[], temper
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'qwen-plus',
+      model: QWEN_MODELS.TURBO,
       messages,
       temperature,
       response_format: { type: 'json_object' },

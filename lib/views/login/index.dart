@@ -115,10 +115,10 @@ class _LoginPageState extends State<LoginPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colorScheme.surface,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          alignment: Alignment.center,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -134,6 +134,7 @@ class _LoginPageState extends State<LoginPage> {
               if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else if (_tab == _LoginTab.local) _buildLocalForm() else _buildAuthForm(),
               const SizedBox(height: 24),
               if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
+              SizedBox(height: 20.h),
             ],
           ),
         ),

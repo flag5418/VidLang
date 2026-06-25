@@ -245,6 +245,16 @@ class SegmentWordsResult {
 class IosNativeFeatures {
   static const MethodChannel _channel = MethodChannel('com.yzh.vidlang/ios_features');
 
+  static Future<bool> openAppSettings() async {
+    if (!_nativeFeaturesImplemented()) return false;
+    try {
+      final ok = await _channel.invokeMethod<bool>('openAppSettings');
+      return ok ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 获取 iOS 设备类型（"pad" 或 "phone"）
   ///
   /// 仅 iOS 平台有效，其他平台返回 null。
@@ -258,7 +268,8 @@ class IosNativeFeatures {
     }
   }
 
-  /// 翻译文本（iOS 17.4+ 使用系统 NLTranslation，降级到简单翻译）
+  /// 翻译文本（需要 iOS 17.4+ 使用系统 Translation 框架）
+  /// 低于 iOS 17.4 会返回错误，提示用户升级或使用 AI 翻译
   static Future<TranslationResult> translate({required String text, String sourceLanguage = 'en', String targetLanguage = 'zh-Hans'}) async {
     if (!_nativeFeaturesImplemented()) {
       return TranslationResult(

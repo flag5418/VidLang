@@ -15,6 +15,7 @@ import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/word_tag_service.dart';
 import 'package:vidlang/views/test/test_page.dart';
+import 'package:vidlang/views/word_book/camera_translate_page.dart';
 import 'package:vidlang/views/word_book/widgets/snippet_detail_sheet.dart';
 import 'package:vidlang/views/word_book/widgets/snippet_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
