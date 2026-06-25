@@ -77,15 +77,11 @@ class LocalAiService {
     String sourceLanguage = 'English',
     String targetLanguage = 'Chinese',
   }) async {
-    if (!_isInitialized || !_modelService.canUseAiFeatures) {
-      return '本地模型未就绪，请先下载模型';
+    if (!_llm.isAvailable) {
+      return '本地 LLM 未集成，请使用云端翻译';
     }
 
-    return _llm.translate(
-      text: text,
-      sourceLanguage: sourceLanguage,
-      targetLanguage: targetLanguage,
-    );
+    return '';
   }
 
   /// 获取单词释义
@@ -93,14 +89,11 @@ class LocalAiService {
     required String word,
     String? contextSentence,
   }) async {
-    if (!_isInitialized || !_modelService.canUseAiFeatures) {
-      return '本地模型未就绪，请先下载模型';
+    if (!_llm.isAvailable) {
+      return '本地 LLM 未集成，请使用云端释义';
     }
 
-    return _llm.getDefinition(
-      word: word,
-      contextSentence: contextSentence,
-    );
+    return '';
   }
 
   /// 生成测验题目
@@ -108,14 +101,11 @@ class LocalAiService {
     required List<String> words,
     int questionCount = 5,
   }) async {
-    if (!_isInitialized || !_modelService.canUseAiFeatures) {
-      return '本地模型未就绪，请先下载模型';
+    if (!_llm.isAvailable) {
+      return '本地 LLM 未集成，请使用云端出题';
     }
 
-    return _llm.generateQuiz(
-      words: words,
-      questionCount: questionCount,
-    );
+    return '';
   }
 
   /// 对话
@@ -123,14 +113,11 @@ class LocalAiService {
     required String message,
     List<Map<String, String>>? history,
   }) async {
-    if (!_isInitialized || !_modelService.canUseAiFeatures) {
-      return '本地模型未就绪，请先下载模型';
+    if (!_llm.isAvailable) {
+      return '本地 LLM 未集成，请使用云端对话';
     }
 
-    return _llm.chat(
-      message: message,
-      history: history,
-    );
+    return '';
   }
 
   /// TTS 合成语音并保存为文件
@@ -203,7 +190,6 @@ class LocalAiService {
   /// 重置所有服务
   Future<void> reset() async {
     _isInitialized = false;
-    _llm.dispose();
     _tts.dispose();
     _stt.dispose();
     await _modelService.reset();
@@ -211,7 +197,6 @@ class LocalAiService {
 
   /// 释放资源
   void dispose() {
-    _llm.dispose();
     _tts.dispose();
     _stt.dispose();
     _initController.close();
