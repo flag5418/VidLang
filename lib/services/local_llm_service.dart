@@ -2,17 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:quaynor/quaynor.dart' as quaynor;
+import 'package:llm_llamacpp/llm_llamacpp.dart';
 import 'package:vidlang/services/local_model_service.dart';
 
 /// 本地 LLM 推理服务
-/// 使用 quaynor 包运行 TranslateGemma 4B 模型
+/// 使用 llm_llamacpp 包运行 TranslateGemma 4B 模型
 class LocalLlmService {
   static LocalLlmService? _instance;
   static LocalLlmService get instance => _instance ??= LocalLlmService._();
   LocalLlmService._();
 
-  quaynor.Chat? _chat;
+  LlamaCppChatRepository? _repo;
   bool _isInitialized = false;
   bool _isLoading = false;
   
@@ -41,15 +41,17 @@ class LocalLlmService {
         return;
       }
       
-      // 初始化 quaynor
-      await quaynor.Quaynor.init();
-      
-      // 创建 Chat 实例
-      _chat = await quaynor.Chat.fromPath(
-        modelPath: _modelPath!,
-        systemPrompt: '你是一个专业的翻译助手。请只输出翻译结果，不要添加任何解释。',
+      // 创建 LlamaCppChatRepository，启用 GPU 加速
+      _repo = LlamaCppChatRepository(
         contextSize: 2048,
+        nGpuLayers: 35, // 使用 GPU 加速
       );
+      
+      // 使用 LlamaCppRepository 加载模型
+      final repository = LlamaCppRepository();
+      await repository.loadModel(_modelPath!, options: ModelLoadOptions(
+        nGpuLayers: 35,
+      ));
       
       _isInitialized = true;
       debugPrint('LLM 引擎初始化成功');
@@ -69,7 +71,7 @@ class LocalLlmService {
     double temperature = 0.7,
     double topP = 0.9,
   }) async {
-    if (!_isInitialized || _chat == null) {
+    if (!_isInitialized || _repo == null) {
       await initialize();
       if (!_isInitialized) {
         return '模型未初始化，请先下载模型';
@@ -77,20 +79,25 @@ class LocalLlmService {
     }
     
     try {
-      // 使用指定的 system prompt 或使用默认的
+      // 构建消息列表
+      final messages = <LLMMessage>[];
+      
       if (systemPrompt.isNotEmpty) {
-        // 重置上下文并设置新的 system prompt
-        _chat = await quaynor.Chat.fromPath(
-          modelPath: _modelPath!,
-          systemPrompt: systemPrompt,
-          contextSize: 2048,
-        );
+        messages.add(LLMMessage(role: LLMRole.system, content: systemPrompt));
       }
       
-      // 调用 quaynor 生成
-      final response = await _chat!.ask(prompt).completed();
+      messages.add(LLMMessage(role: LLMRole.user, content: prompt));
       
-      return response;
+      // 使用 streamChat 生成，然后收集完整结果
+      final stream = _repo!.streamChat('model', messages: messages);
+      
+      final response = StringBuffer();
+      await for (final chunk in stream) {
+        final content = chunk.message?.content ?? '';
+        response.write(content);
+      }
+      
+      return response.toString();
     } catch (e) {
       debugPrint('LLM 生成失败: $e');
       return '生成失败: $e';
@@ -202,7 +209,8 @@ D. ...
 
   /// 释放资源
   void dispose() {
-    _chat = null;
+    _repo?.dispose();
+    _repo = null;
     _isInitialized = false;
   }
 }
