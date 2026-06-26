@@ -4,10 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:vidlang/services/local_llm_service.dart';
 import 'package:vidlang/services/local_stt_service.dart';
 import 'package:vidlang/services/local_tts_service.dart';
+import 'package:vidlang/services/local_translation_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
 
 /// 统一本地 AI 服务
-/// 封装 LLM、TTS、STT 服务，提供统一的接口
+/// 封装 LLM、TTS、STT、翻译服务，提供统一的接口
 class LocalAiService {
   static LocalAiService? _instance;
   static LocalAiService get instance => _instance ??= LocalAiService._();
@@ -16,6 +17,7 @@ class LocalAiService {
   final LocalLlmService _llm = LocalLlmService.instance;
   final LocalTtsService _tts = LocalTtsService.instance;
   final LocalSttService _stt = LocalSttService.instance;
+  final LocalTranslationService _translation = LocalTranslationService.instance;
   final LocalModelService _modelService = LocalModelService.instance;
 
   bool _isInitialized = false;
@@ -45,18 +47,12 @@ class LocalAiService {
       // 首先检查模型状态
       await _modelService.initialize();
 
-      if (!_modelService.hasAllModels) {
-        debugPrint('本地模型未全部下载，跳过初始化');
-        _isInitializing = false;
-        _initController.add(false);
-        return;
-      }
-
       // 并行初始化所有服务
       await Future.wait([
         _llm.initialize(),
         _tts.initialize(),
         _stt.initialize(),
+        _translation.initialize(),
       ]);
 
       _isInitialized = true;
@@ -77,6 +73,15 @@ class LocalAiService {
     String sourceLanguage = 'English',
     String targetLanguage = 'Chinese',
   }) async {
+    // 优先使用本地翻译
+    if (_translation.isInitialized) {
+      return _translation.translate(
+        text: text,
+        sourceLanguage: sourceLanguage,
+        targetLanguage: targetLanguage,
+      );
+    }
+
     return '本地翻译模型未就绪，请使用云端翻译';
   }
 
@@ -195,6 +200,7 @@ class LocalAiService {
   void dispose() {
     _tts.dispose();
     _stt.dispose();
+    _translation.dispose();
     _initController.close();
   }
 }

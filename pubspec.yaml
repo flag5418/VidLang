@@ -77,6 +77,7 @@ dependencies:
 
   # 本地语音合成/识别 - sherpa-onnx
   sherpa_onnx: ^1.12.0
+  onnxruntime: ^1.4.1
 
   # 音频播放 - 用于播放 TTS 和录音文件
   audioplayers: ^6.1.0
