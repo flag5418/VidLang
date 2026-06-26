@@ -156,20 +156,14 @@ class AiService {
           
         case 'ai_translate':
           final text = params['text'] as String? ?? word;
-          final sourceLanguage = params['source_language'] as String? ?? 'English';
-          final targetLanguage = params['target_language'] as String? ?? 'Chinese';
           result = await _localAi.translate(
             text: text,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage,
           );
           break;
           
         case 'ai_translate_conversation':
           result = await _localAi.translate(
             text: word,
-            sourceLanguage: 'English',
-            targetLanguage: 'Chinese',
           );
           break;
           
@@ -273,12 +267,8 @@ class AiService {
       switch (ruleCode) {
         case 'ai_translate':
           final text = params['text'] as String? ?? '';
-          final sourceLanguage = params['source_language'] as String? ?? 'English';
-          final targetLanguage = params['target_language'] as String? ?? 'Chinese';
           result = await _localAi.translate(
             text: text,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage,
           );
           break;
           
@@ -286,8 +276,6 @@ class AiService {
           final text = params['text'] as String? ?? '';
           result = await _localAi.translate(
             text: text,
-            sourceLanguage: 'English',
-            targetLanguage: 'Chinese',
           );
           break;
           
@@ -467,8 +455,6 @@ class AiService {
       try {
         final result = await _localAi.translate(
           text: text,
-          sourceLanguage: 'English',
-          targetLanguage: 'Chinese',
         );
         return result;
       } catch (e) {

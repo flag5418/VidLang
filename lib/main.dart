@@ -48,6 +48,7 @@ import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/global_error_handler.dart';
+import 'package:vidlang/services/local_ai_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -131,6 +132,12 @@ Future<void> _initializeAsyncDependencies() async {
     }
 
     await DeviceUtils.initialize();
+
+    // 初始化本地 AI 服务（TTS、STT、翻译模型）
+    // 不阻塞启动，失败时静默处理
+    LocalAiService.instance.initialize().catchError((e) {
+      logger.error('本地 AI 服务初始化失败', tag: 'INIT', error: e);
+    });
   } catch (e, st) {
     logger.error('后台初始化依赖失败', tag: 'INIT', error: e, stackTrace: st);
   }

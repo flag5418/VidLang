@@ -23,6 +23,19 @@ import Translation
     return ok
   }
 
+  // 修复 Failed to change device orientation 的问题
+  // 根据 Flutter 控制器当前的旋转设置，动态返回支持的方向
+  override func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+      if let rootViewController = self.window?.rootViewController {
+          if let flutterViewController = rootViewController as? FlutterViewController {
+              // FlutterViewController 通常会自动处理方向，但为了避免 iOS 16+ 抛出异常
+              // 我们返回 .allButUpsideDown，让 Flutter 内部的 SystemChrome.setPreferredOrientations 去控制具体的旋转
+              return .allButUpsideDown
+          }
+      }
+      return .portrait
+  }
+
   private func setupNativeFeaturesIfPossible() {
     if nativeFeaturesSetup { return }
     if let controller = window?.rootViewController as? FlutterViewController {

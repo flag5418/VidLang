@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa_onnx;
 import 'package:vidlang/services/local_model_service.dart';
 
@@ -33,12 +34,20 @@ class LocalSttService {
     _isLoading = true;
     
     try {
+      // 模拟器上跳过 sherpa_onnx 初始化（避免 native crash）
+      if (Platform.isIOS) {
+        final appDir = await getApplicationDocumentsDirectory();
+        if (appDir.path.contains('CoreSimulator')) {
+          debugPrint('STT: iOS 模拟器环境，跳过 sherpa_onnx 初始化');
+          return;
+        }
+      }
+
       // 获取模型路径
       _modelPath = await LocalModelService.instance.getSttModelPath();
       
       if (_modelPath == null || !await File(_modelPath!).exists()) {
         debugPrint('STT 模型文件不存在');
-        _isLoading = false;
         return;
       }
       

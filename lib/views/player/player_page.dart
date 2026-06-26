@@ -17,6 +17,7 @@ import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
+import 'package:vidlang/services/local_tts_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/tts_service.dart';
@@ -24,7 +25,6 @@ import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/widgets/model_download_dialog.dart';
-import 'package:vidlang/widgets/native_translation_guide_sheet.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
@@ -67,16 +67,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   /// 检查是否可以使用 AI 功能
   bool get _canUseAiFeatures => LocalModelService.instance.canUseAiFeatures;
 
-  Future<void> _showNativeTranslationGuide({required Future<void> Function() onRetry}) async {
-    if (!mounted) return;
-    final shouldRetry = await NativeTranslationGuideSheet.show(context, onRetry: () async {
-      await onRetry();
-    });
-    if (shouldRetry && mounted) {
-      await onRetry();
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -104,7 +94,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   }
 
   void _lockLandscape() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    // 允许用户竖屏播放
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   }
 
   List<DeviceOrientation> _defaultOrientations() {
@@ -171,28 +162,28 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     if (!mounted) return;
     TDMessage.showMessage(context: context, content: '正在进行翻译初始化...', theme: MessageTheme.info, duration: 2000, visible: true);
 
-    // 执行翻译
+    // 执行翻译：优先原生，失败则回退 AI 云端
     try {
-      final success = await TranslationInitService.translateSubtitles(
+      bool success = false;
+
+      // 1. 尝试原生翻译
+      success = await TranslationInitService.translateSubtitles(
         subtitles: subtitles,
         videoCode: widget.videoCode,
         title: currentTitle,
-        isNative: !isPremium,
+        isNative: true,
         onProgress: (current, total) {},
       );
 
-      if (!success && !isPremium && mounted) {
-        await _showNativeTranslationGuide(
-          onRetry: () async {
-            await TranslationInitService.translateSubtitles(
-              subtitles: subtitles,
-              videoCode: widget.videoCode,
-              title: currentTitle,
-              isNative: true,
-              onProgress: (current, total) {},
-            );
-            if (mounted) setState(() {});
-          },
+      // 2. 原生失败，回退 AI 云端翻译
+      if (!success && mounted) {
+        debugPrint('原生翻译失败，回退到 AI 云端翻译');
+        success = await TranslationInitService.translateSubtitles(
+          subtitles: subtitles,
+          videoCode: widget.videoCode,
+          title: currentTitle,
+          isNative: false,
+          onProgress: (current, total) {},
         );
       }
 
@@ -365,6 +356,145 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   // ─── Bottom Area ────────────────────────────────
   Widget _buildBottomArea(PlayerEngineState s, PlayerEngineNotifier n, List<Subtitles> sl, bool t, bool hs, int? idx, Subtitles? cs) {
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+    // 左侧组：上一句、播放、下一句
+    final playbackControls = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: isPortrait ? MainAxisAlignment.center : MainAxisAlignment.start,
+      children: [
+        if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
+        _smallCtrl(
+          s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          () => n.togglePlayPause(),
+          t,
+          size: isPortrait ? 40 : 32,
+        ),
+        if (hs) _smallCtrl(Icons.skip_next_rounded, (idx ?? 0) < sl.length - 1 ? () => n.nextSentence() : null, t),
+      ],
+    );
+
+    // 右侧功能按钮组
+    final featureButtons = <Widget>[
+      if (hs)
+        _plainTextBtn("跟读", _showReadAloud, () {
+          final shouldBeOpen = !_showReadAloud;
+          if (shouldBeOpen) {
+            n.player.pause();
+            n.setSingleSentencePause(true);
+            if (cs != null) {
+              n.seekToMs(Duration(milliseconds: cs.startPosition.toInt()).inMilliseconds);
+              Future.microtask(() => n.player.play());
+            }
+          }
+          setState(() => _showReadAloud = shouldBeOpen);
+        }),
+      _plainTextBtn(
+        "清晰朗读",
+        hs ? _isTtsSpeaking : false,
+        hs
+            ? () {
+                if (_isTtsSpeaking) {
+                  _stopClaritySpeak(n);
+                } else if (cs != null) {
+                  _handleClaritySpeak(n, s, cs);
+                }
+              }
+            : null,
+      ),
+      _plainTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible()),
+      _plainTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible()),
+      if (hs) _plainTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause()),
+      if (hs) _plainTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence()),
+      // 循环模式按钮
+      PopupMenuButton<String>(
+        initialValue: s.loopingMode,
+        onSelected: (mode) => n.setLoopingMode(mode),
+        offset: const Offset(0, -220),
+        color: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: _plainTextBtn(_loopModeLabel(s.loopingMode), s.loopingMode != 'single_play', null),
+        itemBuilder: (context) {
+          return _playModeOptions.map((opt) {
+            final active = s.loopingMode == opt['value'];
+            return PopupMenuItem<String>(
+              value: opt['value'],
+              height: 36,
+              child: Center(
+                child: Text(
+                  opt['label']!,
+                  style: TextStyle(
+                    color: active ? AppColors.primary : Colors.white,
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            );
+          }).toList();
+        },
+      ),
+      // 字体大小按钮
+      PopupMenuButton<double>(
+        initialValue: s.subtitleFontSize,
+        onSelected: (size) => n.setSubtitleFontSize(size),
+        offset: const Offset(0, -220),
+        color: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: _plainTextBtn("字号", s.subtitleFontSize != 20.0, null),
+        itemBuilder: (context) {
+          final fontOptions = [12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 28.0, 32.0, 36.0, 40.0];
+          return fontOptions.map((size) {
+            final active = s.subtitleFontSize == size;
+            return PopupMenuItem<double>(
+              value: size,
+              height: 36,
+              child: Center(
+                child: Text(
+                  '${size.toInt()}',
+                  style: TextStyle(
+                    color: active ? AppColors.primary : Colors.white,
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            );
+          }).toList();
+        },
+      ),
+      // 倍数按钮
+      PopupMenuButton<double>(
+        initialValue: s.speed,
+        onSelected: (sp) {
+          n.setSpeed(sp);
+        },
+        offset: const Offset(0, -220),
+        color: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        child: _plainTextBtn("${s.speed.toString().replaceAll(RegExp(r'\.0$'), '')}X", s.speed != 1.0, null),
+        itemBuilder: (context) {
+          return _speedOptions.map((sp) {
+            final active = s.speed == sp;
+            return PopupMenuItem<double>(
+              value: sp,
+              height: 36,
+              child: Center(
+                child: Text(
+                  '${sp}X',
+                  style: TextStyle(
+                    color: active ? AppColors.primary : Colors.white,
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            );
+          }).toList();
+        },
+      ),
+    ];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -376,178 +506,67 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         // 进度条 + 两端时间
         _buildProgressBarWithTime(s, n),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
-          child: Row(
-            children: [
-              // 左侧组：上一句、播放、下一句
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(width: 16),
-                  if (hs) _smallCtrl(Icons.skip_previous_rounded, (idx ?? 0) > 0 ? () => n.previousSentence() : null, t),
-                  _smallCtrl(
-                    s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    () => n.togglePlayPause(),
-                    t,
-                    size: 32,
-                  ),
-                  if (hs) _smallCtrl(Icons.skip_next_rounded, (idx ?? 0) < sl.length - 1 ? () => n.nextSentence() : null, t),
-                ],
-              ),
-              const SizedBox(width: 16),
-              // 右侧组：纯文字按钮，统一间距
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (hs) ...[
-                          _plainTextBtn("跟读", _showReadAloud, () {
-                            final shouldBeOpen = !_showReadAloud;
-                            if (shouldBeOpen) {
-                              n.player.pause();
-                              n.setSingleSentencePause(true);
-                              if (cs != null) {
-                                n.seekToMs(Duration(milliseconds: cs.startPosition.toInt()).inMilliseconds);
-                                Future.microtask(() => n.player.play());
-                              }
-                            }
-                            setState(() => _showReadAloud = shouldBeOpen);
-                          }),
-                          const SizedBox(width: 12),
-                        ],
-                        _plainTextBtn(
-                          "清晰朗读",
-                          hs ? _isTtsSpeaking : false,
-                          hs
-                              ? () {
-                                  if (_isTtsSpeaking) {
-                                    _stopClaritySpeak(n);
-                                  } else {
-                                    _handleClaritySpeak(n, s, cs!);
-                                  }
-                                }
-                              : null,
+          padding: EdgeInsets.symmetric(horizontal: _horizontalMargin, vertical: isPortrait ? 12 : 0),
+          child: isPortrait
+              ? Column(
+                  children: [
+                    playbackControls,
+                    const SizedBox(height: 16),
+                    Wrap(spacing: 12, runSpacing: 12, alignment: WrapAlignment.center, children: featureButtons),
+                  ],
+                )
+              : Row(
+                  children: [
+                    playbackControls,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: featureButtons.map((btn) => Padding(padding: const EdgeInsets.only(right: 12), child: btn)).toList(),
+                          ),
                         ),
-                        const SizedBox(width: 12),
-                        _plainTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible()),
-                        const SizedBox(width: 12),
-                        _plainTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible()),
-                        if (hs) ...[
-                          const SizedBox(width: 12),
-                          _plainTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause()),
-                          const SizedBox(width: 12),
-                          _plainTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence()),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              // 循环模式按钮（与倍数按钮样式一致）
-              PopupMenuButton<String>(
-                initialValue: s.loopingMode,
-                onSelected: (mode) => n.setLoopingMode(mode),
-                offset: const Offset(0, -220),
-                color: AppColors.surfaceElevated,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: _plainTextBtn(_loopModeLabel(s.loopingMode), s.loopingMode != 'single_play', null),
-                itemBuilder: (context) {
-                  return _playModeOptions.map((opt) {
-                    final active = s.loopingMode == opt['value'];
-                    return PopupMenuItem<String>(
-                      value: opt['value'],
-                      height: 36,
-                      child: Center(
-                        child: Text(
-                          opt['label']!,
-                          style: TextStyle(
-                            color: active ? AppColors.primary : Colors.white,
-                            fontSize: 13,
-                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList();
-                },
-              ),
-              const SizedBox(width: 12),
-              // 字体大小按钮（与倍数按钮样式一致）
-              PopupMenuButton<double>(
-                initialValue: s.subtitleFontSize,
-                onSelected: (size) => n.setSubtitleFontSize(size),
-                offset: const Offset(0, -220),
-                color: AppColors.surfaceElevated,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: _plainTextBtn("字号", s.subtitleFontSize != 20.0, null),
-                itemBuilder: (context) {
-                  final fontOptions = [12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 28.0, 32.0, 36.0, 40.0];
-                  return fontOptions.map((size) {
-                    final active = s.subtitleFontSize == size;
-                    return PopupMenuItem<double>(
-                      value: size,
-                      height: 36,
-                      child: Center(
-                        child: Text(
-                          '${size.toInt()}',
-                          style: TextStyle(
-                            color: active ? AppColors.primary : Colors.white,
-                            fontSize: 13,
-                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList();
-                },
-              ),
-              const SizedBox(width: 12),
-              // 倍数按钮
-              PopupMenuButton<double>(
-                initialValue: s.speed,
-                onSelected: (sp) {
-                  n.setSpeed(sp);
-                },
-                offset: const Offset(0, -220),
-                color: AppColors.surfaceElevated,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: _plainTextBtn("${s.speed.toString().replaceAll(RegExp(r'\.0$'), '')}X", s.speed != 1.0, null),
-                itemBuilder: (context) {
-                  return _speedOptions.map((sp) {
-                    final active = s.speed == sp;
-                    return PopupMenuItem<double>(
-                      value: sp,
-                      height: 36,
-                      child: Center(
-                        child: Text(
-                          '${sp}X',
-                          style: TextStyle(
-                            color: active ? AppColors.primary : Colors.white,
-                            fontSize: 13,
-                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList();
-                },
-              ),
-            ],
-          ),
         ),
+        SizedBox(height: isPortrait ? 24 : 16),
       ],
     );
   }
 
-  void _handleClaritySpeak(PlayerEngineNotifier n, PlayerEngineState s, Subtitles cs) {
+  void _handleClaritySpeak(PlayerEngineNotifier n, PlayerEngineState s, Subtitles cs) async {
     final wasPlaying = s.playerState == PlayerState.playing;
     setState(() => _isTtsSpeaking = true);
     if (wasPlaying) n.player.pause();
+
+    // 优先使用本地 TTS
+    try {
+      final localTts = LocalTtsService.instance;
+      if (localTts.isInitialized) {
+        debugPrint('使用本地 Supertonic TTS');
+        final audioPath = await localTts.synthesizeToFile(text: cs.content);
+        if (audioPath != null && mounted) {
+          await _aliAudioPlayer.play(ap.DeviceFileSource(audioPath));
+          _aliAudioPlayer.onPlayerComplete.first.then((_) {
+            if (!mounted) return;
+            setState(() => _isTtsSpeaking = false);
+            if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+              n.player.play();
+            }
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('本地 TTS 失败: $e');
+    }
+
+    // 回退到云端 TTS
     final subState = ref.read(subscriptionProvider);
     if (subState.mode == SubscriptionMode.premium) {
       _speakClarityPremium(cs.content, wasPlaying, n);
@@ -739,7 +758,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     debugPrint('LocalModelService.canUseAiFeatures: ${LocalModelService.instance.canUseAiFeatures}');
     debugPrint('LocalModelService.hasAllModels: ${LocalModelService.instance.hasAllModels}');
     debugPrint('LocalModelService.currentStatus: ${LocalModelService.instance.currentStatus}');
-    
+
     if (!canUseAi) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -757,7 +776,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       }
       return;
     }
-    
+
     // 优先使用本地 Piper TTS
     if (TtsService().canUseLocalTts) {
       try {
@@ -768,7 +787,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
         debugPrint('Local TTS failed, falling back to system TTS: $e');
       }
     }
-    
+
     // 降级到系统 TTS
     final subState = ref.read(subscriptionProvider);
     if (subState.mode == SubscriptionMode.premium) {

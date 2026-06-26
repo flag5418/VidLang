@@ -14,27 +14,23 @@ class ModelDownloadService {
   ModelDownloadService._();
 
   final Dio _dio = Dio();
-  
+
   // 下载状态回调
-  final ValueNotifier<ModelDownloadState> _stateNotifier = 
-      ValueNotifier<ModelDownloadState>(ModelDownloadState.idle);
+  final ValueNotifier<ModelDownloadState> _stateNotifier = ValueNotifier<ModelDownloadState>(ModelDownloadState.idle);
   ValueNotifier<ModelDownloadState> get stateNotifier => _stateNotifier;
 
   /// 获取模型配置
   Future<ModelConfigResponse> getModelConfig({String? customMirror}) async {
     try {
       final client = Supabase.instance.client;
-      
+
       // 调用 Edge Function 获取配置
-      final response = await client.functions.invoke(
-        'model-config',
-        headers: customMirror != null ? {'X-Custom-Mirror': customMirror} : {},
-      );
-      
+      final response = await client.functions.invoke('model-config', headers: customMirror != null ? {'X-Custom-Mirror': customMirror} : {});
+
       if (response.data['success'] != true) {
         throw Exception(response.data['error'] ?? '获取模型配置失败');
       }
-      
+
       return ModelConfigResponse.fromJson(response.data);
     } catch (e) {
       debugPrint('获取模型配置失败: $e');
@@ -65,6 +61,10 @@ class ModelDownloadService {
 
       // 方法2：检查项目 models/ 目录（开发环境）
       final currentDir = Directory.current.path;
+      if (currentDir == '/' || currentDir == '//') {
+        debugPrint('未找到 $modelType 模型');
+        return false;
+      }
       final devModelsDir = Directory('$currentDir/models');
       debugPrint('检查开发目录: ${devModelsDir.path}');
       if (await devModelsDir.exists()) {
@@ -98,8 +98,8 @@ class ModelDownloadService {
   Future<bool> _checkModelsInDir(Directory dir, String modelType) async {
     try {
       if (!await dir.exists()) return false;
-      
-      final files = await dir.list().toList();
+
+      final files = await dir.list(recursive: true).toList();
       for (final file in files) {
         if (file is File) {
           final fileName = file.path.split('/').last;
@@ -120,26 +120,28 @@ class ModelDownloadService {
   /// 获取本地模型文件路径
   Future<String?> getLocalModelPath(String modelType) async {
     try {
-      // 方法1：检查 applicationDocumentsDirectory
+      // 方法1：检查 applicationDocumentsDirectory（模拟器和真机都适用）
       final modelsDir = await getModelsDirectory();
       final path = await _findModelInDir(modelsDir, modelType);
       if (path != null) return path;
 
-      // 方法2：检查项目 models/ 目录（开发环境）
+      // 方法2：检查项目 models/ 目录（仅在 macOS 开发时有效）
       final currentDir = Directory.current.path;
-      final devModelsDir = Directory('$currentDir/models');
-      if (await devModelsDir.exists()) {
-        // TTS 模型在 supertonic/ 子目录
-        if (modelType == 'tts') {
-          final supertonicDir = Directory('${devModelsDir.path}/supertonic');
-          if (await supertonicDir.exists()) {
-            return supertonicDir.path;
+      if (currentDir != '/' && currentDir != '//') {
+        final devModelsDir = Directory('$currentDir/models');
+        if (await devModelsDir.exists()) {
+          // TTS 模型在 supertonic/ 子目录
+          if (modelType == 'tts') {
+            final supertonicDir = Directory('${devModelsDir.path}/supertonic');
+            if (await supertonicDir.exists()) {
+              return supertonicDir.path;
+            }
           }
-        }
-        // STT 模型检查
-        if (modelType == 'stt') {
-          final sttPath = await _findModelInDir(devModelsDir, modelType);
-          if (sttPath != null) return sttPath;
+          // STT 模型检查
+          if (modelType == 'stt') {
+            final sttPath = await _findModelInDir(devModelsDir, modelType);
+            if (sttPath != null) return sttPath;
+          }
         }
       }
 
@@ -154,12 +156,16 @@ class ModelDownloadService {
   Future<String?> _findModelInDir(Directory dir, String modelType) async {
     try {
       if (!await dir.exists()) return null;
-      
-      final files = await dir.list().toList();
+
+      final files = await dir.list(recursive: true).toList();
       for (final file in files) {
         if (file is File) {
           final fileName = file.path.split('/').last;
           if (_isModelFile(modelType, fileName)) {
+            // TTS 需要返回包含 vocoder/text_encoder 等文件的上一级目录
+            if (modelType == 'tts') {
+              return file.parent.path;
+            }
             return file.path;
           }
         }
@@ -174,11 +180,11 @@ class ModelDownloadService {
   Future<bool> needsUpdate(String modelType, String remoteVersion) async {
     final prefs = await SharedPreferences.getInstance();
     final localVersion = prefs.getString('model_version_$modelType');
-    
+
     if (localVersion == null) {
       return true; // 本地没有，需要下载
     }
-    
+
     return localVersion != remoteVersion; // 版本不一致，需要更新
   }
 
@@ -194,20 +200,20 @@ class ModelDownloadService {
   }) async {
     try {
       _stateNotifier.value = ModelDownloadState.downloading;
-      
+
       final modelsDir = await getModelsDirectory();
       final fileName = _getModelFileName(modelType, url);
       final savePath = '${modelsDir.path}/$fileName';
-      
+
       // 检查是否已存在临时文件
       final tempPath = '$savePath.tmp';
       int downloadLength = 0;
-      
+
       final tempFile = File(tempPath);
       if (await tempFile.exists()) {
         downloadLength = await tempFile.length();
       }
-      
+
       // 开始下载
       await _dio.download(
         url,
@@ -225,17 +231,17 @@ class ModelDownloadService {
           receiveTimeout: Duration(minutes: 30),
         ),
       );
-      
+
       // 下载完成，重命名文件
       final tempFile2 = File(tempPath);
       if (await tempFile2.exists()) {
         await tempFile2.rename(savePath);
       }
-      
+
       // 保存版本号
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('model_version_$modelType', version);
-      
+
       _stateNotifier.value = ModelDownloadState.completed;
       onComplete?.call();
     } catch (e) {
@@ -253,15 +259,15 @@ class ModelDownloadService {
   }) async {
     try {
       final config = await getModelConfig();
-      
+
       for (final entry in config.models.entries) {
         final modelType = entry.key;
         final modelInfo = entry.value;
-        
+
         if (modelInfo.required) {
           // 检查是否需要更新
           final needsUpdate = await this.needsUpdate(modelType, modelInfo.version);
-          
+
           if (needsUpdate) {
             await downloadModel(
               modelType: modelType,
@@ -292,13 +298,13 @@ class ModelDownloadService {
     try {
       final modelsDir = await getModelsDirectory();
       final files = await modelsDir.list().toList();
-      
+
       for (final file in files) {
         if (file is File) {
           final fileName = file.path.split('/').last;
           if (_isModelFile(modelType, fileName)) {
             await file.delete();
-            
+
             // 清除版本记录
             final prefs = await SharedPreferences.getInstance();
             await prefs.remove('model_version_$modelType');
@@ -319,7 +325,7 @@ class ModelDownloadService {
       if (await modelsDir.exists()) {
         await modelsDir.delete(recursive: true);
       }
-      
+
       // 清除所有版本记录
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('model_version_llm');
@@ -332,23 +338,21 @@ class ModelDownloadService {
   }
 
   // 辅助方法
-  
+
   bool _isModelFile(String modelType, String fileName) {
     switch (modelType) {
       case 'llm':
         return fileName.endsWith('.gguf');
       case 'tts':
         // 支持 Piper (amy) 和 Supertonic TTS 模型
-        return fileName.endsWith('.onnx') && 
-               (fileName.contains('amy') || fileName.contains('supertonic') || 
-                fileName.contains('text_encoder') || fileName.contains('vocoder'));
+        return fileName.endsWith('.onnx') || fileName.endsWith('.json');
       case 'stt':
         return fileName.endsWith('.bin') && fileName.contains('whisper');
       default:
         return false;
     }
   }
-  
+
   String _getModelFileName(String modelType, String url) {
     // 从 URL 提取文件名
     final uri = Uri.parse(url);
@@ -363,21 +367,13 @@ class ModelConfigResponse {
   final Map<String, ModelInfo> models;
   final List<MirrorInfo> availableMirrors;
 
-  ModelConfigResponse({
-    required this.mirror,
-    required this.models,
-    required this.availableMirrors,
-  });
+  ModelConfigResponse({required this.mirror, required this.models, required this.availableMirrors});
 
   factory ModelConfigResponse.fromJson(Map<String, dynamic> json) {
     return ModelConfigResponse(
       mirror: json['mirror'] ?? '',
-      models: (json['models'] as Map<String, dynamic>?)?.map(
-        (key, value) => MapEntry(key, ModelInfo.fromJson(value)),
-      ) ?? {},
-      availableMirrors: (json['available_mirrors'] as List<dynamic>?)?.map(
-        (e) => MirrorInfo.fromJson(e),
-      ).toList() ?? [],
+      models: (json['models'] as Map<String, dynamic>?)?.map((key, value) => MapEntry(key, ModelInfo.fromJson(value))) ?? {},
+      availableMirrors: (json['available_mirrors'] as List<dynamic>?)?.map((e) => MirrorInfo.fromJson(e)).toList() ?? [],
     );
   }
 }
@@ -429,13 +425,7 @@ class MirrorInfo {
   final int priority;
   final String? region;
 
-  MirrorInfo({
-    required this.name,
-    required this.url,
-    required this.isDefault,
-    required this.priority,
-    this.region,
-  });
+  MirrorInfo({required this.name, required this.url, required this.isDefault, required this.priority, this.region});
 
   factory MirrorInfo.fromJson(Map<String, dynamic> json) {
     return MirrorInfo(
@@ -449,9 +439,4 @@ class MirrorInfo {
 }
 
 /// 下载状态
-enum ModelDownloadState {
-  idle,
-  downloading,
-  completed,
-  error,
-}
+enum ModelDownloadState { idle, downloading, completed, error }

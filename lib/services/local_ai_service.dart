@@ -52,18 +52,36 @@ class LocalAiService {
       debugPrint('hasAllModels: ${_modelService.hasAllModels}');
       debugPrint('canUseAiFeatures: ${_modelService.canUseAiFeatures}');
       
-      // 并行初始化所有服务
+      // 串行初始化各服务（避免并行加载大模型导致内存崩溃）
       debugPrint('开始初始化 TTS、STT、翻译服务...');
-      await Future.wait([
-        _llm.initialize(),
-        _tts.initialize(),
-        _stt.initialize(),
-        _translation.initialize(),
-      ]);
       
-      debugPrint('TTS 初始化完成: ${_tts.isInitialized}');
-      debugPrint('STT 初始化完成: ${_stt.isInitialized}');
-      debugPrint('翻译初始化完成: ${_translation.isInitialized}');
+      try {
+        await _llm.initialize();
+        debugPrint('LLM 初始化完成');
+      } catch (e) {
+        debugPrint('LLM 初始化跳过: $e');
+      }
+      
+      try {
+        await _tts.initialize();
+        debugPrint('TTS 初始化完成: ${_tts.isInitialized}');
+      } catch (e) {
+        debugPrint('TTS 初始化失败: $e');
+      }
+      
+      try {
+        await _stt.initialize();
+        debugPrint('STT 初始化完成: ${_stt.isInitialized}');
+      } catch (e) {
+        debugPrint('STT 初始化失败: $e');
+      }
+      
+      try {
+        await _translation.initialize();
+        debugPrint('翻译初始化完成: ${_translation.isInitialized}');
+      } catch (e) {
+        debugPrint('翻译初始化失败: $e');
+      }
 
       _isInitialized = true;
       _initController.add(true);
@@ -80,15 +98,11 @@ class LocalAiService {
   /// 翻译文本（英→中）
   Future<String> translate({
     required String text,
-    String sourceLanguage = 'English',
-    String targetLanguage = 'Chinese',
   }) async {
     // 优先使用本地翻译
     if (_translation.isInitialized) {
       return _translation.translate(
         text: text,
-        sourceLanguage: sourceLanguage,
-        targetLanguage: targetLanguage,
       );
     }
 

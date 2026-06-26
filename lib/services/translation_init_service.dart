@@ -1,27 +1,26 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
 
-import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/article_sentence.dart';
+import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
+import 'package:vidlang/services/local_translation_service.dart';
 import 'package:vidlang/services/translation_service.dart';
 
 /// 翻译来源枚举
 enum TranslateSource {
-  none(-1),   // 无翻译
-  native(0),  // 原生翻译（免费模式）
-  ai(1);      // AI翻译（付费模式）
+  none(-1), // 无翻译
+  native(0), // 原生翻译（免费模式）
+  ai(1), // AI翻译（付费模式）
+  local(2); // 本地翻译（免费模式，MarianMT）
 
   final int value;
   const TranslateSource(this.value);
 
   static TranslateSource fromInt(int? value) {
-    return TranslateSource.values.firstWhere(
-      (e) => e.value == value,
-      orElse: () => TranslateSource.none,
-    );
+    return TranslateSource.values.firstWhere((e) => e.value == value, orElse: () => TranslateSource.none);
   }
 }
 
@@ -32,7 +31,6 @@ class TranslationInitService {
   /// 统计需要翻译的句子数量
   static int countNeedTranslate<T>(List<T> items, bool isPremium) {
     int count = 0;
-    final targetSource = isPremium ? TranslateSource.ai : TranslateSource.native;
     for (final item in items) {
       String? translate;
       int? source;
@@ -44,8 +42,15 @@ class TranslationInitService {
         source = item.translateSource;
       }
       final hasContent = (translate ?? '').trim().isNotEmpty;
-      final hasCorrectSource = source == targetSource.value;
-      if (!hasContent || !hasCorrectSource) count++;
+      
+      // 如果没有翻译内容，必然需要翻译
+      if (!hasContent) {
+        count++;
+      } else if (isPremium && source != TranslateSource.ai.value) {
+        // 如果是高级用户，但当前翻译不是 AI 翻译（可能是原生或本地翻译），则需要升级为 AI 翻译
+        count++;
+      }
+      // 否则（免费用户且已有翻译，或者是高级用户且已有 AI 翻译），不需要重新翻译
     }
     return count;
   }
@@ -62,6 +67,11 @@ class TranslationInitService {
     if (isNative) {
       return await _translateSubtitlesNative(subtitles, onProgress);
     } else {
+      // 优先使用本地翻译（MarianMT），失败则回退 AI 云端
+      if (LocalTranslationService.instance.isInitialized) {
+        final localSuccess = await _translateSubtitlesLocal(subtitles, onProgress);
+        if (localSuccess) return true;
+      }
       return await _translateSubtitlesAI(subtitles, videoCode, title, onProgress);
     }
   }
@@ -79,30 +89,24 @@ class TranslationInitService {
       return await _translateArticleSentencesNative(sentences, onProgress);
     } else {
       return await TranslationService.translateArticle(
-        articleCode: articleCode,
-        article: _dummyArticle(title),
-        chapters: [],
-        paragraphs: [],
-        sentences: sentences,
-      ) != null;
+            articleCode: articleCode,
+            article: _dummyArticle(title),
+            chapters: [],
+            paragraphs: [],
+            sentences: sentences,
+          ) !=
+          null;
     }
   }
 
   /// 使用 iOS 原生翻译逐句翻译字幕
-  static Future<bool> _translateSubtitlesNative(
-    List<Subtitles> subtitles,
-    void Function(int current, int total) onProgress,
-  ) async {
+  static Future<bool> _translateSubtitlesNative(List<Subtitles> subtitles, void Function(int current, int total) onProgress) async {
     int success = 0;
     bool versionTooLow = false;
     for (int i = 0; i < subtitles.length; i++) {
       final sub = subtitles[i];
       try {
-        final result = await IosNativeFeatures.translate(
-          text: sub.content,
-          sourceLanguage: 'en',
-          targetLanguage: 'zh-Hans',
-        );
+        final result = await IosNativeFeatures.translate(text: sub.content, sourceLanguage: 'en', targetLanguage: 'zh-Hans');
         if (result.success && result.translatedText.isNotEmpty) {
           sub.contentTranslate = result.translatedText;
           sub.translateSource = TranslateSource.native.value;
@@ -127,22 +131,48 @@ class TranslationInitService {
 
     if (success > 0) {
       try {
-        final updatedCount = await DatabaseService.batchUpdate(subtitles);
+        final updatedCount = await DatabaseService.updateTranslationsByCode(subtitles);
         if (updatedCount == 0) {
-          dev.log('batchUpdate returned 0, database may be corrupted', name: 'TranslationInitService');
-          // 数据库可能已损坏，但翻译已成功应用到内存对象
-          // 返回 true 让播放器继续显示翻译（内存中已更新）
-          return true;
+          dev.log('updateTranslationsByCode returned 0, maybe code missing', name: 'TranslationInitService');
         }
       } catch (e) {
-        dev.log('batchUpdate failed: $e', name: 'TranslationInitService');
-        // 数据库更新失败，但翻译已成功应用到内存对象
-        // 返回 true 让播放器继续显示翻译（内存中已更新）
-        return true;
+        dev.log('updateTranslationsByCode failed: $e', name: 'TranslationInitService');
       }
     }
 
     dev.log('Native translation completed: $success/${subtitles.length} succeeded', name: 'TranslationInitService');
+    return success > 0;
+  }
+
+  /// 使用本地 MarianMT 逐句翻译字幕
+  static Future<bool> _translateSubtitlesLocal(List<Subtitles> subtitles, void Function(int current, int total) onProgress) async {
+    int success = 0;
+    for (int i = 0; i < subtitles.length; i++) {
+      final sub = subtitles[i];
+      try {
+        final result = await LocalTranslationService.instance.translate(text: sub.content);
+        if (result.isNotEmpty && !result.contains('失败') && !result.contains('未就绪')) {
+          sub.contentTranslate = result;
+          sub.translateSource = TranslateSource.local.value;
+          success++;
+        }
+      } catch (e) {
+        dev.log('Local translation failed for subtitle ${i}: $e', name: 'TranslationInitService');
+      }
+      onProgress(i + 1, subtitles.length);
+
+      // 每翻译完成一小部分（比如 10 句）就保存一次
+      if ((i + 1) % 10 == 0 || i == subtitles.length - 1) {
+        final batchToUpdate = subtitles.sublist((i ~/ 10) * 10, i + 1);
+        try {
+          await DatabaseService.updateTranslationsByCode(batchToUpdate);
+        } catch (e) {
+          dev.log('updateTranslationsByCode failed after local translation chunk: $e', name: 'TranslationInitService');
+        }
+      }
+    }
+
+    dev.log('Local translation completed: $success/${subtitles.length} succeeded', name: 'TranslationInitService');
     return success > 0;
   }
 
@@ -186,7 +216,7 @@ class TranslationInitService {
       }
 
       if (success > 0) {
-        await DatabaseService.batchUpdate(subtitles);
+        await DatabaseService.updateTranslationsByCode(subtitles);
       }
 
       dev.log('AI translation completed: $success/${subtitles.length} succeeded', name: 'TranslationInitService');
@@ -198,11 +228,7 @@ class TranslationInitService {
   }
 
   /// 调用 AI 翻译接口（整篇理解后逐句翻译）
-  static Future<Map<String, dynamic>?> _callAiTranslateSubtitles(
-    List<Subtitles> subtitles,
-    String videoCode,
-    String title,
-  ) async {
+  static Future<Map<String, dynamic>?> _callAiTranslateSubtitles(List<Subtitles> subtitles, String videoCode, String title) async {
     final buf = StringBuffer();
     buf.writeln('你是专业的英文学习翻译助手。请对下面的英文做"逐句翻译"，每句翻译需要结合上下文，保证指代、时态和语气自然。');
     buf.writeln('输出必须是严格 JSON，禁止输出除 JSON 以外的任何内容。');
@@ -223,12 +249,7 @@ class TranslationInitService {
       ruleCode: 'ai_translate_article',
       scene: 'player',
       entry: 'translate_subtitles',
-      params: {
-        'prompt': buf.toString(),
-        'model': 'qwen',
-        'temperature': 0.2,
-        'max_tokens': 8192,
-      },
+      params: {'prompt': buf.toString(), 'model': 'qwen', 'temperature': 0.2, 'max_tokens': 8192},
       sourceType: 'video',
       sourceCode: videoCode,
     );
@@ -238,9 +259,7 @@ class TranslationInitService {
 
     final result = resp['result'];
     if (result is Map<String, dynamic>) {
-      return (result['raw'] as String?)?.trim() != null
-          ? jsonDecode((result['raw'] as String).trim())
-          : null;
+      return (result['raw'] as String?)?.trim() != null ? jsonDecode((result['raw'] as String).trim()) : null;
     }
     if (result is String) {
       final decoded = jsonDecode(result.trim());
@@ -250,19 +269,12 @@ class TranslationInitService {
   }
 
   /// 使用 iOS 原生翻译逐句翻译文章句子
-  static Future<bool> _translateArticleSentencesNative(
-    List<ArticleSentence> sentences,
-    void Function(int current, int total) onProgress,
-  ) async {
+  static Future<bool> _translateArticleSentencesNative(List<ArticleSentence> sentences, void Function(int current, int total) onProgress) async {
     int success = 0;
     for (int i = 0; i < sentences.length; i++) {
       final sentence = sentences[i];
       try {
-        final result = await IosNativeFeatures.translate(
-          text: sentence.content,
-          sourceLanguage: 'en',
-          targetLanguage: 'zh-Hans',
-        );
+        final result = await IosNativeFeatures.translate(text: sentence.content, sourceLanguage: 'en', targetLanguage: 'zh-Hans');
         if (result.success && result.translatedText.isNotEmpty) {
           sentence.contentTranslate = result.translatedText;
           sentence.translateSource = TranslateSource.native.value;
@@ -275,7 +287,7 @@ class TranslationInitService {
     }
 
     if (success > 0) {
-      await DatabaseService.batchUpdate(sentences);
+      await DatabaseService.updateTranslationsByCode(sentences);
     }
 
     dev.log('Native article translation completed: $success/${sentences.length} succeeded', name: 'TranslationInitService');

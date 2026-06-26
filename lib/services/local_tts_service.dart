@@ -60,12 +60,20 @@ class LocalTtsService {
     _isLoading = true;
 
     try {
+      // 模拟器上跳过 sherpa_onnx 初始化（避免 native crash）
+      if (Platform.isIOS) {
+        final appDir = await getApplicationDocumentsDirectory();
+        if (appDir.path.contains('CoreSimulator')) {
+          debugPrint('TTS: iOS 模拟器环境，跳过 sherpa_onnx 初始化');
+          return;
+        }
+      }
+
       // 查找 Supertonic 模型目录
       _modelsDir = await _findSupertonicModelsDir();
 
       if (_modelsDir == null) {
         debugPrint('Supertonic TTS 模型目录不存在');
-        _isLoading = false;
         return;
       }
 
@@ -116,18 +124,20 @@ class LocalTtsService {
   /// 查找 Supertonic 模型目录
   Future<String?> _findSupertonicModelsDir() async {
     try {
-      // 方法1：从 models/ 目录查找（开发环境）
-      final currentDir = Directory.current.path;
-      final devPath = '$currentDir/models/supertonic';
-      if (await Directory(devPath).exists()) {
-        return devPath;
-      }
-
-      // 方法2：从 applicationDocumentsDirectory 查找（生产环境）
+      // 方法1：从 applicationDocumentsDirectory 查找（模拟器和真机都适用）
       final appDir = await getApplicationDocumentsDirectory();
       final prodPath = '${appDir.path}/models/supertonic';
       if (await Directory(prodPath).exists()) {
         return prodPath;
+      }
+
+      // 方法2：从 models/ 目录查找（仅在 macOS 开发时有效）
+      final currentDir = Directory.current.path;
+      if (currentDir != '/' && currentDir != '//') {
+        final devPath = '$currentDir/models/supertonic';
+        if (await Directory(devPath).exists()) {
+          return devPath;
+        }
       }
 
       // 方法3：从 models/ 目录的上级目录查找

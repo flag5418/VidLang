@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:vidlang/services/assets_extractor.dart';
 import 'package:vidlang/services/model_download_service.dart';
 
 /// 本地模型状态管理服务
@@ -11,16 +12,16 @@ class LocalModelService {
   LocalModelService._();
 
   final ModelDownloadService _downloadService = ModelDownloadService.instance;
-  
+
   // 模型状态
   bool _isInitialized = false;
   bool _hasAllModels = false;
   bool _isChecking = false;
-  
+
   // 状态流
   final _statusController = StreamController<LocalModelStatus>.broadcast();
   Stream<LocalModelStatus> get statusStream => _statusController.stream;
-  
+
   // 当前状态
   LocalModelStatus _currentStatus = LocalModelStatus.unknown;
   LocalModelStatus get currentStatus => _currentStatus;
@@ -28,7 +29,10 @@ class LocalModelService {
   /// 初始化
   Future<void> initialize() async {
     if (_isInitialized) return;
-    
+
+    // 首次启动时自动将 assets 里的模型释放到沙盒物理路径
+    await AssetsExtractor.extractBuiltInModelsIfNeed();
+
     await checkModelsStatus();
     _isInitialized = true;
   }
@@ -36,20 +40,20 @@ class LocalModelService {
   /// 检查所有模型状态
   Future<LocalModelStatus> checkModelsStatus() async {
     if (_isChecking) return _currentStatus;
-    
+
     _isChecking = true;
-    
+
     try {
       // 检查模型类型
       // TTS 是必需的（本地语音合成）
       // STT 和 LLM 可以使用云端回退
       final ttsExists = await _downloadService.isModelDownloaded('tts');
       final sttExists = await _downloadService.isModelDownloaded('stt');
-      
+
       debugPrint('=== 模型检测详情 ===');
       debugPrint('TTS 存在: $ttsExists');
       debugPrint('STT 存在: $sttExists');
-      
+
       // 获取远程版本信息（失败时不强制要求下载）
       ModelConfigResponse? remoteConfig;
       bool configFetchFailed = false;
@@ -57,10 +61,10 @@ class LocalModelService {
         remoteConfig = await _downloadService.getModelConfig();
         debugPrint('远程配置获取成功');
       } catch (e) {
-        debugPrint('获取远程模型配置失败: $e');
+        debugPrint('获取远程模型配置失败，尝试离线加载: $e');
         configFetchFailed = true;
       }
-      
+
       // 检查版本是否匹配
       bool needsUpdate = false;
       if (remoteConfig != null) {
@@ -77,29 +81,32 @@ class LocalModelService {
           }
         }
       }
-      
+
       // 更新状态
-      // TTS 是必需的，STT 可选（云端回退）
+      // 只要本地有核心模型 (TTS 是必需的，STT由于是云端回退可选)，即使远程配置获取失败也认为可用
       if (ttsExists) {
         _currentStatus = LocalModelStatus.ready;
         _hasAllModels = true;
-        debugPrint('状态设置为 ready');
+        debugPrint('状态设置为 LocalModelStatus.ready (离线或在线验证通过)');
       } else if (needsUpdate) {
         _currentStatus = LocalModelStatus.needsUpdate;
         _hasAllModels = false;
         debugPrint('状态设置为 needsUpdate');
-      } else if (!ttsExists) {
-        // 只有当远程配置获取成功时才标记为 missing
-        // 配置获取失败时标记为 error，不强制弹窗
-        _currentStatus = configFetchFailed 
-            ? LocalModelStatus.error 
-            : LocalModelStatus.missing;
+      } else if (configFetchFailed) {
+        // 模型不全且获取配置失败
+        _currentStatus = LocalModelStatus.error;
         _hasAllModels = false;
-        debugPrint('状态设置为 ${_currentStatus}');
+        debugPrint('状态设置为 LocalModelStatus.error (核心模型 TTS 缺失且无法连接服务器)');
+      } else {
+        // 模型不全但获取配置成功，提示下载
+        _currentStatus = LocalModelStatus.missing;
+        _hasAllModels = false;
+        debugPrint('状态设置为 LocalModelStatus.missing');
       }
-      
+
+      // 为了兼容状态流监听
       _statusController.add(_currentStatus);
-      
+
       return _currentStatus;
     } catch (e) {
       debugPrint('检查模型状态失败: $e');
@@ -148,11 +155,11 @@ class LocalModelService {
 
 /// 本地模型状态
 enum LocalModelStatus {
-  unknown,        // 未知
-  missing,        // 缺少模型
-  needsUpdate,    // 需要更新
-  ready,          // 就绪
-  error,          // 错误
+  unknown, // 未知
+  missing, // 缺少模型
+  needsUpdate, // 需要更新
+  ready, // 就绪
+  error, // 错误
 }
 
 /// 模型状态扩展
@@ -188,8 +195,7 @@ extension LocalModelStatusExtension on LocalModelStatus {
   }
 
   bool get shouldShowDownloadDialog {
-    return this == LocalModelStatus.missing || 
-           this == LocalModelStatus.needsUpdate;
+    return this == LocalModelStatus.missing || this == LocalModelStatus.needsUpdate;
   }
 
   bool get canUseAiFeatures {
