@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
 
+import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/services/ai_service.dart';
@@ -88,9 +89,14 @@ class TranslationInitService {
     if (isNative) {
       return await _translateArticleSentencesNative(sentences, onProgress);
     } else {
+      // 优先使用本地翻译（MarianMT），失败则回退 AI 云端
+      if (LocalTranslationService.instance.isInitialized) {
+        final localSuccess = await _translateArticleSentencesLocal(sentences, onProgress);
+        if (localSuccess) return true;
+      }
       return await TranslationService.translateArticle(
             articleCode: articleCode,
-            article: _dummyArticle(title),
+            article: Article(title: title),
             chapters: [],
             paragraphs: [],
             sentences: sentences,
@@ -294,8 +300,38 @@ class TranslationInitService {
     return success > 0;
   }
 
-  /// 创建一个虚拟 Article 对象用于翻译
-  static dynamic _dummyArticle(String title) {
-    return {'title': title};
+  /// 使用本地 MarianMT 逐句翻译文章句子
+  static Future<bool> _translateArticleSentencesLocal(
+    List<ArticleSentence> sentences,
+    void Function(int current, int total) onProgress,
+  ) async {
+    int success = 0;
+    for (int i = 0; i < sentences.length; i++) {
+      final sentence = sentences[i];
+      try {
+        final result = await LocalTranslationService.instance.translate(
+          text: sentence.content,
+        );
+        if (result.isNotEmpty && !result.contains('失败') && !result.contains('未就绪')) {
+          sentence.contentTranslate = result;
+          sentence.translateSource = TranslateSource.local.value;
+          success++;
+        }
+      } catch (e) {
+        dev.log('Local translation failed for article sentence ${i}: $e', name: 'TranslationInitService');
+      }
+      onProgress(i + 1, sentences.length);
+    }
+
+    if (success > 0) {
+      try {
+        await DatabaseService.updateTranslationsByCode(sentences);
+      } catch (e) {
+        dev.log('batchUpdate failed after local article translation: $e', name: 'TranslationInitService');
+      }
+    }
+
+    dev.log('Local article translation completed: $success/${sentences.length} succeeded', name: 'TranslationInitService');
+    return success > 0;
   }
 }
