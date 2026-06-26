@@ -6,7 +6,10 @@ import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:synchronized/synchronized.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vidlang/models/article_sentence.dart';
+import 'package:vidlang/models/subtitles.dart';
 
 import '../models/base_entity.dart';
 
@@ -70,6 +73,12 @@ class DatabaseService {
   /// 用于在 config 表中存储上次启动时的实体结构哈希值
   static const String _schemaHashKey = 'db_schema_hash';
 
+  /// 初始化并发控制锁（防止多线程同时打开数据库）
+  static final Lock _initLock = Lock();
+
+  /// 写操作并发控制锁（防止 SQLite 并发写入导致数据库损坏）
+  static final Lock _writeLock = Lock();
+
   /// 上次检测是否通过的标志
   static bool _schemaCheckPassed = false;
 
@@ -105,9 +114,15 @@ class DatabaseService {
   /// 如果数据库未初始化，则自动初始化
   /// 返回数据库实例
   static Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+    // 使用初始化专用锁
+    return await _initLock.synchronized(() async {
+      if (_database != null && _database!.isOpen) {
+        return _database!;
+      }
+
+      _database = await _initDatabase();
+      return _database!;
+    });
   }
 
   /// 初始化数据库
@@ -162,52 +177,55 @@ class DatabaseService {
   /// 当运行中检测到数据库损坏时调用，
   /// 关闭损坏的连接，删除损坏文件，重新初始化数据库。
   static Future<void> _recoverRuntimeCorruption(Object error, StackTrace st) async {
-    final path = await _getDbPath();
-    logger.fatal('database corrupted at runtime', tag: 'DB', error: error, stackTrace: st, extra: {'dbPath': path});
+    // 恢复数据库属于全局初始化级别操作，使用 _initLock
+    await _initLock.synchronized(() async {
+      final path = await _getDbPath();
+      logger.fatal('database corrupted at runtime', tag: 'DB', error: error, stackTrace: st, extra: {'dbPath': path});
 
-    // 关闭并清空损坏的数据库引用
-    try {
-      if (_database != null) {
-        await _database!.close();
-      }
-    } catch (_) {}
-    _database = null;
-
-    // 等待一小段时间让文件锁释放
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    // 备份损坏的数据库文件
-    try {
-      final src = File(path);
-      if (await src.exists()) {
-        final backupPath = '$path.corrupt-${DateTime.now().millisecondsSinceEpoch}';
-        try {
-          await src.copy(backupPath);
-          logger.warning('corrupted db backed up', tag: 'DB', extra: {'backupPath': backupPath});
-        } catch (e) {
-          logger.error('corrupted db backup failed', tag: 'DB', error: e);
+      // 关闭并清空损坏的数据库引用
+      try {
+        if (_database != null) {
+          await _database!.close();
         }
+      } catch (_) {}
+      _database = null;
+
+      // 等待一小段时间让文件锁释放
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // 备份损坏的数据库文件
+      try {
+        final src = File(path);
+        if (await src.exists()) {
+          final backupPath = '$path.corrupt-${DateTime.now().millisecondsSinceEpoch}';
+          try {
+            await src.copy(backupPath);
+            logger.warning('corrupted db backed up', tag: 'DB', extra: {'backupPath': backupPath});
+          } catch (e) {
+            logger.error('corrupted db backup failed', tag: 'DB', error: e);
+          }
+        }
+      } catch (e) {
+        logger.error('corrupted db backup failed', tag: 'DB', error: e);
       }
-    } catch (e) {
-      logger.error('corrupted db backup failed', tag: 'DB', error: e);
-    }
 
-    // 删除损坏的数据库文件
-    try {
-      await deleteDatabase(path);
-      logger.warning('corrupted db deleted for recovery', tag: 'DB', extra: {'dbPath': path});
-    } catch (e) {
-      logger.error('corrupted db delete failed', tag: 'DB', error: e, extra: {'dbPath': path});
-    }
+      // 删除损坏的数据库文件
+      try {
+        await deleteDatabase(path);
+        logger.warning('corrupted db deleted for recovery', tag: 'DB', extra: {'dbPath': path});
+      } catch (e) {
+        logger.error('corrupted db delete failed', tag: 'DB', error: e, extra: {'dbPath': path});
+      }
 
-    // 重新初始化数据库
-    try {
-      _database = await _openDatabaseAtPath(path);
-      logger.info('database re-initialized after runtime corruption', tag: 'DB', extra: {'dbPath': path});
-    } catch (e, st) {
-      logger.fatal('database re-init failed after runtime corruption', tag: 'DB', error: e, stackTrace: st);
-      rethrow;
-    }
+      // 重新初始化数据库
+      try {
+        _database = await _openDatabaseAtPath(path);
+        logger.info('database re-initialized after runtime corruption', tag: 'DB', extra: {'dbPath': path});
+      } catch (e, st) {
+        logger.fatal('database re-init failed after runtime corruption', tag: 'DB', error: e, stackTrace: st);
+        rethrow;
+      }
+    });
   }
 
   static Future<String> _getLegacyDbPath() async {
@@ -259,19 +277,24 @@ class DatabaseService {
     try {
       await db.execute('PRAGMA foreign_keys = ON');
     } catch (_) {}
-    // 使用 DELETE 日志模式 + NORMAL 同步模式，避免 WAL 模式下的数据库损坏问题
-    // WAL 模式在移动设备上（特别是 iOS 后台挂起/恢复时）容易导致 db-shm 和 db-wal 文件同步异常，
-    // 从而造成 "database disk image is malformed" 错误。
-    // DELETE 模式虽然并发性能略低，但单线程写入场景下更稳定可靠。
+    // 使用 WAL 日志模式 + NORMAL 同步模式，提高并发写入性能和可靠性，极大降低 database disk image is malformed 的概率
     try {
-      await db.execute('PRAGMA journal_mode = DELETE');
+      await db.execute('PRAGMA journal_mode = WAL');
     } catch (_) {}
     try {
       await db.execute('PRAGMA synchronous = NORMAL');
     } catch (_) {}
     // 设置 busy timeout，避免并发访问时的锁等待导致操作失败
     try {
-      await db.execute('PRAGMA busy_timeout = 5000');
+      await db.execute('PRAGMA busy_timeout = 15000'); // 将等待超时时间延长到15秒
+    } catch (_) {}
+
+    // SQLite 的自动检查点（Checkpoint）和页面大小配置，避免大事务爆内存
+    try {
+      await db.execute('PRAGMA wal_autocheckpoint = 1000');
+    } catch (_) {}
+    try {
+      await db.execute('PRAGMA page_size = 4096');
     } catch (_) {}
   }
 
@@ -435,8 +458,7 @@ class DatabaseService {
     final buffer = StringBuffer();
 
     // 按表名排序确保顺序一致
-    final sortedEntries = _registeredEntities.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
+    final sortedEntries = _registeredEntities.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
 
     for (final entry in sortedEntries) {
       final entity = entry.value.creator();
@@ -479,10 +501,10 @@ class DatabaseService {
       // 读取上次保存的哈希
       String? savedHash;
       try {
-        final rows = await db.rawQuery(
-          'SELECT value FROM config WHERE category = ? AND key = ? AND is_deleted = 0',
-          [_systemCategory, _schemaHashKey],
-        );
+        final rows = await db.rawQuery('SELECT value FROM config WHERE category = ? AND key = ? AND is_deleted = 0', [
+          _systemCategory,
+          _schemaHashKey,
+        ]);
         if (rows.isNotEmpty) {
           savedHash = rows.first['value'] as String?;
         }
@@ -525,19 +547,10 @@ class DatabaseService {
   /// 保存 Schema 哈希到数据库
   static Future<void> _saveSchemaHash(Database db, String hash) async {
     try {
-      final rows = await db.rawQuery(
-        'SELECT id FROM config WHERE category = ? AND key = ? AND is_deleted = 0',
-        [_systemCategory, _schemaHashKey],
-      );
+      final rows = await db.rawQuery('SELECT id FROM config WHERE category = ? AND key = ? AND is_deleted = 0', [_systemCategory, _schemaHashKey]);
 
       final now = DateTime.now().toIso8601String();
-      final map = <String, dynamic>{
-        'category': _systemCategory,
-        'key': _schemaHashKey,
-        'value_type': 'string',
-        'value': hash,
-        'updated_at': now,
-      };
+      final map = <String, dynamic>{'category': _systemCategory, 'key': _schemaHashKey, 'value_type': 'string', 'value': hash, 'updated_at': now};
 
       if (rows.isNotEmpty) {
         await db.update('config', map, where: 'id = ?', whereArgs: [rows.first['id']]);
@@ -723,7 +736,11 @@ class DatabaseService {
     }
 
     if (hasNewColumns) {
-      logger.info('table auto migrated', tag: 'DB', extra: {'table': tableName, 'newColumns': entityMap.keys.where((k) => k != 'id' && !existingColumnNames.contains(k)).toList()});
+      logger.info(
+        'table auto migrated',
+        tag: 'DB',
+        extra: {'table': tableName, 'newColumns': entityMap.keys.where((k) => k != 'id' && !existingColumnNames.contains(k)).toList()},
+      );
     }
   }
 
@@ -735,12 +752,7 @@ class DatabaseService {
   /// [existingColumnNames] 已存在的列名集合
   ///
   /// 检测 FTS 虚拟表和触发器是否存在，不存在则创建，并回填历史数据。
-  static Future<void> _autoMigrateFTS(
-    Database db,
-    String tableName,
-    Map<String, dynamic> entityMap,
-    Set<String> existingColumnNames,
-  ) async {
+  static Future<void> _autoMigrateFTS(Database db, String tableName, Map<String, dynamic> entityMap, Set<String> existingColumnNames) async {
     String ftsTableName = '${tableName}_fts';
 
     // 收集所有文本列（包括新添加的和已存在的）
@@ -760,10 +772,7 @@ class DatabaseService {
 
     try {
       // 检查 FTS 表是否存在
-      final ftsExists = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-        [ftsTableName],
-      );
+      final ftsExists = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [ftsTableName]);
 
       if (ftsExists.isEmpty) {
         // 创建 FTS5 虚拟表
@@ -784,10 +793,7 @@ class DatabaseService {
       }
 
       // 检查并补齐触发器
-      final triggers = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name=?",
-        [tableName],
-      );
+      final triggers = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name=?", [tableName]);
       Set<String> existingTriggerNames = triggers.map((t) => t['name'] as String).toSet();
 
       String insertTrigger = '${tableName}_after_insert';
@@ -965,44 +971,49 @@ class DatabaseService {
   /// [entity] 要插入的实体
   /// 返回插入记录的自增ID
   static Future<int> insert(BaseEntity entity) async {
+    // 1. 在锁外获取数据库实例（get database 内部使用了 _initLock）
     final db = await database;
     final userCode = await getCurrentUserCode();
-    entity.code ??= const Uuid().v4().replaceAll('-', '');
-    if (entity.code != null && entity.code!.isEmpty) {
-      entity.code = const Uuid().v4().replaceAll('-', '');
-    }
-    entity.createdAt = DateTime.now();
-    entity.updatedAt = DateTime.now();
-    entity.isDeleted = false;
-    if (entity.tableName != 'user') {
-      entity.userCode ??= userCode;
-    }
-    entity.createdBy ??= userCode;
-    entity.updatedBy ??= userCode;
 
-    Map<String, dynamic> map = entity.toMap();
-    map.remove('id'); // 移除 id，让数据库自动生成
-    try {
-      int insertedId = await db.insert(entity.tableName, map);
-      entity.id = insertedId;
-      return insertedId;
-    } catch (e, st) {
-      if (_isMissingColumnError(e)) {
-        final missing = _extractMissingColumnName(e);
-        logger.warning(
-          'db missing column, auto migrate and retry insert',
-          tag: 'DB',
-          extra: {'table': entity.tableName, 'missing': missing, 'code': entity.code},
-        );
-        await _autoMigrateEntity(db, entity);
-        final retryMap = entity.toMap()..remove('id');
-        final insertedId = await db.insert(entity.tableName, retryMap);
+    // 2. 用 _writeLock 包裹写操作
+    return await _writeLock.synchronized(() async {
+      entity.code ??= const Uuid().v4().replaceAll('-', '');
+      if (entity.code != null && entity.code!.isEmpty) {
+        entity.code = const Uuid().v4().replaceAll('-', '');
+      }
+      entity.createdAt = DateTime.now();
+      entity.updatedAt = DateTime.now();
+      entity.isDeleted = false;
+      if (entity.tableName != 'user') {
+        entity.userCode ??= userCode;
+      }
+      entity.createdBy ??= userCode;
+      entity.updatedBy ??= userCode;
+
+      Map<String, dynamic> map = entity.toMap();
+      map.remove('id'); // 移除 id，让数据库自动生成
+      try {
+        int insertedId = await db.insert(entity.tableName, map);
         entity.id = insertedId;
         return insertedId;
+      } catch (e, st) {
+        if (_isMissingColumnError(e)) {
+          final missing = _extractMissingColumnName(e);
+          logger.warning(
+            'db missing column, auto migrate and retry insert',
+            tag: 'DB',
+            extra: {'table': entity.tableName, 'missing': missing, 'code': entity.code},
+          );
+          await _autoMigrateEntity(db, entity);
+          final retryMap = entity.toMap()..remove('id');
+          final insertedId = await db.insert(entity.tableName, retryMap);
+          entity.id = insertedId;
+          return insertedId;
+        }
+        logger.error('db insert failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': entity.tableName, 'code': entity.code});
+        rethrow;
       }
-      logger.error('db insert failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': entity.tableName, 'code': entity.code});
-      rethrow;
-    }
+    });
   }
 
   /// 批量插入记录
@@ -1017,33 +1028,35 @@ class DatabaseService {
     final tableName = entities.first.tableName;
     List<int> insertedIds = [];
 
-    await _autoMigrateEntity(db, entities.first);
+    return await _writeLock.synchronized(() async {
+      await _autoMigrateEntity(db, entities.first);
 
-    await db.transaction((txn) async {
-      for (var entity in entities) {
-        entity.code ??= const Uuid().v4().replaceAll('-', '');
-        if (entity.code != null && entity.code!.isEmpty) {
-          entity.code = const Uuid().v4().replaceAll('-', '');
+      await db.transaction((txn) async {
+        for (var entity in entities) {
+          entity.code ??= const Uuid().v4().replaceAll('-', '');
+          if (entity.code != null && entity.code!.isEmpty) {
+            entity.code = const Uuid().v4().replaceAll('-', '');
+          }
+          entity.createdAt = DateTime.now();
+          entity.updatedAt = DateTime.now();
+          entity.isDeleted = false;
+          if (tableName != 'user') {
+            entity.userCode ??= userCode;
+          }
+          entity.createdBy ??= userCode;
+          entity.updatedBy ??= userCode;
+
+          Map<String, dynamic> map = entity.toMap();
+          map.remove('id');
+
+          int insertedId = await txn.insert(tableName, map);
+          entity.id = insertedId;
+          insertedIds.add(insertedId);
         }
-        entity.createdAt = DateTime.now();
-        entity.updatedAt = DateTime.now();
-        entity.isDeleted = false;
-        if (tableName != 'user') {
-          entity.userCode ??= userCode;
-        }
-        entity.createdBy ??= userCode;
-        entity.updatedBy ??= userCode;
+      }, exclusive: true);
 
-        Map<String, dynamic> map = entity.toMap();
-        map.remove('id');
-
-        int insertedId = await txn.insert(tableName, map);
-        entity.id = insertedId;
-        insertedIds.add(insertedId);
-      }
+      return insertedIds;
     });
-
-    return insertedIds;
   }
 
   /// 更新单条记录
@@ -1051,40 +1064,93 @@ class DatabaseService {
   /// [entity] 要更新的实体
   /// 返回影响行数
   static Future<int> update(BaseEntity entity) async {
+    // 1. 在锁外获取数据库实例（防止死锁）
     final db = await database;
-    // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
-    await _autoMigrateEntity(db, entity);
-    entity.updatedAt = DateTime.now();
-    try {
-      final map = entity.toMap();
-      map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
-      // 移除 null 值的字段，避免不必要的 NULL 更新
-      map.removeWhere((key, value) => value == null);
-      return await db.update(entity.tableName, map, where: 'id = ?', whereArgs: [entity.id]);
-    } catch (e, st) {
-      if (_isDatabaseCorrupted(e)) {
-        logger.fatal('db corrupted during update, attempting recovery', tag: 'DB', error: e, stackTrace: st);
-        await _recoverRuntimeCorruption(e, st);
-        return 0;
+
+    // 2. 用 _writeLock 包裹写操作
+    return await _writeLock.synchronized(() async {
+      // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
+      await _autoMigrateEntity(db, entity);
+      entity.updatedAt = DateTime.now();
+      try {
+        final map = entity.toMap();
+        map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
+        // 移除 null 值的字段，避免不必要的 NULL 更新
+        map.removeWhere((key, value) => value == null);
+        return await db.update(entity.tableName, map, where: 'id = ?', whereArgs: [entity.id]);
+      } catch (e, st) {
+        if (_isDatabaseCorrupted(e)) {
+          logger.fatal('db corrupted during update, attempting recovery', tag: 'DB', error: e, stackTrace: st);
+          await _recoverRuntimeCorruption(e, st);
+          return 0;
+        }
+        logger.error(
+          'db update failed',
+          tag: 'DB',
+          error: e,
+          stackTrace: st,
+          extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code},
+        );
+        await _tryInsertErrorLog(db, {
+          'code': const Uuid().v4().replaceAll('-', ''),
+          'user_code': entity.userCode,
+          'level': 'error',
+          'tag': 'DB',
+          'message': 'db update failed',
+          'error': e.toString(),
+          'stack_trace': st.toString(),
+          'extra': '{"table":"${entity.tableName}","id":${entity.id},"code":"${entity.code}"}',
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'is_deleted': 0,
+          'created_by': entity.userCode,
+          'updated_by': entity.userCode,
+        });
+        rethrow;
       }
-      logger.error('db update failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code});
-      await _tryInsertErrorLog(db, {
-        'code': const Uuid().v4().replaceAll('-', ''),
-        'user_code': entity.userCode,
-        'level': 'error',
-        'tag': 'DB',
-        'message': 'db update failed',
-        'error': e.toString(),
-        'stack_trace': st.toString(),
-        'extra': '{"table":"${entity.tableName}","id":${entity.id},"code":"${entity.code}"}',
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-        'is_deleted': 0,
-        'created_by': entity.userCode,
-        'updated_by': entity.userCode,
-      });
-      rethrow;
-    }
+    });
+  }
+
+  /// 轻量级专用：根据 code 仅更新实体的翻译字段
+  /// 避免使用 toMap() 全量更新引发的潜在空字段或 SQLite 约束问题
+  static Future<int> updateTranslationsByCode(List<BaseEntity> entities) async {
+    if (entities.isEmpty) return 0;
+
+    final db = await database;
+    final tableName = entities.first.tableName;
+    int updatedCount = 0;
+
+    await _writeLock.synchronized(() async {
+      await db.transaction((txn) async {
+        for (var entity in entities) {
+          if (entity.code == null || entity.code!.isEmpty) continue;
+
+          dynamic contentTranslate;
+          int? translateSource;
+
+          // 提取字幕或文章句子的翻译字段
+          if (entity is Subtitles) {
+            contentTranslate = entity.contentTranslate;
+            translateSource = entity.translateSource;
+          } else if (entity is ArticleSentence) {
+            contentTranslate = entity.contentTranslate;
+            translateSource = entity.translateSource;
+          } else {
+            continue;
+          }
+
+          int count = await txn.rawUpdate('UPDATE $tableName SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?', [
+            contentTranslate,
+            translateSource,
+            DateTime.now().toIso8601String(),
+            entity.code,
+          ]);
+          updatedCount += count;
+        }
+      }, exclusive: true);
+    });
+
+    return updatedCount;
   }
 
   /// 批量更新记录
@@ -1094,37 +1160,40 @@ class DatabaseService {
   static Future<int> batchUpdate(List<BaseEntity> entities) async {
     if (entities.isEmpty) return 0;
 
+    // 1. 在锁外获取数据库实例（防止死锁）
     final db = await database;
     final tableName = entities.first.tableName;
-    // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
-    await _autoMigrateEntity(db, entities.first);
     int updatedCount = 0;
 
-    // 批量更新：使用事务但分批提交，避免单事务过大导致数据库问题
-    const batchSize = 100;
-    for (int i = 0; i < entities.length; i += batchSize) {
-      final batch = entities.sublist(i, (i + batchSize < entities.length) ? i + batchSize : entities.length);
-      try {
-        await db.transaction((txn) async {
-          for (var entity in batch) {
-            entity.updatedAt = DateTime.now();
-            final map = entity.toMap();
-            map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
-            // 移除 null 值的字段，避免不必要的 NULL 更新
-            map.removeWhere((key, value) => value == null);
-            int count = await txn.update(tableName, map, where: 'id = ?', whereArgs: [entity.id]);
-            updatedCount += count;
+    // 2. 用 _writeLock 包裹写操作
+    await _writeLock.synchronized(() async {
+      // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
+      await _autoMigrateEntity(db, entities.first);
+      const batchSize = 100;
+      for (int i = 0; i < entities.length; i += batchSize) {
+        final batch = entities.sublist(i, (i + batchSize < entities.length) ? i + batchSize : entities.length);
+        try {
+          await db.transaction((txn) async {
+            for (var entity in batch) {
+              entity.updatedAt = DateTime.now();
+              final map = entity.toMap();
+              map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
+              // 移除 null 值的字段，避免不必要的 NULL 更新
+              map.removeWhere((key, value) => value == null);
+              int count = await txn.update(tableName, map, where: 'id = ?', whereArgs: [entity.id]);
+              updatedCount += count;
+            }
+          }, exclusive: true); // 使用独占事务避免在并发下与后台任务冲突
+        } catch (e, st) {
+          if (_isDatabaseCorrupted(e)) {
+            logger.fatal('db corrupted during batchUpdate, attempting recovery', tag: 'DB', error: e, stackTrace: st);
+            await _recoverRuntimeCorruption(e, st);
+            return 0;
           }
-        });
-      } catch (e, st) {
-        if (_isDatabaseCorrupted(e)) {
-          logger.fatal('db corrupted during batchUpdate, attempting recovery', tag: 'DB', error: e, stackTrace: st);
-          await _recoverRuntimeCorruption(e, st);
-          return 0;
+          rethrow;
         }
-        rethrow;
       }
-    }
+    });
 
     return updatedCount;
   }
@@ -1136,7 +1205,9 @@ class DatabaseService {
   /// 注意：物理删除不可恢复，建议使用 softDelete
   static Future<int> delete(BaseEntity entity) async {
     final db = await database;
-    return await db.delete(entity.tableName, where: 'id = ?', whereArgs: [entity.id]);
+    return await _writeLock.synchronized(() async {
+      return await db.delete(entity.tableName, where: 'id = ?', whereArgs: [entity.id]);
+    });
   }
 
   /// 批量物理删除记录
@@ -1150,11 +1221,13 @@ class DatabaseService {
     final tableName = entities.first.tableName;
     int deletedCount = 0;
 
-    await db.transaction((txn) async {
-      for (var entity in entities) {
-        int count = await txn.delete(tableName, where: 'id = ?', whereArgs: [entity.id]);
-        deletedCount += count;
-      }
+    await _writeLock.synchronized(() async {
+      await db.transaction((txn) async {
+        for (var entity in entities) {
+          int count = await txn.delete(tableName, where: 'id = ?', whereArgs: [entity.id]);
+          deletedCount += count;
+        }
+      });
     });
 
     return deletedCount;
@@ -1177,45 +1250,47 @@ class DatabaseService {
     entity.deletedBy ??= currentUserCode;
     entity.updatedBy ??= currentUserCode;
 
-    try {
-      return await db.update(
-        entity.tableName,
-        {
-          'is_deleted': 1,
-          'deleted_at': entity.deletedAt?.toIso8601String(),
-          'deleted_by': entity.deletedBy,
-          'updated_at': entity.updatedAt?.toIso8601String(),
-          'updated_by': entity.updatedBy,
-        },
-        where: 'id = ?',
-        whereArgs: [entity.id],
-      );
-    } catch (e, st) {
-      logger.error(
-        'db softDelete failed',
-        tag: 'DB',
-        error: e,
-        stackTrace: st,
-        extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code},
-      );
-      await _tryInsertErrorLog(db, {
-        'code': const Uuid().v4().replaceAll('-', ''),
-        'user_code': entity.userCode,
-        'level': 'error',
-        'tag': 'DB',
-        'message': 'db softDelete failed',
-        'error': e.toString(),
-        'stack_trace': st.toString(),
-        'extra': '{"table":"${entity.tableName}","id":${entity.id},"code":"${entity.code}"}',
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-        'is_deleted': 0,
-        'created_by': entity.userCode,
-        'updated_by': entity.userCode,
-      });
+    return await _writeLock.synchronized(() async {
+      try {
+        return await db.update(
+          entity.tableName,
+          {
+            'is_deleted': 1,
+            'deleted_at': entity.deletedAt?.toIso8601String(),
+            'deleted_by': entity.deletedBy,
+            'updated_at': entity.updatedAt?.toIso8601String(),
+            'updated_by': entity.updatedBy,
+          },
+          where: 'id = ?',
+          whereArgs: [entity.id],
+        );
+      } catch (e, st) {
+        logger.error(
+          'db softDelete failed',
+          tag: 'DB',
+          error: e,
+          stackTrace: st,
+          extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code},
+        );
+        await _tryInsertErrorLog(db, {
+          'code': const Uuid().v4().replaceAll('-', ''),
+          'user_code': entity.userCode,
+          'level': 'error',
+          'tag': 'DB',
+          'message': 'db softDelete failed',
+          'error': e.toString(),
+          'stack_trace': st.toString(),
+          'extra': '{"table":"${entity.tableName}","id":${entity.id},"code":"${entity.code}"}',
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'is_deleted': 0,
+          'created_by': entity.userCode,
+          'updated_by': entity.userCode,
+        });
 
-      rethrow;
-    }
+        rethrow;
+      }
+    });
   }
 
   /// 批量软删除记录
@@ -1233,53 +1308,55 @@ class DatabaseService {
     int deletedCount = 0;
     final currentUserCode = await getCurrentUserCode();
 
-    try {
-      await db.transaction((txn) async {
-        for (var entity in entities) {
-          entity.isDeleted = true;
-          entity.deletedAt ??= DateTime.now();
-          entity.updatedAt = DateTime.now();
-          if (tableName != 'user') {
-            entity.userCode ??= currentUserCode;
+    await _writeLock.synchronized(() async {
+      try {
+        await db.transaction((txn) async {
+          for (var entity in entities) {
+            entity.isDeleted = true;
+            entity.deletedAt ??= DateTime.now();
+            entity.updatedAt = DateTime.now();
+            if (tableName != 'user') {
+              entity.userCode ??= currentUserCode;
+            }
+            entity.deletedBy ??= currentUserCode;
+            entity.updatedBy ??= currentUserCode;
+
+            int count = await txn.update(
+              tableName,
+              {
+                'is_deleted': 1,
+                'deleted_at': entity.deletedAt?.toIso8601String(),
+                'deleted_by': entity.deletedBy,
+                'updated_at': entity.updatedAt?.toIso8601String(),
+                'updated_by': entity.updatedBy,
+              },
+              where: 'id = ?',
+              whereArgs: [entity.id],
+            );
+            deletedCount += count;
           }
-          entity.deletedBy ??= currentUserCode;
-          entity.updatedBy ??= currentUserCode;
+        });
+      } catch (e, st) {
+        logger.error('db batchSoftDelete failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': tableName, 'count': entities.length});
+        await _tryInsertErrorLog(db, {
+          'code': const Uuid().v4().replaceAll('-', ''),
+          'user_code': currentUserCode,
+          'level': 'error',
+          'tag': 'DB',
+          'message': 'db batchSoftDelete failed',
+          'error': e.toString(),
+          'stack_trace': st.toString(),
+          'extra': '{"table":"$tableName","count":${entities.length}}',
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+          'is_deleted': 0,
+          'created_by': currentUserCode,
+          'updated_by': currentUserCode,
+        });
 
-          int count = await txn.update(
-            tableName,
-            {
-              'is_deleted': 1,
-              'deleted_at': entity.deletedAt?.toIso8601String(),
-              'deleted_by': entity.deletedBy,
-              'updated_at': entity.updatedAt?.toIso8601String(),
-              'updated_by': entity.updatedBy,
-            },
-            where: 'id = ?',
-            whereArgs: [entity.id],
-          );
-          deletedCount += count;
-        }
-      });
-    } catch (e, st) {
-      logger.error('db batchSoftDelete failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': tableName, 'count': entities.length});
-      await _tryInsertErrorLog(db, {
-        'code': const Uuid().v4().replaceAll('-', ''),
-        'user_code': currentUserCode,
-        'level': 'error',
-        'tag': 'DB',
-        'message': 'db batchSoftDelete failed',
-        'error': e.toString(),
-        'stack_trace': st.toString(),
-        'extra': '{"table":"$tableName","count":${entities.length}}',
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-        'is_deleted': 0,
-        'created_by': currentUserCode,
-        'updated_by': currentUserCode,
-      });
-
-      rethrow;
-    }
+        rethrow;
+      }
+    });
 
     return deletedCount;
   }
@@ -1451,7 +1528,13 @@ class DatabaseService {
   ///
   /// 返回用户code，未登录返回 null
   static Future<String?> getCurrentUserCode() async {
-    final db = await database;
+    final db = await _initLock.synchronized(() async {
+      if (_database != null && _database!.isOpen) {
+        return _database!;
+      }
+      _database = await _initDatabase();
+      return _database!;
+    });
     final List<Map<String, dynamic>> maps = await db.query(
       'config',
       where: 'category = ? AND key = ? AND is_deleted = 0',
@@ -1475,27 +1558,38 @@ class DatabaseService {
   /// [key] 配置键名
   /// [value] 配置值
   static Future<void> _setConfig(String key, String? value) async {
-    final db = await database;
-    final List<Map<String, dynamic>> existing = await db.query('config', where: 'category = ? AND key = ?', whereArgs: [_systemCategory, key]);
+    // 必须在此处使用 await _initLock.synchronized 获取，因为 _setConfig 是底层操作
+    // 有可能在还没有调用过 get database 的时候被调用，防止死锁
+    final db = await _initLock.synchronized(() async {
+      if (_database != null && _database!.isOpen) {
+        return _database!;
+      }
+      _database = await _initDatabase();
+      return _database!;
+    });
 
-    Map<String, dynamic> configMap = {
-      'category': _systemCategory,
-      'key': key,
-      'value_type': 'string',
-      'value': value,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
+    await _writeLock.synchronized(() async {
+      final List<Map<String, dynamic>> existing = await db.query('config', where: 'category = ? AND key = ?', whereArgs: [_systemCategory, key]);
 
-    if (existing.isNotEmpty) {
-      // 更新现有配置
-      await db.update('config', configMap, where: 'id = ?', whereArgs: [existing.first['id']]);
-    } else {
-      // 创建新配置
-      configMap['code'] = const Uuid().v4().replaceAll('-', '');
-      configMap['created_at'] = DateTime.now().toIso8601String();
-      configMap['is_deleted'] = 0;
-      await db.insert('config', configMap);
-    }
+      Map<String, dynamic> configMap = {
+        'category': _systemCategory,
+        'key': key,
+        'value_type': 'string',
+        'value': value,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (existing.isNotEmpty) {
+        // 更新现有配置
+        await db.update('config', configMap, where: 'id = ?', whereArgs: [existing.first['id']]);
+      } else {
+        // 创建新配置
+        configMap['code'] = const Uuid().v4().replaceAll('-', '');
+        configMap['created_at'] = DateTime.now().toIso8601String();
+        configMap['is_deleted'] = 0;
+        await db.insert('config', configMap);
+      }
+    });
   }
 
   /// 清除当前用户信息
@@ -1508,10 +1602,12 @@ class DatabaseService {
   static Future<void> resetAllData({bool deleteCovers = true}) async {
     final db = await database;
 
-    await db.transaction((txn) async {
-      for (final tableName in _registeredEntities.keys) {
-        await txn.delete(tableName);
-      }
+    await _writeLock.synchronized(() async {
+      await db.transaction((txn) async {
+        for (final tableName in _registeredEntities.keys) {
+          await txn.delete(tableName);
+        }
+      });
     });
 
     await clearCurrentUser();

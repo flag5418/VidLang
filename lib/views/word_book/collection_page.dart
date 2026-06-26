@@ -844,172 +844,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     });
   }
 
-  Future<Map<String, dynamic>?> _showTestConfigDialog(int selectedCount) async {
-    final colorScheme = Theme.of(context).colorScheme;
-    final questionTypes = <String>{'definition_choice'};
-    var questionsPerWord = 2;
-    var difficulty = 'standard';
-
-    return showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            final totalQuestions = selectedCount * questionsPerWord;
-            final estimatedMinutes = (totalQuestions * 0.4).ceil();
-            return Dialog(
-              backgroundColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-              child: Padding(
-                padding: EdgeInsets.all(24.r),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('测试设置',
-                        style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                    SizedBox(height: 16.h),
-                    Text('已选单词: $selectedCount 个',
-                        style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant)),
-                    SizedBox(height: 16.h),
-                    Text('题型选择',
-                        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                    SizedBox(height: 8.h),
-                    _buildQuestionTypeCheckbox(ctx, setDialogState, '释义选择（四选一）', 'definition_choice', questionTypes, colorScheme),
-                    _buildQuestionTypeCheckbox(ctx, setDialogState, '拼写填空', 'spelling', questionTypes, colorScheme),
-                    _buildQuestionTypeCheckbox(ctx, setDialogState, '例句填空', 'example_cloze', questionTypes, colorScheme),
-                    _buildQuestionTypeCheckbox(ctx, setDialogState, '跟读评分', 'speaking', questionTypes, colorScheme),
-                    SizedBox(height: 16.h),
-                    Text('每词出题数',
-                        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [1, 2, 3].map((n) {
-                        final selected = questionsPerWord == n;
-                        return Padding(
-                          padding: EdgeInsets.only(right: 8.w),
-                          child: ChoiceChip(
-                            label: Text('$n'),
-                            selected: selected,
-                            selectedColor: colorScheme.primary.withValues(alpha: 0.15),
-                            labelStyle: TextStyle(
-                                color: selected ? colorScheme.primary : colorScheme.onSurface,
-                                fontWeight: FontWeight.w600),
-                            onSelected: (_) => setDialogState(() => questionsPerWord = n),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    SizedBox(height: 16.h),
-                    Text('难度',
-                        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        {'label': '简单', 'value': 'easy'},
-                        {'label': '标准', 'value': 'standard'},
-                        {'label': '困难', 'value': 'hard'},
-                      ].map((item) {
-                        final selected = difficulty == item['value'];
-                        return Padding(
-                          padding: EdgeInsets.only(right: 8.w),
-                          child: ChoiceChip(
-                            label: Text(item['label']!),
-                            selected: selected,
-                            selectedColor: colorScheme.primary.withValues(alpha: 0.15),
-                            labelStyle: TextStyle(
-                                color: selected ? colorScheme.primary : colorScheme.onSurface,
-                                fontWeight: FontWeight.w600),
-                            onSelected: (_) => setDialogState(() => difficulty = item['value']!),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    SizedBox(height: 16.h),
-                    Container(
-                      padding: EdgeInsets.all(12.r),
-                      decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(8.r)),
-                      child: Row(
-                        children: [
-                          Icon(Icons.timer_outlined, size: 16.sp, color: colorScheme.onSurfaceVariant),
-                          SizedBox(width: 6.w),
-                          Text(
-                            '预计: ${totalQuestions}题 · 约${estimatedMinutes}分钟',
-                            style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 20.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(ctx).pop(null),
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                            ),
-                            child: const Text('取消'),
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: questionTypes.isEmpty
-                                ? null
-                                : () => Navigator.of(ctx).pop({
-                                      'questionTypes': questionTypes.toList(),
-                                      'questionsPerWord': questionsPerWord,
-                                      'difficulty': difficulty,
-                                    }),
-                            style: FilledButton.styleFrom(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                            ),
-                            child: const Text('开始'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildQuestionTypeCheckbox(
-    BuildContext ctx,
-    StateSetter setDialogState,
-    String label,
-    String value,
-    Set<String> selected,
-    ColorScheme cs,
-  ) {
-    final checked = selected.contains(value);
-    return CheckboxListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      title: Text(label, style: TextStyle(fontSize: 14.sp, color: cs.onSurface)),
-      value: checked,
-      activeColor: cs.primary,
-      onChanged: (_) {
-        setDialogState(() {
-          if (checked) {
-            selected.remove(value);
-          } else {
-            selected.add(value);
-          }
-        });
-      },
-      controlAffinity: ListTileControlAffinity.leading,
-    );
-  }
-
   Widget _buildSelectionBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final actionLabel = _isKnowledgeBase || _selectionAction == 'review' ? '开始复习' : '开始测试';
@@ -1079,8 +913,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
                       }
 
                       if (!mounted) return;
-                      final config = await _showTestConfigDialog(selectedItems.length);
-                      if (config == null || !mounted) return;
                       final changed = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
@@ -1092,12 +924,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
                                     'word': item.word,
                                     'context_sentence': item.contextSentence ?? item.word,
                                     'word_book_code': item.code,
+                                    'source_type': item.sourceType,
+                                    'source_code': item.sourceCode,
+                                    'source_title': item.sourceTitle,
+                                    'segment_code': item.segmentCode,
+                                    'definitions_json': item.definitionsJson,
+                                    'phonetic_uk': item.phoneticUk,
+                                    'phonetic_us': item.phoneticUs,
+                                    'difficulty': item.difficulty,
                                   },
                                 )
                                 .toList(),
-                            questionTypes: config['questionTypes'] as List<String>,
-                            questionsPerWord: config['questionsPerWord'] as int,
-                            difficulty: config['difficulty'] as String,
                           ),
                         ),
                       );

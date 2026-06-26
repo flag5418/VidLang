@@ -87,10 +87,7 @@ class _TestPageState extends State<TestPage> {
       final client = sb.Supabase.instance.client;
       final requestId = _uuid.v4();
       final prefs = await SharedPreferences.getInstance();
-      final difficulty =
-          widget.difficulty ??
-          prefs.getString('app_difficulty_level') ??
-          'intermediate';
+      final difficulty = widget.difficulty ?? prefs.getString('app_difficulty_level') ?? 'intermediate';
 
       final config = {
         'listen_choose_count': _listenChooseCount,
@@ -108,19 +105,8 @@ class _TestPageState extends State<TestPage> {
       final res = await client.functions.invoke(
         'ai-test-plan',
         body: widget.isWordBookMode
-            ? {
-                'request_id': requestId,
-                'source_type': 'word_book',
-                'difficulty': difficulty,
-                'config': config,
-                'seed_words': widget.seedWords,
-              }
-            : {
-                'request_id': requestId,
-                'video_code': widget.videoCode,
-                'difficulty': difficulty,
-                'config': config,
-              },
+            ? {'request_id': requestId, 'source_type': 'word_book', 'difficulty': difficulty, 'config': config, 'seed_words': widget.seedWords}
+            : {'request_id': requestId, 'video_code': widget.videoCode, 'difficulty': difficulty, 'config': config},
       );
 
       final data = res.data;
@@ -139,14 +125,10 @@ class _TestPageState extends State<TestPage> {
 
       final plan = data['plan'];
       final itemsRaw = (plan is Map) ? plan['items'] : null;
-      final items = (itemsRaw is List)
-          ? itemsRaw.whereType<Map>().cast<Map<String, dynamic>>().toList()
-          : <Map<String, dynamic>>[];
+      final items = (itemsRaw is List) ? itemsRaw.whereType<Map>().cast<Map<String, dynamic>>().toList() : <Map<String, dynamic>>[];
       if (items.isEmpty) throw Exception('没有生成任何题目');
 
-      final billing = (data['billing'] is Map)
-          ? (data['billing'] as Map).cast<String, dynamic>()
-          : <String, dynamic>{};
+      final billing = (data['billing'] is Map) ? (data['billing'] as Map).cast<String, dynamic>() : <String, dynamic>{};
       final title = (data['title'] as String?)?.trim();
 
       if (!mounted) return;
@@ -154,9 +136,7 @@ class _TestPageState extends State<TestPage> {
         context,
         MaterialPageRoute(
           builder: (_) => _TestRunPage(
-            videoTitle: title != null && title.isNotEmpty
-                ? title
-                : widget.videoTitle,
+            videoTitle: title != null && title.isNotEmpty ? title : widget.videoTitle,
             billing: billing,
             items: items,
             isWordBookMode: widget.isWordBookMode,
@@ -200,17 +180,12 @@ class _TestPageState extends State<TestPage> {
                     Container(
                       padding: EdgeInsets.all(12.w),
                       decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withValues(
-                          alpha: 0.3,
-                        ),
+                        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
                         '生词本测试按所选单词出题，提交后会累计复习次数。',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                        style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -224,15 +199,13 @@ class _TestPageState extends State<TestPage> {
                         title: '原音选择',
                         description: '播放音频，选择当前播放的内容',
                         value: _listenChooseCount,
-                        onChanged: (v) =>
-                            setState(() => _listenChooseCount = v),
+                        onChanged: (v) => setState(() => _listenChooseCount = v),
                       ),
                       _QuestionTypeCard(
                         title: '听音辩义',
                         description: '播放音频，选择和原义类似的解释',
                         value: _listenMeaningCount,
-                        onChanged: (v) =>
-                            setState(() => _listenMeaningCount = v),
+                        onChanged: (v) => setState(() => _listenMeaningCount = v),
                       ),
                       _QuestionTypeCard(
                         title: '听音回复',
@@ -252,8 +225,7 @@ class _TestPageState extends State<TestPage> {
                         title: '释义选择',
                         description: '根据给出的单词或翻译，选择正确的释义',
                         value: _definitionChoiceCount,
-                        onChanged: (v) =>
-                            setState(() => _definitionChoiceCount = v),
+                        onChanged: (v) => setState(() => _definitionChoiceCount = v),
                       ),
                       _QuestionTypeCard(
                         title: '拼写填空',
@@ -272,15 +244,13 @@ class _TestPageState extends State<TestPage> {
                         title: '英义互译',
                         description: '阅读英文段落，选择与原文类似的中文解释',
                         value: _translateMeaningCount,
-                        onChanged: (v) =>
-                            setState(() => _translateMeaningCount = v),
+                        onChanged: (v) => setState(() => _translateMeaningCount = v),
                       ),
                       _QuestionTypeCard(
                         title: '词性测试',
                         description: '根据单词选择同义词、反义词等（可多选）',
                         value: _wordRelationCount,
-                        onChanged: (v) =>
-                            setState(() => _wordRelationCount = v),
+                        onChanged: (v) => setState(() => _wordRelationCount = v),
                       ),
                     ],
                   ),
@@ -306,8 +276,7 @@ class _TestPageState extends State<TestPage> {
                         title: '跟读句子',
                         description: '跟读展示的句子，录音评分',
                         value: _sentencePronCount,
-                        onChanged: (v) =>
-                            setState(() => _sentencePronCount = v),
+                        onChanged: (v) => setState(() => _sentencePronCount = v),
                       ),
                     ],
                   ),
@@ -316,16 +285,10 @@ class _TestPageState extends State<TestPage> {
                   if (_error != null)
                     Container(
                       padding: EdgeInsets.all(12.w),
-                      decoration: BoxDecoration(
-                        color: colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
+                      decoration: BoxDecoration(color: colorScheme.errorContainer, borderRadius: BorderRadius.circular(12.r)),
                       child: Text(
                         _error!,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: colorScheme.onErrorContainer,
-                        ),
+                        style: TextStyle(fontSize: 13.sp, color: colorScheme.onErrorContainer),
                       ),
                     ),
                   SizedBox(height: 16.h),
@@ -338,9 +301,7 @@ class _TestPageState extends State<TestPage> {
             padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              border: Border(
-                top: BorderSide(color: colorScheme.outlineVariant),
-              ),
+              border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -348,18 +309,11 @@ class _TestPageState extends State<TestPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.quiz_outlined,
-                      size: 14.sp,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    Icon(Icons.quiz_outlined, size: 14.sp, color: colorScheme.onSurfaceVariant),
                     SizedBox(width: 6.w),
                     Text(
                       '共 $_totalCount 题 · 每次随机出题，请认真作答',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -373,10 +327,7 @@ class _TestPageState extends State<TestPage> {
                         ? SizedBox(
                             width: 18.r,
                             height: 18.r,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.onPrimary,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary),
                           )
                         : Text('开始', style: TextStyle(fontSize: 15.sp)),
                   ),
@@ -396,11 +347,7 @@ class _QuestionGroupSection extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const _QuestionGroupSection({
-    required this.icon,
-    required this.title,
-    required this.children,
-  });
+  const _QuestionGroupSection({required this.icon, required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -415,11 +362,7 @@ class _QuestionGroupSection extends StatelessWidget {
             SizedBox(width: 6.w),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
-                color: colorScheme.primary,
-              ),
+              style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700, color: colorScheme.primary),
             ),
           ],
         ),
@@ -437,12 +380,7 @@ class _QuestionTypeCard extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
 
-  const _QuestionTypeCard({
-    required this.title,
-    required this.description,
-    required this.value,
-    required this.onChanged,
-  });
+  const _QuestionTypeCard({required this.title, required this.description, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -453,20 +391,8 @@ class _QuestionTypeCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-        border: isDark
-            ? Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-              )
-            : null,
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        border: isDark ? Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2)) : null,
       ),
       child: Row(
         children: [
@@ -477,19 +403,12 @@ class _QuestionTypeCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
+                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   description,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -497,26 +416,16 @@ class _QuestionTypeCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: 12.w),
-          _StepButton(
-            icon: Icons.remove,
-            onTap: value <= 0 ? null : () => onChanged(value - 1),
-          ),
+          _StepButton(icon: Icons.remove, onTap: value <= 0 ? null : () => onChanged(value - 1)),
           SizedBox(
             width: 32.w,
             child: Text(
               '$value',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
+              style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
             ),
           ),
-          _StepButton(
-            icon: Icons.add,
-            onTap: value >= 20 ? null : () => onChanged(value + 1),
-          ),
+          _StepButton(icon: Icons.add, onTap: value >= 20 ? null : () => onChanged(value + 1)),
         ],
       ),
     );
@@ -543,23 +452,11 @@ class _StepButton extends StatelessWidget {
           width: 28.r,
           height: 28.r,
           decoration: BoxDecoration(
-            color: disabled
-                ? colorScheme.surfaceContainerHighest
-                : colorScheme.primary.withValues(alpha: 0.1),
+            color: disabled ? colorScheme.surfaceContainerHighest : colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(
-              color: disabled
-                  ? Colors.transparent
-                  : colorScheme.primary.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: disabled ? Colors.transparent : colorScheme.primary.withValues(alpha: 0.2)),
           ),
-          child: Icon(
-            icon,
-            size: 16.sp,
-            color: disabled
-                ? colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                : colorScheme.primary,
-          ),
+          child: Icon(icon, size: 16.sp, color: disabled ? colorScheme.onSurfaceVariant.withValues(alpha: 0.5) : colorScheme.primary),
         ),
       ),
     );
@@ -572,12 +469,7 @@ class _TestRunPage extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final bool isWordBookMode;
 
-  const _TestRunPage({
-    required this.videoTitle,
-    required this.billing,
-    required this.items,
-    required this.isWordBookMode,
-  });
+  const _TestRunPage({required this.videoTitle, required this.billing, required this.items, required this.isWordBookMode});
 
   @override
   State<_TestRunPage> createState() => _TestRunPageState();
@@ -609,9 +501,7 @@ class _TestRunPageState extends State<_TestRunPage> {
   }
 
   bool _isPronType(String type) {
-    return type == 'word_pron' ||
-        type == 'phrase_pron' ||
-        type == 'sentence_pron';
+    return type == 'word_pron' || type == 'phrase_pron' || type == 'sentence_pron';
   }
 
   void _submit() {
@@ -620,12 +510,8 @@ class _TestRunPageState extends State<_TestRunPage> {
     bool ok = false;
 
     if (type == 'reorder') {
-      final answer =
-          (_item['answer'] as List?)?.whereType<String>().toList() ??
-          const <String>[];
-      ok =
-          _reorderSelected.length == answer.length &&
-          _listEquals(_reorderSelected, answer);
+      final answer = (_item['answer'] as List?)?.whereType<String>().toList() ?? const <String>[];
+      ok = _reorderSelected.length == answer.length && _listEquals(_reorderSelected, answer);
     } else if (type == 'spelling') {
       final ans = (_item['answer'] as String?)?.toLowerCase() ?? '';
       ok = _spellingTyped.toLowerCase() == ans;
@@ -638,12 +524,8 @@ class _TestRunPageState extends State<_TestRunPage> {
       final idx = _item['answer_index'] as int? ?? -1;
       ok = _mcqSelected != null && _mcqSelected == idx;
     } else if (type == 'word_relation') {
-      final answerIndices =
-          (_item['answer_indices'] as List?)?.whereType<int>().toSet() ??
-          <int>{};
-      ok =
-          _multiSelected.length == answerIndices.length &&
-          _multiSelected.every((i) => answerIndices.contains(i));
+      final answerIndices = (_item['answer_indices'] as List?)?.whereType<int>().toSet() ?? <int>{};
+      ok = _multiSelected.length == answerIndices.length && _multiSelected.every((i) => answerIndices.contains(i));
     } else if (_isPronType(type)) {
       // 跟读题暂不评分（需声通API）
       ok = true;
@@ -671,15 +553,7 @@ class _TestRunPageState extends State<_TestRunPage> {
       final navigator = Navigator.of(context);
       if (widget.isWordBookMode && _wordResults.isNotEmpty) {
         await WordBookService.recordTestResults(
-          _wordResults.entries
-              .map(
-                (entry) => WordBookTestResult(
-                  wordBookCode: entry.key,
-                  correct: entry.value,
-                  reviewedAt: DateTime.now(),
-                ),
-              )
-              .toList(),
+          _wordResults.entries.map((entry) => WordBookTestResult(wordBookCode: entry.key, correct: entry.value, reviewedAt: DateTime.now())).toList(),
         );
       }
       if (!mounted) return;
@@ -730,8 +604,7 @@ class _TestRunPageState extends State<_TestRunPage> {
   void _recordWordResult(bool correct) {
     final wordBookCode = (_item['word_book_code'] as String?)?.trim();
     if (wordBookCode == null || wordBookCode.isEmpty) return;
-    _wordResults[wordBookCode] =
-        (_wordResults[wordBookCode] ?? false) || correct;
+    _wordResults[wordBookCode] = (_wordResults[wordBookCode] ?? false) || correct;
   }
 
   @override
@@ -748,10 +621,7 @@ class _TestRunPageState extends State<_TestRunPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          '测试：${widget.videoTitle}',
-          style: TextStyle(fontSize: 16.sp),
-        ),
+        title: Text('测试：${widget.videoTitle}', style: TextStyle(fontSize: 16.sp)),
       ),
       body: Padding(
         padding: EdgeInsets.all(16.w),
@@ -763,10 +633,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                 Expanded(
                   child: Text(
                     '第 ${_index + 1} / $total 题',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
                   ),
                 ),
               ],
@@ -778,20 +645,13 @@ class _TestRunPageState extends State<_TestRunPage> {
               Container(
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: _isCorrect
-                      ? colorScheme.tertiaryContainer
-                      : colorScheme.errorContainer,
+                  color: _isCorrect ? Colors.green.withValues(alpha: 0.1) : colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: _isCorrect ? Colors.green.withValues(alpha: 0.3) : colorScheme.error.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   _isCorrect ? '正确' : '错误',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: _isCorrect
-                        ? colorScheme.onTertiaryContainer
-                        : colorScheme.onErrorContainer,
-                  ),
+                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _isCorrect ? Colors.green : colorScheme.error),
                 ),
               ),
             SizedBox(height: 12.h),
@@ -802,20 +662,14 @@ class _TestRunPageState extends State<_TestRunPage> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: _submitted || _canSubmit() ? _goNext : null,
-                      child: Text(
-                        _index >= total - 1 ? '完成' : '下一题',
-                        style: TextStyle(fontSize: 14.sp),
-                      ),
+                      child: Text(_index >= total - 1 ? '完成' : '下一题', style: TextStyle(fontSize: 14.sp)),
                     ),
                   ),
                   SizedBox(width: 12.w),
                   Expanded(
                     child: FilledButton(
                       onPressed: _canSubmit() ? _submit : null,
-                      child: Text(
-                        _submitted ? '已提交' : '提交',
-                        style: TextStyle(fontSize: 14.sp),
-                      ),
+                      child: Text(_submitted ? '已提交' : '提交', style: TextStyle(fontSize: 14.sp)),
                     ),
                   ),
                 ],
@@ -825,7 +679,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             Text(
               '当前得分：$_correct / $answered',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -837,9 +691,7 @@ class _TestRunPageState extends State<_TestRunPage> {
     if (_submitted) return false;
     final type = (_item['type'] as String?) ?? '';
     if (type == 'reorder') {
-      final answer =
-          (_item['answer'] as List?)?.whereType<String>().toList() ??
-          const <String>[];
+      final answer = (_item['answer'] as List?)?.whereType<String>().toList() ?? const <String>[];
       return _reorderSelected.length == answer.length && answer.isNotEmpty;
     }
     if (type == 'spelling') {
@@ -878,15 +730,26 @@ class _TestRunPageState extends State<_TestRunPage> {
     return Center(child: Text('未知题型: $type'));
   }
 
+  Widget _buildQuestionContainer(BuildContext context, Widget child) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? colorScheme.surfaceContainerHigh : colorScheme.surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: isDark ? null : Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4), width: 0.5),
+        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: child,
+    );
+  }
+
   Widget _buildReorder() {
     final colorScheme = Theme.of(context).colorScheme;
     final prompt = (_item['prompt'] as String?) ?? '组句';
-    final options =
-        (_item['options'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
-    final answer =
-        (_item['answer'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    final answer = (_item['answer'] as List?)?.whereType<String>().toList() ?? const <String>[];
     final remaining = _remainingOptions(options, _reorderSelected);
 
     return Column(
@@ -897,33 +760,37 @@ class _TestRunPageState extends State<_TestRunPage> {
           style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12.h),
-        Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Wrap(
+        _buildQuestionContainer(
+          context,
+          Wrap(
             spacing: 8.w,
             runSpacing: 8.h,
             children: [
               for (final w in _reorderSelected)
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999.r),
-                  ),
-                  child: Text(
-                    w,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
+                Builder(
+                  builder: (context) {
+                    final isWrong = _submitted && !_isCorrect;
+                    final isCorrect = _submitted && _isCorrect;
+                    Color bg = isWrong
+                        ? colorScheme.error.withValues(alpha: 0.1)
+                        : (isCorrect ? Colors.green.withValues(alpha: 0.1) : colorScheme.primary.withValues(alpha: 0.12));
+                    Color border = isWrong
+                        ? colorScheme.error.withValues(alpha: 0.3)
+                        : (isCorrect ? Colors.green.withValues(alpha: 0.3) : colorScheme.primary.withValues(alpha: 0.2));
+                    Color textCol = isWrong ? colorScheme.error : (isCorrect ? Colors.green : colorScheme.primary);
+                    return Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(999.r),
+                        border: Border.all(color: border),
+                      ),
+                      child: Text(
+                        w,
+                        style: TextStyle(fontSize: 13.sp, color: textCol, fontWeight: FontWeight.w500),
+                      ),
+                    );
+                  },
                 ),
             ],
           ),
@@ -957,10 +824,7 @@ class _TestRunPageState extends State<_TestRunPage> {
         SizedBox(height: 12.h),
         Text(
           '可选词',
-          style: TextStyle(
-            fontSize: 13.sp,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
         ),
         SizedBox(height: 8.h),
         Expanded(
@@ -974,24 +838,19 @@ class _TestRunPageState extends State<_TestRunPage> {
                     onTap: _submitted
                         ? null
                         : () => setState(() {
-                            if (_reorderSelected.length < answer.length)
-                              _reorderSelected.add(w);
+                            if (_reorderSelected.length < answer.length) _reorderSelected.add(w);
                           }),
                     child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 8.h,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(999.r),
+                        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
                       ),
                       child: Text(
                         w,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: colorScheme.onSurface,
-                        ),
+                        style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurface),
                       ),
                     ),
                   ),
@@ -1004,7 +863,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             padding: EdgeInsets.only(top: 10.h),
             child: Text(
               '正确答案：${answer.join(' ')}',
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 13.sp, color: Colors.green, fontWeight: FontWeight.w500),
             ),
           ),
       ],
@@ -1016,9 +875,7 @@ class _TestRunPageState extends State<_TestRunPage> {
     final prompt = (_item['prompt'] as String?) ?? '拼写';
     final masked = (_item['masked'] as String?) ?? '';
     final answer = (_item['answer'] as String?) ?? '';
-    final letters =
-        (_item['letter_pool'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
+    final letters = (_item['letter_pool'] as List?)?.whereType<String>().toList() ?? const <String>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1028,28 +885,41 @@ class _TestRunPageState extends State<_TestRunPage> {
           style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12.h),
-        Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
+        _buildQuestionContainer(
+          context,
+          Text(
+            masked,
+            style: TextStyle(fontSize: 15.sp, height: 1.4, color: colorScheme.onSurface),
           ),
-          child: Text(masked, style: TextStyle(fontSize: 14.sp, height: 1.4)),
         ),
         SizedBox(height: 12.h),
         Row(
           children: [
             Expanded(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Text(
-                  _spellingTyped.padRight(answer.length, '•'),
-                  style: TextStyle(fontSize: 16.sp, letterSpacing: 2.w),
-                ),
+              child: Builder(
+                builder: (context) {
+                  final isWrong = _submitted && !_isCorrect;
+                  final isCorrect = _submitted && _isCorrect;
+                  Color bg = isWrong
+                      ? colorScheme.error.withValues(alpha: 0.1)
+                      : (isCorrect ? Colors.green.withValues(alpha: 0.1) : colorScheme.surface);
+                  Color border = isWrong
+                      ? colorScheme.error.withValues(alpha: 0.3)
+                      : (isCorrect ? Colors.green.withValues(alpha: 0.3) : colorScheme.outlineVariant.withValues(alpha: 0.5));
+                  Color textCol = isWrong ? colorScheme.error : (isCorrect ? Colors.green : colorScheme.primary);
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: border),
+                    ),
+                    child: Text(
+                      _spellingTyped.padRight(answer.length, '•'),
+                      style: TextStyle(fontSize: 18.sp, letterSpacing: 3.w, color: textCol, fontWeight: FontWeight.w600),
+                    ),
+                  );
+                },
               ),
             ),
             SizedBox(width: 12.w),
@@ -1057,26 +927,19 @@ class _TestRunPageState extends State<_TestRunPage> {
               onTap: _submitted || _spellingTyped.isEmpty
                   ? null
                   : () => setState(() {
-                      _spellingTyped = _spellingTyped.substring(
-                        0,
-                        _spellingTyped.length - 1,
-                      );
+                      _spellingTyped = _spellingTyped.substring(0, _spellingTyped.length - 1);
                     }),
               child: Container(
                 width: 44.r,
                 height: 44.r,
                 decoration: BoxDecoration(
-                  color: _submitted || _spellingTyped.isEmpty
-                      ? colorScheme.surfaceContainerHighest
-                      : colorScheme.primary,
+                  color: _submitted || _spellingTyped.isEmpty ? colorScheme.surfaceContainerHighest : colorScheme.primary,
                   borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Icon(
                   Icons.backspace_outlined,
                   size: 18.sp,
-                  color: _submitted || _spellingTyped.isEmpty
-                      ? colorScheme.onSurfaceVariant
-                      : colorScheme.onPrimary,
+                  color: _submitted || _spellingTyped.isEmpty ? colorScheme.onSurfaceVariant : colorScheme.onPrimary,
                 ),
               ),
             ),
@@ -1101,15 +964,14 @@ class _TestRunPageState extends State<_TestRunPage> {
                       height: 44.r,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
                       ),
                       child: Text(
                         l,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                       ),
                     ),
                   ),
@@ -1122,7 +984,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             padding: EdgeInsets.only(top: 10.h),
             child: Text(
               '正确答案：$answer',
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 13.sp, color: Colors.green, fontWeight: FontWeight.w500),
             ),
           ),
       ],
@@ -1133,9 +995,7 @@ class _TestRunPageState extends State<_TestRunPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final prompt = (_item['prompt'] as String?) ?? '选择题';
     final masked = (_item['masked'] as String?) ?? '';
-    final options =
-        (_item['options'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
     final answerIndex = _item['answer_index'] as int? ?? -1;
 
     return Column(
@@ -1146,83 +1006,19 @@ class _TestRunPageState extends State<_TestRunPage> {
           style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12.h),
-        Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
+        _buildQuestionContainer(
+          context,
+          Text(
+            masked,
+            style: TextStyle(fontSize: 15.sp, height: 1.4, color: colorScheme.onSurface),
           ),
-          child: Text(masked, style: TextStyle(fontSize: 14.sp, height: 1.4)),
         ),
         SizedBox(height: 12.h),
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
             separatorBuilder: (_, _) => SizedBox(height: 10.h),
-            itemBuilder: (context, i) {
-              final selected = _mcqSelected == i;
-              final showCorrect = _submitted && i == answerIndex;
-              final showWrong = _submitted && selected && i != answerIndex;
-              final bg = showCorrect
-                  ? colorScheme.tertiaryContainer
-                  : showWrong
-                  ? colorScheme.errorContainer
-                  : selected
-                  ? colorScheme.primary.withValues(alpha: 0.12)
-                  : colorScheme.surfaceContainerHighest;
-              final fg = showCorrect
-                  ? colorScheme.onTertiaryContainer
-                  : showWrong
-                  ? colorScheme.onErrorContainer
-                  : colorScheme.onSurface;
-
-              return GestureDetector(
-                onTap: _submitted
-                    ? null
-                    : () => setState(() => _mcqSelected = i),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 12.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: bg,
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 22.r,
-                        height: 22.r,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? colorScheme.primary
-                              : colorScheme.outline.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(999.r),
-                        ),
-                        child: Text(
-                          String.fromCharCode(65 + i),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: selected
-                                ? colorScheme.onPrimary
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Text(
-                          options[i],
-                          style: TextStyle(fontSize: 14.sp, color: fg),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex),
           ),
         ),
       ],
@@ -1234,22 +1030,16 @@ class _TestRunPageState extends State<_TestRunPage> {
   Widget _buildListenMcq(String hint) {
     final colorScheme = Theme.of(context).colorScheme;
     final promptCn = (_item['prompt_cn'] as String?) ?? '';
-    final options =
-        (_item['options'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
     final answerIndex = _item['answer_index'] as int? ?? -1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // TTS播放按钮
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
+        _buildQuestionContainer(
+          context,
+          Column(
             children: [
               GestureDetector(
                 onTap: () => setState(() => _ttsPlayed = true),
@@ -1257,27 +1047,20 @@ class _TestRunPageState extends State<_TestRunPage> {
                   width: 56.r,
                   height: 56.r,
                   decoration: BoxDecoration(
-                    color: _ttsPlayed
-                        ? colorScheme.primary.withValues(alpha: 0.15)
-                        : colorScheme.primary,
+                    color: _ttsPlayed ? colorScheme.primary.withValues(alpha: 0.15) : colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     _ttsPlayed ? Icons.replay : Icons.volume_up,
                     size: 24.sp,
-                    color: _ttsPlayed
-                        ? colorScheme.primary
-                        : colorScheme.onPrimary,
+                    color: _ttsPlayed ? colorScheme.primary : colorScheme.onPrimary,
                   ),
                 ),
               ),
               SizedBox(height: 8.h),
               Text(
                 _ttsPlayed ? '点击重新播放' : '点击播放音频',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -1288,15 +1071,14 @@ class _TestRunPageState extends State<_TestRunPage> {
             padding: EdgeInsets.only(bottom: 8.h),
             child: Text(
               promptCn,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
             ),
           ),
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
             separatorBuilder: (_, _) => SizedBox(height: 10.h),
-            itemBuilder: (context, i) =>
-                _buildOptionTile(colorScheme, i, options[i], answerIndex),
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex),
           ),
         ),
       ],
@@ -1310,37 +1092,24 @@ class _TestRunPageState extends State<_TestRunPage> {
     final prompt = (_item['prompt'] as String?) ?? '';
     final promptCn = (_item['prompt_cn'] as String?) ?? '';
     final displayText = (_item['display_text'] as String?) ?? '';
-    final options =
-        (_item['options'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
     final answerIndex = _item['answer_index'] as int? ?? -1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
+        _buildQuestionContainer(
+          context,
+          Column(
             children: [
               Text(
                 displayText,
-                style: TextStyle(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
+                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
               SizedBox(height: 6.h),
               Text(
                 prompt,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -1351,15 +1120,14 @@ class _TestRunPageState extends State<_TestRunPage> {
             padding: EdgeInsets.only(bottom: 8.h),
             child: Text(
               promptCn,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
             ),
           ),
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
             separatorBuilder: (_, _) => SizedBox(height: 10.h),
-            itemBuilder: (context, i) =>
-                _buildOptionTile(colorScheme, i, options[i], answerIndex),
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex),
           ),
         ),
       ],
@@ -1372,27 +1140,17 @@ class _TestRunPageState extends State<_TestRunPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final promptCn = (_item['prompt_cn'] as String?) ?? '';
     final displayText = (_item['display_text'] as String?) ?? '';
-    final options =
-        (_item['options'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
     final answerIndex = _item['answer_index'] as int? ?? -1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Text(
+        _buildQuestionContainer(
+          context,
+          Text(
             displayText,
-            style: TextStyle(
-              fontSize: 14.sp,
-              height: 1.5,
-              color: colorScheme.onSurface,
-            ),
+            style: TextStyle(fontSize: 15.sp, height: 1.5, color: colorScheme.onSurface),
           ),
         ),
         SizedBox(height: 8.h),
@@ -1401,20 +1159,14 @@ class _TestRunPageState extends State<_TestRunPage> {
             padding: EdgeInsets.only(bottom: 8.h),
             child: Text(
               promptCn,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
             ),
           ),
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
             separatorBuilder: (_, _) => SizedBox(height: 10.h),
-            itemBuilder: (context, i) => _buildOptionTile(
-              colorScheme,
-              i,
-              options[i],
-              answerIndex,
-              maxLines: 3,
-            ),
+            itemBuilder: (context, i) => _buildOptionTile(colorScheme, i, options[i], answerIndex, maxLines: 3),
           ),
         ),
       ],
@@ -1428,38 +1180,24 @@ class _TestRunPageState extends State<_TestRunPage> {
     final prompt = (_item['prompt'] as String?) ?? '';
     final promptCn = (_item['prompt_cn'] as String?) ?? '';
     final displayText = (_item['display_text'] as String?) ?? '';
-    final options =
-        (_item['options'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
-    final answerIndices =
-        (_item['answer_indices'] as List?)?.whereType<int>().toSet() ?? <int>{};
+    final options = (_item['options'] as List?)?.whereType<String>().toList() ?? const <String>[];
+    final answerIndices = (_item['answer_indices'] as List?)?.whereType<int>().toSet() ?? <int>{};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
+        _buildQuestionContainer(
+          context,
+          Column(
             children: [
               Text(
                 displayText,
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
+                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
               SizedBox(height: 6.h),
               Text(
                 prompt,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: colorScheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -1470,7 +1208,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             padding: EdgeInsets.only(bottom: 4.h),
             child: Text(
               promptCn,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
             ),
           ),
         Padding(
@@ -1486,16 +1224,25 @@ class _TestRunPageState extends State<_TestRunPage> {
             separatorBuilder: (_, _) => SizedBox(height: 10.h),
             itemBuilder: (context, i) {
               final selected = _multiSelected.contains(i);
-              final showCorrect = _submitted && answerIndices.contains(i);
-              final showWrong =
-                  _submitted && selected && !answerIndices.contains(i);
-              final bg = showCorrect
-                  ? colorScheme.tertiaryContainer
-                  : showWrong
-                  ? colorScheme.errorContainer
-                  : selected
-                  ? colorScheme.primary.withValues(alpha: 0.12)
-                  : colorScheme.surfaceContainerHighest;
+              final isCorrect = _submitted && answerIndices.contains(i);
+              final isWrong = _submitted && selected && !answerIndices.contains(i);
+
+              Color bg;
+              Color border;
+              if (isCorrect) {
+                bg = Colors.green.withValues(alpha: 0.1);
+                border = Colors.green.withValues(alpha: 0.3);
+              } else if (isWrong) {
+                bg = colorScheme.error.withValues(alpha: 0.1);
+                border = colorScheme.error.withValues(alpha: 0.3);
+              } else if (selected) {
+                bg = colorScheme.primary.withValues(alpha: 0.08);
+                border = colorScheme.primary.withValues(alpha: 0.3);
+              } else {
+                bg = colorScheme.surface;
+                border = colorScheme.outlineVariant.withValues(alpha: 0.5);
+              }
+
               return GestureDetector(
                 onTap: _submitted
                     ? null
@@ -1507,13 +1254,11 @@ class _TestRunPageState extends State<_TestRunPage> {
                         }
                       }),
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 12.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
                   decoration: BoxDecoration(
                     color: bg,
                     borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: border),
                   ),
                   child: Row(
                     children: [
@@ -1522,30 +1267,21 @@ class _TestRunPageState extends State<_TestRunPage> {
                         height: 22.r,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: selected
-                              ? colorScheme.primary
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: selected
-                                ? colorScheme.primary
-                                : colorScheme.outline,
-                            width: 1.5,
-                          ),
-                          borderRadius: BorderRadius.circular(4.r),
+                          color: selected ? colorScheme.primary : Colors.transparent,
+                          border: Border.all(color: selected ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.5), width: 1.5),
+                          borderRadius: BorderRadius.circular(6.r),
                         ),
-                        child: selected
-                            ? Icon(
-                                Icons.check,
-                                size: 14.sp,
-                                color: colorScheme.onPrimary,
-                              )
-                            : null,
+                        child: selected ? Icon(Icons.check, size: 14.sp, color: colorScheme.onPrimary) : null,
                       ),
                       SizedBox(width: 10.w),
                       Expanded(
                         child: Text(
                           options[i],
-                          style: TextStyle(fontSize: 14.sp),
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            color: isWrong ? colorScheme.error : (isCorrect ? Colors.green : colorScheme.onSurface),
+                            fontWeight: (isCorrect || isWrong) ? FontWeight.w500 : FontWeight.normal,
+                          ),
                         ),
                       ),
                     ],
@@ -1575,20 +1311,13 @@ class _TestRunPageState extends State<_TestRunPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: EdgeInsets.all(20.w),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
+        _buildQuestionContainer(
+          context,
+          Column(
             children: [
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999.r),
-                ),
+                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(999.r)),
                 child: Text(
                   typeLabel,
                   style: TextStyle(fontSize: 13.sp, color: colorScheme.primary),
@@ -1597,21 +1326,14 @@ class _TestRunPageState extends State<_TestRunPage> {
               SizedBox(height: 12.h),
               Text(
                 refText,
-                style: TextStyle(
-                  fontSize: type == 'word_pron' ? 24.sp : 18.sp,
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                ),
+                style: TextStyle(fontSize: type == 'word_pron' ? 24.sp : 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8.h),
               if (promptCn.isNotEmpty)
                 Text(
                   promptCn,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
                 ),
             ],
           ),
@@ -1623,10 +1345,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             child: Container(
               width: 72.r,
               height: 72.r,
-              decoration: BoxDecoration(
-                color: colorScheme.primary,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle),
               child: Icon(Icons.mic, size: 32.sp, color: colorScheme.onPrimary),
             ),
           ),
@@ -1635,10 +1354,7 @@ class _TestRunPageState extends State<_TestRunPage> {
         Text(
           _submitted ? '已录音，点击提交' : '点击录音',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -1646,23 +1362,27 @@ class _TestRunPageState extends State<_TestRunPage> {
 
   // ─── 通用选项组件 ───
 
-  Widget _buildOptionTile(
-    ColorScheme colorScheme,
-    int i,
-    String text,
-    int answerIndex, {
-    int maxLines = 1,
-  }) {
+  Widget _buildOptionTile(ColorScheme colorScheme, int i, String text, int answerIndex, {int maxLines = 1}) {
     final selected = _mcqSelected == i;
-    final showCorrect = _submitted && i == answerIndex;
-    final showWrong = _submitted && selected && i != answerIndex;
-    final bg = showCorrect
-        ? colorScheme.tertiaryContainer
-        : showWrong
-        ? colorScheme.errorContainer
-        : selected
-        ? colorScheme.primary.withValues(alpha: 0.12)
-        : colorScheme.surfaceContainerHighest;
+    final isCorrect = _submitted && i == answerIndex;
+    final isWrong = _submitted && selected && i != answerIndex;
+
+    Color bg;
+    Color border;
+    if (isCorrect) {
+      bg = Colors.green.withValues(alpha: 0.1);
+      border = Colors.green.withValues(alpha: 0.3);
+    } else if (isWrong) {
+      bg = colorScheme.error.withValues(alpha: 0.1);
+      border = colorScheme.error.withValues(alpha: 0.3);
+    } else if (selected) {
+      bg = colorScheme.primary.withValues(alpha: 0.08);
+      border = colorScheme.primary.withValues(alpha: 0.3);
+    } else {
+      bg = colorScheme.surface;
+      border = colorScheme.outlineVariant.withValues(alpha: 0.5);
+    }
+
     return GestureDetector(
       onTap: _submitted ? null : () => setState(() => _mcqSelected = i),
       child: Container(
@@ -1670,26 +1390,25 @@ class _TestRunPageState extends State<_TestRunPage> {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: border),
         ),
         child: Row(
           children: [
             Container(
-              width: 22.r,
-              height: 22.r,
+              width: 24.r,
+              height: 24.r,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: selected
-                    ? colorScheme.primary
-                    : colorScheme.outline.withValues(alpha: 0.25),
+                color: selected ? colorScheme.primary : colorScheme.surface,
+                border: Border.all(color: selected ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.5)),
                 borderRadius: BorderRadius.circular(999.r),
               ),
               child: Text(
                 String.fromCharCode(65 + i),
                 style: TextStyle(
                   fontSize: 12.sp,
-                  color: selected
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -1697,7 +1416,11 @@ class _TestRunPageState extends State<_TestRunPage> {
             Expanded(
               child: Text(
                 text,
-                style: TextStyle(fontSize: 14.sp),
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  color: isWrong ? colorScheme.error : (isCorrect ? Colors.green : colorScheme.onSurface),
+                  fontWeight: (isCorrect || isWrong) ? FontWeight.w500 : FontWeight.normal,
+                ),
                 maxLines: maxLines,
                 overflow: TextOverflow.ellipsis,
               ),

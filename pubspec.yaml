@@ -44,7 +44,8 @@ dependencies:
 
   # 文件选择器 - 选择本地视频文件
   # 用于导入本地视频或字幕文件
-  file_picker: ^11.0.2
+  file_picker:
+    path: plugs/file_picker
 
   # 屏幕适配 - 实现自适应布局
   # 支持iphone和ipad等多种设备，自动适配屏幕尺寸
@@ -125,6 +126,13 @@ flutter:
     - assets/video_plays/
     - assets/dictionary/
     - assets/Logo/
+    - models/
+    - models/supertonic/
+    - models/supertonic/onnx/
+    - models/supertonic/voice_styles/
+    - models/marianmt/
+    - models/marianmt-onnx/
+    - models/t5-translate-onnx/
 
 # App 图标配置 - 运行 flutter pub run flutter_launcher_icons 生成
 flutter_launcher_icons:

@@ -103,39 +103,52 @@ class _MainPageState extends ConsumerState<MainPage> {
         children: pages,
       ),
       bottomNavigationBar: BottomAppBar(
-        height: 80,
         color: colorScheme.surface,
-        child: Row(
-          children: [
-            ...navigationItems.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isActive = currentIndex == index;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => _onTabTapped(index),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 4.h),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(isActive ? item.activeIcon : item.icon, color: isActive ? AppColors.iconActive : AppColors.iconDefault, size: 28.w),
-                        SizedBox(height: 4.h),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                            color: isActive ? AppColors.iconActive : AppColors.iconDefault,
+        padding: EdgeInsets.zero,
+        child: SafeArea(
+          child: Row(
+            children: [
+              ...navigationItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final isActive = currentIndex == index;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => _onTabTapped(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Icon(
+                              isActive ? item.activeIcon : item.icon, 
+                              color: isActive ? AppColors.iconActive : AppColors.iconDefault, 
+                              size: 26.w
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 4.h),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              item.label,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                                color: isActive ? AppColors.iconActive : AppColors.iconDefault,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            }),
-          ],
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );

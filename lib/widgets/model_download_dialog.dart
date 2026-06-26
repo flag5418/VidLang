@@ -30,10 +30,11 @@ class ModelDownloadDialog extends StatefulWidget {
     VoidCallback? onDownloadComplete,
     VoidCallback? onCancel,
   }) async {
-    final result = await showDialog<bool>(
+    final result = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: !forceShow,
-      builder: (_) => ModelDownloadDialog(
+      barrierLabel: '',
+      pageBuilder: (_, _, _) => ModelDownloadDialog(
         forceShow: forceShow,
         onDownloadComplete: onDownloadComplete,
         onCancel: onCancel,

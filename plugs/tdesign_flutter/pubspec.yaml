@@ -31,7 +31,7 @@ dev_dependencies:
     sdk: flutter
   tdesign_flutter_tools:
     git:
-      url: https://github.com/TDesignOteam/tdesign-flutter-tools.git
+      url: https://githubfast.com/TDesignOteam/tdesign-flutter-tools.git
       ref: main
 
 # For information on the generic Dart part of this file, see the
