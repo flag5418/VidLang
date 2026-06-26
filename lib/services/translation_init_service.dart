@@ -69,10 +69,8 @@ class TranslationInitService {
       return await _translateSubtitlesNative(subtitles, onProgress);
     } else {
       // 优先使用本地翻译（MarianMT），失败则回退 AI 云端
-      if (LocalTranslationService.instance.isInitialized) {
-        final localSuccess = await _translateSubtitlesLocal(subtitles, onProgress);
-        if (localSuccess) return true;
-      }
+      final localSuccess = await _translateSubtitlesLocal(subtitles, onProgress);
+      if (localSuccess) return true;
       return await _translateSubtitlesAI(subtitles, videoCode, title, onProgress);
     }
   }
@@ -90,10 +88,8 @@ class TranslationInitService {
       return await _translateArticleSentencesNative(sentences, onProgress);
     } else {
       // 优先使用本地翻译（MarianMT），失败则回退 AI 云端
-      if (LocalTranslationService.instance.isInitialized) {
-        final localSuccess = await _translateArticleSentencesLocal(sentences, onProgress);
-        if (localSuccess) return true;
-      }
+      final localSuccess = await _translateArticleSentencesLocal(sentences, onProgress);
+      if (localSuccess) return true;
       return await TranslationService.translateArticle(
             articleCode: articleCode,
             article: Article(title: title),

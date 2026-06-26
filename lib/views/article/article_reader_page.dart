@@ -559,7 +559,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         sentences: _sentences,
         articleCode: widget.articleCode,
         title: _article!.title,
-        isNative: !isPremium,
+        isNative: false,
         onProgress: (current, total) {},
       );
 
