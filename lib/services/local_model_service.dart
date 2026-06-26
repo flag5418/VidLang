@@ -40,8 +40,9 @@ class LocalModelService {
     _isChecking = true;
     
     try {
-      // 检查每个模型类型
-      final llmExists = await _downloadService.isModelDownloaded('llm');
+      // 检查模型类型
+      // TTS 是必需的（本地语音合成）
+      // STT 和 LLM 可以使用云端回退
       final ttsExists = await _downloadService.isModelDownloaded('tts');
       final sttExists = await _downloadService.isModelDownloaded('stt');
       
@@ -73,20 +74,21 @@ class LocalModelService {
       }
       
       // 更新状态
-      // 如果本地模型已存在，即使远程配置获取失败也视为 ready
-      if (llmExists && ttsExists && sttExists) {
+      // TTS 是必需的，STT 可选（云端回退）
+      if (ttsExists) {
         _currentStatus = LocalModelStatus.ready;
+        _hasAllModels = true;
       } else if (needsUpdate) {
         _currentStatus = LocalModelStatus.needsUpdate;
-      } else if (!llmExists || !ttsExists || !sttExists) {
+        _hasAllModels = false;
+      } else if (!ttsExists) {
         // 只有当远程配置获取成功时才标记为 missing
         // 配置获取失败时标记为 error，不强制弹窗
         _currentStatus = configFetchFailed 
             ? LocalModelStatus.error 
             : LocalModelStatus.missing;
+        _hasAllModels = false;
       }
-      
-      _hasAllModels = llmExists && ttsExists && sttExists;
       
       _statusController.add(_currentStatus);
       
