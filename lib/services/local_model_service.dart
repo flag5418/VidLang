@@ -46,11 +46,16 @@ class LocalModelService {
       final ttsExists = await _downloadService.isModelDownloaded('tts');
       final sttExists = await _downloadService.isModelDownloaded('stt');
       
+      debugPrint('=== 模型检测详情 ===');
+      debugPrint('TTS 存在: $ttsExists');
+      debugPrint('STT 存在: $sttExists');
+      
       // 获取远程版本信息（失败时不强制要求下载）
       ModelConfigResponse? remoteConfig;
       bool configFetchFailed = false;
       try {
         remoteConfig = await _downloadService.getModelConfig();
+        debugPrint('远程配置获取成功');
       } catch (e) {
         debugPrint('获取远程模型配置失败: $e');
         configFetchFailed = true;
@@ -78,9 +83,11 @@ class LocalModelService {
       if (ttsExists) {
         _currentStatus = LocalModelStatus.ready;
         _hasAllModels = true;
+        debugPrint('状态设置为 ready');
       } else if (needsUpdate) {
         _currentStatus = LocalModelStatus.needsUpdate;
         _hasAllModels = false;
+        debugPrint('状态设置为 needsUpdate');
       } else if (!ttsExists) {
         // 只有当远程配置获取成功时才标记为 missing
         // 配置获取失败时标记为 error，不强制弹窗
@@ -88,6 +95,7 @@ class LocalModelService {
             ? LocalModelStatus.error 
             : LocalModelStatus.missing;
         _hasAllModels = false;
+        debugPrint('状态设置为 ${_currentStatus}');
       }
       
       _statusController.add(_currentStatus);

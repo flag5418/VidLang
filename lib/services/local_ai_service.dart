@@ -44,16 +44,26 @@ class LocalAiService {
     _initController.add(false);
 
     try {
+      debugPrint('=== 初始化本地 AI 服务 ===');
+      
       // 首先检查模型状态
       await _modelService.initialize();
-
+      debugPrint('模型状态检查完成');
+      debugPrint('hasAllModels: ${_modelService.hasAllModels}');
+      debugPrint('canUseAiFeatures: ${_modelService.canUseAiFeatures}');
+      
       // 并行初始化所有服务
+      debugPrint('开始初始化 TTS、STT、翻译服务...');
       await Future.wait([
         _llm.initialize(),
         _tts.initialize(),
         _stt.initialize(),
         _translation.initialize(),
       ]);
+      
+      debugPrint('TTS 初始化完成: ${_tts.isInitialized}');
+      debugPrint('STT 初始化完成: ${_stt.isInitialized}');
+      debugPrint('翻译初始化完成: ${_translation.isInitialized}');
 
       _isInitialized = true;
       _initController.add(true);

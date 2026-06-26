@@ -44,8 +44,14 @@ class _MainPageState extends ConsumerState<MainPage> {
       final localModelService = LocalModelService.instance;
       final status = await localModelService.checkModelsStatus();
       
+      debugPrint('=== 模型状态检查 ===');
+      debugPrint('状态: $status');
+      debugPrint('shouldShowDownloadDialog: ${status.shouldShowDownloadDialog}');
+      debugPrint('canUseAiFeatures: ${status.canUseAiFeatures}');
+      
       // 如果需要下载模型，显示弹窗
       if (status.shouldShowDownloadDialog && mounted) {
+        debugPrint('显示下载弹窗，状态: $status');
         // 延迟显示弹窗，确保页面完全加载
         await Future.delayed(Duration(milliseconds: 500));
         

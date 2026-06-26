@@ -57,29 +57,36 @@ class ModelDownloadService {
     try {
       // 方法1：检查 applicationDocumentsDirectory
       final modelsDir = await getModelsDirectory();
+      debugPrint('检查目录: ${modelsDir.path}');
       if (await _checkModelsInDir(modelsDir, modelType)) {
+        debugPrint('在 applicationDocumentsDirectory 找到 $modelType 模型');
         return true;
       }
 
       // 方法2：检查项目 models/ 目录（开发环境）
       final currentDir = Directory.current.path;
       final devModelsDir = Directory('$currentDir/models');
+      debugPrint('检查开发目录: ${devModelsDir.path}');
       if (await devModelsDir.exists()) {
         // TTS 模型在 supertonic/ 子目录
         if (modelType == 'tts') {
           final supertonicDir = Directory('${devModelsDir.path}/supertonic');
+          debugPrint('检查 Supertonic 目录: ${supertonicDir.path}');
           if (await supertonicDir.exists()) {
+            debugPrint('在开发目录找到 TTS 模型');
             return true;
           }
         }
         // STT 模型检查
         if (modelType == 'stt') {
           if (await _checkModelsInDir(devModelsDir, modelType)) {
+            debugPrint('在开发目录找到 STT 模型');
             return true;
           }
         }
       }
 
+      debugPrint('未找到 $modelType 模型');
       return false;
     } catch (e) {
       debugPrint('检查模型下载状态失败: $e');
