@@ -329,14 +329,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       onRefresh: _loadArticlesIfNeeded,
       child: ListView(
         children: [
-          if (heroArticle != null)
-            ArticleHeroCard(
-              article: heroArticle,
-              onRead: () => _openArticle(heroArticle),
-              onRename: () => _showArticleRenameDialog(heroArticle),
-              onDelete: () => _confirmDeleteArticle(heroArticle),
-            ),
-          if (heroArticle != null) SizedBox(height: AppSpacing.md),
+          ArticleHeroCard(
+            article: heroArticle,
+            onRead: () => _openArticle(heroArticle),
+            onRename: () => _showArticleRenameDialog(heroArticle),
+            onDelete: () => _confirmDeleteArticle(heroArticle),
+          ),
+          SizedBox(height: AppSpacing.md),
           GridView.builder(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
             shrinkWrap: true,
@@ -744,7 +743,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     if (isAudio) {
       try {
         final metadata = await VideoMetadataExtractor.extract(destPath);
-        if (metadata != null) durationMs = metadata.durationMs ?? 0;
+        durationMs = metadata.durationMs ?? 0;
       } catch (_) {}
       if (durationMs == 0) {
         try {

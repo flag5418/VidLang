@@ -49,7 +49,6 @@ import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/global_error_handler.dart';
 import 'package:vidlang/services/local_ai_service.dart';
-import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_utils.dart';
@@ -83,6 +82,9 @@ void main() {
 
       VscodeLogger.instance.init(appName: 'VidLang', minLevel: LogLevel.debug, printToConsole: true);
       GlobalErrorHandler.instance.install(navigatorKey: navigatorKey);
+
+      // 禁用系统上下文菜单，避免 Flutter 3.46 主分支的 SystemContextMenu 断言错误
+      SystemChannels.platform.invokeMethod('SystemContextMenu.disable');
 
       // 先执行 runApp，让 Flutter 能够立刻渲染第一帧（Splash Screen）
       // 避免因为网络请求或本地数据库初始化过慢导致长时间黑屏/白屏

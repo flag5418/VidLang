@@ -54,9 +54,24 @@ class ModelDownloadService {
       // 方法1：检查 applicationDocumentsDirectory
       final modelsDir = await getModelsDirectory();
       debugPrint('检查目录: ${modelsDir.path}');
-      if (await _checkModelsInDir(modelsDir, modelType)) {
-        debugPrint('在 applicationDocumentsDirectory 找到 $modelType 模型');
-        return true;
+
+      // TTS 模型：直接检查子目录是否存在
+      if (modelType == 'tts') {
+        // TTS 直接检查 supertonic 目录和关键文件
+        final supertonicDir = Directory('${modelsDir.path}/supertonic');
+        if (await supertonicDir.exists() &&
+            await File('${supertonicDir.path}/onnx/vocoder.onnx').exists() &&
+            await File('${supertonicDir.path}/onnx/text_encoder.onnx').exists()) {
+          debugPrint('在 applicationDocumentsDirectory 找到 TTS 模型');
+          return true;
+        }
+      } else if (modelType == 'stt') {
+        // STT 需要明确排除 MarianMT 目录，检查 encoder.onnx 和 decoder.onnx
+        final sttDir = await _findSttModelDir(modelsDir);
+        if (sttDir != null) {
+          debugPrint('在 applicationDocumentsDirectory 找到 STT 模型: $sttDir');
+          return true;
+        }
       }
 
       // 方法2：检查项目 models/ 目录（开发环境）
@@ -68,17 +83,15 @@ class ModelDownloadService {
       final devModelsDir = Directory('$currentDir/models');
       debugPrint('检查开发目录: ${devModelsDir.path}');
       if (await devModelsDir.exists()) {
-        // TTS 模型在 supertonic/ 子目录
         if (modelType == 'tts') {
           final supertonicDir = Directory('${devModelsDir.path}/supertonic');
           debugPrint('检查 Supertonic 目录: ${supertonicDir.path}');
-          if (await supertonicDir.exists()) {
+          if (await supertonicDir.exists() &&
+              await File('${supertonicDir.path}/onnx/vocoder.onnx').exists()) {
             debugPrint('在开发目录找到 TTS 模型');
             return true;
           }
-        }
-        // STT 模型检查
-        if (modelType == 'stt') {
+        } else if (modelType == 'stt') {
           if (await _checkModelsInDir(devModelsDir, modelType)) {
             debugPrint('在开发目录找到 STT 模型');
             return true;
@@ -120,27 +133,38 @@ class ModelDownloadService {
   /// 获取本地模型文件路径
   Future<String?> getLocalModelPath(String modelType) async {
     try {
-      // 方法1：检查 applicationDocumentsDirectory（模拟器和真机都适用）
+      // 方法1：检查 applicationDocumentsDirectory
       final modelsDir = await getModelsDirectory();
-      final path = await _findModelInDir(modelsDir, modelType);
-      if (path != null) return path;
 
-      // 方法2：检查项目 models/ 目录（仅在 macOS 开发时有效）
+      // TTS 模型：直接检查子目录
+      if (modelType == 'tts') {
+        final path = await _findModelInDir(modelsDir, modelType);
+        if (path != null) return path;
+      } else if (modelType == 'stt') {
+        final sttPath = await _findSttModelDir(modelsDir);
+        if (sttPath != null) return sttPath;
+      }
+
+      // 方法2：检查项目 models/ 目录
       final currentDir = Directory.current.path;
       if (currentDir != '/' && currentDir != '//') {
         final devModelsDir = Directory('$currentDir/models');
         if (await devModelsDir.exists()) {
-          // TTS 模型在 supertonic/ 子目录
           if (modelType == 'tts') {
             final supertonicDir = Directory('${devModelsDir.path}/supertonic');
             if (await supertonicDir.exists()) {
               return supertonicDir.path;
             }
-          }
-          // STT 模型检查
-          if (modelType == 'stt') {
-            final sttPath = await _findModelInDir(devModelsDir, modelType);
-            if (sttPath != null) return sttPath;
+          } else if (modelType == 'stt') {
+            // 开发环境下检查 assets/models/stt 目录
+            final sttDir = Directory('${devModelsDir.path}/stt');
+            if (await sttDir.exists() &&
+                await File('${sttDir.path}/encoder.onnx').exists() &&
+                await File('${sttDir.path}/decoder.onnx').exists() &&
+                await File('${sttDir.path}/tokens.txt').exists()) {
+              debugPrint('在开发目录找到 STT 模型');
+              return sttDir.path;
+            }
           }
         }
       }
@@ -162,11 +186,51 @@ class ModelDownloadService {
         if (file is File) {
           final fileName = file.path.split('/').last;
           if (_isModelFile(modelType, fileName)) {
-            // TTS 需要返回包含 vocoder/text_encoder 等文件的上一级目录
+            // TTS 需要返回包含 supertonic 模型文件的目录（supertonic 根目录）
             if (modelType == 'tts') {
+              // 找到 supertonic 子目录下的文件，返回 supertonic 目录
+              final path = file.path;
+              if (path.contains('/supertonic/')) {
+                final supertonicIndex = path.indexOf('/supertonic/');
+                return path.substring(0, supertonicIndex + '/supertonic'.length);
+              }
+              return file.parent.path;
+            }
+            // STT 需要返回包含 encoder.onnx, decoder.onnx, tokens.txt 的目录
+            if (modelType == 'stt') {
               return file.parent.path;
             }
             return file.path;
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 查找 STT 模型目录
+  /// 明确排除 MarianMT 目录，只查找包含 encoder.onnx 和 decoder.onnx 的目录
+  Future<String?> _findSttModelDir(Directory dir) async {
+    try {
+      if (!await dir.exists()) return null;
+
+      final files = await dir.list(recursive: true).toList();
+      for (final file in files) {
+        if (file is File) {
+          final fileName = file.path.split('/').last;
+          // 排除 MarianMT 目录
+          if (file.path.contains('/marianmt-onnx/')) continue;
+          
+          // 检查是否是 STT 模型的 encoder.onnx
+          if (fileName == 'encoder.onnx') {
+            final parentDir = file.parent.path;
+            // 确认同一目录下也有 decoder.onnx
+            final decoderFile = File('$parentDir/decoder.onnx');
+            if (await decoderFile.exists()) {
+              return parentDir;
+            }
           }
         }
       }
@@ -328,7 +392,6 @@ class ModelDownloadService {
 
       // 清除所有版本记录
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('model_version_llm');
       await prefs.remove('model_version_tts');
       await prefs.remove('model_version_stt');
     } catch (e) {
@@ -341,13 +404,12 @@ class ModelDownloadService {
 
   bool _isModelFile(String modelType, String fileName) {
     switch (modelType) {
-      case 'llm':
-        return fileName.endsWith('.gguf');
       case 'tts':
         // 支持 Piper (amy) 和 Supertonic TTS 模型
-        return fileName.endsWith('.onnx') || fileName.endsWith('.json');
+        return fileName.endsWith('.onnx') || fileName.endsWith('.json') || fileName.endsWith('.bin');
       case 'stt':
-        return fileName.endsWith('.bin') && fileName.contains('whisper');
+        // 支持 Whisper ONNX 模型 (encoder.onnx / decoder.onnx) 和 .bin 格式
+        return fileName.endsWith('.onnx') || (fileName.endsWith('.bin') && fileName.contains('whisper'));
       default:
         return false;
     }

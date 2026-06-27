@@ -441,8 +441,9 @@ class IosNativeFeatures {
     }
     try {
       final result = await _channel.invokeMethod('analyzeImage', {'imagePath': imagePath});
-      if (result == null)
+      if (result == null) {
         return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
+      }
       return ImageAnalysisResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: e.message ?? '分析失败');
@@ -464,8 +465,9 @@ class IosNativeFeatures {
     }
     try {
       final result = await _channel.invokeMethod('analyzeImageFromCamera');
-      if (result == null)
+      if (result == null) {
         return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: '未获取到分析结果');
+      }
       return ImageAnalysisResult.fromJson(_asStringKeyMap(result));
     } on PlatformException catch (e) {
       return ImageAnalysisResult(description: '', chineseDescription: '', labels: [], chineseLabels: [], success: false, error: e.message ?? '分析失败');

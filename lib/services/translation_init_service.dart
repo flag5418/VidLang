@@ -121,7 +121,7 @@ class TranslationInitService {
           break;
         }
       } catch (e) {
-        dev.log('Native translation failed for subtitle ${i}: $e', name: 'TranslationInitService');
+        dev.log('Native translation failed for subtitle $i: $e', name: 'TranslationInitService');
       }
       onProgress(i + 1, subtitles.length);
     }
@@ -159,7 +159,7 @@ class TranslationInitService {
           success++;
         }
       } catch (e) {
-        dev.log('Local translation failed for subtitle ${i}: $e', name: 'TranslationInitService');
+        dev.log('Local translation failed for subtitle $i: $e', name: 'TranslationInitService');
       }
       onProgress(i + 1, subtitles.length);
 
@@ -283,7 +283,7 @@ class TranslationInitService {
           success++;
         }
       } catch (e) {
-        dev.log('Native translation failed for article sentence ${i}: $e', name: 'TranslationInitService');
+        dev.log('Native translation failed for article sentence $i: $e', name: 'TranslationInitService');
       }
       onProgress(i + 1, sentences.length);
     }
@@ -314,7 +314,7 @@ class TranslationInitService {
           success++;
         }
       } catch (e) {
-        dev.log('Local translation failed for article sentence ${i}: $e', name: 'TranslationInitService');
+        dev.log('Local translation failed for article sentence $i: $e', name: 'TranslationInitService');
       }
       onProgress(i + 1, sentences.length);
     }

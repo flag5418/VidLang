@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa_onnx;
+import 'package:vidlang/services/model_path_service.dart';
 
 
 /// 本地 TTS 服务
@@ -18,9 +20,8 @@ class LocalTtsService {
   sherpa_onnx.OfflineTts? _tts;
   bool _isInitialized = false;
   bool _isLoading = false;
-
-  // 模型路径
-  String? _modelsDir;
+  Timer? _releaseTimer;
+  static const _modelKeepAliveMs = 60000; // 60秒
 
   // 可用声音列表
   List<String> _availableVoices = [];
@@ -65,15 +66,15 @@ class LocalTtsService {
         final appDir = await getApplicationDocumentsDirectory();
         if (appDir.path.contains('CoreSimulator')) {
           debugPrint('TTS: iOS 模拟器环境，跳过 sherpa_onnx 初始化');
+          _isLoading = false;
           return;
         }
       }
 
-      // 查找 Supertonic 模型目录
-      _modelsDir = await _findSupertonicModelsDir();
-
-      if (_modelsDir == null) {
-        debugPrint('Supertonic TTS 模型目录不存在');
+      // 检查模型是否完整
+      if (!await ModelPathService.isTtsModelComplete) {
+        debugPrint('TTS 模型文件不完整');
+        _isLoading = false;
         return;
       }
 
@@ -83,23 +84,24 @@ class LocalTtsService {
       // 加载可用声音
       await _loadAvailableVoices();
 
+      // 获取模型路径
+      final modelPaths = await ModelPathService.ttsModelPaths;
+
       // 创建 Supertonic 模型配置
       final supertonic = sherpa_onnx.OfflineTtsSupertonicModelConfig(
-        durationPredictor: '$_modelsDir/onnx/duration_predictor.onnx',
-        textEncoder: '$_modelsDir/onnx/text_encoder.onnx',
-        vectorEstimator: '$_modelsDir/onnx/vector_estimator.onnx',
-        vocoder: '$_modelsDir/onnx/vocoder.onnx',
-        ttsJson: '$_modelsDir/onnx/tts.json',
-        unicodeIndexer: '$_modelsDir/onnx/unicode_indexer.json',
-        voiceStyle: _availableVoices.isNotEmpty
-            ? '$_modelsDir/voice_styles/${_availableVoices[_currentSpeakerId]}.json'
-            : '',
+        durationPredictor: modelPaths['durationPredictor']!,
+        textEncoder: modelPaths['textEncoder']!,
+        vectorEstimator: modelPaths['vectorEstimator']!,
+        vocoder: modelPaths['vocoder']!,
+        ttsJson: modelPaths['ttsJson']!,
+        unicodeIndexer: modelPaths['unicodeIndexer']!,
+        voiceStyle: modelPaths['voiceStyle']!,
       );
 
       // 创建模型配置
       final modelConfig = sherpa_onnx.OfflineTtsModelConfig(
         supertonic: supertonic,
-        numThreads: 4,
+        numThreads: 2,
         debug: false,
       );
 
@@ -121,54 +123,40 @@ class LocalTtsService {
     }
   }
 
-  /// 查找 Supertonic 模型目录
-  Future<String?> _findSupertonicModelsDir() async {
-    try {
-      // 方法1：从 applicationDocumentsDirectory 查找（模拟器和真机都适用）
-      final appDir = await getApplicationDocumentsDirectory();
-      final prodPath = '${appDir.path}/models/supertonic';
-      if (await Directory(prodPath).exists()) {
-        return prodPath;
-      }
-
-      // 方法2：从 models/ 目录查找（仅在 macOS 开发时有效）
-      final currentDir = Directory.current.path;
-      if (currentDir != '/' && currentDir != '//') {
-        final devPath = '$currentDir/models/supertonic';
-        if (await Directory(devPath).exists()) {
-          return devPath;
-        }
-      }
-
-      // 方法3：从 models/ 目录的上级目录查找
-      final altPath = '${appDir.parent.path}/models/supertonic';
-      if (await Directory(altPath).exists()) {
-        return altPath;
-      }
-
-      return null;
-    } catch (e) {
-      debugPrint('查找 Supertonic 模型目录失败: $e');
-      return null;
-    }
-  }
-
   /// 加载可用声音列表
+  /// 从 voice.bin 文件读取声音数量（voice.bin 包含 n 个 voice styles）
   Future<void> _loadAvailableVoices() async {
     _availableVoices = [];
 
     try {
-      final voiceStylesDir = Directory('$_modelsDir/voice_styles');
-      if (await voiceStylesDir.exists()) {
-        await for (final entity in voiceStylesDir.list()) {
-          if (entity is File && entity.path.endsWith('.json')) {
-            final fileName = entity.path.split('/').last;
-            final voiceName = fileName.replaceAll('.json', '');
-            _availableVoices.add(voiceName);
-          }
-        }
-        _availableVoices.sort();
+      final voiceBinPath = (await ModelPathService.ttsModelPaths)['voiceStyle']!;
+      final voiceBinFile = File(voiceBinPath);
+      if (!await voiceBinFile.exists()) {
+        debugPrint('voice.bin 不存在，无法加载声音列表');
+        return;
       }
+
+      // 读取前 8 个字节（第一个 int64，小端序）
+      final bytes = await voiceBinFile.openRead(0, 8).first;
+      if (bytes.length < 8) {
+        debugPrint('voice.bin 文件太小');
+        return;
+      }
+
+      final byteData = ByteData.sublistView(Uint8List.fromList(bytes));
+      final voiceCount = byteData.getInt64(0, Endian.little);
+
+      if (voiceCount <= 0 || voiceCount > 100) {
+        debugPrint('voice.bin 中声音数量异常: $voiceCount');
+        return;
+      }
+
+      // 生成声音名称列表
+      for (int i = 0; i < voiceCount; i++) {
+        _availableVoices.add('Voice_$i');
+      }
+
+      debugPrint('加载声音列表成功: 共 $voiceCount 个声音');
     } catch (e) {
       debugPrint('加载声音列表失败: $e');
     }
@@ -208,6 +196,9 @@ class LocalTtsService {
 
       // 保存为 WAV 文件
       await _saveAsWav(audio.samples, audio.sampleRate, outputPath);
+
+      // 启动释放计时器
+      _scheduleRelease();
 
       return outputPath;
     } catch (e) {
@@ -330,8 +321,26 @@ class LocalTtsService {
     return bytes;
   }
 
+  /// 启动释放计时器（合成完成后调用）
+  void _scheduleRelease() {
+    _releaseTimer?.cancel();
+    _releaseTimer = Timer(const Duration(milliseconds: _modelKeepAliveMs), () {
+      debugPrint('TTS 模型 60秒未使用，释放内存');
+      _releaseModels();
+    });
+  }
+
+  /// 释放模型内存（保留初始化状态，仅释放 tts）
+  void _releaseModels() {
+    _tts?.free();
+    _tts = null;
+    _isInitialized = false;
+    debugPrint('TTS 模型已释放');
+  }
+
   /// 释放资源
   void dispose() {
+    _releaseTimer?.cancel();
     _tts?.free();
     _tts = null;
     _isInitialized = false;

@@ -126,13 +126,17 @@ flutter:
     - assets/video_plays/
     - assets/dictionary/
     - assets/Logo/
-    - models/
-    - models/supertonic/
-    - models/supertonic/onnx/
-    - models/supertonic/voice_styles/
-    - models/marianmt/
-    - models/marianmt-onnx/
-    - models/t5-translate-onnx/
+    - assets/models/
+    - assets/models/supertonic/
+    - assets/models/supertonic/onnx/duration_predictor.onnx
+    - assets/models/supertonic/onnx/text_encoder.onnx
+    - assets/models/supertonic/onnx/tts.json
+    - assets/models/supertonic/onnx/unicode_indexer.bin
+    - assets/models/supertonic/onnx/vector_estimator.onnx
+    - assets/models/supertonic/onnx/vocoder.onnx
+    - assets/models/supertonic/voice.bin
+    - assets/models/marianmt-onnx/
+    - assets/models/stt/
 
 # App 图标配置 - 运行 flutter pub run flutter_launcher_icons 生成
 flutter_launcher_icons:

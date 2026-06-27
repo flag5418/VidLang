@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa_onnx;
-import 'package:vidlang/services/local_model_service.dart';
+import 'package:vidlang/services/model_path_service.dart';
 
 /// 本地 STT 服务
 /// 使用 Whisper 模型进行语音识别
@@ -17,9 +17,8 @@ class LocalSttService {
   sherpa_onnx.OfflineRecognizer? _recognizer;
   bool _isInitialized = false;
   bool _isLoading = false;
-  
-  // 模型路径
-  String? _modelPath;
+  Timer? _releaseTimer;
+  static const _modelKeepAliveMs = 60000; // 60秒
   
   /// 是否已初始化
   bool get isInitialized => _isInitialized;
@@ -39,36 +38,38 @@ class LocalSttService {
         final appDir = await getApplicationDocumentsDirectory();
         if (appDir.path.contains('CoreSimulator')) {
           debugPrint('STT: iOS 模拟器环境，跳过 sherpa_onnx 初始化');
+          _isLoading = false;
           return;
         }
       }
 
-      // 获取模型路径
-      _modelPath = await LocalModelService.instance.getSttModelPath();
-      
-      if (_modelPath == null || !await File(_modelPath!).exists()) {
-        debugPrint('STT 模型文件不存在');
+      // 检查模型是否完整
+      if (!await ModelPathService.isSttModelComplete) {
+        debugPrint('STT 模型文件不完整');
+        _isLoading = false;
         return;
       }
+
+      // 获取模型路径
+      final modelPaths = await ModelPathService.sttModelPaths;
+      final encoderPath = modelPaths['encoder']!;
+      final decoderPath = modelPaths['decoder']!;
+      final tokensPath = modelPaths['tokens']!;
       
       // 初始化 sherpa-onnx
       sherpa_onnx.initBindings();
       
-      // 查找 tokens.txt 文件
-      final modelDir = File(_modelPath!).parent;
-      final tokensFile = '${modelDir.path}/tokens.txt';
-      
       // 创建 Whisper 模型配置
       final whisper = sherpa_onnx.OfflineWhisperModelConfig(
-        encoder: '${modelDir.path}/encoder.onnx',
-        decoder: '${modelDir.path}/decoder.onnx',
+        encoder: encoderPath,
+        decoder: decoderPath,
       );
       
       // 创建模型配置
       final modelConfig = sherpa_onnx.OfflineModelConfig(
         whisper: whisper,
-        tokens: tokensFile,
-        numThreads: 4,
+        tokens: tokensPath,
+        numThreads: 2,
         provider: 'coreml',
         debug: false,
       );
@@ -128,6 +129,9 @@ class LocalSttService {
       
       // 释放资源
       stream.free();
+      
+      // 启动释放计时器
+      _scheduleRelease();
       
       return result.text;
     } catch (e) {
@@ -215,8 +219,26 @@ class LocalSttService {
     return float32List;
   }
 
+  /// 启动释放计时器（识别完成后调用）
+  void _scheduleRelease() {
+    _releaseTimer?.cancel();
+    _releaseTimer = Timer(const Duration(milliseconds: _modelKeepAliveMs), () {
+      debugPrint('STT 模型 60秒未使用，释放内存');
+      _releaseModels();
+    });
+  }
+
+  /// 释放模型内存（保留初始化状态，仅释放 recognizer）
+  void _releaseModels() {
+    _recognizer?.free();
+    _recognizer = null;
+    _isInitialized = false;
+    debugPrint('STT 模型已释放');
+  }
+
   /// 释放资源
   void dispose() {
+    _releaseTimer?.cancel();
     _recognizer?.free();
     _recognizer = null;
     _isInitialized = false;

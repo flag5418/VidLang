@@ -76,7 +76,7 @@ class SnippetListCard extends StatelessWidget {
                         ),
                         SizedBox(width: 8.w),
                         GestureDetector(
-                          onTap: () => TtsService().speak(text: sourceText),
+                          onTap: () => TtsService().speakSubtitle(sourceText),
                           child: Icon(
                             Icons.volume_up_outlined,
                             size: 20.sp,

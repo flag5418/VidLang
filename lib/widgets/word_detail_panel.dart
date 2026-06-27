@@ -420,8 +420,6 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         return _buildChineseMeaning();
       case WordDetailSection.sentenceTranslation:
         return _buildSentenceTranslation();
-      case WordDetailSection.definitions:
-        return _buildDefinitions();
       case WordDetailSection.englishMeaning:
         return _buildEnglishMeaning();
       case WordDetailSection.partOfSpeech:
@@ -669,11 +667,6 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       return const SizedBox.shrink();
     }
     final cs = Theme.of(context).colorScheme;
-    // 收集所有中文释义用于高亮
-    final chineseMeanings = widget.data.definitions
-        .map((d) => d.chineseMeaning.trim())
-        .where((m) => m.isNotEmpty)
-        .toList();
     return _buildSectionContainer(
       title: WordDetailSection.sentenceTranslation.label,
       child: Column(
@@ -681,15 +674,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         children: [
           // 英文句子（高亮当前单词）
           if (widget.data.contextSentence != null) ...[
-            _buildRichContextSentence(chineseMeanings: chineseMeanings),
+            _buildRichContextSentence(),
             const SizedBox(height: 8),
           ],
-          // 中文翻译（高亮中文释义）
+          // 中文翻译
           if (widget.data.sentenceTranslation != null ||
               widget.data.translation != null)
-            _buildRichChineseTranslation(
-              chineseMeanings: chineseMeanings,
-              cs: cs,
+            Text(
+              widget.data.sentenceTranslation ?? widget.data.translation!,
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
         ],
       ),
@@ -697,7 +694,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   }
 
   /// 高亮英文句子中的单词
-  Widget _buildRichContextSentence({required List<String> chineseMeanings}) {
+  Widget _buildRichContextSentence() {
     final sentence = widget.data.contextSentence!;
     final word = widget.data.word;
     // 先尝试精确匹配原词
@@ -736,178 +733,6 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           ),
           TextSpan(text: sentence.substring(end)),
         ],
-      ),
-    );
-  }
-
-  /// 高亮中文翻译中的释义
-  Widget _buildRichChineseTranslation({
-    required List<String> chineseMeanings,
-    required ColorScheme cs,
-  }) {
-    final translation =
-        widget.data.sentenceTranslation ?? widget.data.translation!;
-    if (chineseMeanings.isEmpty) {
-      return Text(
-        translation,
-        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
-      );
-    }
-
-    // 找到最长的匹配释义
-    String? bestMatch;
-    int bestStart = -1;
-    int bestEnd = -1;
-    for (final meaning in chineseMeanings) {
-      final index = translation.indexOf(meaning);
-      if (index != -1) {
-        if (meaning.length > (bestMatch?.length ?? 0)) {
-          bestMatch = meaning;
-          bestStart = index;
-          bestEnd = index + meaning.length;
-        }
-      }
-    }
-
-    if (bestMatch == null || bestStart == -1) {
-      return Text(
-        translation,
-        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
-      );
-    }
-
-    return RichText(
-      text: TextSpan(
-        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
-        children: [
-          TextSpan(text: translation.substring(0, bestStart)),
-          TextSpan(
-            text: bestMatch,
-            style: const TextStyle(
-              color: Color(0xFF1976D2),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          TextSpan(text: translation.substring(bestEnd)),
-        ],
-      ),
-    );
-  }
-
-  // ─── Section: 词典释义 ─────────────────────────────────
-
-  Widget _buildDefinitions() {
-    if (widget.data.definitions.isEmpty) return const SizedBox.shrink();
-    final cs = Theme.of(context).colorScheme;
-    return _buildSectionContainer(
-      title: WordDetailSection.definitions.label,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widget.data.definitions.map((d) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (d.partOfSpeech != null) ...[
-                      Container(
-                        margin: const EdgeInsets.only(right: 8, top: 2),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: cs.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          d.partOfSpeech!,
-                          style: TextStyle(
-                            color: cs.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            d.chineseMeaning,
-                            style: TextStyle(
-                              color: cs.onSurface,
-                              fontSize: 15,
-                              height: 1.5,
-                            ),
-                          ),
-                          if (d.englishMeaning != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                d.englishMeaning!,
-                                style: TextStyle(
-                                  color: cs.onSurfaceVariant,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                // 释义内嵌例句
-                if (d.examples.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, left: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: d.examples.map((ex) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      ex.english,
-                                      style: TextStyle(
-                                        color: cs.onSurfaceVariant,
-                                        fontSize: 13,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                    Text(
-                                      ex.chinese,
-                                      style: TextStyle(
-                                        color: cs.onSurface.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _buildPronounceButton(text: ex.english),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }).toList(),
       ),
     );
   }
@@ -1267,8 +1092,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Section: 记忆技巧 ─────────────────────────────────
 
   Widget _buildMnemonic() {
-    if (widget.data.mnemonic == null || widget.data.mnemonic!.isEmpty)
+    if (widget.data.mnemonic == null || widget.data.mnemonic!.isEmpty) {
       return const SizedBox.shrink();
+    }
     final cs = Theme.of(context).colorScheme;
     return _buildSectionContainer(
       title: WordDetailSection.mnemonic.label,
@@ -1316,8 +1142,6 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 data.wordMeaningInContext!.trim().isNotEmpty) ||
             (data.contextSentence != null &&
                 data.contextSentence!.trim().isNotEmpty);
-      case WordDetailSection.definitions:
-        return data.definitions.isNotEmpty;
       case WordDetailSection.englishMeaning:
         return data.definitions.any(
           (d) =>

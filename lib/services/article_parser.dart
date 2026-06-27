@@ -158,7 +158,7 @@ class ArticleParser {
     for (int i = 0; i < abbreviations.length; i++) {
       final abbr = abbreviations[i];
       if (processed.contains(abbr)) {
-        final placeholder = '\x00ABBR${i}\x00';
+        final placeholder = '\x00ABBR$i\x00';
         placeholders[placeholder] = abbr;
         processed = processed.replaceAll(abbr, placeholder);
       }

@@ -250,6 +250,7 @@ class _LoginPageState extends State<LoginPage> {
       decoration: _inputDecoration('邮箱地址', Icons.email_outlined),
       readOnly: widget.requireSupabaseReauth && widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty,
       onSubmitted: (_) => _passwordFocus.requestFocus(),
+      contextMenuBuilder: null,
     );
   }
 
@@ -268,6 +269,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
       onSubmitted: _mode == _AuthMode.login ? (_) => _submitAuth() : null,
+      contextMenuBuilder: null,
     );
   }
 
@@ -282,6 +284,7 @@ class _LoginPageState extends State<LoginPage> {
       textAlign: TextAlign.center,
       decoration: _inputDecoration('请输入验证码', null).copyWith(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 16)),
       onSubmitted: (_) => _verifyOtp(),
+      contextMenuBuilder: null,
     );
   }
 

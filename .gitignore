@@ -40,3 +40,11 @@ web/firebase-messaging-sw.js
 # Supabase CLI local traces / telemetry
 .supabase_cli/
 flutter_01.log
+sherpa-onnx/
+
+# Models
+models/
+assets/models/
+
+# Xcode user data
+**/xcuserdata/

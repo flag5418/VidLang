@@ -17,7 +17,6 @@ import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
-import 'package:vidlang/services/local_tts_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/tts_service.dart';
@@ -90,6 +89,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     _aliAudioPlayer.dispose();
     _unlockOrientation();
+    _initialized = false;
     super.dispose();
   }
 
@@ -541,48 +541,23 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
   void _handleClaritySpeak(PlayerEngineNotifier n, PlayerEngineState s, Subtitles cs) async {
     final wasPlaying = s.playerState == PlayerState.playing;
-    setState(() => _isTtsSpeaking = true);
     if (wasPlaying) n.player.pause();
 
-    // 优先使用本地 TTS
-    try {
-      final localTts = LocalTtsService.instance;
-      if (localTts.isInitialized) {
-        debugPrint('使用本地 Supertonic TTS');
-        final audioPath = await localTts.synthesizeToFile(text: cs.content);
-        if (audioPath != null && mounted) {
-          await _aliAudioPlayer.play(ap.DeviceFileSource(audioPath));
-          _aliAudioPlayer.onPlayerComplete.first.then((_) {
-            if (!mounted) return;
-            setState(() => _isTtsSpeaking = false);
-            if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
-              n.player.play();
-            }
-          });
-          return;
-        }
-      }
-    } catch (e) {
-      debugPrint('本地 TTS 失败: $e');
-    }
+    setState(() => _isTtsSpeaking = true);
 
-    // 回退到云端 TTS
-    final subState = ref.read(subscriptionProvider);
-    if (subState.mode == SubscriptionMode.premium) {
-      _speakClarityPremium(cs.content, wasPlaying, n);
-    } else {
-      TtsService().speakClarity(
-        text: cs.content,
-        useAliyun: false,
-        onComplete: () {
-          if (!mounted) return;
-          setState(() => _isTtsSpeaking = false);
-          if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
-            n.player.play();
-          }
-        },
-      );
-    }
+    // 使用统一的 TtsService，它会自动处理本地 TTS -> 阿里云 TTS -> 系统 TTS 的回退链
+    await TtsService().speakClarity(
+      text: cs.content,
+      audioPlayer: _aliAudioPlayer,
+      useAliyun: true,
+      onComplete: () {
+        if (!mounted) return;
+        setState(() => _isTtsSpeaking = false);
+        if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+          n.player.play();
+        }
+      },
+    );
   }
 
   void _stopClaritySpeak(PlayerEngineNotifier n) {

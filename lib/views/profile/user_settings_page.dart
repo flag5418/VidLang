@@ -8,7 +8,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/config.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
-import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 

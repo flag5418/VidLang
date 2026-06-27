@@ -16,7 +16,7 @@ class WordBookReviewPage extends StatefulWidget {
 class _WordBookReviewPageState extends State<WordBookReviewPage>
     with SingleTickerProviderStateMixin {
   late List<WordBook> _remaining;
-  int _currentIndex = 0;
+  final int _currentIndex = 0;
   bool _isFlipped = false;
   late AnimationController _flipController;
   late Animation<double> _flipAnimation;

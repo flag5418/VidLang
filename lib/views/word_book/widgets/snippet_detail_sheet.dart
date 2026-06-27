@@ -83,7 +83,7 @@ class _SnippetDetailSheetState extends State<SnippetDetailSheet> {
                       final text = (snippet.sourceText ?? '').isNotEmpty
                           ? snippet.sourceText!
                           : snippet.word;
-                      TtsService().speak(text: text);
+                      TtsService().speakSubtitle(text);
                     },
                     icon: const Icon(Icons.volume_up_outlined),
                     tooltip: '朗读',

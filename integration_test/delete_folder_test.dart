@@ -12,7 +12,6 @@ import 'package:vidlang/models/user.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
-import 'package:vidlang/providers/user_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/thumbnail_service.dart';

@@ -146,14 +146,6 @@ class AiService {
       String result;
       
       switch (ruleCode) {
-        case 'ai_definition':
-          final contextSentence = params['context_sentence'] as String?;
-          result = await _localAi.getDefinition(
-            word: word,
-            contextSentence: contextSentence,
-          );
-          break;
-          
         case 'ai_translate':
           final text = params['text'] as String? ?? word;
           result = await _localAi.translate(
@@ -182,23 +174,29 @@ class AiService {
 
   /// 解析本地模型返回的结果
   static WordDetail _parseLocalModelResult(String word, String result) {
-    // 尝试解析 JSON 格式的结果
+    // 尝试解析 JSON 格式的 LLM 结果
     try {
-      // 尝试解析为 WordDetail
-      final detail = WordDetail.fromJson({
-        'word': word,
-        'translation': result,
-        'source': 'local_ai',
-      });
-      return detail;
-    } catch (e) {
-      // 解析失败，返回纯文本结果
-      return WordDetail.fromJson({
-        'word': word,
-        'translation': result,
-        'source': 'local_ai',
-      });
-    }
+      final parsed = jsonDecode(result);
+      if (parsed is Map<String, dynamic>) {
+        // 直接用 LLM 输出的 JSON 构造 WordDetail
+        final detail = WordDetail.fromJson({
+          'word': parsed['word'] ?? word,
+          'definitions': parsed['definitions'],
+          'standalone_examples': parsed['standalone_examples'],
+          'morphology': parsed['morphology'],
+          'mnemonic': parsed['mnemonic'],
+          'source': 'local_llm',
+          'success': true,
+        });
+        return detail;
+      }
+    } catch (_) {}
+    // JSON 解析失败，返回纯文本结果
+    return WordDetail.fromJson({
+      'word': word,
+      'translation': result,
+      'source': 'local_ai',
+    });
   }
 
   /// 调用 AI 接口并返回原始 JSON（用于文章翻译等不转 WordDetail 的场景）
@@ -277,20 +275,6 @@ class AiService {
           result = await _localAi.translate(
             text: text,
           );
-          break;
-          
-        case 'ai_quiz':
-          final words = (params['words'] as List<dynamic>?)?.cast<String>() ?? [];
-          final questionCount = params['question_count'] as int? ?? 5;
-          result = await _localAi.generateQuiz(
-            words: words,
-            questionCount: questionCount,
-          );
-          break;
-          
-        case 'ai_chat':
-          final message = params['message'] as String? ?? '';
-          result = await _localAi.chat(message: message);
           break;
           
         default:

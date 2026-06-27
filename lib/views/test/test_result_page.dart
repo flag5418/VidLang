@@ -273,8 +273,8 @@ class TestResultPage extends ConsumerWidget {
   String _formatDuration(int seconds) {
     final m = seconds ~/ 60;
     final s = seconds % 60;
-    if (m > 0) return '${m}分${s}秒';
-    return '${s}秒';
+    if (m > 0) return '$m分$s秒';
+    return '$s秒';
   }
 }
 
@@ -341,7 +341,7 @@ class _RadarChartPainter extends CustomPainter {
     // 数据区域
     final dataPath = Path();
     final dataPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.3)
+      ..color = Colors.blue.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < 4; i++) {

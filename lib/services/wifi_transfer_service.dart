@@ -642,19 +642,25 @@ class WifiTransferService extends ChangeNotifier {
             where: 'article_code = ? AND is_deleted = 0',
             whereArgs: [c],
           );
-          for (final ch in chapters) await DatabaseService.softDelete(ch);
+          for (final ch in chapters) {
+            await DatabaseService.softDelete(ch);
+          }
           final paragraphs = await DatabaseService.findByCondition(
             () => ArticleParagraph(),
             where: 'article_code = ? AND is_deleted = 0',
             whereArgs: [c],
           );
-          for (final p in paragraphs) await DatabaseService.softDelete(p);
+          for (final p in paragraphs) {
+            await DatabaseService.softDelete(p);
+          }
           final sentences = await DatabaseService.findByCondition(
             () => ArticleSentence(),
             where: 'article_code = ? AND is_deleted = 0',
             whereArgs: [c],
           );
-          for (final s in sentences) await DatabaseService.softDelete(s);
+          for (final s in sentences) {
+            await DatabaseService.softDelete(s);
+          }
         }
       } catch (_) {}
     }
@@ -721,19 +727,25 @@ class WifiTransferService extends ChangeNotifier {
       where: 'article_code = ? AND is_deleted = 0',
       whereArgs: [articleCode],
     );
-    for (final ch in chapters) await DatabaseService.softDelete(ch);
+    for (final ch in chapters) {
+      await DatabaseService.softDelete(ch);
+    }
     final paragraphs = await DatabaseService.findByCondition(
       () => ArticleParagraph(),
       where: 'article_code = ? AND is_deleted = 0',
       whereArgs: [articleCode],
     );
-    for (final p in paragraphs) await DatabaseService.softDelete(p);
+    for (final p in paragraphs) {
+      await DatabaseService.softDelete(p);
+    }
     final sentences = await DatabaseService.findByCondition(
       () => ArticleSentence(),
       where: 'article_code = ? AND is_deleted = 0',
       whereArgs: [articleCode],
     );
-    for (final s in sentences) await DatabaseService.softDelete(s);
+    for (final s in sentences) {
+      await DatabaseService.softDelete(s);
+    }
   }
 
   Future<void> _deleteFileIfExists(String path0) async {

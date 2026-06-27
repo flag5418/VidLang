@@ -128,8 +128,8 @@ class ShengtongEvaluator {
     final requestParams = <String, dynamic>{
       'coreType': coreType,
       'refText': refText,
-      if (tokenId != null) 'tokenId': tokenId,
-      if (extraParams != null) ...extraParams,
+      'tokenId': ?tokenId,
+      ...?extraParams,
     };
 
     return jsonEncode({

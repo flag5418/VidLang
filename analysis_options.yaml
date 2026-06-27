@@ -9,6 +9,12 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    - "models/sherpa-onnx/flutter-examples/**"
+    - "models/sherpa-onnx/dart-api-examples/**"
+    - "plugs/**" # 插件目录如果有自己的分析错误也忽略
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

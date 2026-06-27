@@ -18,7 +18,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   bool _loading = true;
   String _recognizedText = '';
   List<_RecognizedWord> _words = [];
-  Map<String, DictEntry?> _dictCache = {};
+  final Map<String, DictEntry?> _dictCache = {};
   String? _selectedWord;
   String? _fullTranslation;
 
@@ -304,13 +304,13 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                     Text(word, style: TextStyle(color: cs.primary, fontSize: 16, fontWeight: FontWeight.bold)),
                     if (entry?.phonetic != null && entry!.phonetic!.isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      Text('/${entry!.phonetic}/', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                      Text('/${entry.phonetic}/', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
                     ],
                   ],
                 ),
-                if (entry?.shortTranslation != null && entry!.shortTranslation!.isNotEmpty)
+                if (entry?.shortTranslation != null && entry!.shortTranslation.isNotEmpty)
                   Text(
-                    entry!.shortTranslation!,
+                    entry.shortTranslation,
                     style: TextStyle(color: cs.onSurface, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

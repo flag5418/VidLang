@@ -117,12 +117,12 @@ class _HomePageState extends ConsumerState<HomePage> {
           MaterialPageRoute(
             builder: (_) => isMusic
                 ? AudioPlayerPage(
-                    videoCode: firstVideo!.code!,
+                    videoCode: firstVideo.code!,
                     folderVideos: videos,
                     audioType: 'music',
                   )
                 : PlayerPage(
-                    videoCode: firstVideo!.code!,
+                    videoCode: firstVideo.code!,
                     folderVideos: videos,
                   ),
           ),

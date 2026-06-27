@@ -452,7 +452,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未能解析出有效字幕')));
         return;
       }
-      for (final sub in parsed) await DatabaseService.insert(sub);
+      for (final sub in parsed) {
+        await DatabaseService.insert(sub);
+      }
       final videos = await DatabaseService.findByCondition(
         () => VideoInfo(),
         where: 'code = ? AND is_deleted = 0',
@@ -1000,7 +1002,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     final lang = video?.language ?? 'en';
     final isMusic = widget.audioType == 'music';
 
-    Future<void> _playAtSubtitleIndex(int index) async {
+    Future<void> playAtSubtitleIndex(int index) async {
       if (index < 0 || index >= n.subtitles.length) return;
       final sub = n.subtitles[index];
       await n.seekToMs(Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds);
@@ -1033,7 +1035,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         currentSubtitleIndex: s.currentSubtitleIndex,
         nextSentence: () async => n.nextSentence(),
         previousSentence: () async => n.previousSentence(),
-        playAtSubtitleIndex: _playAtSubtitleIndex,
+        playAtSubtitleIndex: playAtSubtitleIndex,
       ),
       heightFactor: 0.45,
       onClose: () {

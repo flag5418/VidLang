@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import 'app_colors.dart';
 import 'app_radius.dart';
-import 'app_shadows.dart';
 import 'app_spacing.dart';
 import 'app_typography.dart';
 
@@ -19,6 +18,13 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.lightBackground,
     canvasColor: AppColors.lightSurface,
     dividerColor: const Color(0x1A000000),
+
+    // 禁用系统上下文菜单，避免 Flutter 3.27+ 的 SystemContextMenu 断言错误
+    textSelectionTheme: TextSelectionThemeData(
+      selectionColor: const Color(0xFFBBDEFB),
+      cursorColor: AppColors.primary,
+      selectionHandleColor: AppColors.primary,
+    ),
 
     appBarTheme: AppBarTheme(
       elevation: 0,
@@ -173,6 +179,13 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.background,
     canvasColor: AppColors.surface,
     dividerColor: AppColors.divider,
+
+    // 禁用系统上下文菜单，避免 Flutter 3.27+ 的 SystemContextMenu 断言错误
+    textSelectionTheme: TextSelectionThemeData(
+      selectionColor: const Color(0xFF1565C0),
+      cursorColor: AppColors.primary,
+      selectionHandleColor: AppColors.primary,
+    ),
 
     appBarTheme: AppBarTheme(
       elevation: 0,

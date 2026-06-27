@@ -4,7 +4,7 @@ import 'package:vidlang/models/base_entity.dart';
 /// 文章翻译实体
 ///
 /// 存储整篇文章从英文到中文的翻译结果。
-/// 翻译由 Qwen LLM 一次性生成，按章拆分存储，确保上下文准确。
+/// 翻译按章节拆分存储，确保上下文准确。
 class ArticleTranslation extends BaseEntity {
   /// 所属文章 code
   String articleCode;

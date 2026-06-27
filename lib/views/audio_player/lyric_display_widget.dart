@@ -72,7 +72,7 @@ class LyricDisplayWidget extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: _AlignedPronunciationRow(
                 content: subtitle.content,
-                pronMap: pronMap!,
+                pronMap: pronMap,
                 fontSize: fontSize - 4,
               ),
             ),

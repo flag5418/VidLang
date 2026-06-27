@@ -30,7 +30,6 @@ library;
 /// 每种颜色都包含亮色和暗色版本
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
 /// 圆角令牌
 /// 
 /// 定义应用中使用的圆角值，包括：

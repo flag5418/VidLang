@@ -22,7 +22,7 @@ class DialogUtils {
       barrierDismissible: barrierDismissible,
       barrierLabel: barrierLabel,
       barrierColor: barrierColor,
-      pageBuilder: (ctx, _, __) => builder(ctx),
+      pageBuilder: (ctx, _, _) => builder(ctx),
       routeSettings: routeSettings,
     );
   }

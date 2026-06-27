@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/services/translation_init_service.dart';
-import 'package:vidlang/services/ios_native_features.dart';
 
 /// 模拟 iOS 原生翻译结果，用于测试
 class MockTranslationResult {

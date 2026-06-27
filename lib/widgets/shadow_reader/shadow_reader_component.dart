@@ -23,6 +23,7 @@ import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
+import 'package:vidlang/services/local_stt_service.dart';
 import 'package:vidlang/services/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
@@ -130,7 +131,7 @@ class ShadowReaderComponent extends ConsumerStatefulWidget {
   final VoidCallback? _onClose;
 
   const ShadowReaderComponent({super.key, required this.config}) : _isInline = false, _onClose = null;
-  const ShadowReaderComponent._inline({super.key, required this.config, this._onClose}) : _isInline = true;
+  const ShadowReaderComponent._inline({required this.config, this._onClose}) : _isInline = true;
 
   static void show(BuildContext context, {required ShadowReaderConfig config}) {
     showModalBottomSheet(
@@ -167,7 +168,6 @@ class ShadowReaderComponent extends ConsumerStatefulWidget {
 // ─── State ────────────────────────────────────────────
 class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> with SingleTickerProviderStateMixin {
   late final AudioRecorder _recorder = AudioRecorder();
-  SpeechToTextService? _speechToText;
   ShengtongEvaluator? _evaluator;
   final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
   Timer? _autoStopTimer;
@@ -199,7 +199,6 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
     _recordingTimer?.cancel();
-    _speechToText?.dispose();
     _evaluator?.dispose();
     _audioPlayer.dispose();
     _recorder.stop();
@@ -816,11 +815,13 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
   Future<void> _stopRecording(BuildContext context, ShadowReaderConfig cfg) async {
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
-    _speechToText?.stop();
-    _speechToText?.cancel();
     if (_recordingPath == null) return;
     try {
       await _recorder.stop();
+    } catch (_) {}
+    // 停止系统 speech_to_text 识别
+    try {
+      SpeechToTextService().stop();
     } catch (_) {}
     cfg.setRecording?.call(false);
     await cfg.setOriginalVolume?.call(1.0);
@@ -863,8 +864,6 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
     _recordingTimer?.cancel();
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
-    _speechToText?.stop();
-    _speechToText?.cancel();
     _recorder.stop();
     setState(() {
       _state = 'idle';
@@ -898,31 +897,34 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
       return;
     }
 
-    // 免费模式：使用 speech_to_text 进行实时语音识别
-    _speechToText = SpeechToTextService();
-    _speechToText!.init().then((available) {
+    // 免费模式：尝试使用系统 speech_to_text 进行实时识别
+    // 本地 STT 模型由 LocalAiService 统一管理初始化
+    // 录音结束后由 _evaluateFreeModeRecording 使用 LocalSttService 识别
+    _initLiveSpeechToText(cfg);
+  }
+
+  /// 初始化系统 speech_to_text 进行实时识别
+  Future<void> _initLiveSpeechToText(ShadowReaderConfig cfg) async {
+    try {
+      final speechService = SpeechToTextService();
+      final available = await speechService.init();
       if (!available) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('语音识别不可用，请确保已安装 Google 服务或设备支持语音识别')));
-        }
+        debugPrint('系统 speech_to_text 不可用');
         return;
       }
-      final localeId = cfg.language == 'en' ? 'en-US' : cfg.language;
-      _speechToText!.start(localeId: localeId).then((success) {
-        if (!success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('语音识别启动失败')));
+
+      // 监听识别结果
+      speechService.textStream.listen((text) {
+        if (mounted) {
+          setState(() => _liveTranscription = text);
         }
       });
-    });
 
-    _speechToText!.textStream.listen((text) {
-      if (mounted) {
-        setState(() {
-          _liveTranscription = text;
-        });
-        cfg.onFreeModeSpeechResult?.call();
-      }
-    });
+      // 开始识别
+      await speechService.start(localeId: cfg.language == 'en' ? 'en-US' : cfg.language);
+    } catch (e) {
+      debugPrint('启动实时语音识别失败: $e');
+    }
   }
 
   // ━━━ 评分逻辑 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1009,16 +1011,58 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
     }
   }
 
-  /// 免费模式评分：使用语音识别结果进行简单对比评分
+  /// 免费模式评分：优先使用本地 STT 模型识别录音，不可用时回退到系统 speech_to_text
   Future<void> _evaluateFreeModeRecording(String audioPath, ShadowReaderConfig cfg) async {
     if (_isEvaluating) return;
     _isEvaluating = true;
     try {
-      final recognizedText = _liveTranscription.trim().toLowerCase();
-      final refText = cfg.subtitle.content.trim().toLowerCase();
+      String recognizedText = '';
+      
+      // 优先尝试本地 STT 模型
+      final localStt = LocalSttService.instance;
+      if (!localStt.isInitialized) {
+        await localStt.initialize();
+      }
 
-      // 移除标点符号进行比较
-      final cleanRecognized = recognizedText.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(RegExp(r'\s+'), ' ');
+      if (localStt.isInitialized) {
+        // 使用本地 STT 模型识别
+        recognizedText = await localStt.recognizeFromFile(filePath: audioPath, language: cfg.language);
+        debugPrint('本地 STT 识别结果: $recognizedText');
+      } else {
+        // 本地 STT 不可用，回退到系统 speech_to_text
+        debugPrint('本地 STT 不可用，尝试使用系统 speech_to_text...');
+        final speechService = SpeechToTextService();
+        final available = await speechService.init();
+        if (available) {
+          // 使用录音文件路径进行识别（speech_to_text 不支持文件识别，需要提示用户）
+          // 这里我们使用一个简化方案：由于 speech_to_text 只能实时识别，
+          // 我们在录音时同时开启 speech_to_text 进行实时识别
+          recognizedText = _liveTranscription;
+          if (recognizedText.isEmpty) {
+            // 如果没有实时识别结果，提示用户
+            if (mounted) {
+              setState(() => _state = 'idle');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('语音识别模型正在准备中，请确保已下载模型或授予麦克风权限')),
+              );
+            }
+            return;
+          }
+        } else {
+          if (mounted) {
+            setState(() => _state = 'idle');
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('语音识别不可用，请检查麦克风权限')),
+            );
+          }
+          return;
+        }
+      }
+
+      _liveTranscription = recognizedText;
+
+      final refText = cfg.subtitle.content.trim().toLowerCase();
+      final cleanRecognized = recognizedText.trim().toLowerCase().replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(RegExp(r'\s+'), ' ');
       final cleanRef = refText.replaceAll(RegExp(r'[^\w\s]'), '').replaceAll(RegExp(r'\s+'), ' ');
 
       final refWords = cleanRef.split(' ').where((w) => w.isNotEmpty).toList();

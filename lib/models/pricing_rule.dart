@@ -60,7 +60,7 @@ class PricingRule {
     try {
       final client = sb.Supabase.instance.client;
       final response = await client.from('pricing_rule').select().eq('rule_code', ruleCode).single();
-      return PricingRule.fromJson(response as Map<String, dynamic>);
+      return PricingRule.fromJson(response);
     } catch (_) {
       return null;
     }

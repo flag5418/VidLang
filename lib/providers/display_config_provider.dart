@@ -5,7 +5,6 @@ import 'package:vidlang/services/settings_service.dart';
 enum WordDetailSection {
   chineseMeaning,
   sentenceTranslation,
-  definitions,
   englishMeaning,
   partOfSpeech,
   examples,
@@ -19,7 +18,6 @@ extension WordDetailSectionX on WordDetailSection {
     switch (this) {
       case WordDetailSection.chineseMeaning:     return '中文释义';
       case WordDetailSection.sentenceTranslation: return '当前句释义';
-      case WordDetailSection.definitions:          return '词典释义';
       case WordDetailSection.englishMeaning:       return '英文解释';
       case WordDetailSection.partOfSpeech:         return '词性';
       case WordDetailSection.examples:             return '例句';
@@ -33,7 +31,6 @@ extension WordDetailSectionX on WordDetailSection {
     switch (this) {
       case WordDetailSection.chineseMeaning:     return 'chineseMeaning';
       case WordDetailSection.sentenceTranslation: return 'sentenceTranslation';
-      case WordDetailSection.definitions:          return 'definitions';
       case WordDetailSection.englishMeaning:       return 'englishMeaning';
       case WordDetailSection.partOfSpeech:         return 'partOfSpeech';
       case WordDetailSection.examples:             return 'examples';
@@ -96,7 +93,6 @@ class WordDetailDisplayConfig {
     sections: [
       WordDetailSection.chineseMeaning,
       WordDetailSection.sentenceTranslation,
-      WordDetailSection.definitions,
       WordDetailSection.englishMeaning,
       WordDetailSection.examples,
       WordDetailSection.morphology,
@@ -111,7 +107,6 @@ class WordDetailDisplayConfig {
     sections: [
       WordDetailSection.chineseMeaning,
       WordDetailSection.sentenceTranslation,
-      WordDetailSection.definitions,
       WordDetailSection.examples,
       WordDetailSection.difficulty,
     ],
@@ -123,7 +118,6 @@ class WordDetailDisplayConfig {
     sections: [
       WordDetailSection.chineseMeaning,
       WordDetailSection.sentenceTranslation,
-      WordDetailSection.definitions,
       WordDetailSection.examples,
       WordDetailSection.morphology,
       WordDetailSection.mnemonic,

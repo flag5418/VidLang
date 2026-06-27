@@ -45,8 +45,7 @@ class LocalModelService {
 
     try {
       // 检查模型类型
-      // TTS 是必需的（本地语音合成）
-      // STT 和 LLM 可以使用云端回退
+      // TTS 和 STT 是必需的
       final ttsExists = await _downloadService.isModelDownloaded('tts');
       final sttExists = await _downloadService.isModelDownloaded('stt');
 
@@ -83,11 +82,11 @@ class LocalModelService {
       }
 
       // 更新状态
-      // 只要本地有核心模型 (TTS 是必需的，STT由于是云端回退可选)，即使远程配置获取失败也认为可用
-      if (ttsExists) {
+      // TTS 和 STT 可以独立就绪，不需要同时存在
+      if (ttsExists || sttExists) {
         _currentStatus = LocalModelStatus.ready;
-        _hasAllModels = true;
-        debugPrint('状态设置为 LocalModelStatus.ready (离线或在线验证通过)');
+        _hasAllModels = ttsExists && sttExists;
+        debugPrint('状态设置为 LocalModelStatus.ready (TTS: $ttsExists, STT: $sttExists)');
       } else if (needsUpdate) {
         _currentStatus = LocalModelStatus.needsUpdate;
         _hasAllModels = false;
@@ -96,7 +95,7 @@ class LocalModelService {
         // 模型不全且获取配置失败
         _currentStatus = LocalModelStatus.error;
         _hasAllModels = false;
-        debugPrint('状态设置为 LocalModelStatus.error (核心模型 TTS 缺失且无法连接服务器)');
+        debugPrint('状态设置为 LocalModelStatus.error (模型缺失且无法连接服务器)');
       } else {
         // 模型不全但获取配置成功，提示下载
         _currentStatus = LocalModelStatus.missing;
@@ -123,11 +122,6 @@ class LocalModelService {
 
   /// 是否可以使用 AI 功能
   bool get canUseAiFeatures => _hasAllModels && _currentStatus == LocalModelStatus.ready;
-
-  /// 获取本地 LLM 模型路径
-  Future<String?> getLlmModelPath() async {
-    return await _downloadService.getLocalModelPath('llm');
-  }
 
   /// 获取本地 TTS 模型路径
   Future<String?> getTtsModelPath() async {

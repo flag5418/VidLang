@@ -4,7 +4,6 @@
 /// 仅支持 iPhone portrait 布局。
 library;
 
-import 'package:flutter/material.dart';
 
 class DeviceUtils {
   DeviceUtils._();

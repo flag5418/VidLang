@@ -45,7 +45,7 @@ class _ModelSettingsPageState extends State<ModelSettingsPage> {
       _modelStatus = await _localModelService.checkModelsStatus();
       
       // 加载各模型状态
-      for (final modelType in ['llm', 'tts', 'stt']) {
+      for (final modelType in ['tts', 'stt']) {
         _modelDownloaded[modelType] = await _downloadService.isModelDownloaded(modelType);
         _modelVersions[modelType] = prefs.getString('model_version_$modelType') ?? '未安装';
       }
@@ -234,14 +234,6 @@ class _ModelSettingsPageState extends State<ModelSettingsPage> {
             ),
             SizedBox(height: 12.h),
             
-            _buildModelItem(
-              modelType: 'llm',
-              name: 'TranslateGemma 4B',
-              description: '翻译/对话/出题',
-              isDownloaded: _modelDownloaded['llm'] ?? false,
-              version: _modelVersions['llm'] ?? '未安装',
-            ),
-            Divider(height: 1),
             _buildModelItem(
               modelType: 'tts',
               name: 'Piper TTS',

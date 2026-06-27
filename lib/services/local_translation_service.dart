@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -125,9 +126,19 @@ class LocalTranslationService {
     }
   }
 
+  /// 模型保活计时器，用于按需释放
+  Timer? _releaseTimer;
+
+  /// 保活时间（翻译完成后多久释放模型）
+  static const _modelKeepAliveMs = 60000; // 60秒
+
   /// 延迟加载 ONNX 模型（首次翻译时才加载）
   bool _ensureModelsLoaded() {
-    if (_encoderSession != null && _decoderSession != null) return true;
+    if (_encoderSession != null && _decoderSession != null) {
+      // 取消之前的释放计时器
+      _releaseTimer?.cancel();
+      return true;
+    }
     if (_modelDir == null) return false;
 
     try {
@@ -135,7 +146,7 @@ class LocalTranslationService {
       if (_encoderSession == null) {
         final encoderPath = '$_modelDir/encoder_model.onnx';
         final encoderOptions = OrtSessionOptions()
-          ..setIntraOpNumThreads(2)
+          ..setIntraOpNumThreads(1)
           ..setSessionGraphOptimizationLevel(GraphOptimizationLevel.ortEnableAll);
         _encoderSession = OrtSession.fromFile(File(encoderPath), encoderOptions);
         debugPrint('MarianMT encoder 已加载');
@@ -145,7 +156,7 @@ class LocalTranslationService {
       if (_decoderSession == null) {
         final decoderPath = '$_modelDir/decoder_model.onnx';
         final decoderOptions = OrtSessionOptions()
-          ..setIntraOpNumThreads(2)
+          ..setIntraOpNumThreads(1)
           ..setSessionGraphOptimizationLevel(GraphOptimizationLevel.ortEnableAll);
         _decoderSession = OrtSession.fromFile(File(decoderPath), decoderOptions);
         debugPrint('MarianMT decoder 已加载');
@@ -156,6 +167,29 @@ class LocalTranslationService {
       debugPrint('MarianMT 模型加载失败: $e');
       return false;
     }
+  }
+
+  /// 保活：取消即将执行的模型释放
+  void keepAlive() {
+    _releaseTimer?.cancel();
+  }
+
+  /// 启动模型释放计时器（翻译完成后调用）
+  void _scheduleRelease() {
+    _releaseTimer?.cancel();
+    _releaseTimer = Timer(const Duration(milliseconds: _modelKeepAliveMs), () {
+      debugPrint('MarianMT 模型 60秒未使用，释放内存');
+      _releaseModels();
+    });
+  }
+
+  /// 释放 ONNX 模型内存（保留初始化状态，仅释放 session）
+  void _releaseModels() {
+    _encoderSession?.release();
+    _encoderSession = null;
+    _decoderSession?.release();
+    _decoderSession = null;
+    debugPrint('MarianMT 模型已释放');
   }
 
   /// 翻译英文→中文
@@ -198,8 +232,17 @@ class LocalTranslationService {
       // Decoder 推理（贪心解码）
       final outputIds = await _runDecoder(encoderOutputs, paddedMask);
 
+      // 释放 encoder 输出 tensor 内存
+      for (final o in encoderOutputs) {
+        (o as OrtValueTensor).release();
+      }
+
       // 解码输出
       final result = tokenizer.decode(outputIds);
+
+      // 启动模型释放计时器（60秒后释放内存）
+      _scheduleRelease();
+
       return result;
     } catch (e) {
       debugPrint('翻译失败: $e');
@@ -272,6 +315,12 @@ class LocalTranslationService {
         throw Exception('Unexpected tensor structure: root is not a List');
       }
 
+      // 释放 logits tensor 和 outputs 内存
+      logitsTensor.release();
+      for (final o in outputs) {
+        (o as OrtValueTensor).release();
+      }
+
       // 贪心解码
       var maxLogit = lastTokenLogits[0];
       var maxIndex = 0;
@@ -284,6 +333,8 @@ class LocalTranslationService {
 
       // 检查 EOS
       if (maxIndex == eosTokenId) {
+        decoderInputTensor.release();
+        runOptions.release();
         break;
       }
 

@@ -172,7 +172,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.2 + intensity * 0.7),
+                          color: Colors.green.withValues(alpha: 0.2 + intensity * 0.7),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         alignment: Alignment.center,
