@@ -21,6 +21,7 @@ import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/speech_to_text_service.dart';
@@ -977,14 +978,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
         headphoneMode: await cfg.getHeadphoneMode?.call(),
       );
       await DatabaseService.insert(record);
-      if (overall != null && cfg.setLastFollowScore != null) await cfg.setLastFollowScore!(overall);
-      if (cfg.resourceType == 'music' || cfg.resourceType == 'video') {
-        final video = cfg.getCurrentVideo?.call();
-        if (video != null && overall != null) {
-          video.lastFollowScore = overall;
-          await DatabaseService.update(video);
-        }
+      // 通过 LearningStatsService 统一记录跟读评分（StudyRecord.bestFollowScore / followCount / VideoInfo.lastFollowScore）
+      if (overall != null) {
+        unawaited(LearningStatsService.instance.recordFollowScore(
+          resourceCode: cfg.resourceCode,
+          score: overall,
+          sentenceCode: cfg.subtitle.code ?? '',
+          resourceType: cfg.resourceType,
+        ));
       }
+      // 保留原有的 setLastFollowScore 回调（UI 层可能需要实时更新显示）
+      if (overall != null && cfg.setLastFollowScore != null) await cfg.setLastFollowScore!(overall);
       _setRecognitionResult(cfg, result);
       if (mounted) {
         setState(() {
@@ -1080,6 +1084,13 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
         headphoneMode: await cfg.getHeadphoneMode?.call(),
       );
       await DatabaseService.insert(record);
+      // 通过 LearningStatsService 统一记录跟读评分
+      unawaited(LearningStatsService.instance.recordFollowScore(
+        resourceCode: cfg.resourceCode,
+        score: overall,
+        sentenceCode: cfg.subtitle.code ?? '',
+        resourceType: cfg.resourceType,
+      ));
       if (cfg.setLastFollowScore != null) await cfg.setLastFollowScore!(overall);
 
       _setFreeModeRecognitionResult(wordScores);

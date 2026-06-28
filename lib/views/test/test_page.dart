@@ -13,6 +13,7 @@ import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/evaluation_api.dart';
+import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
@@ -20,13 +21,44 @@ import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// 测试范围枚举
+///
+/// 用于区分单元测试（单个资源）、综合测试（整个文件夹）、生词本测试
+enum TestScope {
+  /// 单个资源测试（视频/音频/文章）
+  resource,
+
+  /// 文件夹综合测试
+  folder,
+
+  /// 生词本测试
+  wordBook,
+}
+
 class TestPage extends StatefulWidget {
+  /// 资源 code（resource/folder 模式必填，wordBook 模式为 null）
   final String? videoCode;
+
+  /// 测试标题
   final String videoTitle;
+
+  /// 生词本种子单词（wordBook 模式使用）
   final List<Map<String, dynamic>> seedWords;
+
+  /// 题型筛选
   final List<String>? questionTypes;
+
+  /// 每个单词出题数
   final int? questionsPerWord;
+
+  /// 难度级别
   final String? difficulty;
+
+  /// 测试范围（默认为 resource）
+  final TestScope testScope;
+
+  /// 文件夹 code（folder 模式必填）
+  final String? folderCode;
 
   const TestPage({
     super.key,
@@ -36,9 +68,11 @@ class TestPage extends StatefulWidget {
     this.questionTypes,
     this.questionsPerWord,
     this.difficulty,
+    this.testScope = TestScope.resource,
+    this.folderCode,
   });
 
-  bool get isWordBookMode => videoCode == null;
+  bool get isWordBookMode => testScope == TestScope.wordBook;
 
   @override
   State<TestPage> createState() => _TestPageState();
@@ -117,23 +151,37 @@ class _TestPageState extends State<TestPage> {
         'phrase_pron_count': _phrasePronCount,
         'sentence_pron_count': _sentencePronCount,
       };
-      final res = await client.functions.invoke(
-        'ai-test-plan',
-        body: widget.isWordBookMode
-            ? {
-                'request_id': requestId,
-                'source_type': 'word_book',
-                'difficulty': difficulty,
-                'config': config,
-                'seed_words': widget.seedWords,
-              }
-            : {
-                'request_id': requestId,
-                'video_code': widget.videoCode,
-                'difficulty': difficulty,
-                'config': config,
-              },
-      );
+      // 根据 TestScope 构造不同的请求体
+      final Map<String, dynamic> requestBody;
+      switch (widget.testScope) {
+        case TestScope.wordBook:
+          requestBody = {
+            'request_id': requestId,
+            'source_type': 'word_book',
+            'difficulty': difficulty,
+            'config': config,
+            'seed_words': widget.seedWords,
+          };
+        case TestScope.folder:
+          requestBody = {
+            'request_id': requestId,
+            'folder_code': widget.folderCode ?? widget.videoCode!,
+            'source_type': 'folder',
+            'difficulty': difficulty,
+            'config': config,
+          };
+        case TestScope.resource:
+        default:
+          requestBody = {
+            'request_id': requestId,
+            'video_code': widget.videoCode,
+            'source_type': 'resource',
+            'difficulty': difficulty,
+            'config': config,
+          };
+      }
+
+      final res = await client.functions.invoke('ai-test-plan', body: requestBody);
 
       final data = res.data;
       if (data is! Map) throw Exception('服务响应异常');
@@ -172,6 +220,8 @@ class _TestPageState extends State<TestPage> {
             billing: billing,
             items: items,
             isWordBookMode: widget.isWordBookMode,
+            testScope: widget.testScope,
+            videoCode: widget.videoCode,
           ),
         ),
       );
@@ -583,12 +633,16 @@ class _TestRunPage extends StatefulWidget {
   final Map<String, dynamic> billing;
   final List<Map<String, dynamic>> items;
   final bool isWordBookMode;
+  final TestScope testScope;
+  final String? videoCode;
 
   const _TestRunPage({
     required this.videoTitle,
     required this.billing,
     required this.items,
     required this.isWordBookMode,
+    this.testScope = TestScope.resource,
+    this.videoCode,
   });
 
   @override
@@ -696,6 +750,17 @@ class _TestRunPageState extends State<_TestRunPage> {
               .toList(),
         );
       }
+
+      // 通过 LearningStatsService 记录本次测试 session 的汇总得分
+      if (widget.videoCode != null && widget.videoCode!.isNotEmpty) {
+        unawaited(LearningStatsService.instance.completeTestSession(
+          resourceCode: widget.videoCode!,
+          totalQuestions: widget.items.length,
+          correctCount: _correct,
+          resourceType: _resourceTypeFromScope(),
+        ));
+      }
+
       if (!mounted) return;
       AppAlertDialog.show(
         context,
@@ -741,12 +806,38 @@ class _TestRunPageState extends State<_TestRunPage> {
     return true;
   }
 
-  void _recordWordResult(bool correct) {
-    final wordBookCode = (_item['word_book_code'] as String?)?.trim();
-    if (wordBookCode == null || wordBookCode.isEmpty) return;
-    _wordResults[wordBookCode] =
-        (_wordResults[wordBookCode] ?? false) || correct;
+void _recordWordResult(bool correct) {
+  final wordBookCode = (_item['word_book_code'] as String?)?.trim();
+  if (wordBookCode == null || wordBookCode.isEmpty) return;
+  _wordResults[wordBookCode] =
+      (_wordResults[wordBookCode] ?? false) || correct;
+
+  // 通过 LearningStatsService 记录单题结果（含资源归属）
+  final sourceVideoCode = (_item['source_video_code'] as String?)?.trim()
+      ?? widget.videoCode; // 综合测试时从题目中取 source_video_code
+  if (sourceVideoCode != null && sourceVideoCode.isNotEmpty) {
+    final questionType = (_item['type'] as String?)?.toString() ?? 'unknown';
+    unawaited(LearningStatsService.instance.recordQuizResult(
+      resourceCode: sourceVideoCode,
+      questionType: questionType,
+      isCorrect: correct,
+      wordBookCode: wordBookCode.isNotEmpty ? wordBookCode : null,
+      resourceType: _resourceTypeFromScope(),
+    ));
   }
+}
+
+/// 根据 testScope 推断资源类型
+String _resourceTypeFromScope() {
+  switch (widget.testScope) {
+    case TestScope.wordBook:
+      return 'video'; // 生词本默认关联视频
+    case TestScope.folder:
+    case TestScope.resource:
+    default:
+      return 'video';
+  }
+}
 
   /// 播放 TTS 音频（参考视频播放器清晰朗读，使用统一 TtsService）
   Future<void> _playTtsAudio() async {

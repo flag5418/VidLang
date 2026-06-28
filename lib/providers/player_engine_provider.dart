@@ -11,6 +11,7 @@ import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 
 final playerEngineProvider = StateNotifierProvider.autoDispose<PlayerEngineNotifier, PlayerEngineState>((ref) => PlayerEngineNotifier(ref));
@@ -253,6 +254,7 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _lastPausedSubtitleIndex = null;
     _currentSentenceIdx = null;
 
+    // 切换资源时，通过 LearningStatsService 统一管理会话
     await _completeCurrentStudyRecord();
     final resourceType = _folderTypeToResourceType(folder.folderType);
     _studyStartTime = DateTime.now();
@@ -260,14 +262,15 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _studyResourceType = resourceType;
     _studyRecordCreated = false;
 
-    if (resourceType == 'article') {
-      _articleTimer?.cancel();
-      _articleTimer = Timer(const Duration(seconds: 30), () {
-        _createArticleStudyRecord(videoCode, folder.code!);
-      });
-    } else {
-      _createStudyRecordNow(videoCode, folder.code!);
-    }
+    // 统一使用 LearningStatsService.beginSession（打开即计时，无延迟）
+    try {
+      await LearningStatsService.instance.beginSession(
+        resourceCode: videoCode,
+        resourceType: resourceType,
+        folderCode: folder.code,
+      );
+      _studyRecordCreated = true;
+    } catch (_) {}
 
     final speed = await SettingsService.getPlayerPlaybackSpeed();
     if (_closed || op != _opSeq) return;
@@ -351,13 +354,22 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _lastPausedSubtitleIndex = null;
     _currentSentenceIdx = null;
 
+    // 切换资源时，通过 LearningStatsService 统一管理会话
     await _completeCurrentStudyRecord();
     final resourceType = _folderTypeToResourceType(folder.folderType);
     _studyStartTime = DateTime.now();
     _studyResourceCode = videoCode;
     _studyResourceType = resourceType;
     _studyRecordCreated = false;
-    _createStudyRecordNow(videoCode, folder.code!);
+
+    try {
+      await LearningStatsService.instance.beginSession(
+        resourceCode: videoCode,
+        resourceType: resourceType,
+        folderCode: folder.code,
+      );
+      _studyRecordCreated = true;
+    } catch (_) {}
 
     final speed = await SettingsService.getPlayerPlaybackSpeed();
     if (_closed || op != _opSeq) return;
@@ -1097,28 +1109,18 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     }
   }
 
-  void _createStudyRecordNow(String resourceCode, String folderCode) {
-    if (_studyRecordCreated) return;
-    final resourceType = _studyResourceType ?? 'video';
-    try {
-      ref.read(fileProvider.notifier).createStudyRecord(resourceCode, resourceType, folderCode, _studyStartTime ?? DateTime.now());
-      _studyRecordCreated = true;
-    } catch (_) {}
-  }
-
-  void _createArticleStudyRecord(String resourceCode, String folderCode) {
-    _createStudyRecordNow(resourceCode, folderCode);
-  }
-
+  /// 结束当前学习会话
+  ///
+  /// [Fix v2.0] duration 使用 endTime - startTime（实际停留秒数），
+  /// 而非旧的 state.position（播放器位置）。
   Future<void> _completeCurrentStudyRecord() async {
     if (!_studyRecordCreated || _studyResourceCode == null || _closed) return;
-    final endTime = DateTime.now();
-    final durationMs = state.position.inMilliseconds;
-    final playCount = 1;
 
     try {
-      await ref.read(fileProvider.notifier).completeStudyRecord(_studyResourceCode!, endTime, durationMs, playCount);
+      // 统一由 LearningStatsService 处理时长计算和持久化
+      await LearningStatsService.instance.endSession();
     } catch (_) {}
+
     _studyRecordCreated = false;
     _studyStartTime = null;
     _studyResourceCode = null;

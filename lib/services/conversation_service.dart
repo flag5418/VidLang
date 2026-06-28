@@ -135,7 +135,11 @@ class ConversationService {
     return ConversationSession.fromJson(data);
   }
 
-  static Future<void> uploadSubtitlesToCloud(String videoCode) async {
+  /// 上传字幕到云端（按 folder_code 组织存储）
+  ///
+  /// [videoCode] 视频 code
+  /// [folderCode] 所属文件夹 code（用于云端按文件夹组织存储）
+  static Future<void> uploadSubtitlesToCloud(String videoCode, {String? folderCode}) async {
     try {
       AuthService.instance.ensureActiveSession();
       final videos = await DatabaseService.findByCondition(() => VideoInfo(), where: 'code = ? AND is_deleted = 0', whereArgs: [videoCode], limit: 1);
@@ -155,23 +159,45 @@ class ConversationService {
           .toList();
 
       final client = sb.Supabase.instance.client;
-      await client.functions.invoke('subtitle-storage', body: {'op': 'upload', 'video_code': videoCode, 'title': title, 'items': items});
+      final body = <String, dynamic>{
+        'op': 'upload',
+        'video_code': videoCode,
+        'title': title,
+        'items': items,
+      };
+      // v2.0: 传递 folder_code 用于云端按文件夹组织
+      if (folderCode != null && folderCode.isNotEmpty) {
+        body['folder_code'] = folderCode;
+      }
+      await client.functions.invoke('subtitle-storage', body: body);
     } catch (e) {
       dev.log('uploadSubtitlesToCloud failed: $e', name: 'ConversationService');
     }
   }
 
-  static Future<void> deleteSubtitlesFromCloud(String videoCode) async {
+  /// 从云端删除字幕
+  ///
+  /// [videoCode] 视频 code
+  /// [folderCode] 所属文件夹 code（可选，用于批量删除整个文件夹的字幕）
+  static Future<void> deleteSubtitlesFromCloud(String videoCode, {String? folderCode}) async {
     try {
       AuthService.instance.ensureActiveSession();
       final client = sb.Supabase.instance.client;
-      await client.functions.invoke('subtitle-storage', body: {'op': 'delete', 'video_code': videoCode});
+      final body = <String, dynamic>{'op': 'delete', 'video_code': videoCode};
+      if (folderCode != null && folderCode.isNotEmpty) {
+        body['folder_code'] = folderCode;
+      }
+      await client.functions.invoke('subtitle-storage', body: body);
     } catch (e) {
       dev.log('deleteSubtitlesFromCloud failed: $e', name: 'ConversationService');
     }
   }
 
-  static Future<void> uploadArticleContentToCloud(String articleCode) async {
+  /// 上传文章内容到云端（按 folder_code 组织存储）
+  ///
+  /// [articleCode] 文章 code
+  /// [folderCode] 所属文件夹 code（用于云端按文件夹组织存储）
+  static Future<void> uploadArticleContentToCloud(String articleCode, {String? folderCode}) async {
     try {
       AuthService.instance.ensureActiveSession();
       final client = sb.Supabase.instance.client;
@@ -216,15 +242,17 @@ class ConversationService {
         });
       }
 
-      await client.functions.invoke(
-        'subtitle-storage',
-        body: {
-          'op': 'upload',
-          'video_code': 'article_$articleCode',
-          'title': article.title,
-          'items': items,
-        },
-      );
+      final body = <String, dynamic>{
+        'op': 'upload',
+        'video_code': 'article_$articleCode',
+        'title': article.title,
+        'items': items,
+      };
+      // v2.0: 传递 folder_code 用于云端按文件夹组织
+      if (folderCode != null && folderCode.isNotEmpty) {
+        body['folder_code'] = folderCode;
+      }
+      await client.functions.invoke('subtitle-storage', body: body);
     } catch (e) {
       dev.log('uploadArticleContentToCloud failed: $e', name: 'ConversationService');
     }
