@@ -165,7 +165,8 @@ class DatabaseService {
     return s.contains('database disk image is malformed') ||
         s.contains('malformed') ||
         s.contains('disk i/o error') ||
-        s.contains('corrupt');
+        s.contains('corrupt') ||
+        s.contains('not a database');
   }
 
   /// 判断是否为锁争用错误（应重试而非删除重建）
@@ -174,18 +175,6 @@ class DatabaseService {
     return s.contains('database is locked') || s.contains('busy');
   }
 
-  /// 检测数据库连接是否已损坏
-  ///
-  /// 在关键操作前调用，如果数据库已损坏则重置连接
-  static Future<bool> _isConnectionHealthy() async {
-    if (_database == null) return false;
-    try {
-      await _database!.rawQuery('PRAGMA quick_check(1)');
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
 
   /// 运行时数据库损坏恢复
   ///
@@ -357,13 +346,13 @@ class DatabaseService {
     final shm = File('$path-shm');
 
     if (await main.exists()) {
-      await main.copy('${backupPrefix}.db');
+      await main.copy('$backupPrefix.db');
     }
     if (await wal.exists()) {
-      await wal.copy('${backupPrefix}.db-wal');
+      await wal.copy('$backupPrefix.db-wal');
     }
     if (await shm.exists()) {
-      await shm.copy('${backupPrefix}.db-shm');
+      await shm.copy('$backupPrefix.db-shm');
     }
   }
 
@@ -412,14 +401,6 @@ class DatabaseService {
     }
   }
 
-  /// WAL checkpoint：将 WAL 文件合并回主数据库
-  /// 在大批量写入前调用可减少 WAL 文件大小，降低不一致风险
-  static Future<void> _walCheckpoint(Database db) async {
-    try {
-      await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE);');
-    } catch (_) {}
-  }
-
   /// 异常时备份三个数据库文件（主文件 + wal + shm）
   static Future<void> _backupDbOnException(String path, String tag) async {
     try {
@@ -441,8 +422,13 @@ class DatabaseService {
       await db.execute('PRAGMA journal_mode = WAL');
     } catch (_) {}
     try {
-      // NORMAL 在性能/安全间更平衡，比 FULL 快且足够安全
-      await db.execute('PRAGMA synchronous = NORMAL');
+      // iOS APFS 文件系统下 NORMAL 模式配合 WAL checkpoint(TRUNCATE) 
+      // 会导致数据库文件头损坏，iOS 平台强制使用 FULL
+      if (Platform.isIOS) {
+        await db.execute('PRAGMA synchronous = FULL');
+      } else {
+        await db.execute('PRAGMA synchronous = NORMAL');
+      }
     } catch (_) {}
     try {
       await db.execute('PRAGMA busy_timeout = 15000');
@@ -995,6 +981,41 @@ class DatabaseService {
     }
   }
 
+  /// 批量 UPDATE 后恢复 FTS5 索引和触发器
+  ///
+  /// [db] 数据库实例
+  /// [tableNames] 需要恢复的表名列表（如 ['subtitles', 'article_sentence']）
+  ///
+  /// 先执行 `INSERT INTO fts_table(fts_table) VALUES('rebuild')` 全量重建索引，
+  /// 再通过 `_autoMigrateFTS` 重新创建之前被 DROP 的 AFTER UPDATE 触发器。
+  static Future<void> _restoreFTSAfterBatch(Database db, List<String> tableNames) async {
+    for (final tableName in tableNames) {
+      final ftsTableName = '${tableName}_fts';
+      // 全量重建 FTS5 全文索引（从 content= 外部内容表重新读取）
+      try {
+        await db.execute("INSERT INTO $ftsTableName($ftsTableName) VALUES('rebuild')");
+        logger.info('fts rebuilt after batch', tag: 'DB', extra: {'table': ftsTableName});
+      } catch (e) {
+        logger.error('fts rebuild failed', tag: 'DB', error: e, extra: {'table': ftsTableName});
+      }
+
+      // 恢复被 DROP 的触发器
+      try {
+        final config = _registeredEntities[tableName];
+        if (config != null) {
+          final entity = config.creator();
+          final existingColumns = (await db.rawQuery('PRAGMA table_info($tableName)'))
+              .map((c) => c['name'] as String)
+              .toSet();
+          await _autoMigrateFTS(db, tableName, entity.toMap(), existingColumns);
+          logger.info('fts triggers restored after batch', tag: 'DB', extra: {'table': tableName});
+        }
+      } catch (e) {
+        logger.error('fts trigger restore failed', tag: 'DB', error: e, extra: {'table': tableName});
+      }
+    }
+  }
+
   /// 获取 Dart 类型对应的 SQLite 列类型
   ///
   /// [value] 字段值
@@ -1234,8 +1255,31 @@ class DatabaseService {
         throw Exception('db integrity check failed before translation update');
       }
 
-      // 2. WAL checkpoint：将 WAL 合并回主库，减少跨文件不一致风险
-      await _walCheckpoint(db);
+      // 2. WAL checkpoint 已移除：SQLite WAL 模式下会自动管理 WAL 文件
+      //    iOS APFS + synchronous=NORMAL 下手动 TRUNCATE checkpoint 会导致文件头损坏（SQLITE_NOTADB）
+
+      // 3. 禁用所有 FTS5 触发器（INSERT/UPDATE/DELETE）
+      //    批量 UPDATE 时触发器会同步写 FTS5 虚拟表，
+      //    在 WAL 模式下可能导致 SQLITE_NOTADB 或 corruption。
+      //    事务完成后手动 REBUILD 索引并恢复触发器。
+      final ftsTablesToRestore = <String>[];
+      const ftsTriggerSuffixes = ['after_insert', 'after_update', 'after_delete'];
+      if (subtitles.isNotEmpty) {
+        for (final suffix in ftsTriggerSuffixes) {
+          try {
+            await db.execute('DROP TRIGGER IF EXISTS subtitles_$suffix');
+          } catch (_) {}
+        }
+        ftsTablesToRestore.add('subtitles');
+      }
+      if (articleSentences.isNotEmpty) {
+        for (final suffix in ftsTriggerSuffixes) {
+          try {
+            await db.execute('DROP TRIGGER IF EXISTS article_sentence_$suffix');
+          } catch (_) {}
+        }
+        ftsTablesToRestore.add('article_sentence');
+      }
 
       Future<int> doUpdate() async {
         int updatedCount = 0;
@@ -1291,6 +1335,10 @@ class DatabaseService {
         final result = retry
             ? await _retryOnLockError<int>(doUpdate, maxRetries: 3, baseDelayMs: 300) ?? 0
             : await doUpdate();
+
+        // 4. 手动重建 FTS5 全文索引并恢复触发器
+        await _restoreFTSAfterBatch(db, ftsTablesToRestore);
+
         return result;
       } catch (e, st) {
         sw.stop();
@@ -1301,6 +1349,14 @@ class DatabaseService {
           stackTrace: st,
           extra: {'total': totalCount, 'ms': sw.elapsedMilliseconds},
         );
+
+        // 尝试恢复 FTS 触发器（非 corruption 错误时需要）
+        try {
+          await _restoreFTSAfterBatch(db, ftsTablesToRestore);
+        } catch (_) {
+          // 数据库可能已损坏，恢复触发器失败是预期行为
+        }
+
         // 异常时立即备份三个文件，供离线分析
         await _backupDbOnException(path, 'batch-update-failed');
         // 再次检查 integrity，记录结果
@@ -1308,6 +1364,11 @@ class DatabaseService {
           final afterOk = await _checkIntegrity(db);
           logger.error('integrity_check after failure', tag: 'DB', extra: {'ok': afterOk});
         } catch (_) {}
+        // SQLITE_NOTADB / SQLITE_CORRUPT 等 corruption 错误：恢复数据库
+        if (_isDatabaseCorrupted(e)) {
+          logger.fatal('corruption detected during batch update, recovering', tag: 'DB', error: e, stackTrace: st);
+          await _recoverRuntimeCorruption(e, st);
+        }
         rethrow;
       }
     });

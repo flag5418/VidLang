@@ -422,7 +422,7 @@ void main() {
       print('╠══════════════════════════════════════════════════════════════╣');
       print('║  总测试数: ${results.length}                                       ║');
       print('║  Hy-MT2 胜: $hyMt2Wins                                       ║');
-      print('║  MarianMT 胜: $ MarianMtWins                                       ║');
+      print('║  MarianMT 胜: $marianMtWins                                       ║');
       print('║  平局: $ties                                         ║');
       print('║  Hy-MT2 平均分: ${avgHyMt2Score.toStringAsFixed(1)}                             ║');
       print('║  MarianMT 平均分: ${avgMarianMtScore.toStringAsFixed(1)}                             ║');

@@ -17,6 +17,7 @@ class TtsService {
   TtsService._internal();
 
   bool _isSpeaking = false;
+  ap.AudioPlayer? _currentPlayer;
 
   /// 使用当前订阅模式朗读文本
   Future<void> speakClarity({
@@ -29,13 +30,22 @@ class TtsService {
       return;
     }
 
+    // 停止之前的播放
+    await stop();
+
     final targetMode = mode ?? SubscriptionMode.free;
+    _isSpeaking = true;
     try {
       final result = await UnifiedTtsService.instance.synthesize(text: text, mode: targetMode);
       if (result.success && result.audioPath.isNotEmpty) {
         final player = ap.AudioPlayer();
+        _currentPlayer = player;
         await player.play(ap.DeviceFileSource(result.audioPath));
         await player.onPlayerComplete.first;
+        // 播放完成，清理引用
+        _currentPlayer?.dispose();
+        _currentPlayer = null;
+        _isSpeaking = false;
         try {
           await File(result.audioPath).delete();
         } catch (_) {}
@@ -46,6 +56,8 @@ class TtsService {
       debugPrint('TTS speak error: $e');
     }
 
+    _currentPlayer = null;
+    _isSpeaking = false;
     if (onComplete != null) onComplete();
   }
 
@@ -62,6 +74,9 @@ class TtsService {
   /// 停止朗读
   Future<void> stop() async {
     _isSpeaking = false;
+    await _currentPlayer?.stop();
+    await _currentPlayer?.dispose();
+    _currentPlayer = null;
   }
 
   /// 是否正在朗读

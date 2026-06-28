@@ -533,7 +533,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   }
 
   void _stopClaritySpeak(PlayerEngineNotifier n) {
-    _aliAudioPlayer.stop();
+    TtsService().stop();
     setState(() => _isTtsSpeaking = false);
   }
 

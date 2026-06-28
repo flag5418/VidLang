@@ -23,8 +23,11 @@ import 'package:vidlang/services/initial_letter_cover.dart';
 import 'package:vidlang/services/lrc_parser.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/views/audio_player/recognition_prompt_dialog.dart';
@@ -48,6 +51,8 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   bool _showSettings = false;
   bool _showAudioList = false;
   bool _showFollow = false;
+  bool _isTtsSpeaking = false;
+  bool _translationInProgress = false;
   bool? _hasHeadphone;
   List<VideoInfo>? _folderVideosOverride;
   String? _resolvedCoverPath;
@@ -148,6 +153,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
     _resolveCover();
 
+    // 检查并初始化翻译（借鉴视频播放器方案）
+    if (mounted) {
+      await _checkAndInitializeTranslation(notifier);
+    }
+
     final state = ref.read(playerEngineProvider);
     if (!state.hasSubtitles && mounted) {
       _showNoSubtitlePrompt();
@@ -166,6 +176,72 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       orderBy: 'created_at ASC',
     );
     if (mounted) setState(() => _folderVideosOverride = fv);
+  }
+
+  /// 检查并初始化翻译（借鉴视频播放器方案）
+  Future<void> _checkAndInitializeTranslation(PlayerEngineNotifier notifier) async {
+    final subtitles = notifier.subtitles;
+    if (subtitles.isEmpty) return;
+
+    final subState = ref.read(subscriptionProvider);
+    final needCount = TranslationInitService.countNeedTranslate(subtitles, subState.mode);
+    if (needCount == 0) return;
+
+    _translationInProgress = true;
+
+    if (!mounted) return;
+    TDMessage.showMessage(context: context, content: '正在进行翻译初始化...', theme: MessageTheme.info, duration: 2000, visible: true);
+
+    final currentTitle = notifier.currentVideo?.name ?? widget.videoCode;
+
+    try {
+      final success = await TranslationInitService.translateSubtitles(
+        subtitles: subtitles,
+        videoCode: widget.videoCode,
+        title: currentTitle,
+        mode: subState.mode,
+        onProgress: (current, total) {},
+      );
+
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Translation init failed: $e');
+      if (mounted) {
+        TDMessage.showMessage(context: context, content: '翻译初始化失败: $e', theme: MessageTheme.error, duration: 3000, visible: true);
+      }
+    } finally {
+      _translationInProgress = false;
+    }
+  }
+
+  /// 处理清晰朗读
+  void _handleClaritySpeak(PlayerEngineNotifier n, PlayerEngineState s, Subtitles cs) async {
+    final wasPlaying = s.playerState == PlayerState.playing;
+    if (wasPlaying) n.player.pause();
+
+    setState(() => _isTtsSpeaking = true);
+
+    final subState = ref.read(subscriptionProvider);
+    await TtsService().speakClarity(
+      text: cs.content,
+      mode: subState.mode,
+      onComplete: () {
+        if (!mounted) return;
+        setState(() => _isTtsSpeaking = false);
+        // 单句暂停开启则保持暂停，否则恢复播放
+        if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+          n.player.play();
+        }
+      },
+    );
+  }
+
+  /// 停止清晰朗读
+  void _stopClaritySpeak() {
+    TtsService().stop();
+    setState(() => _isTtsSpeaking = false);
   }
 
   Future<void> _resolveCover() async {
@@ -851,6 +927,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 }
               }
             }),
+          ],
+          // 清晰朗读按钮
+          if (hasSubtitles) ...[
+            const SizedBox(width: 6),
+            _miniBtn('朗读', _isTtsSpeaking, _isTtsSpeaking
+                ? () => _stopClaritySpeak()
+                : (currentSub != null ? () => _handleClaritySpeak(n, s, currentSub) : null)),
           ],
         ],
       ),

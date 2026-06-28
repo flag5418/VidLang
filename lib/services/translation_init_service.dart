@@ -345,12 +345,20 @@ class TranslationInitService {
       final result = data['result'];
       if (result is Map<String, dynamic>) {
         final raw = result['raw'] as String?;
-        if (raw != null) return jsonDecode(raw.trim());
+        if (raw != null) return jsonDecode(_stripMarkdownCodeFence(raw.trim()));
       }
       if (result is String) {
-        return jsonDecode(result.trim());
+        return jsonDecode(_stripMarkdownCodeFence(result.trim()));
       }
     }
     return null;
+  }
+
+  /// 清理 AI 返回的 markdown 代码围栏
+  /// 处理 ```json ... ``` 或 ``` ... ``` 格式
+  static String _stripMarkdownCodeFence(String text) {
+    // 去掉开头的 ```json 或 ```
+    final cleaned = text.replaceFirst(RegExp(r'^```\w*\s*\n?'), '').replaceFirst(RegExp(r'\n?```\s*$'), '');
+    return cleaned.trim();
   }
 }
