@@ -175,7 +175,7 @@ class _NavItem extends StatelessWidget {
             Icon(
               isActive ? item.activeIcon : item.icon,
               size: 26.w,
-              color: isActive ? AppColors.primaryBrand : AppColors.textTertiary, // Pencil Skill: 使用品牌色和三级文本色
+              color: isActive ? AppColors.primary : AppColors.textTertiary, // 使用主题色作为选中颜色
             ),
             SizedBox(height: 4.h),
             Text(
@@ -183,7 +183,7 @@ class _NavItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11.sp,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? AppColors.primaryBrand : AppColors.textTertiary, // Pencil Skill: 统一颜色规范
+                color: isActive ? AppColors.primary : AppColors.textTertiary, // 使用主题色作为选中颜色
               ),
             ),
           ],

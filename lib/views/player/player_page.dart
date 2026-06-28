@@ -417,35 +417,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           }).toList();
         },
       ),
-      // 字体大小按钮
-      PopupMenuButton<double>(
-        initialValue: s.subtitleFontSize,
-        onSelected: (size) => n.setSubtitleFontSize(size),
-        offset: const Offset(0, -220),
-        color: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        child: _plainTextBtn("字号", s.subtitleFontSize != 20.0, null),
-        itemBuilder: (context) {
-          final fontOptions = [12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 28.0, 32.0, 36.0, 40.0];
-          return fontOptions.map((size) {
-            final active = s.subtitleFontSize == size;
-            return PopupMenuItem<double>(
-              value: size,
-              height: 36,
-              child: Center(
-                child: Text(
-                  '${size.toInt()}',
-                  style: TextStyle(
-                    color: active ? AppColors.primary : Colors.white,
-                    fontSize: 13,
-                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-        },
-      ),
+      // 字体大小按钮（点击弹出 Slider 进度条）
+      _plainTextBtn("字号 ${s.subtitleFontSize.toInt()}", true, () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => _buildFontSlider(),
+        );
+      }),
       // 倍数按钮
       PopupMenuButton<double>(
         initialValue: s.speed,
