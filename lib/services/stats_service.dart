@@ -212,11 +212,10 @@ class StatsService {
     final totalDays = uniqueDates.length;
 
     // 视频/音频/文章文件夹总数
-    final db = await DatabaseService.database;
     final counts = await Future.wait([
-      db.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
-      db.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
-      db.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
     ]);
 
     final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;
@@ -306,11 +305,10 @@ class StatsService {
     );
 
     // 获取各类总数
-    final db = await DatabaseService.database;
     final counts = await Future.wait([
-      db.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
-      db.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
-      db.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
     ]);
 
     final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;

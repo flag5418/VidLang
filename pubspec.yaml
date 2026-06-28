@@ -111,6 +111,7 @@ dev_dependencies:
 
   # App 图标生成工具
   flutter_launcher_icons: ^0.13.1
+  sqflite_common_ffi: ^2.4.2
 dependency_overrides:
   tdesign_flutter_adaptation:
     path: plugs/tdesign_flutter_adaptation

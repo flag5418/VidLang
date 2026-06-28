@@ -52,7 +52,6 @@ class WordTagService {
   static Future<Map<String, List<WordTag>>> listTagsForWords(List<String> wordBookCodes) async {
     if (wordBookCodes.isEmpty) return const {};
 
-    final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final placeholders = List.filled(wordBookCodes.length, '?').join(', ');
     final args = <Object?>[...wordBookCodes];
@@ -76,7 +75,7 @@ class WordTagService {
 
     sql.write(' ORDER BY wt.order_index ASC, wt.created_at ASC');
 
-    final rows = await db.rawQuery(sql.toString(), args);
+    final rows = await DatabaseService.rawQuery(sql.toString(), args);
     final grouped = <String, List<WordTag>>{};
     for (final row in rows) {
       final code = row['word_book_code']?.toString() ?? '';

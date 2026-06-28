@@ -132,7 +132,12 @@ class DatabaseService {
   static Future<Database> _initDatabase() async {
     final path = await _resolveDbPath();
     try {
-      return await _openDatabaseAtPath(path);
+      // 先尝试重试打开（处理锁争用）
+      return await _retryOnLockError<Database>(
+        () => _openDatabaseAtPath(path),
+        maxRetries: 3,
+        baseDelayMs: 200,
+      ) ?? await _openDatabaseAtPath(path);
     } catch (e, st) {
       logger.error('db open failed', tag: 'DB', error: e, stackTrace: st, extra: {'dbPath': path});
       try {
@@ -144,7 +149,7 @@ class DatabaseService {
         logger.error('db recovery failed', tag: 'DB', error: deleteError, extra: {'dbPath': path});
       }
       try {
-        await deleteDatabase(path);
+        await _deleteDbFiles(path);
       } catch (_) {}
       return await _openDatabaseAtPath(path);
     }
@@ -152,11 +157,21 @@ class DatabaseService {
 
   static bool _isDatabaseCorrupted(Object e) {
     final s = e.toString().toLowerCase();
+    // 仅将真正的文件损坏视为 corruption
+    // "database is locked" 是锁争用问题，不应触发删除重建
+    if (s.contains('database is locked') || s.contains('busy')) {
+      return false;
+    }
     return s.contains('database disk image is malformed') ||
         s.contains('malformed') ||
-        s.contains('database is locked') ||
         s.contains('disk i/o error') ||
         s.contains('corrupt');
+  }
+
+  /// 判断是否为锁争用错误（应重试而非删除重建）
+  static bool _isLockError(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('database is locked') || s.contains('busy');
   }
 
   /// 检测数据库连接是否已损坏
@@ -175,7 +190,7 @@ class DatabaseService {
   /// 运行时数据库损坏恢复
   ///
   /// 当运行中检测到数据库损坏时调用，
-  /// 关闭损坏的连接，删除损坏文件，重新初始化数据库。
+  /// 关闭损坏的连接，备份所有文件，删除后重新初始化数据库。
   static Future<void> _recoverRuntimeCorruption(Object error, StackTrace st) async {
     // 恢复数据库属于全局初始化级别操作，使用 _initLock
     await _initLock.synchronized(() async {
@@ -190,28 +205,22 @@ class DatabaseService {
       } catch (_) {}
       _database = null;
 
-      // 等待一小段时间让文件锁释放
-      await Future.delayed(const Duration(milliseconds: 100));
+      // 等待文件锁释放
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      // 备份损坏的数据库文件
+      // 备份所有数据库文件（主文件 + wal + shm）
       try {
-        final src = File(path);
-        if (await src.exists()) {
-          final backupPath = '$path.corrupt-${DateTime.now().millisecondsSinceEpoch}';
-          try {
-            await src.copy(backupPath);
-            logger.warning('corrupted db backed up', tag: 'DB', extra: {'backupPath': backupPath});
-          } catch (e) {
-            logger.error('corrupted db backup failed', tag: 'DB', error: e);
-          }
-        }
+        final ts = DateTime.now().millisecondsSinceEpoch;
+        final backupPrefix = '$path.corrupt-$ts';
+        await _backupDbFiles(path, backupPrefix);
+        logger.warning('corrupted db backed up (including wal/shm)', tag: 'DB', extra: {'backupPrefix': backupPrefix});
       } catch (e) {
         logger.error('corrupted db backup failed', tag: 'DB', error: e);
       }
 
-      // 删除损坏的数据库文件
+      // 删除所有数据库文件
       try {
-        await deleteDatabase(path);
+        await _deleteDbFiles(path);
         logger.warning('corrupted db deleted for recovery', tag: 'DB', extra: {'dbPath': path});
       } catch (e) {
         logger.error('corrupted db delete failed', tag: 'DB', error: e, extra: {'dbPath': path});
@@ -273,19 +282,66 @@ class DatabaseService {
     return _resolveDbPath();
   }
 
+  /// 备份数据库文件（包括 -wal 和 -shm）
+  static Future<void> _backupDbFiles(String path, String backupPrefix) async {
+    final main = File(path);
+    final wal = File('$path-wal');
+    final shm = File('$path-shm');
+
+    if (await main.exists()) {
+      await main.copy('${backupPrefix}.db');
+    }
+    if (await wal.exists()) {
+      await wal.copy('${backupPrefix}.db-wal');
+    }
+    if (await shm.exists()) {
+      await shm.copy('${backupPrefix}.db-shm');
+    }
+  }
+
+  /// 删除数据库文件（包括 -wal 和 -shm）
+  static Future<void> _deleteDbFiles(String path) async {
+    for (final suffix in ['', '-wal', '-shm']) {
+      try {
+        final f = File('$path$suffix');
+        if (await f.exists()) await f.delete();
+      } catch (_) {}
+    }
+  }
+
+  /// 重试逻辑：指数退避重试（用于锁争用场景）
+  static Future<T?> _retryOnLockError<T>(
+    Future<T> Function() operation, {
+    int maxRetries = 3,
+    int baseDelayMs = 200,
+  }) async {
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (e) {
+        if (_isLockError(e) && attempt < maxRetries - 1) {
+          final delay = baseDelayMs * (1 << attempt); // 200, 400, 800
+          await Future.delayed(Duration(milliseconds: delay));
+          continue;
+        }
+        rethrow;
+      }
+    }
+    return null;
+  }
+
   static Future<void> _onConfigure(Database db) async {
     try {
       await db.execute('PRAGMA foreign_keys = ON');
     } catch (_) {}
-    // 使用 DELETE 日志模式（最保守、最稳定）
     try {
-      await db.execute('PRAGMA journal_mode = DELETE');
+      // WAL 模式：提升并发写和崩溃恢复能力
+      await db.execute('PRAGMA journal_mode = WAL');
     } catch (_) {}
-    // FULL 同步是最安全的
     try {
-      await db.execute('PRAGMA synchronous = FULL');
+      // NORMAL 在性能/安全间更平衡，比 FULL 快且足够安全
+      await db.execute('PRAGMA synchronous = NORMAL');
     } catch (_) {}
-    // 设置 busy timeout
     try {
       await db.execute('PRAGMA busy_timeout = 15000');
     } catch (_) {}
@@ -329,32 +385,23 @@ class DatabaseService {
     } catch (_) {}
     _database = null;
 
-    // 等待一小段时间让文件锁释放
-    await Future.delayed(const Duration(milliseconds: 100));
+    // 等待文件锁释放
+    await Future.delayed(const Duration(milliseconds: 200));
 
+    // 备份所有数据库文件（主文件 + wal + shm）
     try {
-      final src = File(path);
-      if (await src.exists()) {
-        final backupPath = '$path.corrupt-${DateTime.now().millisecondsSinceEpoch}';
-        try {
-          await src.rename(backupPath);
-          logger.warning('database backed up', tag: 'DB', extra: {'backupPath': backupPath});
-        } catch (e, st) {
-          try {
-            await src.copy(backupPath);
-            logger.warning('database backed up', tag: 'DB', extra: {'backupPath': backupPath, 'mode': 'copy'});
-          } catch (_) {
-            logger.error('database backup failed', tag: 'DB', error: e, stackTrace: st);
-          }
-        }
-      }
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final backupPrefix = '$path.corrupt-$ts';
+      await _backupDbFiles(path, backupPrefix);
+      logger.warning('database backed up (including wal/shm)', tag: 'DB', extra: {'backupPrefix': backupPrefix});
     } catch (e) {
       logger.error('database backup failed', tag: 'DB', error: e);
     }
 
+    // 删除所有数据库文件
     try {
-      await deleteDatabase(path);
-      logger.warning('database deleted for recovery', tag: 'DB', extra: {'dbPath': path});
+      await _deleteDbFiles(path);
+      logger.warning('database files deleted for recovery', tag: 'DB', extra: {'dbPath': path});
     } catch (e) {
       logger.error('database delete failed', tag: 'DB', error: e, extra: {'dbPath': path});
     }
@@ -828,91 +875,6 @@ class DatabaseService {
     }
   }
 
-  /// 重建表结构（用于字段类型变更等复杂迁移场景）
-  ///
-  /// [db] 数据库实例
-  /// [entity] 新实体实例
-  /// [enableFTS] 是否启用全文检索
-  ///
-  /// SQLite 不支持 ALTER COLUMN，当需要修改字段类型时，需要：
-  /// 1. 创建临时表（使用新结构）
-  /// 2. 将旧数据迁移到临时表
-  /// 3. 删除旧表
-  /// 4. 将临时表重命名为原表名
-  /// 5. 重新创建索引和触发器
-  ///
-  /// 注意：此方法会丢失旧表中实体定义中不存在的字段。
-  /// 如果需要保留旧字段，请在实体中保留对应字段。
-  static Future<void> _rebuildTable(Database db, BaseEntity entity, {bool enableFTS = false}) async {
-    String tableName = entity.tableName;
-    String tempTableName = '${tableName}_temp_${DateTime.now().millisecondsSinceEpoch}';
-
-    logger.info('rebuilding table', tag: 'DB', extra: {'table': tableName, 'temp': tempTableName});
-
-    try {
-      // 1. 创建临时表（使用新结构）
-      Map<String, dynamic> entityMap = entity.toMap();
-      StringBuffer columns = StringBuffer();
-      columns.write('id INTEGER PRIMARY KEY AUTOINCREMENT');
-
-      Map<String, String> textColumns = {};
-      entityMap.forEach((key, value) {
-        if (key != 'id') {
-          String columnType = _getColumnType(value);
-          String nullable = _isNullable(value) ? '' : ' NOT NULL';
-          columns.write(', $key $columnType$nullable');
-          if (columnType == 'TEXT' && key != 'code') {
-            textColumns[key] = columnType;
-          }
-        }
-      });
-
-      await db.execute('CREATE TABLE $tempTableName ($columns)');
-
-      // 2. 获取旧表的列名，只迁移共有的字段
-      List<Map<String, dynamic>> oldColumns = await db.rawQuery('PRAGMA table_info($tableName)');
-      Set<String> oldColumnNames = oldColumns.map((c) => c['name'] as String).toSet();
-      Set<String> newColumnNames = entityMap.keys.toSet();
-      Set<String> commonColumns = oldColumnNames.intersection(newColumnNames);
-
-      if (commonColumns.isNotEmpty) {
-        String commonColumnsStr = commonColumns.join(', ');
-        await db.execute('''
-          INSERT INTO $tempTableName ($commonColumnsStr)
-          SELECT $commonColumnsStr FROM $tableName WHERE is_deleted = 0
-        ''');
-      }
-
-      // 3. 删除旧表相关的 FTS 和触发器
-      try {
-        await db.execute('DROP TABLE IF EXISTS ${tableName}_fts');
-      } catch (_) {}
-      try {
-        await db.execute('DROP TRIGGER IF EXISTS ${tableName}_after_insert');
-      } catch (_) {}
-      try {
-        await db.execute('DROP TRIGGER IF EXISTS ${tableName}_after_update');
-      } catch (_) {}
-      try {
-        await db.execute('DROP TRIGGER IF EXISTS ${tableName}_after_delete');
-      } catch (_) {}
-
-      // 4. 删除旧表并重命名临时表
-      await db.execute('DROP TABLE IF EXISTS $tableName');
-      await db.execute('ALTER TABLE $tempTableName RENAME TO $tableName');
-
-      // 5. 重新创建 FTS 和触发器
-      if (enableFTS && textColumns.isNotEmpty) {
-        await _autoMigrateFTS(db, tableName, entityMap, newColumnNames);
-      }
-
-      logger.info('table rebuild completed', tag: 'DB', extra: {'table': tableName});
-    } catch (e, st) {
-      logger.error('table rebuild failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': tableName});
-      rethrow;
-    }
-  }
-
   /// 获取 Dart 类型对应的 SQLite 列类型
   ///
   /// [value] 字段值
@@ -941,6 +903,16 @@ class DatabaseService {
   static Future<void> execute(String sql, [List<Object?>? arguments]) async {
     final db = await database;
     await db.execute(sql, arguments);
+  }
+
+  /// 执行原生查询（复杂 JOIN、聚合等场景）
+  ///
+  /// [sql] SQL 查询语句
+  /// [arguments] 参数列表
+  /// 返回查询结果
+  static Future<List<Map<String, dynamic>>> rawQuery(String sql, [List<Object?>? arguments]) async {
+    final db = await database;
+    return await db.rawQuery(sql, arguments);
   }
 
   static bool _isMissingColumnError(Object error) {
@@ -986,7 +958,7 @@ class DatabaseService {
       Map<String, dynamic> map = entity.toMap();
       map.remove('id'); // 移除 id，让数据库自动生成
       try {
-        int insertedId = await db.insert(entity.tableName, map);
+        int insertedId = await db.insert(entity.tableName, map, conflictAlgorithm: ConflictAlgorithm.replace);
         entity.id = insertedId;
         return insertedId;
       } catch (e, st) {
@@ -999,7 +971,7 @@ class DatabaseService {
           );
           await _autoMigrateEntity(db, entity);
           final retryMap = entity.toMap()..remove('id');
-          final insertedId = await db.insert(entity.tableName, retryMap);
+          final insertedId = await db.insert(entity.tableName, retryMap, conflictAlgorithm: ConflictAlgorithm.replace);
           entity.id = insertedId;
           return insertedId;
         }
@@ -1065,42 +1037,45 @@ class DatabaseService {
       // 确保表结构匹配实体定义，防止因缺少列导致事务内 SQL 错误
       await _autoMigrateEntity(db, entity);
       entity.updatedAt = DateTime.now();
-      try {
-        final map = entity.toMap();
-        map.remove('id'); // 移除 id，避免 UPDATE 语句包含 id = NULL
-        // 移除 null 值的字段，避免不必要的 NULL 更新
-        map.removeWhere((key, value) => value == null);
-        return await db.update(entity.tableName, map, where: 'id = ?', whereArgs: [entity.id]);
-      } catch (e, st) {
-        if (_isDatabaseCorrupted(e)) {
-          logger.fatal('db corrupted during update, attempting recovery', tag: 'DB', error: e, stackTrace: st);
-          await _recoverRuntimeCorruption(e, st);
-          return 0;
+      // 锁争用重试
+      return await _retryOnLockError<int>(() async {
+        try {
+          final map = entity.toMap();
+          map.remove('id');
+          map.removeWhere((key, value) => value == null);
+          return await db.update(entity.tableName, map, where: 'id = ?', whereArgs: [entity.id]);
+        } catch (e, st) {
+          if (_isLockError(e)) rethrow;
+          if (_isDatabaseCorrupted(e)) {
+            logger.fatal('db corrupted during update, attempting recovery', tag: 'DB', error: e, stackTrace: st);
+            await _recoverRuntimeCorruption(e, st);
+            return 0;
+          }
+          logger.error(
+            'db update failed',
+            tag: 'DB',
+            error: e,
+            stackTrace: st,
+            extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code},
+          );
+          await _tryInsertErrorLog(db, {
+            'code': const Uuid().v4().replaceAll('-', ''),
+            'user_code': entity.userCode,
+            'level': 'error',
+            'tag': 'DB',
+            'message': 'db update failed',
+            'error': e.toString(),
+            'stack_trace': st.toString(),
+            'extra': '{"table":"${entity.tableName}","id":${entity.id},"code":"${entity.code}"}',
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+            'is_deleted': 0,
+            'created_by': entity.userCode,
+            'updated_by': entity.userCode,
+          });
+          rethrow;
         }
-        logger.error(
-          'db update failed',
-          tag: 'DB',
-          error: e,
-          stackTrace: st,
-          extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code},
-        );
-        await _tryInsertErrorLog(db, {
-          'code': const Uuid().v4().replaceAll('-', ''),
-          'user_code': entity.userCode,
-          'level': 'error',
-          'tag': 'DB',
-          'message': 'db update failed',
-          'error': e.toString(),
-          'stack_trace': st.toString(),
-          'extra': '{"table":"${entity.tableName}","id":${entity.id},"code":"${entity.code}"}',
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-          'is_deleted': 0,
-          'created_by': entity.userCode,
-          'updated_by': entity.userCode,
-        });
-        rethrow;
-      }
+      }, maxRetries: 3, baseDelayMs: 200) ?? 0;
     });
   }
 
@@ -1115,45 +1090,55 @@ class DatabaseService {
   static Future<int> _doUpdateTranslationsByCode(List<BaseEntity> entities, {bool retry = true}) async {
     if (entities.isEmpty) return 0;
 
-    final db = await database;
-    final subtitles = entities.whereType<Subtitles>().toList();
-    final articleSentences = entities.whereType<ArticleSentence>().toList();
+    // 与其他写入操作串行化，防止并发写入导致数据库损坏
+    return await _writeLock.synchronized(() async {
+      final db = await database;
+      final subtitles = entities.whereType<Subtitles>().toList();
+      final articleSentences = entities.whereType<ArticleSentence>().toList();
 
-    int updatedCount = 0;
+      Future<int> doUpdate() async {
+        int updatedCount = 0;
 
-    for (final sub in subtitles) {
-      if (sub.code == null || sub.code!.isEmpty) continue;
-      if (sub.contentTranslate == null && sub.translateSource == null) continue;
-      final now = DateTime.now().toIso8601String();
-      updatedCount += await db.update(
-        'subtitles',
-        {
-          'content_translate': sub.contentTranslate,
-          'translate_source': sub.translateSource,
-          'updated_at': now,
-        },
-        where: 'code = ?',
-        whereArgs: [sub.code],
-      );
-    }
+        for (final sub in subtitles) {
+          if (sub.code == null || sub.code!.isEmpty) continue;
+          if (sub.contentTranslate == null) continue;
+          final now = DateTime.now().toIso8601String();
+          updatedCount += await db.update(
+            sub.tableName,
+            {
+              'content_translate': sub.contentTranslate,
+              'translate_source': sub.translateSource,
+              'updated_at': now,
+            },
+            where: 'code = ?',
+            whereArgs: [sub.code],
+          );
+        }
 
-    for (final sentence in articleSentences) {
-      if (sentence.code == null || sentence.code!.isEmpty) continue;
-      if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
-      final now = DateTime.now().toIso8601String();
-      updatedCount += await db.update(
-        'article_sentences',
-        {
-          'content_translate': sentence.contentTranslate,
-          'translate_source': sentence.translateSource,
-          'updated_at': now,
-        },
-        where: 'code = ?',
-        whereArgs: [sentence.code],
-      );
-    }
+        for (final sentence in articleSentences) {
+          if (sentence.code == null || sentence.code!.isEmpty) continue;
+          if (sentence.contentTranslate == null) continue;
+          final now = DateTime.now().toIso8601String();
+          updatedCount += await db.update(
+            sentence.tableName,
+            {
+              'content_translate': sentence.contentTranslate,
+              'translate_source': sentence.translateSource,
+              'updated_at': now,
+            },
+            where: 'code = ?',
+            whereArgs: [sentence.code],
+          );
+        }
 
-    return updatedCount;
+        return updatedCount;
+      }
+
+      if (retry) {
+        return await _retryOnLockError<int>(doUpdate, maxRetries: 3, baseDelayMs: 300) ?? 0;
+      }
+      return await doUpdate();
+    });
   }
 
   /// 批量更新记录

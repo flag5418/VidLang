@@ -38,6 +38,7 @@ class PlayerPage extends ConsumerStatefulWidget {
 
 class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObserver {
   bool _initialized = false;
+  bool _translationInProgress = false;
   bool _showVideoList = false;
   bool _showReadAloud = false;
   List<VideoInfo>? _folderVideosOverride;
@@ -154,6 +155,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final needCount = TranslationInitService.countNeedTranslate(subtitles, subState.mode);
     if (needCount == 0) return;
 
+    // 翻译期间阻止其他 DB 写入操作（跟读评分等）
+    _translationInProgress = true;
+
     // 显示加载提示
     if (!mounted) return;
     TDMessage.showMessage(context: context, content: '正在进行翻译初始化...', theme: MessageTheme.info, duration: 2000, visible: true);
@@ -178,6 +182,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       if (mounted) {
         TDMessage.showMessage(context: context, content: '翻译初始化失败: $e', theme: MessageTheme.error, duration: 3000, visible: true);
       }
+    } finally {
+      _translationInProgress = false;
     }
   }
 
@@ -361,6 +367,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final featureButtons = <Widget>[
       if (hs)
         _plainTextBtn("跟读", _showReadAloud, () {
+          if (_translationInProgress) {
+            TDMessage.showMessage(context: context, content: '翻译进行中，请稍后再试', theme: MessageTheme.warning, duration: 1500, visible: true);
+            return;
+          }
           final shouldBeOpen = !_showReadAloud;
           if (shouldBeOpen) {
             n.player.pause();

@@ -291,7 +291,6 @@ class WordBookService {
   }
 
   static Future<List<WordBook>> queryWords(WordBookFilter filter) async {
-    final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[];
     final where = <String>['wb.is_deleted = 0'];
@@ -330,7 +329,7 @@ class WordBookService {
 
     final joinClause = filter.tagCode != null && filter.tagCode!.isNotEmpty ? 'INNER JOIN word_book_tag wbt ON wbt.word_book_code = wb.code' : '';
 
-    final rows = await db.rawQuery('''
+    final rows = await DatabaseService.rawQuery('''
       SELECT DISTINCT wb.*
       FROM word_book wb
       $joinClause
@@ -346,7 +345,6 @@ class WordBookService {
 
   static Future<List<WordBookNavItem>> loadNavItems(String status) async {
     final normalizedStatus = WordBook.normalizeMasteryLevel(status);
-    final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[normalizedStatus];
     final baseWhere = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?'];
@@ -356,14 +354,14 @@ class WordBookService {
       args.add(userCode);
     }
 
-    final totalRows = await db.rawQuery('''
+    final totalRows = await DatabaseService.rawQuery('''
       SELECT COUNT(*) AS count
       FROM word_book wb
       WHERE ${baseWhere.join(' AND ')}
       ''', args);
     final totalCount = (totalRows.first['count'] as int?) ?? 0;
 
-    final tagRows = await db.rawQuery(
+    final tagRows = await DatabaseService.rawQuery(
       '''
       SELECT
         wt.code AS tag_code,
@@ -407,7 +405,6 @@ class WordBookService {
   /// 返回结构与 [loadNavItems] 相同，但分组键是文章而非标签。
   static Future<List<WordBookNavItem>> loadNavItemsForKnowledgeBase(String status) async {
     final normalizedStatus = WordBook.normalizeMasteryLevel(status);
-    final db = await DatabaseService.database;
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[normalizedStatus, 'sentence'];
     final baseWhere = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?', 'wb.content_type = ?'];
@@ -417,14 +414,14 @@ class WordBookService {
       args.add(userCode);
     }
 
-    final totalRows = await db.rawQuery('''
+    final totalRows = await DatabaseService.rawQuery('''
       SELECT COUNT(*) AS count
       FROM word_book wb
       WHERE ${baseWhere.join(' AND ')}
       ''', args);
     final totalCount = (totalRows.first['count'] as int?) ?? 0;
 
-    final articleRows = await db.rawQuery('''
+    final articleRows = await DatabaseService.rawQuery('''
       SELECT
         wb.source_type AS source_type,
         wb.source_code AS source_code,
@@ -486,7 +483,6 @@ class WordBookService {
 
   static Future<int> countTodayReviewed() async {
     try {
-      final db = await DatabaseService.database;
       final userCode = await DatabaseService.getCurrentUserCode();
       final now = DateTime.now();
       final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
@@ -500,7 +496,7 @@ class WordBookService {
         args.add(userCode);
       }
 
-      final rows = await db.rawQuery('SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}', args);
+      final rows = await DatabaseService.rawQuery('SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}', args);
       return (rows.first['count'] as int?) ?? 0;
     } catch (_) {
       return 0;
@@ -509,7 +505,6 @@ class WordBookService {
 
   static Future<int> countTotalWords() async {
     try {
-      final db = await DatabaseService.database;
       final userCode = await DatabaseService.getCurrentUserCode();
 
       final where = <String>['is_deleted = 0'];
@@ -520,7 +515,7 @@ class WordBookService {
         args.add(userCode);
       }
 
-      final rows = await db.rawQuery('SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}', args);
+      final rows = await DatabaseService.rawQuery('SELECT COUNT(*) as count FROM word_book WHERE ${where.join(' AND ')}', args);
       return (rows.first['count'] as int?) ?? 0;
     } catch (_) {
       return 0;
