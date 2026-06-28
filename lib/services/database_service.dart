@@ -1116,51 +1116,56 @@ class DatabaseService {
   static Future<int> updateTranslationsByCode(List<BaseEntity> entities) async {
     if (entities.isEmpty) return 0;
 
-    final db = await database;
-    final subtitles = entities.whereType<Subtitles>().toList();
-    final articleSentences = entities.whereType<ArticleSentence>().toList();
+    try {
+      final db = await database;
+      final subtitles = entities.whereType<Subtitles>().toList();
+      final articleSentences = entities.whereType<ArticleSentence>().toList();
 
-    int updatedCount = 0;
+      int updatedCount = 0;
 
-    for (final sub in subtitles) {
-      if (sub.code == null || sub.code!.isEmpty) continue;
-      if (sub.contentTranslate == null && sub.translateSource == null) continue;
-      try {
-        updatedCount += await db.rawUpdate(
-          'UPDATE subtitles SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
-          [sub.contentTranslate, sub.translateSource, DateTime.now().toIso8601String(), sub.code],
+      for (final sub in subtitles) {
+        if (sub.code == null || sub.code!.isEmpty) continue;
+        if (sub.contentTranslate == null && sub.translateSource == null) continue;
+        final now = DateTime.now().toIso8601String();
+        updatedCount += await db.update(
+          'subtitles',
+          {
+            'content_translate': sub.contentTranslate,
+            'translate_source': sub.translateSource,
+            'updated_at': now,
+          },
+          where: 'code = ?',
+          whereArgs: [sub.code],
         );
-      } catch (e) {
-        final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('malformed') || errorStr.contains('corrupt') || errorStr.contains('disk i/o')) {
-          logger.warning('database corrupted during subtitle update, recovering', tag: 'DB', extra: {'error': e.toString()});
-          await _recoverRuntimeCorruption(e, StackTrace.current);
-          return updatedCount;
-        }
-        logger.error('subtitle update failed', tag: 'DB', error: e);
       }
-    }
 
-    for (final sentence in articleSentences) {
-      if (sentence.code == null || sentence.code!.isEmpty) continue;
-      if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
-      try {
-        updatedCount += await db.rawUpdate(
-          'UPDATE article_sentences SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
-          [sentence.contentTranslate, sentence.translateSource, DateTime.now().toIso8601String(), sentence.code],
+      for (final sentence in articleSentences) {
+        if (sentence.code == null || sentence.code!.isEmpty) continue;
+        if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
+        final now = DateTime.now().toIso8601String();
+        updatedCount += await db.update(
+          'article_sentences',
+          {
+            'content_translate': sentence.contentTranslate,
+            'translate_source': sentence.translateSource,
+            'updated_at': now,
+          },
+          where: 'code = ?',
+          whereArgs: [sentence.code],
         );
-      } catch (e) {
-        final errorStr = e.toString().toLowerCase();
-        if (errorStr.contains('malformed') || errorStr.contains('corrupt') || errorStr.contains('disk i/o')) {
-          logger.warning('database corrupted during article update, recovering', tag: 'DB', extra: {'error': e.toString()});
-          await _recoverRuntimeCorruption(e, StackTrace.current);
-          return updatedCount;
-        }
-        logger.error('article update failed', tag: 'DB', error: e);
       }
-    }
 
-    return updatedCount;
+      return updatedCount;
+    } catch (e) {
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('malformed') || errorStr.contains('corrupt') || errorStr.contains('disk i/o')) {
+        logger.warning('database corrupted during translation update, recovering', tag: 'DB', extra: {'error': e.toString()});
+        await _recoverRuntimeCorruption(e, StackTrace.current);
+        return 0;
+      }
+      logger.error('updateTranslationsByCode failed', tag: 'DB', error: e);
+      rethrow;
+    }
   }
 
   /// 批量更新记录
