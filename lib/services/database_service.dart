@@ -624,6 +624,24 @@ class DatabaseService {
       await _autoMigrateTable(db, entity, enableFTS: entry.value.enableFullTextSearch);
     }
     await _migrateLocalUserPasswordHash(db);
+    await _ensureIndexes(db);
+  }
+
+  /// 为高频查询字段创建索引，避免全表扫描导致 IO 压力
+  static Future<void> _ensureIndexes(Database db) async {
+    const indexes = [
+      'CREATE INDEX IF NOT EXISTS idx_subtitles_code ON subtitles(code)',
+      'CREATE INDEX IF NOT EXISTS idx_article_sentence_code ON article_sentence(code)',
+      'CREATE INDEX IF NOT EXISTS idx_subtitles_video_code ON subtitles(video_code)',
+      'CREATE INDEX IF NOT EXISTS idx_article_sentence_article_code ON article_sentence(article_code)',
+      'CREATE INDEX IF NOT EXISTS idx_study_record_user_code ON study_record(user_code)',
+      'CREATE INDEX IF NOT EXISTS idx_word_book_user_code ON word_book(user_code)',
+    ];
+    for (final sql in indexes) {
+      try {
+        await db.execute(sql);
+      } catch (_) {}
+    }
   }
 
   static bool _looksLikeSha256(String value) => RegExp(r'^[a-f0-9]{64}$').hasMatch(value);
@@ -1096,19 +1114,29 @@ class DatabaseService {
       final subtitles = entities.whereType<Subtitles>().toList();
       final articleSentences = entities.whereType<ArticleSentence>().toList();
 
+      // 诊断日志：记录更新前的环境信息
+      final sw = Stopwatch()..start();
+      logger.info(
+        'translation batch update start',
+        tag: 'DB',
+        extra: {'subtitles': subtitles.length, 'sentences': articleSentences.length},
+      );
+
       Future<int> doUpdate() async {
         int updatedCount = 0;
+
+        // 使用 batch 在单个事务内提交所有更新，避免逐条独立事务
+        final batch = db.batch();
 
         for (final sub in subtitles) {
           if (sub.code == null || sub.code!.isEmpty) continue;
           if (sub.contentTranslate == null) continue;
-          final now = DateTime.now().toIso8601String();
-          updatedCount += await db.update(
+          batch.update(
             sub.tableName,
             {
               'content_translate': sub.contentTranslate,
               'translate_source': sub.translateSource,
-              'updated_at': now,
+              'updated_at': DateTime.now().toIso8601String(),
             },
             where: 'code = ?',
             whereArgs: [sub.code],
@@ -1118,18 +1146,28 @@ class DatabaseService {
         for (final sentence in articleSentences) {
           if (sentence.code == null || sentence.code!.isEmpty) continue;
           if (sentence.contentTranslate == null) continue;
-          final now = DateTime.now().toIso8601String();
-          updatedCount += await db.update(
+          batch.update(
             sentence.tableName,
             {
               'content_translate': sentence.contentTranslate,
               'translate_source': sentence.translateSource,
-              'updated_at': now,
+              'updated_at': DateTime.now().toIso8601String(),
             },
             where: 'code = ?',
             whereArgs: [sentence.code],
           );
         }
+
+        // 单次提交所有更新（原子操作）
+        final results = await batch.commit(noResult: true);
+        updatedCount = results.length;
+
+        sw.stop();
+        logger.info(
+          'translation batch update done',
+          tag: 'DB',
+          extra: {'updated': updatedCount, 'ms': sw.elapsedMilliseconds},
+        );
 
         return updatedCount;
       }

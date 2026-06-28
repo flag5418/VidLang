@@ -103,7 +103,11 @@ class TranslationInitService {
         try {
           await DatabaseService.updateTranslationsByCode(batchToUpdate);
         } catch (e) {
-          dev.log('updateTranslationsByCode failed: $e', name: 'TranslationInitService');
+          dev.log(
+            'updateTranslationsByCode failed: $e | batch=${batchToUpdate.length} | '
+            'index=$i/${subtitles.length}',
+            name: 'TranslationInitService',
+          );
         }
       }
     }
