@@ -1120,37 +1120,78 @@ class DatabaseService {
     final tableName = entities.first.tableName;
     int updatedCount = 0;
 
-    await _writeLock.synchronized(() async {
-      await db.transaction((txn) async {
-        for (var entity in entities) {
-          if (entity.code == null || entity.code!.isEmpty) continue;
+    final subtitles = entities.whereType<Subtitles>().toList();
+    final articleSentences = entities.whereType<ArticleSentence>().toList();
 
-          dynamic contentTranslate;
-          int? translateSource;
-
-          // 提取字幕或文章句子的翻译字段
-          if (entity is Subtitles) {
-            contentTranslate = entity.contentTranslate;
-            translateSource = entity.translateSource;
-          } else if (entity is ArticleSentence) {
-            contentTranslate = entity.contentTranslate;
-            translateSource = entity.translateSource;
-          } else {
-            continue;
-          }
-
-          int count = await txn.rawUpdate('UPDATE $tableName SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?', [
-            contentTranslate,
-            translateSource,
-            DateTime.now().toIso8601String(),
-            entity.code,
-          ]);
-          updatedCount += count;
-        }
-      }, exclusive: true);
-    });
+    if (subtitles.isNotEmpty) {
+      updatedCount += await _batchUpdateTranslations(db, 'subtitles', subtitles);
+    }
+    if (articleSentences.isNotEmpty) {
+      updatedCount += await _batchUpdateTranslations(db, 'article_sentences', articleSentences);
+    }
 
     return updatedCount;
+  }
+
+  static Future<int> _batchUpdateTranslations<T extends BaseEntity>(
+    Database db,
+    String tableName,
+    List<T> entities,
+  ) async {
+    if (entities.isEmpty) return 0;
+
+    final updates = <Map<String, dynamic>>[];
+    final codes = <String>[];
+
+    for (final entity in entities) {
+      if (entity.code == null || entity.code!.isEmpty) continue;
+
+      String? contentTranslate;
+      int? translateSource;
+
+      if (entity is Subtitles) {
+        contentTranslate = entity.contentTranslate;
+        translateSource = entity.translateSource;
+      } else if (entity is ArticleSentence) {
+        contentTranslate = entity.contentTranslate;
+        translateSource = entity.translateSource;
+      } else {
+        continue;
+      }
+
+      if (contentTranslate != null || translateSource != null) {
+        updates.add({'content_translate': contentTranslate, 'translate_source': translateSource});
+        codes.add(entity.code!);
+      }
+    }
+
+    if (updates.isEmpty) return 0;
+
+    // 构建 CASE WHEN SQL
+    final cases = updates.asMap().entries.map((entry) {
+      final idx = entry.key;
+      final update = entry.value;
+      final ct = update['content_translate'] != null
+          ? "WHEN code = ? THEN '${update['content_translate']!.replaceAll("'", "''")}'"
+          : 'WHEN code = ? THEN content_translate';
+      final ts = update['translate_source'] != null
+          ? "WHEN code = ? THEN ${update['translate_source']}"
+          : 'WHEN code = ? THEN translate_source';
+      return 'content_translate = CASE $ct ELSE content_translate END, translate_source = CASE $ts ELSE translate_source END';
+    }).join(', ');
+
+    final now = DateTime.now().toIso8601String();
+    final allArgs = <dynamic>[];
+
+    // 收集所有 code 参数（每个 update 对应一个）
+    for (final code in codes) {
+      allArgs.add(code);
+    }
+
+    final sql = 'UPDATE $tableName SET $cases, updated_at = ? WHERE code IN (${List.filled(codes.length, '?').join(',')})';
+    final finalArgs = [...allArgs, now, ...codes];
+
+    return await db.rawUpdate(sql, finalArgs);
   }
 
   /// 批量更新记录

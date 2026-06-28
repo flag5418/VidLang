@@ -8,7 +8,7 @@ import 'package:vidlang/services/sentencepiece_tokenizer.dart';
 
 /// MarianMT 本地翻译服务
 /// 使用 MarianMT ONNX 模型进行英文→中文翻译
-/// encoder_model.onnx + decoder_model.onnx
+/// 模型加载后永久驻留，不自动释放
 class LocalTranslationService {
   static LocalTranslationService? _instance;
   static LocalTranslationService get instance => _instance ??= LocalTranslationService._();
@@ -39,7 +39,6 @@ class LocalTranslationService {
     _isLoading = true;
 
     try {
-      // 初始化 tokenizer
       final tokenizerReady = await SentencePieceTokenizer.instance.initialize();
       if (!tokenizerReady) {
         debugPrint('SentencePiece tokenizer 初始化失败');
@@ -47,7 +46,6 @@ class LocalTranslationService {
         return;
       }
 
-      // 查找模型目录
       final modelDir = await _findModelDir();
       if (modelDir == null) {
         debugPrint('MarianMT 模型目录不存在');
@@ -57,12 +55,10 @@ class LocalTranslationService {
 
       _modelDir = modelDir;
 
-      // 初始化 ONNX Runtime
       OrtEnv.instance.init();
 
-      // 仅验证文件存在，不立即加载（避免内存压力）
-      final encoderPath = '$modelDir/encoder_model.onnx';
-      final decoderPath = '$modelDir/decoder_model.onnx';
+      final encoderPath = '$_modelDir/encoder_model.onnx';
+      final decoderPath = '$_modelDir/decoder_model.onnx';
       if (!await File(encoderPath).exists()) {
         debugPrint('encoder_model.onnx 不存在');
         _isLoading = false;
@@ -76,13 +72,6 @@ class LocalTranslationService {
 
       _isInitialized = true;
       debugPrint('MarianMT 翻译服务初始化成功');
-      // 只有在真的初始化了 session 后才打印 inputNames
-      if (_encoderSession != null) {
-        debugPrint('Encoder inputs: ${_encoderSession!.inputNames}');
-      }
-      if (_decoderSession != null) {
-        debugPrint('Decoder inputs: ${_decoderSession!.inputNames}');
-      }
     } catch (e) {
       debugPrint('MarianMT 翻译服务初始化失败: $e');
       _isInitialized = false;
@@ -94,11 +83,9 @@ class LocalTranslationService {
   /// 查找模型目录
   Future<String?> _findModelDir() async {
     try {
-      // 优先从 applicationDocumentsDirectory 查找（模拟器和真机都适用）
       final appDir = await getApplicationDocumentsDirectory();
       final prodPath = '${appDir.path}/models/marianmt-onnx';
       if (await Directory(prodPath).exists()) {
-        // 确认关键文件存在
         if (await File('$prodPath/encoder_model.onnx').exists() &&
             await File('$prodPath/decoder_model.onnx').exists() &&
             await File('$prodPath/tokenizer_data.json').exists()) {
@@ -106,7 +93,6 @@ class LocalTranslationService {
         }
       }
 
-      // 回退：从 Directory.current 查找（仅在 macOS 开发时有效）
       final currentDir = Directory.current.path;
       if (currentDir != '/' && currentDir != '//') {
         final devPath = '$currentDir/models/marianmt-onnx';
@@ -126,23 +112,14 @@ class LocalTranslationService {
     }
   }
 
-  /// 模型保活计时器，用于按需释放
-  Timer? _releaseTimer;
-
-  /// 保活时间（翻译完成后多久释放模型）
-  static const _modelKeepAliveMs = 60000; // 60秒
-
   /// 延迟加载 ONNX 模型（首次翻译时才加载）
   bool _ensureModelsLoaded() {
     if (_encoderSession != null && _decoderSession != null) {
-      // 取消之前的释放计时器
-      _releaseTimer?.cancel();
       return true;
     }
     if (_modelDir == null) return false;
 
     try {
-      // 加载 encoder
       if (_encoderSession == null) {
         final encoderPath = '$_modelDir/encoder_model.onnx';
         final encoderOptions = OrtSessionOptions()
@@ -152,7 +129,6 @@ class LocalTranslationService {
         debugPrint('MarianMT encoder 已加载');
       }
 
-      // 加载 decoder
       if (_decoderSession == null) {
         final decoderPath = '$_modelDir/decoder_model.onnx';
         final decoderOptions = OrtSessionOptions()
@@ -169,29 +145,6 @@ class LocalTranslationService {
     }
   }
 
-  /// 保活：取消即将执行的模型释放
-  void keepAlive() {
-    _releaseTimer?.cancel();
-  }
-
-  /// 启动模型释放计时器（翻译完成后调用）
-  void _scheduleRelease() {
-    _releaseTimer?.cancel();
-    _releaseTimer = Timer(const Duration(milliseconds: _modelKeepAliveMs), () {
-      debugPrint('MarianMT 模型 60秒未使用，释放内存');
-      _releaseModels();
-    });
-  }
-
-  /// 释放 ONNX 模型内存（保留初始化状态，仅释放 session）
-  void _releaseModels() {
-    _encoderSession?.release();
-    _encoderSession = null;
-    _decoderSession?.release();
-    _decoderSession = null;
-    debugPrint('MarianMT 模型已释放');
-  }
-
   /// 翻译英文→中文
   Future<String> translate({required String text}) async {
     if (!_isInitialized) {
@@ -201,7 +154,6 @@ class LocalTranslationService {
       }
     }
 
-    // 延迟加载 ONNX 模型（首次翻译时才加载，避免启动时内存压力）
     if (!_ensureModelsLoaded()) {
       return '翻译模型加载失败';
     }
@@ -209,40 +161,27 @@ class LocalTranslationService {
     try {
       final tokenizer = SentencePieceTokenizer.instance;
 
-      // 编码输入
       final sourceIds = tokenizer.encode(text);
       if (sourceIds.isEmpty) {
         return 'Tokenization 失败';
       }
 
-      // MarianMT opus-mt-en-zh 翻译为中文需要添加目标语言 token
-      // 5 对应 >>cmn_Hans<<
       final inputIds = [5, ...sourceIds];
-
       final attentionMask = List<int>.filled(inputIds.length, 1);
 
-      // Pad to max length
       const maxEncLen = 128;
       final paddedIds = [...inputIds, ...List<int>.filled(maxEncLen - inputIds.length, 0)];
       final paddedMask = [...attentionMask, ...List<int>.filled(maxEncLen - attentionMask.length, 0)];
 
-      // Encoder 推理
       final encoderOutputs = await _runEncoder(paddedIds, paddedMask);
 
-      // Decoder 推理（贪心解码）
       final outputIds = await _runDecoder(encoderOutputs, paddedMask);
 
-      // 释放 encoder 输出 tensor 内存
       for (final o in encoderOutputs) {
         (o as OrtValueTensor).release();
       }
 
-      // 解码输出
       final result = tokenizer.decode(outputIds);
-
-      // 启动模型释放计时器（60秒后释放内存）
-      _scheduleRelease();
-
       return result;
     } catch (e) {
       debugPrint('翻译失败: $e');
@@ -282,7 +221,6 @@ class LocalTranslationService {
 
     for (var step = 0; step < maxLength; step++) {
       final decoderInputIds = Int64List.fromList(outputIds);
-
       final decoderInputTensor = OrtValueTensor.createTensorWithDataList(decoderInputIds, [1, outputIds.length]);
 
       final inputs = {'input_ids': decoderInputTensor, 'encoder_hidden_states': encoderOutput, 'encoder_attention_mask': encoderAttentionMaskTensor};
@@ -290,20 +228,15 @@ class LocalTranslationService {
       final runOptions = OrtRunOptions();
       final outputs = _decoderSession!.run(runOptions, inputs);
 
-      // 获取 logits
       final logitsTensor = outputs[0] as OrtValueTensor;
-      // ONNX 返回的多维数组实际上是 List 的嵌套，比如 [batch, seq_len, vocab_size]
-      // 这里将其逐层解包，取出最后一个 token 的 logits
       final dynamic rawValue = logitsTensor.value;
       List<double> lastTokenLogits;
 
       if (rawValue is List && rawValue.isNotEmpty) {
         final batch = rawValue[0];
         if (batch is List && batch.isNotEmpty) {
-          // batch 是一系列 tokens，我们取最后一个 token
           final lastToken = batch.last;
           if (lastToken is List) {
-            // 确保将其安全转换为 List<double>
             lastTokenLogits = lastToken.map((e) => (e as num).toDouble()).toList();
           } else {
             throw Exception('Unexpected tensor structure: lastToken is not a List');
@@ -315,12 +248,10 @@ class LocalTranslationService {
         throw Exception('Unexpected tensor structure: root is not a List');
       }
 
-      // 释放 outputs（包括 logitsTensor，它们是同一个对象）
       for (final o in outputs) {
         (o as OrtValueTensor).release();
       }
 
-      // 贪心解码
       var maxLogit = lastTokenLogits[0];
       var maxIndex = 0;
       for (var i = 1; i < lastTokenLogits.length; i++) {
@@ -330,7 +261,6 @@ class LocalTranslationService {
         }
       }
 
-      // 检查 EOS
       if (maxIndex == eosTokenId) {
         decoderInputTensor.release();
         runOptions.release();
@@ -338,7 +268,6 @@ class LocalTranslationService {
       }
 
       outputIds.add(maxIndex);
-
       decoderInputTensor.release();
       runOptions.release();
     }
@@ -350,7 +279,9 @@ class LocalTranslationService {
   /// 释放资源
   void dispose() {
     _encoderSession?.release();
+    _encoderSession = null;
     _decoderSession?.release();
+    _decoderSession = null;
     OrtEnv.instance.release();
     _isInitialized = false;
   }
