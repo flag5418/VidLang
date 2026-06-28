@@ -5,10 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
+import 'package:vidlang/services/evaluation_api.dart';
+import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 
 class TestPage extends StatefulWidget {
   final String? videoCode;
@@ -1342,7 +1347,16 @@ Future<void> _playTtsAudio() async {
     );
   }
 
-  // ─── 跟读题 ───
+  // ─── 跟读题（参考 ShadowReaderComponent 实现） ───
+
+  /// 跟读状态: idle → recording → evaluating → scored
+  String _pronState = 'idle';
+  final AudioRecorder _pronRecorder = AudioRecorder();
+  String? _pronRecordingPath;
+  double? _pronScore;
+  String? _pronFeedback;
+  int _pronRecordingSeconds = 0;
+  Timer? _pronRecordingTimer;
 
   Widget _buildPronunciation() {
     final colorScheme = Theme.of(context).colorScheme;
@@ -1354,6 +1368,9 @@ Future<void> _playTtsAudio() async {
         : type == 'phrase_pron'
         ? '跟读短语'
         : '跟读句子';
+    final isRecording = _pronState == 'recording';
+    const isEvaluating = false; // 评估是异步的，不阻塞UI
+    final isScored = _pronState == 'scored';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1386,25 +1403,327 @@ Future<void> _playTtsAudio() async {
           ),
         ),
         SizedBox(height: 20.h),
+
+        // 跟读控制区域
+        if (isScored && _pronScore != null) ...[
+          _buildPronScoreResult(colorScheme),
+          SizedBox(height: 16.h),
+        ],
+
         Center(
           child: GestureDetector(
-            onTap: _submitted ? null : () => setState(() => _submitted = true),
+            onTapDown: (_) => _startPronRecording(),
+            onTapUp: (_) => _stopAndEvaluatePronunciation(),
+            onTapCancel: () => _cancelPronRecording(),
             child: Container(
-              width: 72.r,
-              height: 72.r,
-              decoration: BoxDecoration(color: colorScheme.primary, shape: BoxShape.circle),
-              child: Icon(Icons.mic, size: 32.sp, color: colorScheme.onPrimary),
+              width: 80.r,
+              height: 80.r,
+              decoration: BoxDecoration(
+                color: isRecording
+                    ? Colors.red
+                    : (_submitted ? colorScheme.outline : colorScheme.primary),
+                shape: BoxShape.circle,
+                boxShadow: isRecording
+                    ? [BoxShadow(color: Colors.red.withValues(alpha: 0.4), blurRadius: 12, spreadRadius: 4)]
+                    : null,
+              ),
+              child: isRecording
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.mic, size: 28.sp, color: Colors.white),
+                        SizedBox(height: 2.h),
+                        Text(
+                          '${_pronRecordingSeconds}s',
+                          style: TextStyle(fontSize: 11.sp, color: Colors.white70, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    )
+                  : isScored
+                      ? Icon(Icons.replay_rounded, size: 32.sp, color: colorScheme.onPrimary)
+                      : Icon(Icons.mic, size: 32.sp, color: colorScheme.onPrimary),
             ),
           ),
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 10.h),
         Text(
-          _submitted ? '已录音，点击提交' : '点击录音',
+          isRecording ? '松开结束录音' : (isScored ? '点击重新录音' : '按住录音'),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
         ),
+        if (isEvaluating) ...[
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 16.sp,
+                height: 16.sp,
+                child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary),
+              ),
+              SizedBox(width: 8.w),
+              Text('正在评分...', style: TextStyle(fontSize: 12.sp, color: colorScheme.primary)),
+            ],
+          ),
+        ],
       ],
     );
+  }
+
+  /// 构建跟读评分结果
+  Widget _buildPronScoreResult(ColorScheme colorScheme) {
+    final score = _pronScore ?? 0;
+    final scoreColor = score >= 90
+        ? const Color(0xFF30D158)
+        : score >= 75
+            ? const Color(0xFFFFCC00)
+            : score >= 60
+                ? const Color(0xFFFF8A00)
+                : const Color(0xFFFF453A);
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: scoreColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44.r,
+            height: 44.r,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: scoreColor.withValues(alpha: 0.15)),
+            child: Center(
+              child: Text(
+                '${score.round()}',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: scoreColor),
+              ),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  score >= 90 ? '优秀！' : score >= 75 ? '良好' : score >= 60 ? '及格' : '继续加油',
+                  style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                ),
+                if (_pronFeedback != null && _pronFeedback!.isNotEmpty)
+                  Text(
+                    _pronFeedback!,
+                    style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 开始跟读录音（参考 ShadowReaderComponent._startRecording）
+  Future<void> _startPronRecording() async {
+    if (_submitted || _pronState == 'recording') return;
+
+    final hasPermission = await _pronRecorder.hasPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
+      }
+      return;
+    }
+
+    setState(() {
+      _pronState = 'recording';
+      _pronRecordingSeconds = 0;
+    });
+
+    try {
+      final tmpDir = await getTemporaryDirectory();
+      _pronRecordingPath = '${tmpDir.path}/pron_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _pronRecorder.start(const RecordConfig(), path: _pronRecordingPath!);
+
+      _pronRecordingTimer?.cancel();
+      _pronRecordingTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (mounted) setState(() => _pronRecordingSeconds++);
+      });
+    } catch (e) {
+      debugPrint('Start pronunciation recording error: $e');
+      if (mounted) setState(() => _pronState = 'idle');
+    }
+  }
+
+  /// 停止录音并评分（参考 ShadowReaderComponent._evaluateRecording）
+  Future<void> _stopAndEvaluatePronunciation() async {
+    if (_pronState != 'recording') return;
+    _pronRecordingTimer?.cancel();
+
+    try {
+      await _pronRecorder.stop();
+    } catch (e) {
+      debugPrint('Stop pronunciation recording error: $e');
+    }
+
+    if (!mounted || _pronRecordingPath == null || _pronRecordingSeconds < 1) {
+      // 录音太短，忽略
+      if (mounted) setState(() => _pronState = 'idle');
+      return;
+    }
+
+    // 显示评估中状态
+    setState(() => _pronState = 'evaluating');
+
+    await _evaluatePronunciation(_pronRecordingPath!);
+  }
+
+  /// 取消录音
+  void _cancelPronRecording() {
+    if (_pronState != 'recording') return;
+    _pronRecordingTimer?.cancel();
+    _pronRecorder.stop();
+    if (mounted) setState(() => _pronState = 'idle');
+  }
+
+  /// 声通评分（参考 ShadowReaderComponent._evaluateRecording 的 ShengtongEvaluator 调用方式）
+  Future<void> _evaluatePronunciation(String audioPath) async {
+    final refText = (_item['ref_text'] as String?) ?? '';
+    final type = (_item['type'] as String?) ?? '';
+    if (refText.isEmpty) {
+      if (mounted) setState(() => _pronState = 'idle');
+      return;
+    }
+
+    try {
+      // 确定评测类型
+      final coreType = type == 'word_pron'
+          ? 'en.word.eval'
+          : 'en.sent.eval';
+
+      // 方式1：优先使用 ShengtongEvaluator WebSocket 直连（与 ShadowReader 一致）
+      final evaluator = ShengtongEvaluator(
+        appKey: AppConfig.shengtongAppKey,
+        secretKey: AppConfig.shengtongSecretKey,
+      );
+
+      final completer = Completer<Map<String, dynamic>?>();
+      evaluator.onResult = (r) {
+        if (!completer.isCompleted) completer.complete(r);
+      };
+      evaluator.onError = (e) {
+        if (!completer.isCompleted) completer.complete(null);
+      };
+
+      await evaluator.connect(coreType);
+      evaluator.start(coreType: coreType, refText: refText, userId: 'test_user');
+
+      final file = File(audioPath);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        evaluator.feed(bytes);
+      }
+      evaluator.stop();
+
+      final result = await completer.future.timeout(const Duration(seconds: 15));
+      evaluator.dispose();
+
+      if (result != null) {
+        final overall = (result['overall'] as num?)?.toDouble();
+        final fluency = (result['fluency'] as num?)?.toDouble();
+        final accuracy = (result['accuracy'] as num?)?.toDouble();
+        final completeness = (result['completeness'] as num?)?.toDouble();
+
+        if (mounted) {
+          setState(() {
+            _pronState = 'scored';
+            _pronScore = overall;
+            _pronFeedback = overall != null
+                ? (overall >= 90
+                    ? '发音非常标准！'
+                    : overall >= 75
+                        ? '发音不错，继续保持！'
+                        : overall >= 60
+                            ? '基本正确，注意发音细节。'
+                            : '需要多加练习哦。')
+                : null;
+          });
+          // 自动提交跟读分数
+          _pronScore = overall;
+          if (!_submitted) _submit();
+        }
+      } else {
+        // 声通不可用，降级到 Edge Function 评分
+        await _evaluateWithEdgeFunction(audioPath, coreType, refText);
+      }
+    } catch (e) {
+      debugPrint('Shengtong evaluation failed, fallback to Edge Function: $e');
+      await _evaluateWithEdgeFunction(audioPath, type == 'word_pron' ? 'en.word.eval' : 'en.sent.eval', refText);
+    } finally {
+      // 清理临时文件
+      try { await File(audioPath).delete(); } catch (_) {}
+    }
+  }
+
+  /// 降级：通过 Edge Function 评分（使用 EvaluationApi）
+  Future<void> _evaluateWithEdgeFunction(String audioPath, String coreType, String refText) async {
+    try {
+      final file = File(audioPath);
+      if (!await file.exists()) {
+        if (mounted) setState(() => _pronState = 'idle');
+        return;
+      }
+
+      final bytes = await file.readAsBytes();
+      final base64Audio = base64Encode(bytes);
+
+      final result = await EvaluationApi.scorePronunciation(
+        coreType: coreType,
+        refText: refText,
+        audioBase64: base64Audio,
+      );
+
+      if (result != null) {
+        final overall = (result['overall'] ?? result['score'] ?? 0) as num;
+        if (mounted) {
+          setState(() {
+            _pronState = 'scored';
+            _pronScore = overall.toDouble();
+            _pronFeedback = overall.toDouble() >= 60 ? '完成跟读练习。' : '再试一次吧！';
+          });
+          _pronScore = overall.toDouble();
+          if (!_submitted) _submit();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _pronState = 'scored';
+            _pronScore = 0.0;
+            _pronFeedback = '评分服务暂不可用，已记录练习。';
+          });
+          _pronScore = 0.0;
+          if (!_submitted) _submit(); // 仍然允许提交
+        }
+      }
+    } catch (e) {
+      debugPrint('Edge Function evaluation error: $e');
+      if (mounted) {
+        setState(() {
+          _pronState = 'idle';
+          _pronScore = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('评分失败: $e')));
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pronRecordingTimer?.cancel();
+    _pronRecorder.dispose();
+    super.dispose();
   }
 
   // ─── 通用选项组件 ───

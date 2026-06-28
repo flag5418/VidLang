@@ -1126,13 +1126,32 @@ class DatabaseService {
 
       if (subtitles.isNotEmpty) {
         updatedCount += await db.transaction((txn) async {
-          return await _batchUpdateSubtitles(txn, subtitles);
-        });
+          for (final sub in subtitles) {
+            if (sub.code == null || sub.code!.isEmpty) continue;
+            if (sub.contentTranslate == null && sub.translateSource == null) continue;
+            final count = await txn.rawUpdate(
+              'UPDATE subtitles SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
+              [sub.contentTranslate, sub.translateSource, DateTime.now().toIso8601String(), sub.code],
+            );
+            updatedCount += count;
+          }
+          return updatedCount;
+        }, exclusive: true);
       }
+
       if (articleSentences.isNotEmpty) {
         updatedCount += await db.transaction((txn) async {
-          return await _batchUpdateArticleSentences(txn, articleSentences);
-        });
+          for (final sentence in articleSentences) {
+            if (sentence.code == null || sentence.code!.isEmpty) continue;
+            if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
+            final count = await txn.rawUpdate(
+              'UPDATE article_sentences SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
+              [sentence.contentTranslate, sentence.translateSource, DateTime.now().toIso8601String(), sentence.code],
+            );
+            updatedCount += count;
+          }
+          return updatedCount;
+        }, exclusive: true);
       }
 
       return updatedCount;
@@ -1146,38 +1165,6 @@ class DatabaseService {
       logger.error('updateTranslationsByCode failed', tag: 'DB', error: e);
       rethrow;
     }
-  }
-
-  static Future<int> _batchUpdateSubtitles(Transaction txn, List<Subtitles> subtitles) async {
-    if (subtitles.isEmpty) return 0;
-
-    final batch = txn.batch();
-    for (final sub in subtitles) {
-      if (sub.code == null || sub.code!.isEmpty) continue;
-      if (sub.contentTranslate == null && sub.translateSource == null) continue;
-      batch.rawUpdate(
-        'UPDATE subtitles SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
-        [sub.contentTranslate, sub.translateSource, DateTime.now().toIso8601String(), sub.code],
-      );
-    }
-    final results = await batch.commit(continueOnError: false);
-    return results?.fold<int>(0, (prev, curr) => prev + (curr as int)) ?? 0;
-  }
-
-  static Future<int> _batchUpdateArticleSentences(Transaction txn, List<ArticleSentence> sentences) async {
-    if (sentences.isEmpty) return 0;
-
-    final batch = txn.batch();
-    for (final sentence in sentences) {
-      if (sentence.code == null || sentence.code!.isEmpty) continue;
-      if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
-      batch.rawUpdate(
-        'UPDATE article_sentences SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
-        [sentence.contentTranslate, sentence.translateSource, DateTime.now().toIso8601String(), sentence.code],
-      );
-    }
-    final results = await batch.commit(continueOnError: false);
-    return results?.fold<int>(0, (prev, curr) => prev + (curr as int)) ?? 0;
   }
 
   /// 批量更新记录
