@@ -44,16 +44,22 @@ RETURNS TABLE(
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- 4. 批量检查单词是否在缓存中
+-- 注意：PostgreSQL 不允许在 WHERE 子句中使用 SRF（set-returning function），
+--       改用 CTE + JOIN 方式实现。
 CREATE OR REPLACE FUNCTION check_words_in_cache(words TEXT[])
 RETURNS TABLE(
   word TEXT,
   found BOOLEAN,
   query_count INTEGER
 ) AS $$
+  WITH input_words AS (
+    SELECT unnest(words) AS w
+  )
   SELECT 
-    unnest(words) AS word,
-    EXISTS(SELECT 1 FROM public.word_cache wc WHERE wc.word = unnest(words)) AS found,
-    COALESCE((SELECT query_count FROM public.word_cache wc WHERE wc.word = unnest(words)), 0) AS query_count;
+    iw.w AS word,
+    EXISTS(SELECT 1 FROM public.word_cache wc WHERE wc.word = iw.w) AS found,
+    COALESCE((SELECT query_count FROM public.word_cache wc WHERE wc.word = iw.w), 0) AS query_count
+  FROM input_words iw;
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- 5. 获取低频词（可清理候选）

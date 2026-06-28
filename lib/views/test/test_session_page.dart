@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -8,8 +9,9 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:vidlang/models/test_models.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/providers/test_provider.dart';
-import 'package:vidlang/services/evaluation_api.dart';
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/views/test/test_result_page.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 
@@ -28,6 +30,7 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
   bool _isRecording = false;
   String? _recordingPath;
   bool _ttsPlayed = false;
+  bool _isPlayingTts = false;
   String _appDir = '';
 
   @override
@@ -114,8 +117,14 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
             if (_isTtsType(item.type)) ...[
               const SizedBox(height: 12),
               IconButton.filled(
-                icon: const Icon(Icons.volume_up),
-                onPressed: () => _playPromptAudio(item),
+                icon: _isPlayingTts
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.volume_up),
+                onPressed: _isPlayingTts ? null : () => _playPromptAudio(item),
               ),
             ],
           ],
@@ -363,6 +372,7 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
                   _answerController.clear();
                   _recordingPath = null;
                   _ttsPlayed = false;
+                  _isPlayingTts = false;
                   setState(() {});
                 }
               : null,
@@ -379,10 +389,11 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
                   }
                 }
               : () {
-                  ref.read(testProvider.notifier).nextItem();
-                  _answerController.clear();
-                  _recordingPath = null;
-                  _ttsPlayed = false;
+                    ref.read(testProvider.notifier).nextItem();
+                    _answerController.clear();
+                    _recordingPath = null;
+                    _ttsPlayed = false;
+                    _isPlayingTts = false;
                   setState(() {});
                 },
           child: Text(state.isLastItem ? '完成评测' : '下一题'),
@@ -400,18 +411,34 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
       return;
     }
 
-    // TTS 类型：动态合成后播放
+    // TTS 类型：使用统一 TtsService（与视频播放器清晰朗读一致）
     if (_isTtsType(item.type)) {
+      if (_isPlayingTts) return; // 防止重复点击
+      setState(() => _isPlayingTts = true);
+
       try {
-        final base64Audio = await EvaluationApi.getTtsAudio(item.refText);
-        if (base64Audio == null || base64Audio.isEmpty) return;
-        final bytes = base64Decode(base64Audio);
-        final file = File('$_appDir/tts_${item.itemOrder}.mp3');
-        await file.writeAsBytes(bytes);
-        await _audioPlayer.play(DeviceFileSource(file.path));
-        setState(() => _ttsPlayed = true);
+        final subState = ref.read(subscriptionProvider);
+        await TtsService().speakClarity(
+          text: item.refText,
+          mode: subState.mode,
+          onComplete: () {
+            if (!mounted) return;
+            setState(() {
+              _ttsPlayed = true;
+              _isPlayingTts = false;
+            });
+          },
+        );
+        // 如果 speakClarity 同步返回，也标记状态
+        if (mounted && !_ttsPlayed) {
+          setState(() {
+            _ttsPlayed = true;
+            _isPlayingTts = false;
+          });
+        }
       } catch (e) {
         debugPrint('TTS error: $e');
+        if (mounted) setState(() => _isPlayingTts = false);
       }
     }
   }

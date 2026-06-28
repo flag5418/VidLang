@@ -1125,10 +1125,14 @@ class DatabaseService {
       int updatedCount = 0;
 
       if (subtitles.isNotEmpty) {
-        updatedCount += await _batchUpdateSubtitles(db, subtitles);
+        updatedCount += await db.transaction((txn) async {
+          return await _batchUpdateSubtitles(txn, subtitles);
+        });
       }
       if (articleSentences.isNotEmpty) {
-        updatedCount += await _batchUpdateArticleSentences(db, articleSentences);
+        updatedCount += await db.transaction((txn) async {
+          return await _batchUpdateArticleSentences(txn, articleSentences);
+        });
       }
 
       return updatedCount;
@@ -1144,10 +1148,10 @@ class DatabaseService {
     }
   }
 
-  static Future<int> _batchUpdateSubtitles(Database db, List<Subtitles> subtitles) async {
+  static Future<int> _batchUpdateSubtitles(Transaction txn, List<Subtitles> subtitles) async {
     if (subtitles.isEmpty) return 0;
 
-    final batch = db.batch();
+    final batch = txn.batch();
     for (final sub in subtitles) {
       if (sub.code == null || sub.code!.isEmpty) continue;
       if (sub.contentTranslate == null && sub.translateSource == null) continue;
@@ -1160,10 +1164,10 @@ class DatabaseService {
     return results?.fold<int>(0, (prev, curr) => prev + (curr as int)) ?? 0;
   }
 
-  static Future<int> _batchUpdateArticleSentences(Database db, List<ArticleSentence> sentences) async {
+  static Future<int> _batchUpdateArticleSentences(Transaction txn, List<ArticleSentence> sentences) async {
     if (sentences.isEmpty) return 0;
 
-    final batch = db.batch();
+    final batch = txn.batch();
     for (final sentence in sentences) {
       if (sentence.code == null || sentence.code!.isEmpty) continue;
       if (sentence.contentTranslate == null && sentence.translateSource == null) continue;

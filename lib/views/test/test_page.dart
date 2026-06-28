@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/services/auth_service.dart';
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 
@@ -480,6 +482,7 @@ class _TestRunPageState extends State<_TestRunPage> {
   int _correct = 0;
   bool _submitted = false;
   bool _isCorrect = false;
+  bool _isPlayingTts = false;
   final Map<String, bool> _wordResults = <String, bool>{};
 
   final List<String> _reorderSelected = [];
@@ -496,6 +499,7 @@ class _TestRunPageState extends State<_TestRunPage> {
     _mcqSelected = null;
     _multiSelected.clear();
     _ttsPlayed = false;
+    _isPlayingTts = false;
     _submitted = false;
     _isCorrect = false;
   }
@@ -601,11 +605,45 @@ class _TestRunPageState extends State<_TestRunPage> {
     return true;
   }
 
-  void _recordWordResult(bool correct) {
-    final wordBookCode = (_item['word_book_code'] as String?)?.trim();
-    if (wordBookCode == null || wordBookCode.isEmpty) return;
-    _wordResults[wordBookCode] = (_wordResults[wordBookCode] ?? false) || correct;
+void _recordWordResult(bool correct) {
+  final wordBookCode = (_item['word_book_code'] as String?)?.trim();
+  if (wordBookCode == null || wordBookCode.isEmpty) return;
+  _wordResults[wordBookCode] = (_wordResults[wordBookCode] ?? false) || correct;
+}
+
+/// 播放 TTS 音频（参考视频播放器清晰朗读，使用统一 TtsService）
+Future<void> _playTtsAudio() async {
+  final refText = (_item['ref_text'] as String?) ?? '';
+  if (refText.isEmpty) return;
+
+  setState(() => _isPlayingTts = true);
+
+  try {
+    // 使用与视频播放器一致的 TtsService
+    await TtsService().speakClarity(
+      text: refText,
+      onComplete: () {
+        if (!mounted) return;
+        setState(() {
+          _ttsPlayed = true;
+          _isPlayingTts = false;
+        });
+      },
+    );
+    // 如果 speakClarity 同步返回（未真正播放），也标记为已播放
+    if (mounted && !_ttsPlayed) {
+      setState(() {
+        _ttsPlayed = true;
+        _isPlayingTts = false;
+      });
+    }
+  } catch (e) {
+    debugPrint('TTS play error: $e');
+    if (mounted) {
+      setState(() => _isPlayingTts = false);
+    }
   }
+}
 
   @override
   void initState() {
@@ -1042,7 +1080,7 @@ class _TestRunPageState extends State<_TestRunPage> {
           Column(
             children: [
               GestureDetector(
-                onTap: () => setState(() => _ttsPlayed = true),
+                onTap: _isPlayingTts ? null : () => _playTtsAudio(),
                 child: Container(
                   width: 56.r,
                   height: 56.r,
@@ -1050,16 +1088,25 @@ class _TestRunPageState extends State<_TestRunPage> {
                     color: _ttsPlayed ? colorScheme.primary.withValues(alpha: 0.15) : colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    _ttsPlayed ? Icons.replay : Icons.volume_up,
-                    size: 24.sp,
-                    color: _ttsPlayed ? colorScheme.primary : colorScheme.onPrimary,
-                  ),
+                  child: _isPlayingTts
+                      ? SizedBox(
+                          width: 24.sp,
+                          height: 24.sp,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: colorScheme.onPrimary,
+                          ),
+                        )
+                      : Icon(
+                          _ttsPlayed ? Icons.replay : Icons.volume_up,
+                          size: 24.sp,
+                          color: _ttsPlayed ? colorScheme.primary : colorScheme.onPrimary,
+                        ),
                 ),
               ),
               SizedBox(height: 8.h),
               Text(
-                _ttsPlayed ? '点击重新播放' : '点击播放音频',
+                _isPlayingTts ? '正在播放...' : (_ttsPlayed ? '点击重新播放' : '点击播放音频'),
                 style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
               ),
             ],
