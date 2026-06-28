@@ -162,8 +162,17 @@ void main() {
     });
 
     test('场景3：有上下文时，部分命中（需补充）', () {
-      // 模拟：缓存存在但缺少当前句子的上下文
-      final cachedWithoutCtx = mockWordDetail; // 没有 contextSentence 字段
+      // 模拟：缓存存在但缺少当前句子的上下文（无 contextSentence 且无 sentenceTranslation）
+      final cachedWithoutCtx = WordDetail(
+        word: testWord,
+        pronounce: mockWordDetail.pronounce,
+        definitions: mockWordDetail.definitions,
+        standaloneExamples: mockWordDetail.standaloneExamples,
+        difficulty: mockWordDetail.difficulty,
+        // 注意：没有 contextSentence 和 sentenceTranslation
+        success: true,
+        source: 'cache',
+      );
       
       // 验证：_hasContextForSentence 应返回 false
       final hasContext = _hasContextForSentence(cachedWithoutCtx, 'A completely different sentence.');
