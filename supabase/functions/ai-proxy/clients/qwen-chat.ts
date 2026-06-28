@@ -160,6 +160,7 @@ export async function qwenChat(
  * {
  *   word, phonetic_uk, phonetic_us, part_of_speech,
  *   definitions, difficulty, examples, standalone_examples,
+ *   context_sentence_info,  // 新增：当前句释义（含高亮）
  *   morphology, mnemonic
  * }
  */
@@ -170,30 +171,79 @@ export async function definition(
   sentence?: string,
   model?: string,
 ): Promise<Record<string, any>> {
+  // ── 难度参照表（few-shot，提高判断准确性）──
+  const difficultyReference = `
+难度判断必须严格参照以下标准：
+
+【primary - 小学】 apple, cat, dog, happy, run, book, school, pen, one, two, good, big, small, I, a, the, is, are, have, can
+【juniorHigh - 初中】 abandon, beautiful, decide, environment, necessary, important, different, difficult, interesting, popular, quickly, carefully
+【seniorHigh - 高中】 phenomenon, controversial, entrepreneur, psychological, enthusiastic, perspective, fundamental, substantial, distinctive, comprehensive
+【cet4 - 大学四级】 sophisticated, beneficial, adequate, concept, establish, maintain, significant, approach, factor, issue, occur
+【cet6 - 大学六级】 unprecedented, ubiquitous, meticulous, inevitable, deteriorate, scrutinize, paradox, empirical, legitimate, viable
+【postgraduate - 考研】 arbitrary, coherent, intrinsic, stringent, plausible, corroborate, elucidate, juxtapose, mitigate
+【ielts - 雅思】 exacerbate, impediment, ramifications, succinct, zealous, amenable, clandestine, burgeoning
+【toefl - 托福】 corroborate, disparate, ephemeral, laudable, meticulous, pragmatic, succinct, ubiquitous
+【gre - GRE】 serendipity, ephemeral, ubiquitous, esoteric, obsequious, perspicacious, quixotic, surreptitious`
+
   let prompt = `请用中文详细解释英语单词"${word}"，要求返回严格的 JSON 格式（不要 markdown 代码块标记）：
 {
   "word": "${word}",
-  "phonetic_uk": "英式音标",
-  "phonetic_us": "美式音标",
-  "part_of_speech": "词性",
-  "definitions": ["中文释义1", "中文释义2"],
-  "difficulty": "学习阶段：primary/juniorHigh/seniorHigh/cet4/cet6/postgraduate/ielts/toefl/gre",
-  "examples": [{"english": "英文例句", "chinese": "中文翻译"}],
-  "standalone_examples": [{"english": "独立例句", "chinese": "中文翻译"}],
-  "morphology": {"plural": "复数", "past_tense": "过去式", "past_participle": "过去分词", "present_participle": "现在分词"},
-  "mnemonic": "记忆法（可选）"
+  "phonetic_uk": "英式音标（IPA格式，如 /ˈæp.əl/）",
+  "phonetic_us": "美式音标（IPA格式，如 /ˈæp.əl/）",
+  "part_of_speech": "词性（名词/动词/形容词/副词/代词/冠词/介词/连词）",
+  "definitions": ["核心中文释义1", "引申中文释义2"],
+  "difficulty": "仅限以下值之一: primary / juniorHigh / seniorHigh / cet4 / cet6 / postgraduate / ielts / toefl / gre",
+  "examples": [
+    {"english": "例句1英文（必须包含原词${word}）", "chinese": "例句1中文翻译"},
+    {"english": "例句2英文（必须包含原词${word}）", "chinese": "例句2中文翻译"},
+    {"english": "例句3英文（必须包含原词${word}）", "chinese": "例句3中文翻译"}
+  ],
+  "standalone_examples": [
+    {"english": "独立例句1英文（必须包含原词${word}）", "chinese": "独立例句1中文翻译"},
+    {"english": "独立例句2英文（必须包含原词${word}）", "chinese": "独立例句2中文翻译"},
+    {"english": "独立例句3英文（必须包含原词${word}）", "chinese": "独立例句3中文翻译"}
+  ],
+  "morphology": {
+    "plural": "复数形式（名词必填）",
+    "past_tense": "过去式（动词必填）",
+    "past_participle": "过去分词（动词必填）",
+    "present_participle": "现在分词（动词必填）",
+    "third_person_singular": "第三人称单数（动词必填）",
+    "comparative": "比较级（形容词/副词必填）",
+    "superlative": "最高级（形容词/副词必填）",
+    "is_irregular": true/false,
+    "note": "不规则变化说明（如有）"
+  },
+  "mnemonic": "记忆法或词源解析（可选）"
 }
 
-难度判断标准：根据单词在中国英语教学体系中的常见出现阶段来判断。如 apple/boy 属于 primary，abandon/build 属于 juniorHigh，sophisticated 属于 cet6，ubiquitous 属于 gre。`
+重要规则：
+1. examples 和 standalone_examples 必须各返回至少3条例句
+2. 每条例句的 english 必须包含原词 ${word}（忽略大小写）
+3. 例句要自然、地道、适合英语学习者理解
+4. morphology 根据词性填写对应字段，无关字段设为 null
+5. difficulty 值必须在上述9个枚举值中选择
 
+${difficultyReference}`
+
+  // ── 当前句释义（含高亮信息）──
   if (sentence) {
-    prompt += `\n\n上下文句子：${sentence}`
+    prompt += `\n\n当前上下文句子：${sentence}
+
+请在返回的 JSON 中额外包含以下字段（用于显示该单词在当前句中的释义和高亮）：
+"context_sentence_info": {
+  "original_sentence": "${sentence}",
+  "word_highlighted_sentence": "将原句中的 ${word} 用【】包裹高亮，如 This is an 【unprecedented】 challenge.",
+  "sentence_translation": "整句的中文翻译，其中 ${word} 的中文释义用【】包裹高亮",
+  "word_meaning_in_context": "${word} 在此句中的具体含义（结合语境的精准翻译）"
+}`
+    // 因增加了 context_sentence_info，提高 maxTokens
   }
 
   const raw = await qwenChat(apiKey, baseUrl, {
     prompt,
     temperature: 0.3,
-    maxTokens: 800,
+    maxTokens: sentence ? 1200 : 800, // 有上下文句子时增加 token 上限
     model: model || DEFAULT_CHAT_MODEL,
   })
 

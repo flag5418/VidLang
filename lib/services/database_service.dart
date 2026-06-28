@@ -1117,81 +1117,52 @@ class DatabaseService {
     if (entities.isEmpty) return 0;
 
     final db = await database;
-    final tableName = entities.first.tableName;
-    int updatedCount = 0;
 
     final subtitles = entities.whereType<Subtitles>().toList();
     final articleSentences = entities.whereType<ArticleSentence>().toList();
 
+    int updatedCount = 0;
+
     if (subtitles.isNotEmpty) {
-      updatedCount += await _batchUpdateTranslations(db, 'subtitles', subtitles);
+      updatedCount += await _batchUpdateSubtitles(db, subtitles);
     }
     if (articleSentences.isNotEmpty) {
-      updatedCount += await _batchUpdateTranslations(db, 'article_sentences', articleSentences);
+      updatedCount += await _batchUpdateArticleSentences(db, articleSentences);
     }
 
     return updatedCount;
   }
 
-  static Future<int> _batchUpdateTranslations<T extends BaseEntity>(
-    Database db,
-    String tableName,
-    List<T> entities,
-  ) async {
-    if (entities.isEmpty) return 0;
+  static Future<int> _batchUpdateSubtitles(Database db, List<Subtitles> subtitles) async {
+    if (subtitles.isEmpty) return 0;
 
-    final updates = <Map<String, dynamic>>[];
-    final codes = <String>[];
-
-    for (final entity in entities) {
-      if (entity.code == null || entity.code!.isEmpty) continue;
-
-      String? contentTranslate;
-      int? translateSource;
-
-      if (entity is Subtitles) {
-        contentTranslate = entity.contentTranslate;
-        translateSource = entity.translateSource;
-      } else if (entity is ArticleSentence) {
-        contentTranslate = entity.contentTranslate;
-        translateSource = entity.translateSource;
-      } else {
-        continue;
-      }
-
-      if (contentTranslate != null || translateSource != null) {
-        updates.add({'content_translate': contentTranslate, 'translate_source': translateSource});
-        codes.add(entity.code!);
-      }
+    final batch = db.batch();
+    for (final sub in subtitles) {
+      if (sub.code == null || sub.code!.isEmpty) continue;
+      if (sub.contentTranslate == null && sub.translateSource == null) continue;
+      batch.rawUpdate(
+        'UPDATE subtitles SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
+        [sub.contentTranslate, sub.translateSource, DateTime.now().toIso8601String(), sub.code],
+      );
     }
+    final results = await batch.commit(continueOnError: true);
+    return results?.fold<int>(0, (prev, curr) => prev + (curr as int? ?? 0)) ?? 0;
+  }
 
-    if (updates.isEmpty) return 0;
+  static Future<int> _batchUpdateArticleSentences(Database db, List<ArticleSentence> sentences) async {
+    if (sentences.isEmpty) return 0;
 
-    // 构建 CASE WHEN SQL
-    final cases = updates.asMap().entries.map((entry) {
-      final idx = entry.key;
-      final update = entry.value;
-      final ct = update['content_translate'] != null
-          ? "WHEN code = ? THEN '${update['content_translate']!.replaceAll("'", "''")}'"
-          : 'WHEN code = ? THEN content_translate';
-      final ts = update['translate_source'] != null
-          ? "WHEN code = ? THEN ${update['translate_source']}"
-          : 'WHEN code = ? THEN translate_source';
-      return 'content_translate = CASE $ct ELSE content_translate END, translate_source = CASE $ts ELSE translate_source END';
-    }).join(', ');
-
-    final now = DateTime.now().toIso8601String();
-    final allArgs = <dynamic>[];
-
-    // 收集所有 code 参数（每个 update 对应一个）
-    for (final code in codes) {
-      allArgs.add(code);
+    final batch = db.batch();
+    for (final sentence in sentences) {
+      if (sentence.code == null || sentence.code!.isEmpty) continue;
+      if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
+      batch.rawUpdate(
+        'UPDATE article_sentences SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
+        [sentence.contentTranslate, sentence.translateSource, DateTime.now().toIso8601String(), sentence.code],
+      );
     }
-
-    final sql = 'UPDATE $tableName SET $cases, updated_at = ? WHERE code IN (${List.filled(codes.length, '?').join(',')})';
-    final finalArgs = [...allArgs, now, ...codes];
-
-    return await db.rawUpdate(sql, finalArgs);
+    final results = await batch.commit(continueOnError: true);
+    return results?.fold<int>(0, (prev, curr) => prev + (curr as int? ?? 0)) ?? 0;
   }
 
   /// 批量更新记录

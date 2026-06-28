@@ -300,6 +300,28 @@ class WordDetail {
       morphology = WordMorphology.fromJson(result['morphology'] as Map<String, dynamic>);
     }
 
+    // ── context_sentence_info（当前句高亮信息）──
+    String? contextSentence;
+    String? sentenceTranslation;
+    String? wordMeaningInContext;
+
+    // 优先从新的 context_sentence_info 结构中解析
+    final contextInfo = result['context_sentence_info'];
+    if (contextInfo is Map) {
+      // 使用高亮后的句子（单词已用【】包裹）
+      contextSentence = contextInfo['word_highlighted_sentence'] as String?
+          ?? contextInfo['original_sentence'] as String?;
+      // 使用高亮后的翻译
+      sentenceTranslation = contextInfo['sentence_translation'] as String?;
+      // 语境中的词义
+      wordMeaningInContext = contextInfo['word_meaning_in_context'] as String?;
+    }
+
+    // 降级：如果没有 context_sentence_info，尝试旧字段
+    contextSentence ??= result['context_sentence'] as String? ?? result['contextSentence'] as String?;
+    sentenceTranslation ??= result['sentence_translation'] as String? ?? result['sentenceTranslation'] as String?;
+    wordMeaningInContext ??= result['word_meaning_in_context'] as String? ?? result['wordMeaningInContext'] as String?;
+
     final word = (result['word'] as String? ?? '').trim();
     return WordDetail(
       word: word.isNotEmpty ? word : (result['text'] as String? ?? ''),
@@ -309,9 +331,9 @@ class WordDetail {
       difficulty: DifficultyLevelX.fromString(result['difficulty'] as String?),
       morphology: morphology,
       mnemonic: result['mnemonic'] as String?,
-      contextSentence: result['context_sentence'] as String? ?? result['contextSentence'] as String?,
-      sentenceTranslation: result['sentence_translation'] as String? ?? result['sentenceTranslation'] as String?,
-      wordMeaningInContext: result['word_meaning_in_context'] as String? ?? result['wordMeaningInContext'] as String?,
+      contextSentence: contextSentence,
+      sentenceTranslation: sentenceTranslation,
+      wordMeaningInContext: wordMeaningInContext,
       translation: result['translation'] as String? ?? result['translatedText'] as String?,
       success: true,
       costCny: costCny,
