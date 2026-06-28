@@ -277,24 +277,17 @@ class DatabaseService {
     try {
       await db.execute('PRAGMA foreign_keys = ON');
     } catch (_) {}
-    // 使用 WAL 日志模式 + NORMAL 同步模式，提高并发写入性能和可靠性，极大降低 database disk image is malformed 的概率
+    // 使用 DELETE 日志模式（最保守、最稳定）
     try {
-      await db.execute('PRAGMA journal_mode = WAL');
+      await db.execute('PRAGMA journal_mode = DELETE');
     } catch (_) {}
+    // FULL 同步是最安全的
     try {
-      await db.execute('PRAGMA synchronous = NORMAL');
+      await db.execute('PRAGMA synchronous = FULL');
     } catch (_) {}
-    // 设置 busy timeout，避免并发访问时的锁等待导致操作失败
+    // 设置 busy timeout
     try {
-      await db.execute('PRAGMA busy_timeout = 15000'); // 将等待超时时间延长到15秒
-    } catch (_) {}
-
-    // SQLite 的自动检查点（Checkpoint）和页面大小配置，避免大事务爆内存
-    try {
-      await db.execute('PRAGMA wal_autocheckpoint = 1000');
-    } catch (_) {}
-    try {
-      await db.execute('PRAGMA page_size = 4096');
+      await db.execute('PRAGMA busy_timeout = 15000');
     } catch (_) {}
   }
 
