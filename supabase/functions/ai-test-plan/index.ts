@@ -805,7 +805,111 @@ function pickWordBookMcqItems(
   return items
 }
 
-Deno.serve(async (req: Request) => {
+// ═══════════════════════════════════════════════════════════════
+//  v2.0 辅助函数：综合测试支持
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * 获取文件夹下所有字幕文件列表（通过 subtitle-storage 的 list 操作）
+ *
+ * 用于综合测试模式：先列出文件夹下有哪些字幕文件，
+ * 再逐个拉取内容合并出题。
+ */
+interface SubtitleFileInfo {
+  video_code: string
+  name: string
+  size: number
+  created_at: string
+}
+
+interface FolderSubtitleListResult {
+  files: SubtitleFileInfo[]
+  prefix: string
+  count: number
+}
+
+async function fetchFolderSubtitleList(
+  userId: string,
+  folderCode: string,
+): Promise<FolderSubtitleListResult | null> {
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // 内部调用 subtitle-storage Edge Function 的 list 操作
+    const { data, error } = await supabase.functions.invoke('subtitle-storage', {
+      body: {
+        op: 'list',
+        folder_code: folderCode,
+      },
+    })
+
+    if (error || !data) {
+      console.warn(`fetchFolderSubtitleList failed for folder=${folderCode}:`, error)
+      return null
+    }
+
+    const result = data as any
+    if (!result.ok) {
+      console.warn(`fetchFolderSubtitleList returned error for folder=${folderCode}:`, result.error)
+      // 文件夹为空不算错误，返回空列表
+      if (result.error === 'missing_folder_code') return null
+      return { files: [], prefix: `${userId}/${folderCode}/`, count: 0 }
+    }
+
+    return {
+      files: (result.files ?? []) as SubtitleFileInfo[],
+      prefix: result.prefix ?? `${userId}/${folderCode}/`,
+      count: result.count ?? 0,
+    }
+  } catch (e: any) {
+    console.error('fetchFolderSubtitleList error:', e.message || e)
+    return null
+  }
+}
+
+/**
+ * 为题目标注 source_video_code（资源归属）
+ *
+ * 根据题目的 ref_text / sentence / display_text 等字段，
+ * 在 sentenceSourceMap 中查找对应的来源资源 code。
+ * 如果找不到，回退到默认值。
+ *
+ * 注意：这是一个闭包，需要在外层定义 sentenceSourceMap 和 defaultSourceCode。
+ * 实际使用时通过 bind 或工厂函数创建。
+ */
+function createTagSource(
+  sourceMap: Map<string, string>,
+  defaultSourceCode: string,
+): (item: any) => any {
+  return function tagSource(item: any): any {
+    // 根据不同题型提取关键文本用于匹配来源
+    const keys = ['sentence', 'ref_text', 'display_text', 'masked', 'prompt']
+    let matchedSource: string | undefined
+
+    for (const key of keys) {
+      const text = item[key] as string | undefined
+      if (text && typeof text === 'string' && text.length > 5) {
+        // 在 sourceMap 中精确匹配
+        const found = sourceMap.get(text.trim())
+        if (found) {
+          matchedSource = found
+          break
+        }
+        // 模糊匹配：检查是否包含
+        for (const [srcSentence, srcCode] of sourceMap.entries()) {
+          if (text.includes(srcSentence) || srcSentence.includes(text)) {
+            matchedSource = srcCode
+            break
+          }
+        }
+        if (matchedSource) break
+      }
+    }
+
+    // 标注来源
+    item.source_video_code = matchedSource ?? defaultSourceCode
+    return item
+  }
+}
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405)
 
@@ -819,14 +923,26 @@ Deno.serve(async (req: Request) => {
     body = {}
   }
 
-  const sourceType = String(body.source_type ?? 'video').trim()
+  const sourceType = String(body.source_type ?? 'resource').trim()
   const videoCode = String(body.video_code ?? '').trim()
+  // v2.0: 综合测试使用 folder_code
+  const folderCode = String(body.folder_code ?? '').trim()
   const seedWords = Array.isArray(body.seed_words) ? body.seed_words : []
-  if (sourceType !== 'word_book' && !videoCode) {
-    return json({ ok: false, error: 'missing_video_code' }, 400)
-  }
-  if (sourceType === 'word_book' && seedWords.length === 0) {
-    return json({ ok: false, error: 'missing_seed_words' }, 400)
+
+  // 参数校验
+  if (sourceType === 'word_book') {
+    if (seedWords.length === 0) {
+      return json({ ok: false, error: 'missing_seed_words' }, 400)
+    }
+  } else if (sourceType === 'folder') {
+    if (!folderCode) {
+      return json({ ok: false, error: 'missing_folder_code', message: 'folder 模式需要 folder_code' }, 400)
+    }
+  } else {
+    // resource 模式（默认）
+    if (!videoCode) {
+      return json({ ok: false, error: 'missing_video_code' }, 400)
+    }
   }
 
   const difficulty = String(body.difficulty ?? 'intermediate').trim()
@@ -866,9 +982,15 @@ Deno.serve(async (req: Request) => {
   }
 
   let title = 'Video'
-  let resourceCode = videoCode
+  let resourceCode = sourceType === 'folder' ? folderCode : (sourceType === 'word_book' ? 'word_book' : videoCode)
   let sentences: string[] = []
   let allItems: any[] = []
+
+  // v2.0: 综合测试时，记录每个句子来自哪个资源（用于 source_video_code 归属）
+  const sentenceSourceMap = new Map<string, string>() // sentence → source_video_code
+
+  // v2.0: 创建题目标注器（为每道题附加 source_video_code）
+  const tagSource = createTagSource(sentenceSourceMap, sourceType === 'folder' ? folderCode : videoCode)
 
   // ═══ 初始化 Supabase 客户端（用于 word_cache 查询）═══
   const cacheSupabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -895,7 +1017,67 @@ Deno.serve(async (req: Request) => {
     if (sentencePronCount > 0) allItems.push(...pickSentencePronItems(seedSentences, sentencePronCount, diffParams))
     // 旧版兼容
     if (mcqCount > 0) allItems.push(...pickWordBookMcqItems(seeds, mcqCount))
+  } else if (sourceType === 'folder') {
+    // ════════════════════════════════════════════
+    //  v2.0: 综合测试模式 — 按文件夹批量获取所有字幕
+    // ════════════════════════════════════════════
+    title = `${folderCode} 综合测试`
+
+    // 调用 subtitle-storage list 获取文件夹下所有字幕文件列表
+    const folderResult = await fetchFolderSubtitleList(userId, folderCode)
+    if (!folderResult || folderResult.files.length === 0) {
+      return json({ ok: false, error: 'no_content', message: '该文件夹下没有已上传的字幕内容，请先导入字幕并上传' }, 400)
+    }
+
+    // 合并所有资源的字幕：sentences + wordPool + sentenceSourceMap
+    const allSentences: string[] = []
+    const allWordPool: string[] = []
+    const seenSentences = new Set<string>()
+
+    for (const file of folderResult.files) {
+      const srcVideoCode = file.video_code
+      const storage = await fetchSubtitlesFromStorage(userId, srcVideoCode)
+      if (!storage) continue
+
+      const resourceSentences = buildSentenceCandidates(storage.subtitles)
+      for (const s of resourceSentences) {
+        // 去重（同一句话只保留一次）
+        if (!seenSentences.has(s)) {
+          seenSentences.add(s)
+          allSentences.push(s)
+          // 记录该句子来源资源
+          sentenceSourceMap.set(s, srcVideoCode)
+        }
+      }
+
+      // 合并词池
+      const resourceWords = extractWordPool(resourceSentences, diffParams)
+      for (const w of resourceWords) {
+        allWordPool.push(w)
+      }
+    }
+
+    sentences = allSentences
+    if (sentences.length === 0) return json({ ok: false, error: 'no_content' }, 400)
+    const wordPool = unique(allWordPool)
+
+    // 出题（每道题附加 source_video_code）
+    if (listenChooseCount > 0) allItems.push(...pickListenChooseItems(sentences, wordPool, listenChooseCount).map(tagSource))
+    if (listenMeaningCount > 0) allItems.push(...(await pickListenMeaningItemsWithCache(sentences, wordPool, listenMeaningCount, cacheSupabase)).map(tagSource))
+    if (listenReplyCount > 0) allItems.push(...(await pickListenReplyItemsWithCache(sentences, wordPool, listenReplyCount, diffParams, cacheSupabase)).map(tagSource))
+    if (definitionChoiceCount > 0) allItems.push(...(await pickDefinitionChoiceItemsWithCache(sentences, wordPool, definitionChoiceCount, cacheSupabase)).map(tagSource))
+    if (spellingCount > 0) allItems.push(...pickSpellingItems(sentences, wordPool, spellingCount).map(tagSource))
+    if (reorderCount > 0) allItems.push(...pickReorderItems(sentences, reorderCount, diffParams).map(tagSource))
+    if (translateMeaningCount > 0) allItems.push(...(await pickTranslateMeaningItemsWithCache(sentences, wordPool, translateMeaningCount, diffParams, cacheSupabase)).map(tagSource))
+    if (wordRelationCount > 0) allItems.push(...pickWordRelationItems(sentences, wordPool, wordRelationCount).map(tagSource))
+    if (wordPronCount > 0) allItems.push(...pickWordPronItems(wordPool, wordPronCount).map(tagSource))
+    if (phrasePronCount > 0) allItems.push(...pickPhrasePronItems(sentences, phrasePronCount, diffParams).map(tagSource))
+    if (sentencePronCount > 0) allItems.push(...pickSentencePronItems(sentences, sentencePronCount, diffParams).map(tagSource))
+    if (mcqCount > 0) allItems.push(...pickMcqItems(sentences, wordPool, mcqCount).map(tagSource))
   } else {
+    // ════════════════════════════════════════════
+    //  单元测试模式（source_type = 'resource' 或旧版默认）
+    // ════════════════════════════════════════════
     const storage = await fetchSubtitlesFromStorage(userId, videoCode)
     if (!storage) return json({ ok: false, error: 'no_content' }, 400)
     title = storage.title
@@ -903,22 +1085,27 @@ Deno.serve(async (req: Request) => {
     if (sentences.length === 0) return json({ ok: false, error: 'no_content' }, 400)
     const wordPool = extractWordPool(sentences, diffParams)
 
+    // 所有句子的来源都是当前 videoCode
+    for (const s of sentences) {
+      sentenceSourceMap.set(s, videoCode)
+    }
+
     // 听
-    if (listenChooseCount > 0) allItems.push(...pickListenChooseItems(sentences, wordPool, listenChooseCount))
-    if (listenMeaningCount > 0) allItems.push(...pickListenMeaningItems(sentences, wordPool, listenMeaningCount))
-    if (listenReplyCount > 0) allItems.push(...pickListenReplyItems(sentences, wordPool, listenReplyCount, diffParams))
+    if (listenChooseCount > 0) allItems.push(...pickListenChooseItems(sentences, wordPool, listenChooseCount).map(tagSource))
+    if (listenMeaningCount > 0) allItems.push(...(await pickListenMeaningItemsWithCache(sentences, wordPool, listenMeaningCount, cacheSupabase)).map(tagSource))
+    if (listenReplyCount > 0) allItems.push(...(await pickListenReplyItemsWithCache(sentences, wordPool, listenReplyCount, diffParams, cacheSupabase)).map(tagSource))
     // 读
-    if (definitionChoiceCount > 0) allItems.push(...pickDefinitionChoiceItems(sentences, wordPool, definitionChoiceCount))
-    if (spellingCount > 0) allItems.push(...pickSpellingItems(sentences, wordPool, spellingCount))
-    if (reorderCount > 0) allItems.push(...pickReorderItems(sentences, reorderCount, diffParams))
-    if (translateMeaningCount > 0) allItems.push(...pickTranslateMeaningItems(sentences, wordPool, translateMeaningCount, diffParams))
-    if (wordRelationCount > 0) allItems.push(...pickWordRelationItems(sentences, wordPool, wordRelationCount))
+    if (definitionChoiceCount > 0) allItems.push(...(await pickDefinitionChoiceItemsWithCache(sentences, wordPool, definitionChoiceCount, cacheSupabase)).map(tagSource))
+    if (spellingCount > 0) allItems.push(...pickSpellingItems(sentences, wordPool, spellingCount).map(tagSource))
+    if (reorderCount > 0) allItems.push(...pickReorderItems(sentences, reorderCount, diffParams).map(tagSource))
+    if (translateMeaningCount > 0) allItems.push(...(await pickTranslateMeaningItemsWithCache(sentences, wordPool, translateMeaningCount, diffParams, cacheSupabase)).map(tagSource))
+    if (wordRelationCount > 0) allItems.push(...pickWordRelationItems(sentences, wordPool, wordRelationCount).map(tagSource))
     // 说
-    if (wordPronCount > 0) allItems.push(...pickWordPronItems(wordPool, wordPronCount))
-    if (phrasePronCount > 0) allItems.push(...pickPhrasePronItems(sentences, phrasePronCount, diffParams))
-    if (sentencePronCount > 0) allItems.push(...pickSentencePronItems(sentences, sentencePronCount, diffParams))
+    if (wordPronCount > 0) allItems.push(...pickWordPronItems(wordPool, wordPronCount).map(tagSource))
+    if (phrasePronCount > 0) allItems.push(...pickPhrasePronItems(sentences, phrasePronCount, diffParams).map(tagSource))
+    if (sentencePronCount > 0) allItems.push(...pickSentencePronItems(sentences, sentencePronCount, diffParams).map(tagSource))
     // 旧版兼容
-    if (mcqCount > 0) allItems.push(...pickMcqItems(sentences, wordPool, mcqCount))
+    if (mcqCount > 0) allItems.push(...pickMcqItems(sentences, wordPool, mcqCount).map(tagSource))
   }
 
   const items = shuffle(allItems)
