@@ -1,782 +1,694 @@
-# VidLang 详细设计 — 学习统计体系
+# VidLang 详细设计 — 学习统计体系 v2.0
 
-> 版本：v1.0  
-> 更新日期：2026-06-13  
-> 设计范围：学习天数 / 学习时长 / 学习记录排序 / 日历打卡 / 成就系统 / 测试错误分析 / AI 学习建议
+> 版本：v2.0
+> 更新日期：2026-06-28
+> 变更说明：基于代码现实审查，重新设计统一学习记录机制。核心变更：(1) 复用 StudyRecord 替代新建 learning_activity 表；(2) 引入 LearningStatsService 统一服务层；(3) 修复时长计算 Bug；(4) 统一测试入口 TestScope；(5) 字幕云存储按文件夹组织。
+> 设计范围：学习时长准确记录 / 统一会话管理 / 跟读&测试指标归集 / 测试体系（单元/综合/生词本） / 字幕云存储 / 连续学习天数 / 学习趋势
 
 ---
 
-## 一、现状诊断
+## 一、现状诊断（v1.0 → v2.0 审查结论）
 
 ### 1.1 已有基础
 
-| 组件 | 状态 | 说明 |
-|------|------|------|
-| `StudyRecord` 模型 | ✅ 已存在 | 字段完备（resourceCode/type/duration/testScore等） |
-| `StatsService` | ✅ 已存在 | 首页统计（streak/今日时长/生词数/已学资源数） |
-| `HomePage` | ✅ 已存在 | 展示统计卡片 + 各类型资源列表 |
-| `LearningStatsPage` | ✅ 骨架存在 | 有 Tab 切换（总览/视频/音频/文章），全是占位 0 |
-| `WordBook` | ✅ 已存在 | 来源追踪完善（sourceType/sourceCode/sourceTitle） |
-| `RecordingRecord` | ✅ 已存在 | 跟读评分记录 |
-| `TestPage` | ✅ 已存在 | 题型配置 + AI 生成题目 |
-| `ConversationMessage` | ✅ 已存在 | AI 对话消息模型 |
+| 组件 | 状态 | v2.0 结论 |
+|------|------|-----------|
+| `StudyRecord` 模型 | ✅ 字段完备 | **复用为主**，补齐字段写入逻辑 |
+| `StatsService` | ✅ 首页统计存在 | **重构为 `LearningStatsService`**，统一数据源 |
+| `RecordingRecord` | ✅ 跟读评分明细 | **保持不变**，作为跟读详情层 |
+| `TestSession` / `TestItem` | ✅ 测试主表+题目表 | **保持不变**，作为测试详情层 |
+| `VideoInfo.lastFollowScore` | ✅ 缓存字段 | **收口到统一服务自动更新** |
+| `PlayerEngineNotifier` | ⚠️ 时长计算 Bug | **修复**：position → 实际停留时间 |
 
-### 1.2 当前缺口
+### 1.2 v1.0 设计 vs 代码现实的差距
 
-| # | 缺口 | 详细说明 |
-|---|------|---------|
-| 1 | **学习天数不完整** | `StatsService.calculateStreakDays()` 仅基于 `StudyRecord.date`，但 AI 对话、打开程序、单词本复习等行为没有写入 `StudyRecord`，无法计入"今天已学习" |
-| 2 | **今日学习时长不完整** | 仅统计 `StudyRecord.duration`，AI 对话、单词本学习的时间没有被追踪 |
-| 3 | **首页排序单一** | 用 `VideoFolder.lastPlayDate` 排序，文章/音频的播放记录未必写入，且未按最后学习时间统一倒序 |
-| 4 | **学习统计页面** | 全是占位 0，没有任何真实数据的查询 |
-| 5 | **日历打卡** | 无 |
-| 6 | **成就系统** | 完全空白 |
-| 7 | **测试错误统计** | 测试结果未持久化，无法分析薄弱点 |
-| 8 | **AI 学习建议** | 无 |
+| # | v1.0 设计 | 代码现实 | v2.0 决策 |
+|---|----------|---------|-----------|
+| 1 | 新建 `learning_activity` 表 | 未实现，且 `StudyRecord` 已有相同字段 | **复用 `StudyRecord`**，避免空转和迁移风险 |
+| 2 | 时长 ≥ 30s 才计入 | 无此门槛代码，且用户明确表示"1s 也合理" | **取消最小时长门槛**，打开即计时 |
+| 3 | 文章延迟 30s 创建记录 | 代码中有此逻辑（`_articleTimer`） | **取消延迟**，统一为打开即 `beginSession` |
+| 4 | 时长 = 播放器实际播放时长 | ❌ Bug：用的 `state.position`（播放位置） | **修复为 `now - startTime`**（实际停留时间） |
+| 5 | `testScore` / `bestFollowScore` 写入 | 字段存在但**从未被写入**（`completeStudyRecord` 只写 duration） | **补齐写入逻辑** |
+| 6 | 测试结果按资源归属 | `_recordWordResult` 只记了 `wordBookCode`，未关联 `resourceCode` | **补充 `source_video_code` 归属链路** |
+| 7 | 单元测试 vs 综合测试分离 | 两者共用同一个 `TestPage`，仅 `videoCode` 不同 | **引入 `TestScope` 枚举**区分三种模式 |
 
 ---
 
 ## 二、核心设计决策
 
-### 2.1 引入统一的 `learning_activity` 表
-
-**问题**：现有 `StudyRecord` 只覆盖"进入播放页→退出"这一种行为。AI 对话、查词、单词本复习、打开程序等行为没有地方记录。
-
-**方案**：新增 `learning_activity` 作为**统一的、轻量级的学习活动日志表**，每一个"学习动作"都写一条记录。
+### 2.1 数据分层：汇总层 + 详情层
 
 ```
-learning_activity（学习活动日志）
-       │
-       ├── 视频播放（退出播放器时写入）
-       ├── 音频播放（退出播放器时写入）
-       ├── 文章阅读（退出阅读器时写入）
-       ├── AI 对话（结束对话时写入）
-       ├── 跟读练习（完成跟读时写入）
-       ├── 测试（完成测试时写入）
-       ├── 查词（收藏单词时写入）
-       ├── 单词复习（结束复习时写入）
-       ├── 导入内容（导入完成时写入）
-       └── 打开程序（App 进入前台时写入）
+┌─────────────────────────────────────────────────────┐
+│                  汇总层（用于 UI 渲染 & 统计）         │
+│                                                     │
+│   StudyRecord（每个资源一次学习会话的汇总）            │
+│   ├── resourceCode, resourceType, folderCode        │
+│   ├── duration（学习时长：实际停留秒数）               │
+│   ├── bestFollowScore（最佳跟读分）                   │
+│   ├── testScore（测试得分）                          │
+│   ├── followCount（跟读次数）                         │
+│   └── startTime, endTime, date                      │
+│                                                     │
+├─────────────────────────────────────────────────────┤
+│                  详情层（用于回溯分析）                 │
+│                                                     │
+│   RecordingRecord（每次跟读的详细录音+评分）           │
+│   TestSession + TestItem（每次测试的会话+逐题）       │
+│   Subtitles（字幕内容）                              │
+│                                                     │
+└─────────────────────────────────────────────────────┘
 ```
 
-所有统计（学习天数、时长、日历、成就触发判断）统一从 `learning_activity` 聚合。
+**原则**：
+- **汇总层** (`StudyRecord`)：回答"这个资源学了多久、跟读最好多少分、测试得多少分"。用于列表页展示、统计聚合。
+- **详情层** (`RecordingRecord` / `TestItem`)：回答"哪一句跟读了多少分、哪道题答错了"。用于学习分析、错误归因。
+- **两者通过 `resourceCode` 关联**，由 `LearningStatsService` 统一协调写入。
 
----
+### 2.2 统一会话管理（Session）
 
-## 三、数据模型设计
+所有学习行为（视频/音频/文章播放、测试）都纳入统一的会话生命周期：
 
-### 3.1 新增表：`learning_activity`
+```
+beginSession(resource) → [学习中: recordMetric × N] → endSession()
+                                          ↘
+                                    switchResource(newResource)
+                                    = endSession() + beginSession()
+```
+
+**关键设计**：
+- **打开即计时**：调用 `beginSession()` 立即开始记录 startTime
+- **切换即结算**：调用 `switchResource()` 自动结束旧资源、开启新资源
+- **退出即完成**：调用 `endSession()` 计算实际停留时长并写入
+- **无最短门槛**：即使只看了 1 秒也记录（数据完整比过滤更重要）
+
+### 2.3 测试体系：三种模式统一入口
 
 ```dart
-/// 学习活动类型枚举
-enum LearningActivityType {
-  openApp,         // 打开程序
-  playVideo,       // 播放视频
-  playAudio,       // 播放音频
-  readArticle,     // 阅读文章
-  aiConversation,  // AI 对话
-  followRead,      // 跟读练习
-  test,            // 测试
-  wordLookup,      // 查词
-  wordReview,      // 单词复习
-  importContent,   // 导入内容
-}
-
-/// 学习活动日志实体
-class LearningActivity extends BaseEntity {
-  /// 活动类型
-  String activityType;
-
-  /// 资源类型：video / article / music / null
-  String? resourceType;
-
-  /// 资源 code
-  String? resourceCode;
-
-  /// 资源标题（缓存展示用）
-  String? resourceTitle;
-
-  /// 所属文件夹 code
-  String? folderCode;
-
-  /// 活动时长（秒）
-  int durationSeconds;
-
-  /// 扩展信息 JSON，按活动类型存储不同字段
-  /// 示例：
-  /// - test: {"testScore":85, "totalQuestions":10, "correctCount":8}
-  /// - aiConversation: {"rounds":5, "model":"qwen"}
-  /// - followRead: {"overallScore":92, "scope":"sentence"}
-  /// - wordReview: {"reviewCount":10, "correctCount":7}
-  String? metadataJson;
-
-  /// 活动开始时间
-  DateTime startedAt;
-
-  /// 活动结束时间
-  DateTime? endedAt;
-
-  /// 日期（分区字段，便于按天查询和统计）
-  DateTime date;
-
-  /// 是否计入学习天数统计
-  /// open_app 类型默认为 true，其他类型仅当时长 >= 30 秒或活动确有成果时计入
-  bool countsAsLearning;
+enum TestScope {
+  resource,    // 单元测试：针对单个资源的字幕内容出题
+  folder,      // 综合测试：针对文件夹下所有资源的字幕混合出题
+  wordBook,    // 生词本测试：针对选中的单词列表出题
 }
 ```
 
-**SQL 建表语句：**
+三种模式共享同一个 `TestPage`，通过 `testScope` 区分行为：
 
-```sql
-CREATE TABLE IF NOT EXISTS learning_activity (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  code TEXT NOT NULL,
-  user_code TEXT,
-  activity_type TEXT NOT NULL DEFAULT '',
-  resource_type TEXT,
-  resource_code TEXT,
-  resource_title TEXT,
-  folder_code TEXT,
-  duration_seconds INTEGER NOT NULL DEFAULT 0,
-  metadata_json TEXT,
-  started_at TEXT NOT NULL,
-  ended_at TEXT,
-  date TEXT NOT NULL,
-  counts_as_learning INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT,
-  deleted_at TEXT,
-  is_deleted INTEGER NOT NULL DEFAULT 0,
-  created_by TEXT,
-  updated_by TEXT,
-  deleted_by TEXT
-);
+| 模式 | testScope | 核心参数 | 出题来源 | 结果归属 |
+|------|-----------|---------|---------|---------|
+| 单元测试 | `resource` | `videoCode` | 该资源的字幕 | → `videoCode` |
+| 综合测试 | `folder` | `videoCode`(代表) + `folderCode` | 文件夹内所有资源字幕混合 | → `item.source_video_code` |
+| 生词本测试 | `wordBook` | `seedWords[]` | 选中的单词 | → 仅 `wordBookCode`（不归属到资源） |
 
-CREATE INDEX IF NOT EXISTS idx_learning_activity_date
-  ON learning_activity(date, activity_type);
-CREATE INDEX IF NOT EXISTS idx_learning_activity_resource
-  ON learning_activity(resource_type, resource_code);
-```
+### 2.4 字幕云存储：按文件夹组织
 
-### 3.2 `StudyRecord` 的去留
-
-`StudyRecord` **保留**，用于视频/音频播放的详细进度记录（播放位置、字幕进度等精细数据）。`learning_activity` 是其上一层抽象，记录"用户做了一次什么学习活动"。
+当前字幕上传到 Supabase Edge Function (`subtitle-storage`)，以 `video_code` 作为标识。v2.0 增加 `folder_code` 维度：
 
 ```
-learning_activity   ← 统计、日历、成就的数据源（聚合层）
-       │
-       └── StudyRecord  ← 视频/音频播放进度细节（详情层）
+存储结构：
+supabase storage (subtitle-storage Edge Function)
+│
+├── 上传时携带 folderCode:
+│   { op: 'upload', video_code: 'v001', folder_code: 'f001', items: [...] }
+│
+├── 出题时按文件夹查询（综合测试）:
+│   { test_scope: 'folder', folder_code: 'f001', config: {...} }
+│   → 服务器返回 items，每道题带 source_video_code
+│
+└── 删除时同步清理:
+    - 删除单个资源 → { op: 'delete', video_code: 'v001' }
+    - 删除整个文件夹 → { op: 'delete_folder', folder_code: 'f001' }
 ```
 
-### 3.3 注册到 main.dart
+**上传触发点（均需携带 folderCode）**：
+
+| 入口 | 说明 | 当前状态 |
+|------|------|---------|
+| 文件夹详情页导入字幕 | 本地文件/SRT/LRC 解析后上传 | ✅ 已实现，需加 `folderCode` |
+| WiFi 传字幕 | WiFi Transfer Service 导入后上传 | ✅ 已实现，需加 `folderCode` |
+| 音频识别歌词 | 音频播放页语音识别后上传 | ✅ 已实现，需加 `folderCode` |
+| 文章内容上传 | 文章创建/更新后上传（`article_` 前缀） | ✅ 已实现，需加 `folderCode` |
+
+**同步注意事项**：
+- 本地删除资源/文件夹时，需同步调用 `subtitle-storage` 清理云端
+- WiFi 重新导入同一资源时，upsert 语义（覆盖旧版本）
+- 文件夹重命名不影响存储（folderCode 不变）
+
+---
+
+## 三、统一服务层设计：LearningStatsService
+
+### 3.1 接口定义
 
 ```dart
-DatabaseService.registerEntities({
-  // ... 现有注册保持不变 ...
-  'learning_activity': EntityConfig(
-    creator: () => LearningActivity(),
-    description: '学习活动日志表',
-  ),
-});
-```
+/// 统一学习统计服务
+///
+/// 所有学习行为的唯一写入入口。
+/// 负责：会话管理 / 时长计算 / 指标归集 / 资源汇总更新
+class LearningStatsService {
 
----
+  // ════════════════════════════════════════════════
+  //  会话管理（学习时长）
+  // ════════════════════════════════════════════════
 
-## 四、"今天已学习"的定义
+  /// 开始学习某个资源
+  ///
+  /// [resourceCode] 资源 code（video_info.code / article.code）
+  /// [resourceType] 资源类型：video / article / music
+  /// [folderCode] 所属文件夹 code
+  Future<void> beginSession({
+    required String resourceCode,
+    required String resourceType,
+    String? folderCode,
+  });
 
-### 4.1 判断标准
+  /// 结束当前学习会话
+  ///
+  /// 计算 duration = DateTime.now() - _sessionStartTime
+  /// 写入 StudyRecord（duration / endTime）
+  /// 更新 VideoInfo.totalPlayDuration（累加）
+  Future<void> endSession();
 
-> 当日至少有一条 `learning_activity` 记录，且 `counts_as_learning = true`
+  /// 原子操作：结束旧资源 + 开启新资源
+  ///
+  /// 用于切换视频/音频/文章时调用，确保无时长丢失
+  Future<void> switchResource({
+    required String resourceCode,
+    required String resourceType,
+    String? folderCode,
+  });
 
-### 4.2 `counts_as_learning` 的判定规则
+  /// 获取当前正在学习的资源 code（如有）
+  String? get currentResourceCode;
 
-| activityType | 条件 | countsAsLearning |
-|-------------|------|:---:|
-| `open_app` | 当日首次打开（去重） | `true` |
-| `play_video` | 播放时长 ≥ 30 秒 | `true` |
-| `play_audio` | 播放时长 ≥ 30 秒 | `true` |
-| `read_article` | 阅读时长 ≥ 30 秒 | `true` |
-| `ai_conversation` | 有任意对话发生 | `true` |
-| `follow_read` | 完成一次跟读 | `true` |
-| `test` | 完成一次测试 | `true` |
-| `word_lookup` | 查词 ≥ 1 个 | `true` |
-| `word_review` | 复习 ≥ 3 个词 | `true` |
-| `import_content` | 导入内容 | `true` |
-| 任何类型 | 时长 < 30 秒且非成果型活动 | `false` |
+  /// 获取当前会话是否活跃
+  bool get isSessionActive;
 
-### 4.3 参考案例
+  // ════════════════════════════════════════════════
+  //  行为指标（跟读 / 测试）
+  // ════════════════════════════════════════════════
 
-多邻国（Duolingo）的定义：
-- 完成至少一堂课
-- 至少花费 X 分钟
-- 任意形式的互动（故事、练习、听力等）
+  /// 记录跟读评分
+  ///
+  /// 由 ShadowReaderComponent 评分回调中调用。
+  /// 同时执行：
+  ///   1. 写入 RecordingRecord（详情层，已有逻辑不变）
+  ///   2. 更新 StudyRecord.bestFollowScore（取 max）
+  ///   3. 更新 VideoInfo.lastFollowScore（取 max）
+  ///   4. 累加 StudyRecord.followCount
+  Future<void> recordFollowScore({
+    required String resourceCode,
+    required double score,
+    required String sentenceCode,
+    String? resourceType,
+    Map<String, dynamic>? detail,
+  });
 
-我们的定义更宽松：**只要用户打开 app 就算今天学习了**，这符合"鼓励用户每日打开"的产品目标。
+  /// 记录单题测试结果
+  ///
+  /// 由 TestPage / TestSessionPage 提交答案时调用。
+  /// 按 questionType 分类累加到 StudyRecord 的测试统计中。
+  Future<void> recordQuizResult({
+    required String resourceCode,
+    required String questionType,
+    required bool isCorrect,
+    String? wordBookCode,
+    double? score,
+    String? resourceType,
+  });
 
----
+  /// 记录一次测试 session 完成
+  ///
+  /// 全部题目答完后调用，聚合计算该资源的 testScore。
+  Future<void> completeTestSession({
+    required String resourceCode,
+    required int totalQuestions,
+    required int correctCount,
+    String? resourceType,
+  });
 
-## 五、今日学习时长
+  // ════════════════════════════════════════════════
+  //  查询（供 UI 渲染使用）
+  // ════════════════════════════════════════════════
 
-### 5.1 计算公式
+  /// 获取某个资源的学习汇总（用于列表页展示）
+  Future<ResourceLearningSummary> getSummary(String resourceCode);
 
-```
-今日学习时长 = Σ learning_activity.duration_seconds
-               WHERE date = 今天
-               AND activity_type IN (
-                 play_video, play_audio, read_article,
-                 ai_conversation, follow_read, test, word_review
-               )
-```
+  /// 今日学习总时长（秒）
+  Future<int> getTodayTotalDuration();
 
-### 5.2 按资源类型细分
+  /// 连续学习天数
+  Future<int> getStreakDays();
 
-```
-今日视频时长 = Σ duration_seconds WHERE activity_type = 'play_video' AND date = 今天
-今日音频时长 = Σ duration_seconds WHERE activity_type = 'play_audio' AND date = 今天
-今日文章时长 = Σ duration_seconds WHERE activity_type = 'read_article' AND date = 今天
-今日其他时长 = Σ duration_seconds WHERE activity_type IN (ai_conversation, follow_read, test, word_review) AND date = 今天
-```
+  /// 今日是否已学习
+  Future<bool> isTodayLearned();
 
-### 5.3 首页展示
+  /// 最近学习的资源列表（按最后学习时间倒序）
+  Future<List<RecentResource>> getRecentResources({int limit = 10});
 
-```
-┌──────────────────────────────────────┐
-│  Today's Learning                    │
-│  🎬 12min  🎵 8min  📖 5min        │
-│  📝 Quiz 85%  ☆ 5 new words        │
-│  ⏱ Total: 25min                    │
-└──────────────────────────────────────┘
-```
+  /// 各资源类型今日时长分布
+  Future<Map<String, int>> getTodayDurationByType();
+}
 
----
+/// 资源学习汇总（轻量级，用于 UI 展示）
+class ResourceLearningSummary {
+  final String resourceCode;
+  final String resourceType;
+  final int totalDurationSeconds;     // 累计学习时长（秒）
+  final int sessionCount;             // 学习次数
+  final double? bestFollowScore;      // 最佳跟读分
+  final double? latestTestScore;      // 最近测试得分
+  final int totalFollowCount;         // 总跟读次数
+  final DateTime? lastStudiedAt;      // 最后学习时间
+}
 
-## 六、学习记录排序
-
-### 6.1 首页"继续学习"区域
-
-取每个 `(resource_type, resource_code)` 最新的一条 `learning_activity.started_at`，按时间倒序排列。
-
-```sql
-SELECT resource_type, resource_code, resource_title,
-       MAX(started_at) AS last_studied_at
-FROM learning_activity
-WHERE resource_code IS NOT NULL
-  AND resource_type IS NOT NULL
-  AND is_deleted = 0
-GROUP BY resource_type, resource_code
-ORDER BY last_studied_at DESC
-LIMIT 10
-```
-
-### 6.2 展示效果
-
-```
-Continue Learning                     ← "继续学习" 区域
-
-┌──────────────────────────────────┐
-│ 🎬 Friends S01E01     2h ago    │  ← 最后学习时间倒序
-│ ████████░░░░░░ 45%              │
-└──────────────────────────────────┘
-┌──────────────────────────────────┐
-│ 📖 Climate Change      5h ago   │
-│ ███░░░░░░░░░░░░ 20%             │
-└──────────────────────────────────┘
-┌──────────────────────────────────┐
-│ 🎵 Let It Be          1d ago    │
-│ ████████████░░ 60%              │
-└──────────────────────────────────┘
-```
-
----
-
-## 七、日历打卡
-
-### 7.1 数据结构
-
-从 `learning_activity` 按月聚合：
-
-```
-月视图数据 = {
-  "2026-06-01": { learned: true,  totalDuration: 3600, activities: [...] },
-  "2026-06-02": { learned: true,  totalDuration: 1800, activities: [...] },
-  "2026-06-03": { learned: false, totalDuration: 0,    activities: [] },
-  ...
+/// 最近学习的资源
+class RecentResource {
+  final String resourceCode;
+  final String resourceType;
+  final String? resourceTitle;
+  final String? folderCode;
+  final DateTime lastStudiedAt;
+  final int lastDurationSeconds;
 }
 ```
 
-### 7.2 UI 设计
-
-```
-📅 June 2026
- Mon  Tue  Wed  Thu  Fri  Sat  Sun
-       1    2    3    4    5    6
-  ✓    ✓    ·    ✓    ✓    ·    ·
- 1h   30m       45m  2h
-
- 7    8    9    10   11   12   13
- ✓    ✓    ✓    ✓    ✓   🔥   ·
-30m   1h   20m  15m  3h   今天
-
-图例：
-  ✓ = 已学习（显示时长）
-  · = 未学习
-  🔥 = 今日
-```
-
-### 7.3 点击某日 → 详情
-
-```
-日期：2026-06-12（周四）
-──────────────────────────
-🎬 播放视频    Friends S01E01    45分钟
-📖 阅读文章    Climate Change    20分钟
-📝 跟读练习    5次  最佳分 92%
-🎯 完成测试    85分  10题对8
-🆕 收藏单词    3个
-──────────────────────────
-总计：1小时10分钟
-```
-
----
-
-## 八、成就系统
-
-### 8.1 成就存储
-
-本地 `config` 表中存 JSON（key: `achievements`）：
-
-```json
-{
-  "unlocked": {
-    "first_learn": "2026-06-01T10:00:00",
-    "streak_3": "2026-06-03T10:00:00",
-    "words_10": "2026-06-05T14:00:00"
-  },
-  "progress": {
-    "streak_7": 5,
-    "total_1h": 2700
-  }
-}
-```
-
-### 8.2 成就体系
-
-```
-🏆 初次成就
-├── first_learn              首次学习
-├── first_video_complete     首个视频学完
-├── first_article_complete   首篇文章读完
-├── first_song_complete      首支歌曲学完
-├── first_follow             首次跟读
-├── first_conversation       首次 AI 对话
-└── first_test               首次测试
-
-🔥 连续学习
-├── streak_3                 连续学习 3 天
-├── streak_7                 连续学习 7 天
-├── streak_14                连续学习 14 天
-├── streak_30                连续学习 30 天
-├── streak_60                连续学习 60 天
-└── streak_100               连续学习 100 天
-
-⏱ 时长里程碑
-├── total_1h                 累计学习 1 小时
-├── total_10h                累计学习 10 小时
-├── total_50h                累计学习 50 小时
-├── total_100h               累计学习 100 小时
-└── total_500h               累计学习 500 小时
-
-📝 词汇
-├── words_10                 收集 10 个单词
-├── words_50                 收集 50 个单词
-├── words_100                收集 100 个单词
-├── words_500                收集 500 个单词
-├── mastered_20              掌握 20 个单词
-└── mastered_50              掌握 50 个单词
-
-🎯 测试
-├── tests_10                 完成 10 次测试
-├── tests_50                 完成 50 次测试
-├── perfect_test             首次满分
-├── avg_score_80             近 10 次平均分 ≥ 80
-└── avg_score_90             近 10 次平均分 ≥ 90
-
-🎤 口语
-├── follow_10                完成 10 次跟读
-├── follow_50                完成 50 次跟读
-├── follow_100               完成 100 次跟读
-├── pron_90                  首次发音评分 ≥ 90
-└── pron_95                  首次发音评分 ≥ 95
-```
-
-### 8.3 成就检查时机
-
-每次写入 `learning_activity` 后，异步调用 `AchievementService.check()` 检查是否能解锁新成就。
-
-### 8.4 成就 UI
-
-```
-🏆 成就
-┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
-│ 🔥7天 │ │ 📝50词│ │ 🎯10测│ │ ⏱10h │  ← 已解锁（彩色）
-└──────┘ └──────┘ └──────┘ └──────┘
-┌──────┐ ┌──────┐
-│ 🔥30天│ │ 📝100│                                 ← 未解锁（灰色 + 进度条）
-│ ██░░  │ │ █░░░ │
-└──────┘ └──────┘
-```
-
----
-
-## 九、测试错误统计 + AI 学习建议
-
-### 9.1 测试结果持久化
-
-在 `metadata_json` 中记录每次测试的详细结果：
-
-```json
-{
-  "testType": "unit",
-  "resourceType": "video",
-  "resourceCode": "xxx",
-  "resourceTitle": "Friends S01E01",
-  "totalQuestions": 10,
-  "correctCount": 7,
-  "score": 70,
-  "durationSeconds": 480,
-  "items": [
-    {
-      "type": "spelling",
-      "prompt": "The ___ is blue.",
-      "answerKey": "sky",
-      "userAnswer": "ski",
-      "isCorrect": false,
-      "word": "sky",
-      "errorType": "spelling"
-    },
-    {
-      "type": "mcq",
-      "prompt": "What does 'ubiquitous' mean?",
-      "answerKey": "everywhere",
-      "userAnswer": "rare",
-      "isCorrect": false,
-      "word": "ubiquitous",
-      "errorType": "word_confusion"
-    }
-  ]
-}
-```
-
-### 9.2 错误聚合分析
-
-```sql
--- 错误最多的单词 Top 10
--- 从 learning_activity.metadata_json 中提取
-
--- 错误类型分布
--- spelling vs word_confusion vs grammar vs pronunciation
-
--- 各题型正确率趋势
--- 近 10 次测试的 spelling/reorder/mcq 正确率变化
-```
-
-### 9.3 AI 学习建议流程
-
-```
-用户完成一次测试
-    ↓
-客户端收集本次错题（上限 20 条）
-    + 近 10 次测试的历史错误统计
-    ↓
-调用 ai-proxy Edge Function（rule_code: ai_study_advice）
-    ↓
-AI 接收上下文：
-  1. 本次测试结果（题型分布、正确率、错题详情）
-  2. 近 10 次错误趋势
-  3. 用户当前已收集的生词列表（Top 50）
-    ↓
-AI 分析输出：
-  1. 薄弱环节总结（"你的拼写错误占 60%，尤其元音字母混淆较多"）
-  2. 针对性建议（"建议重点复习以下 5 个单词：sky, receive, ..."）
-  3. 学习策略（"建议先从填空练习开始，再过渡到组句"）
-  4. 推荐主题（"以下是 AI 为你生成的 3 个参考练习主题："）
-    ↓
-返回结构化 JSON
-    ↓
-展示在测试结果页 + 学习统计页 "AI 建议" 入口
-```
-
-### 9.4 AI 建议返回格式
-
-```json
-{
-  "ok": true,
-  "advice": {
-    "summary": "Your spelling accuracy has been declining over the last 3 tests (80% → 65%). Vowel confusion is the main issue.",
-    "weak_points": [
-      {"area": "spelling", "accuracy": 0.60, "trend": "declining"},
-      {"area": "word_confusion", "accuracy": 0.75, "trend": "stable"}
-    ],
-    "recommended_words": ["sky", "receive", "believe", "separate", "necessary"],
-    "strategy": "Start with spelling drills for the 5 recommended words, then do a mixed review test.",
-    "suggested_topics": [
-      {"title": "Commonly Misspelled Words", "description": "Focus on ie/ei rules and silent letters."},
-      {"title": "Homophone Distinction", "description": "Practice distinguishing words that sound alike but are spelled differently."}
-    ]
-  }
-}
-```
-
----
-
-## 十、活动写入时机（埋点规划）
-
-| 位置 | activityType | 写入时机 | 时长来源 |
-|------|-------------|---------|---------|
-| App 生命周期 `didChangeAppLifecycleState` | `open_app` | App 进入前台，当日首次 | 0 |
-| `PlayerPage.dispose()` | `play_video` / `play_audio` | 退出播放器 | 播放器实际播放时长 |
-| `ArticleReaderPage.dispose()` | `read_article` | 退出阅读器 | 阅读页面停留时长 |
-| `ConversationPage` 对话结束 | `ai_conversation` | 用户主动结束或超时 | 对话持续时间 |
-| 跟读面板完成评分 | `follow_read` | 录音评分完成 | 录音时长 |
-| `TestPage._TestRunPage` 完成 | `test` | 完成全部题目 | 测试总用时 |
-| `WordBookService` 收藏单词 | `word_lookup` | 收藏成功时 | 0 |
-| `WordBookPage` 复习结束 | `word_review` | 退出复习模式 | 复习会话时长 |
-| `FileProvider` 导入完成 | `import_content` | 文件夹导入成功 | 0 |
-
-### 注意事项
-
-1. **去重**：`open_app` 当日仅写入一次（检查 `learning_activity WHERE date = 今天 AND activity_type = 'open_app'`）
-2. **最短时长**：`play_video`/`play_audio`/`read_article` 低于 30 秒不写入（用户可能误操作快速退出）
-3. **异步写入**：所有 `recordActivity()` 调用均为异步，不阻塞 UI
-
----
-
-## 十一、服务层设计
-
-### 11.1 `LearningStatsService`（替代现有 `StatsService`）
+### 3.2 内部状态管理
 
 ```dart
 class LearningStatsService {
-  /// 写入一条活动日志
-  static Future<void> recordActivity({...});
+  // 会话状态（内存中，不持久化）
+  DateTime? _sessionStartTime;
+  String? _sessionResourceCode;
+  String? _sessionResourceType;
+  String? _sessionFolderCode;
+  bool _sessionActive = false;
 
-  /// 今天是否学习过
-  static Future<bool> isTodayLearned();
-
-  /// 连续学习天数
-  static Future<int> getStreakDays();
-
-  /// 今日总学习时长（秒）
-  static Future<int> getTodayDuration();
-
-  /// 今日各类型学习时长
-  static Future<Map<String, int>> getTodayDurationByType();
-
-  /// 获取某月日历打卡数据
-  static Future<Map<String, DayStats>> getCalendarData(int year, int month);
-
-  /// 获取某天的学习详情
-  static Future<List<LearningActivity>> getDayDetail(DateTime date);
-
-  /// 获取最近学习的资源列表（按最后学习时间倒序）
-  static Future<List<RecentResource>> getRecentResources({int limit = 10});
-
-  /// 各资源大类汇总统计
-  static Future<ResourceTypeStats> getResourceTypeStats();
-
-  /// 单个资源学习统计
-  static Future<ResourceDetailStats> getResourceDetailStats(String resourceType, String resourceCode);
-
-  /// 测试错误统计
-  static Future<TestErrorStats> getTestErrorStats();
-
-  /// 成就列表
-  static Future<AchievementData> getAchievements();
+  // 单例模式（或通过 Riverpod provider 提供）
+  static final LearningStatsService instance = LearningStatsService._();
+  LearningStatsService._();
 }
 ```
 
-### 11.2 `AchievementService`
+---
+
+## 四、时长计算修正（Bug Fix）
+
+### 4.1 当前 Bug
+
+**位置**：`lib/providers/player_engine_provider.dart` → `_completeCurrentStudyRecord()`
 
 ```dart
-class AchievementService {
-  /// 定义所有成就的规则
-  static final List<AchievementRule> rules = [...];
+// ❌ 错误：用播放位置代替学习时长
+final durationMs = state.position.inMilliseconds;
+// 如果用户拖动进度条到 50 分钟处只看了 1 秒，
+// durationMs 就会记录成 50 分钟！
+```
 
-  /// 检查是否能解锁新成就
-  static Future<List<AchievementRule>> check();
+### 4.2 修正方案
+
+```dart
+// ✅ 正确：用实际停留时间
+Future<void> _completeCurrentStudyRecord() async {
+  if (!_studyRecordCreated || _studyResourceCode == null || _closed) return;
+
+  final endTime = DateTime.now();
+  // ★ 核心修正：用实际经过的时间，而非播放位置
+  final durationSeconds = _studyStartTime != null
+      ? endTime.difference(_studyStartTime!).inSeconds
+      : 0;
+
+  try {
+    await ref.read(fileProvider.notifier).completeStudyRecord(
+      _studyResourceCode!,
+      endTime,
+      durationSeconds,  // ← 改为秒（整数），值为实际停留时间
+      1,
+    );
+  } catch (_) {}
+  // ... 重置状态
+}
+```
+
+### 4.3 对齐 LearningStatsService
+
+修正后的 `PlayerEngineNotifier` 应将学习记录委托给 `LearningStatsService`：
+
+```dart
+// openVideoByCode / openAudioByCode 中：
+await learningStats.switchResource(
+  resourceCode: videoCode,
+  resourceType: resourceType,
+  folderCode: folder.code,
+);
+
+// disposePlayer 中：
+await learningStats.endSession();
+```
+
+---
+
+## 五、各场景埋点规划
+
+### 5.1 埋点总览
+
+| 场景 | 触发时机 | 调用函数 | 备注 |
+|------|---------|---------|------|
+| 打开视频/音频/文章 | `openVideoByCode()` / `openAudioByCode()` | `learningStats.beginSession()` | 取消 30s 延迟 |
+| 切换资源（上一首/下一部） | `switchToVideo()` / `switchToAudio()` / `_playNextInList()` | `learningStats.switchResource()` | 原子操作 |
+| 退出播放器 | `disposePlayer()` / `dispose()` | `learningStats.endSession()` | 含 App 被 kill 的兜底（二期） |
+| 跟读评分完成 | `ShadowReaderComponent._evaluateRecording()` 回调 | `learningStats.recordFollowScore()` | 同时更新 VideoInfo.lastFollowScore |
+| 测试提交一题 | `TestPage._submit()` / `TestSessionPage.submitAnswer()` | `learningStats.recordQuizResult()` | 携带 source_video_code |
+| 测试全部完成 | `TestPage._next()` 最后题 / `TestSessionPage` 完成 | `learningStats.completeTestSession()` | 聚合 testScore |
+| App 进入前台 | `WidgetsBindingObserver.didChangeAppLifecycleState()` | `learningStats.beginSession(type: app_open)` | 二期实现 |
+
+### 5.2 资源切换时的完整流程
+
+```
+用户点击"下一集"
+    ↓
+switchToVideo(nextCode)
+    ↓
+┌─── PlayerEngineNotifier ───┐
+│  1. _player.pause()         │  暂停当前播放
+│  2. learningStats           │  ★ 结算旧资源 + 开启新资源
+│     .switchResource(        │
+│       nextCode, 'video',    │
+│       folderCode)           │
+│  3. openVideoByCode(next)   │  加载新资源
+│  4. reloadSubtitles(next)   │  加载新字幕
+└─────────────────────────────┘
+    ↓
+switchResource 内部：
+  ├─ endSession()
+  │   ├─ 计算 duration = now - startTime
+  │   ├─ UPDATE study_record SET duration=?, end_time=?
+  │   └─ UPDATE video_info SET total_play_duration += ?
+  └─ beginSession(nextCode)
+      ├─ INSERT study_record (startTime=now, status='active')
+      └─ _sessionStartTime = now
+```
+
+### 5.3 跟读评分的完整流程
+
+```
+用户在 ShadowReaderComponent 完成录音并评分
+    ↓
+_evaluateRecording() 得到 overall=85.0
+    ↓
+┌─── ShadowReaderComponent ─────────────┐
+│  1. 写入 RecordingRecord              │  ← 详情层（现有逻辑不变）
+│     (audioPath, scores, rawResult)    │
+│  2. cfg.onScore?.call(overall: 85.0)  │  ← 回调通知
+└────────────────────────────────────────┘
+    ↓
+onScore 回调（在 PlayerEngineProvider 中配置）
+    ↓
+┌─── LearningStatsService ──────────────┐
+│  recordFollowScore(                   │
+│    resourceCode: currentVideo.code,   │
+│    score: 85.0,                       │
+│    sentenceCode: subtitle.code,       │
+│  )                                   │
+│    ↓                                  │
+│  ① UPDATE study_record               │
+│     SET best_follow_score = MAX(?, 85)│
+│     SET follow_count = follow_count+1 │
+│  ② UPDATE video_info                 │
+│     SET last_follow_score = MAX(?, 85)│
+└────────────────────────────────────────┘
+```
+
+### 5.4 测试提交的完整流程
+
+#### 单元测试（TestScope.resource）
+
+```
+TestPage(testScope: resource, videoCode: 'v001')
+    ↓
+_start() → Edge Function: ai-test-plan
+  { test_scope: 'resource', video_code: 'v001', config: {...} }
+    ↓
+返回 items（每道题隐含属于 v001）
+    ↓
+_submit() → _recordWordResult(ok)
+    ↓
+learningStats.recordQuizResult(
+  resourceCode: widget.videoCode!,  // ← 单元测试：直接用页面级 videoCode
+  questionType: type,
+  isCorrect: ok,
+  wordBookCode: item['word_book_code'],
+)
+```
+
+#### 综合测试（TestScope.folder）
+
+```
+TestPage(testScope: folder, videoCode: 'v001', folderCode: 'f001')
+    ↓
+_start() → Edge Function: ai-test-plan
+  { test_scope: 'folder', folder_code: 'f001', config: {...} }
+    ↓
+Edge Function 根据 folder_code 找到该文件夹下所有已上传字幕
+→ 混合出题，返回 items 携带 source_video_code
+    ↓
+_submit() → _recordWordResult(ok)
+    ↓
+learningStats.recordQuizResult(
+  resourceCode: item['source_video_code'] ?? widget.videoCode!,
+  // ↑ 综合测试：优先用题目级 source_video_code
+  //   兜底用代表资源的 videoCode（兼容旧接口）
+  questionType: type,
+  isCorrect: ok,
+  wordBookCode: item['word_book_code'],
+)
+```
+
+#### 生词本测试（TestScope.wordBook）
+
+```
+TestPage(testScope: wordBook, seedWords: [...])
+    ↓
+_start() → Edge Function: ai-test-plan
+  { test_scope: 'word_book', seed_words: [...], config: {...} }
+    ↓
+_submit() → _recordWordResult(ok)
+    ↓
+// 仅记录生词本粒度（wordBookCode）
+// 不调用 recordQuizResult（没有明确的资源归属）
+// 可选：记录独立的学习会话（resourceType: 'word_book'）
+```
+
+---
+
+## 六、StudyRecord 字段补齐计划
+
+### 6.1 当前未使用的字段
+
+| 字段 | 类型 | 当前状态 | v2.0 计划 |
+|------|------|---------|-----------|
+| `testScore` | `double?` | 从未被写入 | 每次 `completeTestSession()` 后聚合写入 |
+| `bestFollowScore` | `double?` | 从未被写入 | 每次 `recordFollowScore()` 后取 max 更新 |
+| `followCount` | `int` | 从未被写入 | 每次 `recordFollowScore()` 后 +1 |
+| `segmentsStudied` | `int` | 从未被写入 | 二期实现（记录学到了第几句） |
+| `wordsSaved` | `int` | 从未被写入 | 二期实现（记录收藏了多少单词） |
+| `endTime` | `DateTime?` | `completeStudyRecord` 中写入 | 保持不变 |
+| `duration` | `int` | ⚠️ 用了 position（Bug） | **修正为实际停留秒数** |
+
+### 6.2 completeStudyRecord 重构
+
+```dart
+/// FileProvider 中的完成方法（改造后）
+Future<void> completeStudyRecord(
+  String resourceCode,
+  DateTime endTime,
+  int durationSeconds,  // ← 参数语义变更：已经是正确的秒数
+  int playCount,
+) async {
+  final records = await DatabaseService.findByCondition(
+    () => StudyRecord(),
+    where: 'resource_code = ? AND end_time IS NULL AND is_deleted = 0',
+    whereArgs: [resourceCode],
+    orderBy: 'start_time DESC',
+  );
+
+  if (records.isNotEmpty) {
+    StudyRecord record = records.first;
+    record.endTime = endTime;
+    record.duration = durationSeconds;  // 直接使用传入的正确值
+    record.playCount = playCount;
+    // ★ 新增：如果有累计的指标数据，一并写入
+    // （由 LearningStatsService 在 endSession 时预先计算好）
+    await DatabaseService.update(record);
+  }
 }
 ```
 
 ---
 
-## 十二、页面升级计划
+## 七、与现有代码的融合点
 
-### 12.1 `LearningStatsPage`（重写）
+### 7.1 文件变更清单
 
-原页面全部为占位数据，需完全重写为真实数据。
+| 文件 | 变更类型 | 内容 |
+|------|---------|------|
+| `lib/services/learning_stats_service.dart` | **新增** | 统一学习统计服务（核心） |
+| `lib/providers/player_engine_provider.dart` | **修改** | (1) 修复时长 Bug (2) 对接 LearningStatsService (3) 移除散落的学习记录逻辑 |
+| `lib/providers/file_provider.dart` | **修改** | `createStudyRecord` / `completeStudyRecord` 委托给 LearningStatsService 或调整参数语义 |
+| `lib/views/test/test_page.dart` | **修改** | (1) 增加 `TestScope` / `folderCode` 参数 (2) `_recordWordResult` 对接 `recordQuizResult` (3) `_next` 对接 `completeTestSession` |
+| `lib/views/test/test_session_page.dart` | **修改** | 对接 `LearningStatsService.recordQuizResult` |
+| `lib/widgets/shadow_reader/shadow_reader_component.dart` | **微调** | `onScore` 回调确保传递足够信息（已有 resourceCode/context） |
+| `lib/views/files/folder_detail_page.dart` | **微调** | `_showComprehensiveTest` 传 `folderCode` 给 TestPage |
+| `lib/services/conversation_service.dart` | **修改** | `uploadSubtitlesToCloud` / `uploadArticleContentToCloud` 增加 `folderCode` 参数 |
+| `lib/main.dart` | **不变** | 不需要注册新实体（复用 StudyRecord） |
+| `lib/models/study_record.dart` | **不变** | 字段已经完备，无需改模型 |
 
-```
-┌─────────────────────────────────────────┐
-│  ← 学习统计                  [💡 AI建议]│
-├─────────────────────────────────────────┤
-│                                         │
-│  🔥 连续 5 天    ⏱ 总时长 12h 35m      │
-│                                         │
-├─────────────────────────────────────────┤
-│  [总览] [视频] [音频] [文章] [测试]     │
-├─────────────────────────────────────────┤
-│                                         │
-│  📅 学习日历                             │
-│  ┌──┬──┬──┬──┬──┬──┬──┐                │
-│  │一│二│三│四│五│六│日│                │
-│  ├──┼──┼──┼──┼──┼──┼──┤                │
-│  │  │  │✓ │✓ │✓ │✓ │· │                │
-│  │  │  │1h│30│45│2h│  │                │
-│  └──┴──┴──┴──┴──┴──┴──┘                │
-│                                         │
-│  📊 学习趋势（近7天）                     │
-│  ██  ████  ██  █████  █  ██  ████      │
-│                                         │
-│  🏆 成就                                 │
-│  [🔥7天] [📝50词] [🎯10测] [⏱10h]      │
-│  ─ ─ ─ 未解锁 ─ ─ ─                     │
-│  [🔥30天 ██░░]  [📝100 █░░░]            │
-│                                         │
-│  📋 最近学习                              │
-│  🎬 Friends S01E01      昨天  45min      │
-│  📖 Climate Change      前天  20min      │
-│  🎵 Let It Be          3天前  15min      │
-│                                         │
-│  📈 学习分布                              │
-│  🎬 视频   60% ████████████             │
-│  🎵 音频   25% █████                    │
-│  📖 文章   15% ███                      │
-└─────────────────────────────────────────┘
-```
+### 7.2 不变的文件（确认无侵入）
 
-### 12.2 测试错误分析页（新增）
+| 文件 | 原因 |
+|------|------|
+| `lib/models/recording_record.dart` | 详情层保持独立 |
+| `lib/models/test_models.dart` | TestSession/TestItem 保持独立 |
+| `lib/models/video_info.dart` | 已有 `lastFollowScore` / `totalPlayDuration`，无需改模型 |
+| `lib/services/stats_service.dart` | 首期保留，后续被 LearningStatsService 替代 |
+| `lib/services/database_service.dart` | 无需改表结构 |
 
-```
-┌─────────────────────────────────────────┐
-│  ← 测试分析                              │
-├─────────────────────────────────────────┤
-│                                         │
-│  总体正确率：75%（近10次）               │
-│  ┌────────────────────────────┐         │
-│  │ 拼写    60% ████████░░     │         │
-│  │ 选择    85% █████████████  │         │
-│  │ 组句    70% █████████░░░   │         │
-│  └────────────────────────────┘         │
-│                                         │
-│  📉 趋势                                 │
-│  测试1  80% ████████                    │
-│  测试2  75% ███████                     │
-│  测试3  70% ██████                      │
-│                                         │
-│  ❌ 高频错误词                            │
-│  sky      ×3次                          │
-│  receive  ×2次                          │
-│  believe  ×2次                          │
-│                                         │
-│  ┌────────────────────────────┐         │
-│  │ 💡 AI 学习建议              │         │
-│  │                             │         │
-│  │ 你的拼写准确率持续下降，      │         │
-│  │ 尤其元音混淆较多。            │         │
-│  │ 建议重点复习这5个单词...      │         │
-│  │                             │         │
-│  │ [查看详细建议]               │         │
-│  └────────────────────────────┘         │
-└─────────────────────────────────────────┘
+---
+
+## 八、Edge Function 接口契约（前后端对齐）
+
+### 8.1 subtitle-storage（字幕存储）
+
+#### 上传（增加 folderCode）
+
+```json
+// Request
+{
+  "op": "upload",
+  "video_code": "v001",
+  "folder_code": "f001",
+  "title": "Lesson 1",
+  "items": [
+    {"start_position": 0, "end_position": 3000, "content": "Hello", "content_translate": "你好"}
+  ]
+}
+
+// Response（不变）
+{ "ok": true }
 ```
 
-### 12.3 AI 学习建议页（新增）
+#### 删除（增加文件夹级别）
 
+```json
+// 删除单个资源
+{ "op": "delete", "video_code": "v001" }
+
+// 删除文件夹下所有字幕（★ 新增）
+{ "op": "delete_folder", "folder_code": "f001" }
 ```
-┌─────────────────────────────────────────┐
-│  ← AI 学习建议                           │
-├─────────────────────────────────────────┤
-│                                         │
-│  📊 总体评估                              │
-│  过去10次测试中，你的拼写准确率从80%      │
-│  下降至65%。元音混淆是最主要的问题。       │
-│                                         │
-│  🎯 薄弱环节                              │
-│  · 拼写（准确率 60%，↓ 趋势）             │
-│  · 词汇混淆（准确率 75%，→ 稳定）         │
-│                                         │
-│  📝 建议重点复习的单词                     │
-│  sky / receive / believe / separate      │
-│                                         │
-│  💡 学习策略                              │
-│  建议先从填空练习开始，针对这5个单词      │
-│  做专项训练，再进行综合复习测试。          │
-│                                         │
-│  🔖 AI 推荐练习主题                       │
-│  · Commonly Misspelled Words             │
-│  · Homophone Distinction                 │
-│                                         │
-│  [开始针对性练习]                         │
-└─────────────────────────────────────────┘
+
+### 8.2 ai-test-plan（出题）
+
+#### 单元测试（不变）
+
+```json
+{
+  "test_scope": "resource",
+  "video_code": "v001",
+  "config": { "listen_choose_count": 2, ... }
+}
+```
+
+#### 综合测试（★ 新增）
+
+```json
+{
+  "test_scope": "folder",
+  "folder_code": "f001",
+  "config": { "listen_choose_count": 4, ... }
+}
+// Response items 中每道题增加：
+// { ..., "source_video_code": "v003" }
+```
+
+#### 生词本测试（不变）
+
+```json
+{
+  "test_scope": "word_book",
+  "seed_words": [{"word": "unprecedented", "meaning": "史无前例的"}],
+  "config": { ... }
+}
 ```
 
 ---
 
-## 十三、实施分期
+## 九、实施分期
 
-### 第一期：核心统计打通
+### 第一期：核心数据准确流通（当前）
 
-| # | 任务 | 涉及文件 |
-|---|------|---------|
-| 1 | 新增 `LearningActivity` 模型 | `lib/models/learning_activity.dart` |
-| 2 | 注册到 `DatabaseService` | `lib/main.dart` |
-| 3 | 升级 `StatsService` → `LearningStatsService` | `lib/services/learning_stats_service.dart` |
-| 4 | 在关键位置插入 `recordActivity()` | `PlayerPage`, `TestPage`, `ConversationPage`, `WordBookService`, App 生命周期 |
-| 5 | 重写 `LearningStatsPage`（总览 + 日历 + 最近学习） | `lib/views/profile/learning_stats_page.dart` |
-| 6 | 首页"继续学习"改为从 `learning_activity` 聚合 | `lib/views/home/home_page.dart` |
+> 目标：让学习时长、跟读分数、测试结果的记录和展示完全准确。
 
-### 第二期：成就 + 日历
+| # | 任务 | 涉及文件 | 验证标准 |
+|---|------|---------|---------|
+| 1 | 新建 `LearningStatsService` | `lib/services/learning_stats_service.dart` | beginSession/endSession/switchResource 可调用 |
+| 2 | 修复 `PlayerEngineNotifier` 时长 Bug | `lib/providers/player_engine_provider.dart` | duration = 实际停留时间非播放位置 |
+| 3 | `PlayerEngineNotifier` 对接 `LearningStatsService` | 同上 | open/switch/dispose 统一走 service |
+| 4 | 补齐 `StudyRecord.testScore/bestFollowScore/followCount` 写入 | `LearningStatsService` + `FileProvider` | 跟读/测试后字段有值 |
+| 5 | `ShadowReaderComponent` 对接 `recordFollowScore` | `lib/widgets/shadow_reader/` | 评分后 VideoInfo.lastFollowScore 自动更新 |
+| 6 | `TestPage` 增加 `TestScope` + 归属逻辑 | `lib/views/test/test_page.dart` | 三种模式区分，quizResult 携带 resourceCode |
+| 7 | `ConversationService.uploadXxx` 增加 `folderCode` | `lib/services/conversation_service.dart` | 上传时携带文件夹信息 |
+| 8 | 首页统计对接 `LearningStatsService` | `lib/views/home/` + `lib/services/stats_service.dart` | 今日时长/连续天数来自真实数据 |
 
-| # | 任务 | 涉及文件 |
-|---|------|---------|
-| 7 | `AchievementService` 实现 | `lib/services/achievement_service.dart` |
-| 8 | 成就 UI | `LearningStatsPage` 中新增成就区块 |
-| 9 | 日历打卡详情页 | 新增 `DayDetailPage` 或 Dialog |
-| 10 | 学习趋势图（简易柱状图） | `LearningStatsPage` 中新增趋势区块 |
+### 第二期：App 生命周期 & 异常恢复
 
-### 第三期：测试分析 + AI 建议
+| # | 任务 | 说明 |
+|---|------|------|
+| 9 | App 生命周期监听 | `didChangeAppLifecycleState` → `open_app` 记录 |
+| 10 | Crash/Kill 恢复 | 启动时扫描 `status=active` 的 StudyRecord，补全 endTime |
+| 11 | 文件夹删除同步清理云端 | 删除资源/文件夹时调用 `subtitle-storage delete` |
 
-| # | 任务 | 涉及文件 |
-|---|------|---------|
-| 11 | 测试结果 `metadata` 完善 | `TestPage._TestRunPage` |
-| 12 | `ai_study_advice` Edge Function | `supabase/functions/ai-study-advice/` |
-| 13 | 测试错误分析页 | 新增 `lib/views/profile/test_analysis_page.dart` |
-| 14 | AI 学习建议页 | 新增 `lib/views/profile/ai_advice_page.dart` |
+### 第三期：统计分析 & AI 建议
 
----
-
-## 十四、与现有代码的融合点汇总
-
-| 现有位置 | 变更内容 |
-|---------|---------|
-| `lib/main.dart` | 注册 `learning_activity` 实体，App 生命周期监听写入 `open_app` |
-| `lib/models/study_record.dart` | 保持不变，作为播放详情层 |
-| `lib/services/stats_service.dart` | 重构为 `learning_stats_service.dart`，所有统计从 `learning_activity` 驱动 |
-| `lib/views/home/home_page.dart` | "继续学习"区域排序改为从 `learning_activity` 聚合；统计卡片对接新服务 |
-| `lib/views/player/player_page.dart` | `dispose()` 时写入 `play_video` 活动 |
-| `lib/views/test/test_page.dart` | `_TestRunPage` 完成时写入 `test` 活动 + 错题 metadata |
-| `lib/views/conversation/conversation_page.dart` | 对话结束时写入 `ai_conversation` 活动 |
-| `lib/services/word_book_service.dart` | 收藏单词时写入 `word_lookup` 活动 |
-| `lib/views/word_book/word_book_page.dart` | 退出复习模式时写入 `word_review` 活动 |
-| `lib/providers/file_provider.dart` | `createStudyRecord`/`completeStudyRecord` 改为同时写 `learning_activity` |
-| `lib/views/profile/learning_stats_page.dart` | 完全重写，对接 `LearningStatsService` |
+| # | 任务 | 说明 |
+|---|------|------|
+| 12 | `LearningStatsPage` 重写 | 日历打卡 / 学习趋势 / 成就系统 |
+| 13 | 测试错误分析 | 错误聚合 / 薄弱环节 / AI 建议 |
+| 14 | AchievementService | 成就解锁检测 |
 
 ---
 
-## 十五、关键设计原则
+## 十、关键设计原则（v2.0 更新）
 
-1. **一个数据源** — 所有统计（天数、时长、日历、成就）统一从 `learning_activity` 聚合，避免多表不一致
-2. **异步写入** — 所有 `recordActivity()` 调用不阻塞 UI，静默失败不影响主功能
-3. **宽松定义** — "今天已学习"的门槛很低（打开 app 就算），鼓励用户保持习惯
-4. **渐进增强** — 分三期实施，核心统计先打通，成就和 AI 建议后续迭代
-5. **可扩展** — `metadata_json` 字段支持各种活动类型自由扩展，不需要改表结构
+1. **复用优于新建**：`StudyRecord` 字段已完备，不新建 `learning_activity` 表，降低迁移风险
+2. **一个服务入口**：所有学习行为通过 `LearningStatsService` 统一协调，不再散落在各组件中
+3. **实际停留时间**：时长 = `now - startTime`，不用播放位置、不用播放时长
+4. **打开即计时**：无最短门槛，1s 也记录，数据完整性优先于过滤
+5. **汇总+详情分离**：`StudyRecord` 做 UI 展示，`RecordingRecord`/`TestItem` 做分析回溯
+6. **按资源精确归属**：特别是综合测试，每道题必须能追溯到具体 `source_video_code`
+7. **渐进增强**：三期实施，首期聚焦数据准确流通
+8. **前后端协同**：字幕云存储按 `folder_code` 组织，综合测试接口需要 Edge Function 配合
+
+---
+
+## 附录 A：v1.0 → v2.0 变更对照
+
+| 维度 | v1.0 | v2.0 |
+|------|------|------|
+| 数据表 | 新建 `learning_activity` | 复用 `StudyRecord` |
+| 服务层 | `LearningStatsService`（从零） | `LearningStatsService`（委托+协调现有逻辑） |
+| 最小时长 | ≥30s 才计入 | 无门槛，1s 也记录 |
+| 文章延迟 | Timer 30s 后创建 | 打开即 beginSession |
+| 时长来源 | 播放器实际播放时长 | 实际停留时间（now - startTime） |
+| 测试入口 | 单元/综合共用 TestPage（无区分） | `TestScope` 枚举明确区分三种模式 |
+| 综合测试 | 传单个 video_code | 传 `folder_code`，返回 `source_video_code` |
+| 字幕存储 | 按 `video_code` 扁平存储 | 按 `folder_code` 组织，支持文件夹级操作 |
+| 跟读分数 | ShadowReader 直接写 DB + VideoInfo | 收口到 `recordFollowScore()` 统一处理 |
+| 测试归属 | 仅记 `wordBookCode` | 同时记 `resourceCode`（精确到资源粒度） |
+
+## 附录 B：遗留问题（后续讨论）
+
+1. **AI 对话（conversation）的学习时长记录**：预留 `resourceType: 'conversation'`，首期不做
+2. **单词复习（wordReview）的学习时长**：预留 `resourceType: 'word_book'`，首期仅做测试模式
+3. **App kill/crash 的数据恢复**：依赖 `status=active` 扫描，二期实现
+4. **Edge Function `ai-test-plan` 的 `folder_code` 混合出题能力**：需后端配合开发

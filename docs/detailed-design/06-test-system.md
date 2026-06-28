@@ -17,11 +17,31 @@
 - 综合测试（Folder Test）：针对文件夹下所有资源（可过滤类型）
 - 生词本测试（WordBook Test）：针对收藏单词（一次测试可抽 N 个词）
 
-### 1.2 入口建议
+### 1.2 入口与统一 TestPage
 
-- 单元测试：播放器页 / 阅读页 / 音频页的 “测试”按钮
-- 综合测试：文件夹详情页 “综合测试”
-- 生词本测试：生词本页 “测试”
+三类测试共享同一个 `TestPage`，通过 `TestScope` 枚举区分行为（详见 [18-learning-stats.md](./18-learning-stats.md) 二.3 节）。
+
+```dart
+enum TestScope {
+  resource,    // 单元测试：针对单个资源的字幕内容出题
+  folder,      // 综合测试：针对文件夹下所有资源的字幕混合出题
+  wordBook,    // 生词本测试：针对选中的单词列表出题
+}
+```
+
+**入口映射**：
+
+| 入口 | TestScope | 核心参数 | 出题来源 | 结果归属 |
+|------|----------|---------|---------|----------|
+| 视频卡片菜单"单元测试" | `resource` | `videoCode` | 该资源字幕 | → `videoCode` |
+| 文件夹菜单"综合测试" | `folder` | `videoCode`(代表) + `folderCode` | 文件夹内所有资源字幕混合 | → `item.source_video_code` |
+| 生词本页"测试" | `wordBook` | `seedWords[]` | 选中的单词 | → 仅 `wordBookCode` |
+
+**Edge Function 入参对应**：
+
+- 单元测试：`{ test_scope: 'resource', video_code: 'v001', config: {...} }`
+- 综合测试：`{ test_scope: 'folder', folder_code: 'f001', config: {...} }` → 返回 items 每道题带 `source_video_code`
+- 生词本测试：`{ test_scope: 'word_book', seed_words: [...], config: {...} }`
 
 ## 2. 题型集合（V1 设计）
 
@@ -87,17 +107,55 @@
 
 ## 5.0 字幕云端存储（Supabase Storage）
 
-为降低重复上传、保证 Edge Function 侧可稳定拿到字幕内容，引入字幕云端存储：
+为降低重复上传、保证 Edge Function 侧可稳定拿到字幕内容，引入字幕云端存储。
+
+### 存储结构
 
 - Bucket：`subtitles`（private）
-- 路径：`{user_id}/{video_code}.json`
-- 内容：`{ video_code, title, uploaded_at, items: [{ start_position, end_position, content, content_translate }] }`
+- **v1.0 扁平结构**：路径 `{user_id}/{video_code}.json`
+- **v2.0 按文件夹组织**：上传时携带 `folder_code`，支持按文件夹查询和批量清理
+- 内容：`{ video_code, folder_code, title, uploaded_at, items: [{ start_position, end_position, content, content_translate }] }`
 
-生命周期：
+### 上传接口变更
 
-- 导入字幕成功（本地入库后）→ 调用 `subtitle-storage` 上传（upsert）
+```json
+// Request（增加 folder_code）
+{
+  "op": "upload",
+  "video_code": "v001",
+  "folder_code": "f001",
+  "title": "Lesson 1",
+  "items": [...]
+}
+```
+
+### 删除接口（增加文件夹级别）
+
+```json
+// 删除单个资源（不变）
+{ "op": "delete", "video_code": "v001" }
+
+// 删除文件夹下所有字幕（★ 新增）
+{ "op": "delete_folder", "folder_code": "f001" }
+```
+
+### 生命周期
+
+- 导入字幕成功（本地入库后）→ 调用 `subtitle-storage` 上传（upsert），**携带 `folder_code`**
 - 删除视频/删除文件夹时 → 调用 `subtitle-storage` 删除（释放免费空间）
-- `ai-conversation`/后续 `ai_test_plan`：优先从 Storage 下载字幕；没有则 fallback 客户端上报或服务端表
+- `ai-test-plan` 综合测试模式：服务器根据 `folder_code` 查询该文件夹所有已上传字幕，混合出题
+- `ai-conversation`：优先从 Storage 下载字幕；没有则 fallback 客户端上报
+
+### 上传触发点（均需携带 folderCode）
+
+| 入口 | 说明 |
+|------|------|
+| 文件夹详情页导入字幕 | 本地文件/SRT/LRC 解析后上传 |
+| WiFi 传字幕 | WiFi Transfer Service 导入后上传 |
+| 音频识别歌词 | 音频播放页语音识别后上传 |
+| 文章内容上传 | 文章创建/更新后上传（`article_` 前缀） |
+
+> ⚠️ 同步注意事项：本地删除资源/文件夹时需同步调用 `subtitle-storage` 清理云端；WiFi 重新导入同一资源时 upsert 覆盖旧版本。
 
 ### 5.1 新增/复用的规则码（pricing_rule.rule_code）
 
