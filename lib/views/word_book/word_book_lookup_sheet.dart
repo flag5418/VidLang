@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_detail.dart';
-import 'package:vidlang/services/ai_service.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 
 class WordBookLookupSheet extends StatefulWidget {
@@ -44,13 +45,16 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
   }
 
   Future<void> _lookup() async {
-    if (!widget.isPaidMode) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final result = await AiService.getDefinition(word: widget.word);
+      final mode = widget.isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+      final result = await UnifiedTranslationService.instance.translate(
+        text: widget.word,
+        mode: mode,
+      );
       if (mounted) {
         setState(() {
           _result = result;

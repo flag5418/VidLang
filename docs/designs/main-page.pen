@@ -1,0 +1,232 @@
+{
+  "version": "2.11",
+  "name": "VidLang Main Page - 主页面设计",
+  "description": "包含底部导航栏和4个Tab页面的主界面",
+  "basedOn": "Pencil UI Design Skill v2.0",
+  "created": "2026-06-27",
+  
+  "children": [
+    {
+      "id": "mainPage",
+      "type": "frame",
+      "name": "MainPage - 主页面",
+      "width": 390,
+      "height": 844,
+      "fill": "#FAFAFA", // backgroundLight
+      "cornerRadius": 0,
+      "layout": "vertical",
+      "children": [
+        // 页面内容区域
+        {
+          "id": "pageContent",
+          "type": "frame",
+          "name": "页面内容区域",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "children": [
+            // 这里将根据当前Tab显示不同内容
+            {
+              "id": "homeTabContent",
+              "type": "frame",
+              "name": "首页内容（示例）",
+              "width": "fill_container",
+              "height": "fill_container",
+              "padding": [16, 16, 16, 16],
+              "layout": "vertical",
+              "children": [
+                {
+                  "id": "welcomeText",
+                  "type": "text",
+                  "name": "欢迎文字",
+                  "content": "欢迎回来！👋",
+                  "fontSize": 24,
+                  "fontWeight": 600,
+                  "fill": "#18181B", // textPrimary
+                  "textGrowth": "auto"
+                },
+                {
+                  "id": "subTitle",
+                  "type": "text",
+                  "name": "副标题",
+                  "content": "继续你的英语学习之旅",
+                  "fontSize": 14,
+                  "fontWeight": 400,
+                  "fill": "#71717A", // textSecondary
+                  "textGrowth": "auto"
+                }
+              ]
+            }
+          ]
+        },
+        
+        // 底部导航栏
+        {
+          "id": "bottomNavBar",
+          "type": "frame",
+          "name": "底部导航栏",
+          "width": "fill_container",
+          "height": 80, // 包含安全区域
+          "fill": "#FFFFFF", // surfaceLight
+          "layout": "horizontal",
+          "padding": [8, 0, 24, 0], // 底部额外 padding 用于安全区域
+          "border": {
+            "top": {"color": "#E4E4E7", "width": 1} // borderLight
+          },
+          "children": [
+            // 首页 Tab（选中状态）
+            {
+              "id": "tabHome",
+              "type": "frame",
+              "name": "首页 Tab (Active)",
+              "width": "fill_container",
+              "layout": "vertical",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "tabHomeIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "home",
+                  "fontSize": 26,
+                  "width": 26,
+                  "height": 26,
+                  "fill": "#4ADE80" // primaryBrand (选中色)
+                },
+                {
+                  "id": "tabHomeLabel",
+                  "type": "text",
+                  "name": "首页",
+                  "content": "首页",
+                  "fontSize": 11,
+                  "fontWeight": 600,
+                  "fill": "#4ADE80", // primaryBrand (选中色)
+                  "textAlign": "center",
+                  "textGrowth": "auto"
+                }
+              ]
+            },
+            
+            // 视频集 Tab（未选中）
+            {
+              "id": "tabResources",
+              "type": "frame",
+              "name": "视频集 Tab",
+              "width": "fill_container",
+              "layout": "vertical",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "tabResourcesIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "folder",
+                  "fontSize": 26,
+                  "width": 26,
+                  "height": 26,
+                  "fill": "#A1A1AA" // textTertiary (未选中)
+                },
+                {
+                  "id": "tabResourcesLabel",
+                  "type": "text",
+                  "name": "视频集",
+                  "content": "视频集",
+                  "fontSize": 11,
+                  "fontWeight": 400,
+                  "fill": "#A1A1AA", // textTertiary (未选中)
+                  "textAlign": "center",
+                  "textGrowth": "auto"
+                }
+              ]
+            },
+            
+            // 生词本 Tab（未选中）
+            {
+              "id": "tabWordBook",
+              "type": "frame",
+              "name": "生词本 Tab",
+              "width": "fill_container",
+              "layout": "vertical",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "tabWordBookIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "star",
+                  "fontSize": 26,
+                  "width": 26,
+                  "height": 26,
+                  "fill": "#A1A1AA" // textTertiary
+                },
+                {
+                  "id": "tabWordBookLabel",
+                  "type": "text",
+                  "name": "收藏",
+                  "content": "收藏",
+                  "fontSize": 11,
+                  "fontWeight": 400,
+                  "fill": "#A1A1AA",
+                  "textAlign": "center",
+                  "textGrowth": "auto"
+                }
+              ]
+            },
+            
+            // 我的 Tab（未选中）
+            {
+              "id": "tabProfile",
+              "type": "frame",
+              "name": "我的 Tab",
+              "width": "fill_container",
+              "layout": "vertical",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "gap": 4,
+              "children": [
+                {
+                  "id": "tabProfileIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "person",
+                  "fontSize": 26,
+                  "width": 26,
+                  "height": 26,
+                  "fill": "#A1A1AA"
+                },
+                {
+                  "id": "tabProfileLabel",
+                  "type": "text",
+                  "name": "我的",
+                  "content": "我的",
+                  "fontSize": 11,
+                  "fontWeight": 400,
+                  "fill": "#A1A1AA",
+                  "textAlign": "center",
+                  "textGrowth": "auto"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  
+  "designNotes": [
+    "基于 Pencil UI Design Skill 的工业级规范",
+    "使用 Material Symbols Rounded 图标库",
+    "选中状态使用品牌色 #4ADE80（翠绿色）",
+    "未选中状态使用三级文本色 #A1A1AA",
+    "导航栏高度 80px（含安全区域）",
+    "顶部边框使用 outlineVariant 色 #E4E4E7",
+    "图标大小 26px，字体 11px，间距 4px",
+    "支持 AnimatedContainer 动画（200ms）"
+  ]
+}

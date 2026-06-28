@@ -11,6 +11,7 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/config.dart';
 import 'package:vidlang/models/article.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
@@ -544,9 +545,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   Future<void> _checkAndInitializeTranslation() async {
     if (_article == null || _sentences.isEmpty) return;
 
-    final isPremium = _isPaidMode;
+    final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
 
-    final needCount = TranslationInitService.countNeedTranslate(_sentences, isPremium);
+    final needCount = TranslationInitService.countNeedTranslate(_sentences, mode);
     if (needCount == 0) return;
 
     // 显示加载提示
@@ -559,23 +560,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         sentences: _sentences,
         articleCode: widget.articleCode,
         title: _article!.title,
-        isNative: false,
+        mode: mode,
         onProgress: (current, total) {},
       );
-
-      if (!success && !isPremium && mounted) {
-        final shouldRetry = await NativeTranslationGuideSheet.show(context);
-
-        if (shouldRetry && mounted) {
-          await TranslationInitService.translateArticleSentences(
-            sentences: _sentences,
-            articleCode: widget.articleCode,
-            title: _article!.title,
-            isNative: true,
-            onProgress: (current, total) {},
-          );
-        }
-      }
 
       if (mounted) {
         setState(() {}); // 刷新 UI 显示翻译

@@ -152,40 +152,24 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     if (subtitles.isEmpty) return;
 
     final subState = ref.read(subscriptionProvider);
-    final isPremium = subState.mode == SubscriptionMode.premium;
-    final currentTitle = notifier.currentVideo?.name ?? widget.videoCode;
-
-    final needCount = TranslationInitService.countNeedTranslate(subtitles, isPremium);
+    final needCount = TranslationInitService.countNeedTranslate(subtitles, subState.mode);
     if (needCount == 0) return;
 
     // 显示加载提示
     if (!mounted) return;
     TDMessage.showMessage(context: context, content: '正在进行翻译初始化...', theme: MessageTheme.info, duration: 2000, visible: true);
 
-    // 执行翻译：优先原生，失败则回退 AI 云端
-    try {
-      bool success = false;
+    final currentTitle = notifier.currentVideo?.name ?? widget.videoCode;
 
-      // 1. 尝试原生翻译
-      success = await TranslationInitService.translateSubtitles(
+    // 执行翻译
+    try {
+      final success = await TranslationInitService.translateSubtitles(
         subtitles: subtitles,
         videoCode: widget.videoCode,
         title: currentTitle,
-        isNative: true,
+        mode: subState.mode,
         onProgress: (current, total) {},
       );
-
-      // 2. 原生失败，回退 AI 云端翻译
-      if (!success && mounted) {
-        debugPrint('原生翻译失败，回退到 AI 云端翻译');
-        success = await TranslationInitService.translateSubtitles(
-          subtitles: subtitles,
-          videoCode: widget.videoCode,
-          title: currentTitle,
-          isNative: false,
-          onProgress: (current, total) {},
-        );
-      }
 
       if (mounted) {
         setState(() {}); // 刷新 UI 显示翻译
@@ -545,11 +529,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
 
     setState(() => _isTtsSpeaking = true);
 
-    // 使用统一的 TtsService，它会自动处理本地 TTS -> 阿里云 TTS -> 系统 TTS 的回退链
+    // 使用统一的 TtsService
+    final subState = ref.read(subscriptionProvider);
     await TtsService().speakClarity(
       text: cs.content,
-      audioPlayer: _aliAudioPlayer,
-      useAliyun: true,
+      mode: subState.mode,
       onComplete: () {
         if (!mounted) return;
         setState(() => _isTtsSpeaking = false);
@@ -752,94 +736,37 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
       return;
     }
 
-    // 优先使用本地 Piper TTS
-    if (TtsService().canUseLocalTts) {
-      try {
-        await TtsService().speakWithLocalPiper(text: word);
-        return;
-      } catch (e) {
-        // 本地 TTS 失败，降级到系统 TTS
-        debugPrint('Local TTS failed, falling back to system TTS: $e');
-      }
-    }
-
-    // 降级到系统 TTS
+    // 使用统一 TTS 服务
     final subState = ref.read(subscriptionProvider);
-    if (subState.mode == SubscriptionMode.premium) {
-      try {
-        final result = await AiService.getTtsAudio(text: word);
-        if (result == null || !mounted) return;
-        final audioBase64 = result['audioBase64'] as String?;
-        if (audioBase64 == null || audioBase64.isEmpty) return;
-        final tmpDir = Directory.systemTemp;
-        final file = File('${tmpDir.path}/tts_word_premium.mp3');
-        await file.writeAsBytes(base64.decode(audioBase64));
-        await _aliAudioPlayer.stop();
-        await _aliAudioPlayer.play(ap.DeviceFileSource(file.path));
-      } catch (_) {}
-    } else {
-      if (WordBookService.isSingleWord(word)) {
-        TtsService().speakWord(word);
-      } else {
-        TtsService().speakSubtitle(word);
-      }
+    try {
+      await TtsService().speakClarity(
+        text: word,
+        mode: subState.mode,
+        onComplete: () {},
+      );
+    } catch (e) {
+      debugPrint('TTS speak error: $e');
     }
   }
 
-  /// 付费模式清晰朗读：优先使用本地 Piper TTS，Edge Function ai_tts 作为降级方案
+  /// 付费模式清晰朗读
   Future<void> _speakClarityPremium(String text, bool wasPlaying, PlayerEngineNotifier n) async {
-    // 优先使用本地 Piper TTS
-    if (TtsService().canUseLocalTts) {
-      try {
-        await TtsService().speakClarity(
-          text: text,
-          audioPlayer: _aliAudioPlayer,
-          useAliyun: false, // 不使用阿里云 TTS
-          onComplete: () {
-            if (!mounted) return;
-            setState(() => _isTtsSpeaking = false);
-            if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
-              n.player.play();
-            }
-          },
-        );
-        return;
-      } catch (e) {
-        // 本地 TTS 失败，降级到云 TTS
-        debugPrint('Local TTS failed, falling back to cloud TTS: $e');
-      }
-    }
-
+    final subState = ref.read(subscriptionProvider);
+    setState(() => _isTtsSpeaking = true);
     try {
-      final result = await AiService.getTtsAudio(text: text);
-      if (result == null || !mounted) {
-        setState(() => _isTtsSpeaking = false);
-        return;
-      }
-
-      final audioBase64 = result['audioBase64'] as String?;
-      if (audioBase64 == null || audioBase64.isEmpty) {
-        setState(() => _isTtsSpeaking = false);
-        return;
-      }
-
-      // 将 base64 写入临时文件并播放
-      final tmpDir = Directory.systemTemp;
-      final file = File('${tmpDir.path}/tts_premium.mp3');
-      await file.writeAsBytes(base64.decode(audioBase64));
-
-      await _aliAudioPlayer.stop();
-      await _aliAudioPlayer.play(ap.DeviceFileSource(file.path));
-
-      // 等待播放完成
-      _aliAudioPlayer.onPlayerComplete.first.then((_) {
-        if (!mounted) return;
-        setState(() => _isTtsSpeaking = false);
-        if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
-          n.player.play();
-        }
-      });
-    } catch (_) {
+      await TtsService().speakClarity(
+        text: text,
+        mode: subState.mode,
+        onComplete: () {
+          if (!mounted) return;
+          setState(() => _isTtsSpeaking = false);
+          if (wasPlaying && !ref.read(playerEngineProvider).singleSentencePause) {
+            n.player.play();
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('TTS speakClarityPremium error: $e');
       if (!mounted) return;
       setState(() => _isTtsSpeaking = false);
     }
@@ -1171,7 +1098,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           setRecording: (v) async => n.setRecording(v),
           setLastFollowScore: (v) async => n.setLastFollowScore(v),
           getCurrentVideo: () => video,
-          speakSubtitle: (text) async => TtsService().speakSubtitle(text),
+           speakSubtitle: (text) async {
+             final subState = ref.read(subscriptionProvider);
+             await TtsService().speakSubtitle(text, mode: subState.mode);
+           },
           isTtsSpeaking: _isTtsSpeaking,
           onScore: ({required overall, required fluency, required accuracy, required completeness, required rawResult}) async {},
           onAiEvaluation: ({required resourceCode, required resourceTitle, required language, required overallScore, required summary}) async {},

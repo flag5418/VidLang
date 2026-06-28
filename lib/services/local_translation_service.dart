@@ -315,8 +315,7 @@ class LocalTranslationService {
         throw Exception('Unexpected tensor structure: root is not a List');
       }
 
-      // 释放 logits tensor 和 outputs 内存
-      logitsTensor.release();
+      // 释放 outputs（包括 logitsTensor，它们是同一个对象）
       for (final o in outputs) {
         (o as OrtValueTensor).release();
       }

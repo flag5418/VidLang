@@ -41,8 +41,8 @@ class LocalAiService {
   /// TTS 是否就绪
   bool get ttsReady => _tts.isInitialized;
 
-  /// STT 是否就绪
-  bool get sttReady => _stt.isInitialized;
+  /// STT 已移除，请使用云端模式
+  bool get sttReady => false;
 
   /// 初始化所有本地 AI 服务
   Future<void> initialize() async {
@@ -72,9 +72,9 @@ class LocalAiService {
       
       try {
         await _stt.initialize();
-        debugPrint('STT 初始化完成: ${_stt.isInitialized}');
+        debugPrint('STT 已移除，使用云端模式');
       } catch (e) {
-        debugPrint('STT 初始化失败: $e');
+        debugPrint('STT 已移除');
       }
       
       try {
@@ -130,24 +130,12 @@ class LocalAiService {
     );
   }
 
-  /// STT 识别音频文件
+  /// STT 已移除，请使用云端模式
   Future<String> recognizeFromFile({
     required String filePath,
     String language = 'en',
   }) async {
-    if (!_stt.isInitialized) {
-      debugPrint('STT 模型未就绪，尝试初始化...');
-      await _stt.initialize();
-      if (!_stt.isInitialized) {
-        debugPrint('STT 初始化失败');
-        return 'STT 模型未就绪，请先下载模型';
-      }
-    }
-
-    return _stt.recognizeFromFile(
-      filePath: filePath,
-      language: language,
-    );
+    return 'STT 本地模型已移除，请使用云端模式';
   }
 
   /// 检查是否可以使用特定功能
@@ -156,7 +144,7 @@ class LocalAiService {
       case LocalAiFeature.tts:
         return _tts.isInitialized;
       case LocalAiFeature.stt:
-        return _stt.isInitialized;
+        return false;
     }
   }
 
@@ -168,8 +156,6 @@ class LocalAiService {
         if (_tts.isInitialized) return LocalAiFeatureStatus.ready;
         return LocalAiFeatureStatus.error;
       case LocalAiFeature.stt:
-        if (_stt.isLoading) return LocalAiFeatureStatus.loading;
-        if (_stt.isInitialized) return LocalAiFeatureStatus.ready;
         return LocalAiFeatureStatus.error;
     }
   }

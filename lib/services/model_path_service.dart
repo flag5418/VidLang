@@ -17,43 +17,9 @@ class ModelPathService {
     return _modelsDir!;
   }
 
-  /// 获取 TTS 模型目录
-  static Future<String> get ttsModelDir async {
-    return '${await modelsDir}/supertonic';
-  }
-
-  /// 获取 STT 模型目录
-  static Future<String> get sttModelDir async {
-    return '${await modelsDir}/stt';
-  }
-
-  /// 获取 MarianMT 翻译模型目录
+  /// 获取 MarianMT 模型目录
   static Future<String> get marianmtModelDir async {
     return '${await modelsDir}/marianmt-onnx';
-  }
-
-  /// 获取 TTS 模型文件路径
-  static Future<Map<String, String>> get ttsModelPaths async {
-    final dir = await ttsModelDir;
-    return {
-      'durationPredictor': '$dir/onnx/duration_predictor.onnx',
-      'textEncoder': '$dir/onnx/text_encoder.onnx',
-      'vectorEstimator': '$dir/onnx/vector_estimator.onnx',
-      'vocoder': '$dir/onnx/vocoder.onnx',
-      'ttsJson': '$dir/onnx/tts.json',
-      'unicodeIndexer': '$dir/onnx/unicode_indexer.bin',
-      'voiceStyle': '$dir/voice.bin',
-    };
-  }
-
-  /// 获取 STT 模型文件路径
-  static Future<Map<String, String>> get sttModelPaths async {
-    final dir = await sttModelDir;
-    return {
-      'encoder': '$dir/encoder.onnx',
-      'decoder': '$dir/decoder.onnx',
-      'tokens': '$dir/tokens.txt',
-    };
   }
 
   /// 获取 MarianMT 模型文件路径
@@ -77,16 +43,6 @@ class ModelPathService {
       }
     }
     return true;
-  }
-
-  /// 检查 TTS 模型是否完整
-  static Future<bool> get isTtsModelComplete async {
-    return checkModelFiles(await ttsModelPaths);
-  }
-
-  /// 检查 STT 模型是否完整
-  static Future<bool> get isSttModelComplete async {
-    return checkModelFiles(await sttModelPaths);
   }
 
   /// 检查 MarianMT 模型是否完整

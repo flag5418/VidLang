@@ -5,9 +5,8 @@ import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
-import 'package:vidlang/services/ai_service.dart';
-import 'package:vidlang/services/dictionary_service.dart';
-import 'package:vidlang/services/ios_native_features.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/word_tag_service.dart';
@@ -143,10 +142,11 @@ class _WordCardState extends ConsumerState<WordCard> {
     if (widget.onSpeak != null) {
       widget.onSpeak!.call();
     } else {
+      final mode = widget.isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
       if (_isSingleWord) {
-        TtsService().speakWord(widget.word);
+        TtsService().speakWord(widget.word, mode: mode);
       } else {
-        TtsService().speakSubtitle(widget.word);
+        TtsService().speakSubtitle(widget.word, mode: mode);
       }
     }
     _loadSavedState();
@@ -173,38 +173,24 @@ class _WordCardState extends ConsumerState<WordCard> {
   Future<void> _fetchDefinition() async {
     try {
       WordDetail detail;
+      final isPremium = widget.isPaidMode;
 
-      if (widget.isPaidMode) {
-        if (_isSingleWord) {
-          detail = await AiService.getDefinition(
-            word: widget.word,
-            contextSentence: widget.contextSentence,
-            sourceType: widget.sourceType,
-            sourceCode: widget.sourceCode,
-          );
-        } else {
-          detail = await AiService.translateText(text: widget.word, sourceType: widget.sourceType, sourceCode: widget.sourceCode);
-          detail = WordDetail(
-            word: widget.word,
-            pronounce: detail.pronounce,
-            definitions: detail.definitions,
-            standaloneExamples: detail.standaloneExamples,
-            difficulty: detail.difficulty,
-            morphology: detail.morphology,
-            mnemonic: detail.mnemonic,
-            contextSentence: widget.word,
-            sentenceTranslation: detail.sentenceTranslation ?? detail.translation,
-            wordMeaningInContext: detail.wordMeaningInContext,
-            translation: detail.translation,
-            success: detail.success,
-            error: detail.error,
-            costCny: detail.costCny,
-            balanceAfter: detail.balanceAfter,
-            source: detail.source,
-          );
-        }
+      if (_isSingleWord) {
+        detail = await UnifiedTranslationService.instance.translate(
+          text: widget.word,
+          mode: isPremium ? SubscriptionMode.premium : SubscriptionMode.free,
+          contextSentence: widget.contextSentence,
+          sourceType: widget.sourceType,
+          sourceCode: widget.sourceCode,
+        );
       } else {
-        detail = _isSingleWord ? await _localFallback(widget.word) : await _localSentenceFallback(widget.word);
+        detail = await UnifiedTranslationService.instance.translate(
+          text: widget.word,
+          mode: isPremium ? SubscriptionMode.premium : SubscriptionMode.free,
+          contextSentence: widget.contextSentence,
+          sourceType: widget.sourceType,
+          sourceCode: widget.sourceCode,
+        );
       }
 
       if (!mounted) return;
@@ -228,68 +214,6 @@ class _WordCardState extends ConsumerState<WordCard> {
         _state = _LoadState.error;
       });
     }
-  }
-
-  /// 本地词典兆底查询
-  Future<WordDetail> _localFallback(String word) async {
-    try {
-      // 并行查询本地词典 + 系统翻译
-      final results = await Future.wait([DictionaryService().lookup(word), IosNativeFeatures.translate(text: word)]);
-
-      final dictEntry = results[0] as DictEntry?;
-      final translationResult = results[1] as TranslationResult;
-
-      // 解析释义
-      final definitions = <WordDefinition>[];
-      if (dictEntry != null && dictEntry.translation != null && dictEntry.translation!.isNotEmpty) {
-        for (final line in dictEntry.translation!.split('\n')) {
-          final trimmed = line.trim();
-          if (trimmed.isEmpty) continue;
-          final match = RegExp(r'^([a-z]+\.)\s*(.+)$').firstMatch(trimmed);
-          if (match != null) {
-            definitions.add(WordDefinition(partOfSpeech: match.group(1), chineseMeaning: match.group(2)!));
-          } else {
-            definitions.add(WordDefinition(chineseMeaning: trimmed));
-          }
-        }
-      }
-
-      // 系统翻译作为补充
-      String? translation;
-      if (translationResult.success && translationResult.translatedText.isNotEmpty && translationResult.translatedText != word) {
-        translation = translationResult.translatedText;
-      }
-
-      if (definitions.isNotEmpty || translation != null) {
-        // 如果没有解析出 definitions，用翻译填充
-        if (definitions.isEmpty && translation != null) {
-          definitions.add(WordDefinition(chineseMeaning: translation));
-        }
-
-        return WordDetail(
-          word: word,
-          pronounce: PronounceInfo(ukPhonetic: dictEntry?.phonetic),
-          definitions: definitions,
-          contextSentence: widget.contextSentence,
-          success: true,
-          source: 'local',
-        );
-      }
-    } catch (_) {}
-
-    // 最终兆底
-    return WordDetail(
-      word: word,
-      definitions: [WordDefinition(chineseMeaning: '暂无本地释义，请升级付费版使用 AI 释义')],
-      success: true,
-      source: 'local',
-    );
-  }
-
-  Future<WordDetail> _localSentenceFallback(String text) async {
-    final translationResult = await IosNativeFeatures.translate(text: text);
-    final translated = translationResult.success && translationResult.translatedText.isNotEmpty ? translationResult.translatedText : null;
-    return WordDetail(word: text, contextSentence: text, sentenceTranslation: translated, success: true, source: 'local');
   }
 
   Future<void> _handleToggleSave() async {

@@ -1,0 +1,760 @@
+{
+  "version": "2.11",
+  "name": "VidLang UI Components - 基础组件库设计",
+  "description": "基于 Pencil Skill 的可复用 UI 组件库",
+  "basedOn": "Pencil UI Design Skill v2.0",
+  "created": "2026-06-27",
+  
+  "children": [
+    {
+      "id": "componentLibrary",
+      "type": "frame",
+      "name": "UI Components Library",
+      "width": 390,
+      "height": 1200,
+      "fill": "#FAFAFA",
+      "layout": "vertical",
+      "padding": [24, 24, 24, 24],
+      "gap": 32,
+      "children": [
+        // 标题
+        {
+          "id": "libraryTitle",
+          "type": "text",
+          "name": "UI 组件库",
+          "content": "VidLang UI Components",
+          "fontSize": 28,
+          "fontWeight": 700,
+          "fill": "#18181B",
+          "textGrowth": "auto"
+        },
+        
+        // ══════════════════════════════════════
+        // 按钮组件
+        // ══════════════════════════════════════
+        {
+          "id": "buttonsSection",
+          "type": "frame",
+          "name": "按钮 Buttons",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "id": "buttonsTitle",
+              "type": "text",
+              "name": "按钮",
+              "content": "Buttons",
+              "fontSize": 18,
+              "fontWeight": 600,
+              "fill": "#18181B",
+              "textGrowth": "auto"
+            },
+            
+            // Primary Button
+            {
+              "id": "primaryButton",
+              "type": "frame",
+              "name": "PrimaryButton",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#4ADE80", // primaryBrand
+              "cornerRadius": 8, // radius-md (Pencil Skill)
+              "layout": "horizontal",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "gap": 8,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#4ADE804D",
+                "blur": 4,
+                "offsetY": 2
+              },
+              "children": [
+                {
+                  "id": "primaryBtnIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "check",
+                  "fontSize": 20,
+                  "width": 20,
+                  "height": 20,
+                  "fill": "#FFFFFF"
+                },
+                {
+                  "id": "primaryBtnText",
+                  "type": "text",
+                  "name": "主要按钮",
+                  "content": "Primary Button",
+                  "fontSize": 16,
+                  "fontWeight": 600,
+                  "fill": "#FFFFFF",
+                  "textGrowth": "auto"
+                }
+              ]
+            },
+            
+            // Primary Button (Loading State)
+            {
+              "id": "primaryButtonLoading",
+              "type": "frame",
+              "name": "PrimaryButton (Loading)",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#D4D4D8", // textDisabled (禁用状态)
+              "cornerRadius": 8,
+              "layout": "horizontal",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "children": [
+                {
+                  "id": "loadingSpinner",
+                  "type": "frame",
+                  "name": "Loading Spinner",
+                  "width": 18,
+                  "height": 18,
+                  "border": {"all": {"color": "#FFFFFF", "width": 2}},
+                  "cornerRadius": 9999
+                }
+              ]
+            },
+            
+            // Secondary Button
+            {
+              "id": "secondaryButton",
+              "type": "frame",
+              "name": "SecondaryButton",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#F4F4F5", // surfaceSecondaryLight
+              "cornerRadius": 8,
+              "border": {
+                "all": {"color": "#E4E4E7", "width": 1}
+              },
+              "layout": "horizontal",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "gap": 8,
+              "children": [
+                {
+                  "id": "secondaryBtnIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "arrow_back",
+                  "fontSize": 20,
+                  "width": 20,
+                  "height": 20,
+                  "fill": "#18181B"
+                },
+                {
+                  "id": "secondaryBtnText",
+                  "type": "text",
+                  "name": "次要按钮",
+                  "content": "Secondary Button",
+                  "fontSize": 16,
+                  "fontWeight": 600,
+                  "fill": "#18181B",
+                  "textGrowth": "auto"
+                }
+              ]
+            }
+          ]
+        },
+        
+        // ══════════════════════════════════════
+        // 卡片组件
+        // ══════════════════════════════════════
+        {
+          "id": "cardsSection",
+          "type": "frame",
+          "name": "卡片 Cards",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "id": "cardsTitle",
+              "type": "text",
+              "name": "卡片",
+              "content": "Cards",
+              "fontSize": 18,
+              "fontWeight": 600,
+              "fill": "#18181B",
+              "textGrowth": "auto"
+            },
+            
+            // Base Card
+            {
+              "id": "baseCard",
+              "type": "frame",
+              "name": "BaseCard",
+              "reusable": true,
+              "width": "fill_container",
+              "fill": "#FFFFFF", // surfaceLight
+              "cornerRadius": 12, // radius-lg (Pencil Skill)
+              "padding": [16, 16, 16, 16],
+              "layout": "vertical",
+              "gap": 12,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#0000000D",
+                "blur": 6,
+                "offsetY": 2
+              },
+              "border": {
+                "all": {"color": "#E4E4E7", "width": 1}
+              },
+              "children": [
+                {
+                  "id": "cardTitle",
+                  "type": "text",
+                  "name": "卡片标题",
+                  "content": "Base Card Title",
+                  "fontSize": 16,
+                  "fontWeight": 600,
+                  "fill": "#18181B",
+                  "textGrowth": "auto"
+                },
+                {
+                  "id": "cardBody",
+                  "type": "text",
+                  "name": "卡片内容",
+                  "content": "这是一个基础卡片组件，支持点击事件和自定义内容。",
+                  "fontSize": 14,
+                  "fontWeight": 400,
+                  "fill": "#71717A",
+                  "lineHeight": 1.5,
+                  "textGrowth": "fixed-width"
+                }
+              ]
+            },
+            
+            // Titled Card
+            {
+              "id": "titledCard",
+              "type": "frame",
+              "name": "TitledCard",
+              "reusable": true,
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 12,
+              "padding": [16, 16, 16, 16],
+              "layout": "vertical",
+              "gap": 12,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#0000000D",
+                "blur": 6,
+                "offsetY": 2
+              },
+              "border": {
+                "all": {"color": "#E4E4E7", "width": 1}
+              },
+              "children": [
+                // 标题行
+                {
+                  "id": "titledCardHeader",
+                  "type": "frame",
+                  "name": "标题行",
+                  "width": "fill_container",
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "titledCardIcon",
+                      "type": "icon_font",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "iconFontName": "folder",
+                      "fontSize": 20,
+                      "width": 20,
+                      "height": 20,
+                      "fill": "#71717A"
+                    },
+                    {
+                      "id": "titledCardTitleText",
+                      "type": "text",
+                      "name": "带标题的卡片",
+                      "content": "Titled Card",
+                      "fontSize": 16,
+                      "fontWeight": 600,
+                      "fill": "#18181B",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // 内容区域
+                {
+                  "id": "titledCardBody",
+                  "type": "text",
+                  "name": "带标题和图标的卡片",
+                  "content": "这个卡片包含标题行（图标 + 标题文字）和内容区域。",
+                  "fontSize": 14,
+                  "fontWeight": 400,
+                  "fill": "#71717A",
+                  "lineHeight": 1.5,
+                  "textGrowth": "fixed-width"
+                }
+              ]
+            }
+          ]
+        },
+        
+        // ══════════════════════════════════════
+        // 输入框组件
+        // ══════════════════════════════════════
+        {
+          "id": "inputsSection",
+          "type": "frame",
+          "name": "输入框 Inputs",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "id": "inputsTitle",
+              "type": "text",
+              "name": "输入框",
+              "content": "Inputs",
+              "fontSize": 18,
+              "fontWeight": 600,
+              "fill": "#18181B",
+              "textGrowth": "auto"
+            },
+            
+            // Default Input
+            {
+              "id": "textInputDefault",
+              "type": "frame",
+              "name": "TextInputField (Default)",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#FFFFFF",
+              "cornerRadius": 8, // radius-md (Pencil Skill)
+              "layout": "horizontal",
+              "alignItems": "center",
+              "padding": [0, 12, 0, 12],
+              "gap": 8,
+              "border": {
+                "all": {"color": "#E4E4E7", "width": 1}
+              },
+              "children": [
+                {
+                  "id": "inputIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "person",
+                  "fontSize": 22,
+                  "width": 22,
+                  "height": 22,
+                  "fill": "#A1A1AA"
+                },
+                {
+                  "id": "inputPlaceholder",
+                  "type": "text",
+                  "name": "请输入用户名...",
+                  "content": "请输入用户名...",
+                  "fontSize": 16,
+                  "fontWeight": 400,
+                  "fill": "#A1A1AA",
+                  "textGrowth": "auto"
+                }
+              ]
+            },
+            
+            // Focused Input
+            {
+              "id": "textInputFocused",
+              "type": "frame",
+              "name": "TextInputField (Focused)",
+              "reusable": true,
+              "width": "fill_container",
+              "height": 48,
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "layout": "horizontal",
+              "alignItems": "center",
+              "padding": [0, 12, 0, 12],
+              "gap": 8,
+              "border": {
+                "all": {"color": "#4ADE80", "width": 2} // primaryBrand + 2px (Focus 状态)
+              },
+              "children": [
+                {
+                  "id": "inputIconFocused",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "email",
+                  "fontSize": 22,
+                  "width": 22,
+                  "height": 22,
+                  "fill": "#4ADE80" // Focus 时图标也变色
+                },
+                {
+                  "id": "inputValue",
+                  "type": "text",
+                  "name": "user@example.com",
+                  "content": "user@example.com",
+                  "fontSize": 16,
+                  "fontWeight": 400,
+                  "fill": "#18181B",
+                  "textGrowth": "auto"
+                }
+              ]
+            }
+          ]
+        },
+        
+        // ══════════════════════════════════════
+        // 徽章组件
+        // ══════════════════════════════════════
+        {
+          "id": "badgesSection",
+          "type": "frame",
+          "name": "徽章 Badges",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "id": "badgesTitle",
+              "type": "text",
+              "name": "徽章",
+              "content": "Badges",
+              "fontSize": 18,
+              "fontWeight": 600,
+              "fill": "#18181B",
+              "textGrowth": "auto"
+            },
+            
+            // Badge Row
+            {
+              "id": "badgeRow",
+              "type": "frame",
+              "name": "徽章行",
+              "width": "fill_container",
+              "layout": "horizontal",
+              "wrap": true,
+              "gap": 8,
+              "children": [
+                // Default Badge
+                {
+                  "id": "badgeDefault",
+                  "type": "frame",
+                  "name": "Badge (Default)",
+                  "reusable": true,
+                  "height": 22,
+                  "padding": [6, 8, 6, 8],
+                  "fill": "#F4F4F5",
+                  "cornerRadius": 6, // radius-sm (Pencil Skill)
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "badgeText",
+                      "type": "text",
+                      "name": "默认徽章",
+                      "content": "Default",
+                      "fontSize": 10,
+                      "fontWeight": 500,
+                      "fill": "#71717A",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // Success Badge
+                {
+                  "id": "badgeSuccess",
+                  "type": "frame",
+                  "name": "SuccessBadge",
+                  "reusable": true,
+                  "height": 22,
+                  "padding": [6, 8, 6, 8],
+                  "fill": "#DCFCE7", // primaryBrandLight
+                  "cornerRadius": 6,
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "id": "successIcon",
+                      "type": "icon_font",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "iconFontName": "check_circle_outline",
+                      "fontSize": 14,
+                      "width": 14,
+                      "height": 14,
+                      "fill": "#22C55E"
+                    },
+                    {
+                      "id": "successText",
+                      "type": "text",
+                      "name": "成功",
+                      "content": "Success",
+                      "fontSize": 10,
+                      "fontWeight": 500,
+                      "fill": "#22C55E",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // Warning Badge
+                {
+                  "id": "badgeWarning",
+                  "type": "frame",
+                  "name": "WarningBadge",
+                  "reusable": true,
+                  "height": 22,
+                  "padding": [6, 8, 6, 8],
+                  "fill": "#FEF3C7",
+                  "cornerRadius": 6,
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "id": "warningIcon",
+                      "type": "icon_font",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "iconFontName": "warning_amber",
+                      "fontSize": 14,
+                      "width": 14,
+                      "height": 14,
+                      "fill": "#D97706"
+                    },
+                    {
+                      "id": "warningText",
+                      "type": "text",
+                      "name": "警告",
+                      "content": "Warning",
+                      "fontSize": 10,
+                      "fontWeight": 500,
+                      "fill": "#D97706",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // Error Badge
+                {
+                  "id": "badgeError",
+                  "type": "frame",
+                  "name": "ErrorBadge",
+                  "reusable": true,
+                  "height": 22,
+                  "padding": [6, 8, 6, 8],
+                  "fill": "#FEE2E2",
+                  "cornerRadius": 6,
+                  "layout": "horizontal",
+                  "alignItems": "center",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "id": "errorIcon",
+                      "type": "icon_font",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "iconFontName": "error_outline",
+                      "fontSize": 14,
+                      "width": 14,
+                      "height": 14,
+                      "fill": "#EF4444"
+                    },
+                    {
+                      "id": "errorText",
+                      "type": "text",
+                      "name": "错误",
+                      "content": "Error",
+                      "fontSize": 10,
+                      "fontWeight": 500,
+                      "fill": "#EF4444",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        
+        // ══════════════════════════════════════
+        // 头像组件
+        // ══════════════════════════════════════
+        {
+          "id": "avatarsSection",
+          "type": "frame",
+          "name": "头像 Avatars",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 16,
+          "children": [
+            {
+              "id": "avatarsTitle",
+              "type": "text",
+              "name": "头像",
+              "content": "Avatars",
+              "fontSize": 18,
+              "fontWeight": 600,
+              "fill": "#18181B",
+              "textGrowth": "auto"
+            },
+            
+            // Avatar Sizes Row
+            {
+              "id": "avatarSizesRow",
+              "type": "frame",
+              "name": "头像尺寸",
+              "width": "fill_container",
+              "layout": "horizontal",
+              "alignItems": "center",
+              "gap": 16,
+              "children": [
+                // XS (32px)
+                {
+                  "id": "avatarXS",
+                  "type": "frame",
+                  "name": "Avatar XS (32px)",
+                  "reusable": true,
+                  "width": 32,
+                  "height": 32,
+                  "fill": "#DCFCE7",
+                  "cornerRadius": 9999,
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "id": "avatarXSText",
+                      "type": "text",
+                      "name": "V",
+                      "content": "V",
+                      "fontSize": 12,
+                      "fontWeight": 600,
+                      "fill": "#22C55E",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // SM (40px)
+                {
+                  "id": "avatarSM",
+                  "type": "frame",
+                  "name": "Avatar SM (40px)",
+                  "reusable": true,
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#DCFCE7",
+                  "cornerRadius": 9999,
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "id": "avatarSMText",
+                      "type": "text",
+                      "name": "V",
+                      "content": "V",
+                      "fontSize": 14,
+                      "fontWeight": 600,
+                      "fill": "#22C55E",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // MD (48px)
+                {
+                  "id": "avatarMD",
+                  "type": "frame",
+                  "name": "Avatar MD (48px)",
+                  "reusable": true,
+                  "width": 48,
+                  "height": 48,
+                  "fill": "#DCFCE7",
+                  "cornerRadius": 9999,
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "id": "avatarMDText",
+                      "type": "text",
+                      "name": "V",
+                      "content": "V",
+                      "fontSize": 16,
+                      "fontWeight": 600,
+                      "fill": "#22C55E",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // LG (64px)
+                {
+                  "id": "avatarLG",
+                  "type": "frame",
+                  "name": "Avatar LG (64px)",
+                  "reusable": true,
+                  "width": 64,
+                  "height": 64,
+                  "fill": "#DCFCE7",
+                  "cornerRadius": 9999,
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "id": "avatarLGText",
+                      "type": "text",
+                      "name": "V",
+                      "content": "V",
+                      "fontSize": 20,
+                      "fontWeight": 600,
+                      "fill": "#22C55E",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  
+  "designNotes": [
+    "所有组件基于 Pencil Skill 的工业级规范",
+    "按钮高度统一为 48px，圆角 8px (radius-md)",
+    "卡片圆角 12px (radius-lg)，阴影 blur 6px",
+    "输入框高度 44-48px，圆角 8px",
+    "Focus 状态：边框变为品牌色 (#4ADE80)，宽度 2px",
+    "徽章高度 22px，圆角 6px (radius-sm)",
+    "头像使用圆形 (radius-full)，支持多种尺寸",
+    "所有组件都标记为 reusable: true，可通过 ref 复用",
+    "使用 Material Symbols Rounded 图标库"
+  ],
+  
+  "components": [
+    {"name": "PrimaryButton", "ref": "primaryButton"},
+    {"name": "SecondaryButton", "ref": "secondaryButton"},
+    {"name": "BaseCard", "ref": "baseCard"},
+    {"name": "TitledCard", "ref": "titledCard"},
+    {"name": "TextInputField", "ref": "textInputDefault"},
+    {"name": "Badge", "ref": "badgeDefault"},
+    {"name": "SuccessBadge", "ref": "badgeSuccess"},
+    {"name": "WarningBadge", "ref": "badgeWarning"},
+    {"name": "ErrorBadge", "ref": "badgeError"},
+    {"name": "Avatar", "ref": "avatarMD"}
+  ]
+}

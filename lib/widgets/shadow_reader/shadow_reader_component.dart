@@ -23,7 +23,6 @@ import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
-import 'package:vidlang/services/local_stt_service.dart';
 import 'package:vidlang/services/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
@@ -897,9 +896,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
       return;
     }
 
-    // 免费模式：尝试使用系统 speech_to_text 进行实时识别
-    // 本地 STT 模型由 LocalAiService 统一管理初始化
-    // 录音结束后由 _evaluateFreeModeRecording 使用 LocalSttService 识别
+    // 免费模式：使用系统 speech_to_text 进行实时识别
     _initLiveSpeechToText(cfg);
   }
 
@@ -1011,52 +1008,21 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
     }
   }
 
-  /// 免费模式评分：优先使用本地 STT 模型识别录音，不可用时回退到系统 speech_to_text
+  /// 免费模式评分：使用系统 speech_to_text 实时识别
   Future<void> _evaluateFreeModeRecording(String audioPath, ShadowReaderConfig cfg) async {
     if (_isEvaluating) return;
     _isEvaluating = true;
     try {
-      String recognizedText = '';
-      
-      // 优先尝试本地 STT 模型
-      final localStt = LocalSttService.instance;
-      if (!localStt.isInitialized) {
-        await localStt.initialize();
-      }
+      String recognizedText = _liveTranscription;
 
-      if (localStt.isInitialized) {
-        // 使用本地 STT 模型识别
-        recognizedText = await localStt.recognizeFromFile(filePath: audioPath, language: cfg.language);
-        debugPrint('本地 STT 识别结果: $recognizedText');
-      } else {
-        // 本地 STT 不可用，回退到系统 speech_to_text
-        debugPrint('本地 STT 不可用，尝试使用系统 speech_to_text...');
-        final speechService = SpeechToTextService();
-        final available = await speechService.init();
-        if (available) {
-          // 使用录音文件路径进行识别（speech_to_text 不支持文件识别，需要提示用户）
-          // 这里我们使用一个简化方案：由于 speech_to_text 只能实时识别，
-          // 我们在录音时同时开启 speech_to_text 进行实时识别
-          recognizedText = _liveTranscription;
-          if (recognizedText.isEmpty) {
-            // 如果没有实时识别结果，提示用户
-            if (mounted) {
-              setState(() => _state = 'idle');
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('语音识别模型正在准备中，请确保已下载模型或授予麦克风权限')),
-              );
-            }
-            return;
-          }
-        } else {
-          if (mounted) {
-            setState(() => _state = 'idle');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('语音识别不可用，请检查麦克风权限')),
-            );
-          }
-          return;
+      if (recognizedText.isEmpty) {
+        if (mounted) {
+          setState(() => _state = 'idle');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('语音识别不可用，请确保已授予麦克风权限并在录音时允许识别')),
+          );
         }
+        return;
       }
 
       _liveTranscription = recognizedText;

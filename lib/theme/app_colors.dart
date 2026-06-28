@@ -1,30 +1,99 @@
 import 'package:flutter/material.dart';
 
-/// 配色系统 — 蓝橙渐变方案
+/// 配色系统 — 基于 Pencil UI Design Skill 的工业级设计规范
 ///
-/// 设计原则：
-/// - 纯黑背景与浮层之间有清晰的层级分离
-/// - 主色调为电光蓝(#4284FC)，辅色为暖橙(#FF8E53)，形成视觉渐变
-/// - 文字/前景色保持高对比度
-/// - 表面色有足够区分度，不糊在一起
-/// - 非活跃元素统一用较低透明度，避免灰色喧宾夺主
+/// 设计原则（v2.0 更新）：
+/// - 语义化颜色体系：品牌色、语义色、中性色、表面色分离管理
+/// - 完整的亮色/暗色主题支持
+/// - 4px 基础网格系统
+/// - Material Symbols Rounded 图标库统一
+/// - 高对比度和无障碍访问支持
+///
+/// 兼容性说明：
+/// - 保留原有的蓝橙渐变方案作为播放器专用配色
+/// - 新增 Pencil Skill 规范的中性色和表面色系统
+/// - 所有颜色常量保持向后兼容
+
 class AppColors {
   AppColors._();
 
-  // ─── 背景层级 ─────────────────────────────────
-  // 暗色主题
+  // ═══════════════════════════════════════════════════════════════
+  // Pencil Skill 设计系统 — 中性色（灰阶）
+  // ═══════════════════════════════════════════════════════════════
+
+  /// 文本主色 - 用于标题、重要文字
+  static const Color textPrimary = Color(0xFF18181B);
+  
+  /// 文本次要色 - 用于辅助文字、描述
+  static const Color textSecondary = Color(0xFF71717A);
+  
+  /// 文本三级色 - 用于占位符、禁用状态提示
+  static const Color textTertiary = Color(0xFFA1A1AA);
+  
+  /// 文本禁用色 - 用于禁用状态的文字
+  static const Color textDisabled = Color(0xFFD4D4D8);
+
+  /// 页面背景色（亮色模式）
+  static const Color backgroundLight = Color(0xFFFAFAFA);
+  
+  /// 卡片/容器背景色（亮色模式）
+  static const Color surfaceLight = Color(0xFFFFFFFF);
+  
+  /// 次要表面色（亮色模式）
+  static const Color surfaceSecondaryLight = Color(0xFFF4F4F5);
+
+  /// 边框色（亮色模式）
+  static const Color borderLight = Color(0xFFE4E4E7);
+  
+  /// 浅边框色（亮色模式）
+  static const Color borderLightLight = Color(0xFFF4F4F5);
+
+  // 暗色主题的中性色
+  /// 页面背景色（暗色模式）- #18181B
+  static const Color backgroundDark = Color(0xFF18181B);
+  
+  /// 卡片/容器背景色（暗色模式）
+  static const Color surfaceDark = Color(0xFF18181B);
+  
+  /// 次要表面色（暗色模式）
+  static const Color surfaceSecondaryDark = Color(0xFF27272A);
+
+  /// 边框色（暗色模式）
+  static const Color borderDark = Color(0xFF27272A);
+
+  // ═══════════════════════════════════════════════════════════════
+  // Pencil Skill 设计系统 — 品牌色（保留多邻国风格的翠绿色）
+  // ═══════════════════════════════════════════════════════════════
+
+  /// 主品牌色 - 翠绿色（用于主要操作、进度条、强调元素）
+  static const Color primaryBrand = Color(0xFF4ADE80);
+  
+  /// 主品牌色浅色版
+  static const Color primaryBrandLight = Color(0xFFDCFCE7);
+  
+  /// 主品牌色深色版
+  static const Color primaryBrandDark = Color(0xFF22C55E);
+  
+  /// 信息提示色（Pencil Skill 新增）
+  static const Color info = Color(0xFF3B82F6);
+
+  // ═══════════════════════════════════════════════════════════════
+  // 向后兼容层 — 背景层级（原有 API 保持不变）
+  // ═══════════════════════════════════════════════════════════════
+
+  // 暗色主题背景层级
   static const Color background = Color(0xFF000000);
   static const Color surface = Color(0xFF121212);
   static const Color surfaceElevated = Color(0xFF1E1E1E);
   static const Color surfaceHighest = Color(0xFF2C2C2C);
 
-  // 亮色主题
-  static const Color lightBackground = Color(0xFFF5F5F5);
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceElevated = Color(0xFFF0F0F0);
+  // 亮色主题背景层级（使用 Pencil Skill 规范值）
+  static const Color lightBackground = backgroundLight; // #FAFAFA
+  static const Color lightSurface = surfaceLight;     // #FFFFFF
+  static const Color lightSurfaceElevated = surfaceSecondaryLight; // #F4F4F5
   static const Color lightSurfaceHighest = Color(0xFFF5F6FC);
 
-  /// 根据主题获取背景层级色
+  /// 根据主题获取背景层级色（Pencil Skill 优化版）
   static Color getBgLayer({required Brightness brightness}) =>
       brightness == Brightness.dark ? surface : lightSurface;
   static Color getScaffoldBg({required Brightness brightness}) =>
@@ -36,26 +105,32 @@ class AppColors {
   static Color getSurfaceHighest({required Brightness brightness}) =>
       brightness == Brightness.dark ? surfaceHighest : lightSurfaceHighest;
 
-  // ─── 前景/文字 ─────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════
+  // 向后兼容层 — 前景/文字色
+  // ═══════════════════════════════════════════════════════════════
+
   static const Color onSurface = Color(0xFFFFFFFF);
   static const Color onSurfaceVariant = Color(0xFF999999);
   static const Color onSurfaceDisabled = Color(0xFF555555);
-  static const Color lightOnSurface = Color(0xFF1A1A1A);
-  static const Color lightOnSurfaceVariant = Color(0xFF666666);
-  static const Color lightOnSurfaceDisabled = Color(0xFFAAAAAA);
+  static const Color lightOnSurface = textPrimary;       // #18181B (Pencil Skill)
+  static const Color lightOnSurfaceVariant = textSecondary; // #71717A (Pencil Skill)
+  static const Color lightOnSurfaceDisabled = textDisabled;  // #D4D4D8 (Pencil Skill)
 
-  /// 根据主题获取前景文字色
+  /// 根据主题获取前景文字色（Pencil Skill 优化版）
   static Color getOnSurface({required Brightness brightness}) =>
       brightness == Brightness.dark ? onSurface : lightOnSurface;
   static Color getOnSurfaceVariant({required Brightness brightness}) =>
       brightness == Brightness.dark ? onSurfaceVariant : lightOnSurfaceVariant;
 
-  /// 根据主题获取边框/分隔色
+  /// 根据主题获取边框/分隔色（Pencil Skill 优化版）
   static Color getOutline({required Brightness brightness}) =>
-      brightness == Brightness.dark ? outline : const Color(0xFFDDDDDD);
+      brightness == Brightness.dark ? outline : borderLight;
 
-  // ─── 强调色（电光蓝 → 暖橙渐变） ────
-  /// 主色：电光蓝
+  // ═══════════════════════════════════════════════════════════════
+  // 强调色系统（电光蓝 → 暖橙渐变）— 播放器和功能模块专用
+  // ═══════════════════════════════════════════════════════════════
+
+  /// 主色：电光蓝（用于播放器、导航等）
   static const Color primary = Color(0xFF4284FC);
 
   /// 辅色/渐变终点：暖橙

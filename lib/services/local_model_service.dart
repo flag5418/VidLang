@@ -30,7 +30,6 @@ class LocalModelService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // 首次启动时自动将 assets 里的模型释放到沙盒物理路径
     await AssetsExtractor.extractBuiltInModelsIfNeed();
 
     await checkModelsStatus();
@@ -44,14 +43,11 @@ class LocalModelService {
     _isChecking = true;
 
     try {
-      // 检查模型类型
-      // TTS 和 STT 是必需的
-      final ttsExists = await _downloadService.isModelDownloaded('tts');
-      final sttExists = await _downloadService.isModelDownloaded('stt');
+      // 只检查 MarianMT 翻译模型
+      final marianmtExists = await _downloadService.isModelDownloaded('marianmt');
 
       debugPrint('=== 模型检测详情 ===');
-      debugPrint('TTS 存在: $ttsExists');
-      debugPrint('STT 存在: $sttExists');
+      debugPrint('MarianMT 存在: $marianmtExists');
 
       // 获取远程版本信息（失败时不强制要求下载）
       ModelConfigResponse? remoteConfig;
@@ -82,28 +78,24 @@ class LocalModelService {
       }
 
       // 更新状态
-      // TTS 和 STT 可以独立就绪，不需要同时存在
-      if (ttsExists || sttExists) {
+      if (marianmtExists) {
         _currentStatus = LocalModelStatus.ready;
-        _hasAllModels = ttsExists && sttExists;
-        debugPrint('状态设置为 LocalModelStatus.ready (TTS: $ttsExists, STT: $sttExists)');
+        _hasAllModels = marianmtExists;
+        debugPrint('状态设置为 LocalModelStatus.ready (MarianMT: $marianmtExists)');
       } else if (needsUpdate) {
         _currentStatus = LocalModelStatus.needsUpdate;
         _hasAllModels = false;
         debugPrint('状态设置为 needsUpdate');
       } else if (configFetchFailed) {
-        // 模型不全且获取配置失败
         _currentStatus = LocalModelStatus.error;
         _hasAllModels = false;
         debugPrint('状态设置为 LocalModelStatus.error (模型缺失且无法连接服务器)');
       } else {
-        // 模型不全但获取配置成功，提示下载
         _currentStatus = LocalModelStatus.missing;
         _hasAllModels = false;
         debugPrint('状态设置为 LocalModelStatus.missing');
       }
 
-      // 为了兼容状态流监听
       _statusController.add(_currentStatus);
 
       return _currentStatus;
@@ -122,16 +114,6 @@ class LocalModelService {
 
   /// 是否可以使用 AI 功能
   bool get canUseAiFeatures => _hasAllModels && _currentStatus == LocalModelStatus.ready;
-
-  /// 获取本地 TTS 模型路径
-  Future<String?> getTtsModelPath() async {
-    return await _downloadService.getLocalModelPath('tts');
-  }
-
-  /// 获取本地 STT 模型路径
-  Future<String?> getSttModelPath() async {
-    return await _downloadService.getLocalModelPath('stt');
-  }
 
   /// 重置状态（强制重新检查）
   Future<void> reset() async {

@@ -1,0 +1,74 @@
+{
+  "version": "2.11",
+  "metadata": {
+    "name": "VidLang UI Design System",
+    "description": "基于 Pencil UI Design Skill 的工业级设计系统",
+    "created": "2026-06-27",
+    "author": "AI Assistant",
+    "basedOn": "Pencil UI Design Skill v2.0"
+  },
+  "designTokens": {
+    "colors": {
+      // 品牌色
+      "primaryBrand": "#4ADE80",
+      "primaryBrandLight": "#DCFCE7",
+      "primaryBrandDark": "#22C55E",
+      
+      // 中性色（灰阶）
+      "textPrimary": "#18181B",
+      "textSecondary": "#71717A",
+      "textTertiary": "#A1A1AA",
+      "textDisabled": "#D4D4D8",
+      
+      // 表面色
+      "backgroundLight": "#FAFAFA",
+      "surfaceLight": "#FFFFFF",
+      "surfaceSecondaryLight": "#F4F4F5",
+      "borderLight": "#E4E4E7",
+      
+      // 暗色主题
+      "backgroundDark": "#18181B",
+      "surfaceDark": "#18181B",
+      "surfaceSecondaryDark": "#27272A",
+      "borderDark": "#27272A",
+      
+      // 语义色
+      "success": "#22C55E",
+      "warning": "#FBBF24",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    },
+    "typography": {
+      "fontFamily": "Inter, Noto Sans SC",
+      "display": {"size": 36, "weight": 700, "lineHeight": 1.2},
+      "h1": {"size": 24, "weight": 600, "lineHeight": 1.3},
+      "h2": {"size": 20, "weight": 600, "lineHeight": 1.4},
+      "h3": {"size": 18, "weight": 600, "lineHeight": 1.4},
+      "body": {"size": 14, "weight": 400, "lineHeight": 1.5},
+      "small": {"size": 12, "weight": 400, "lineHeight": 1.4},
+      "caption": {"size": 10, "weight": 500, "lineHeight": 1.3}
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 12,
+      "lg": 16,
+      "xl": 24,
+      "2xl": 32,
+      "3xl": 48
+    },
+    "radius": {
+      "sm": 6,
+      "md": 8,
+      "lg": 12,
+      "xl": 16,
+      "full": 9999
+    },
+    "shadows": {
+      "sm": {"blur": 2, "offsetY": 1, "color": "#0000000D"},
+      "md": {"blur": 6, "offsetY": 2, "color": "#0000000A"},
+      "lg": {"blur": 15, "offsetY": 8, "color": "#00000014"}
+    }
+  },
+  "components": []
+}

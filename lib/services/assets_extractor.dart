@@ -23,35 +23,19 @@ class AssetsExtractor {
     'assets/models/marianmt-onnx/tokenizer_config.json',
     'assets/models/marianmt-onnx/tokenizer_data.json',
     'assets/models/marianmt-onnx/vocab.json',
-
-    // Supertonic TTS 模型
-    'assets/models/supertonic/onnx/duration_predictor.onnx',
-    'assets/models/supertonic/onnx/text_encoder.onnx',
-    'assets/models/supertonic/onnx/tts.json',
-    'assets/models/supertonic/onnx/unicode_indexer.bin',
-    'assets/models/supertonic/onnx/vector_estimator.onnx',
-    'assets/models/supertonic/onnx/vocoder.onnx',
-    'assets/models/supertonic/voice.bin',
-
-    // STT 模型
-    'assets/models/stt/decoder.onnx',
-    'assets/models/stt/encoder.onnx',
-    'assets/models/stt/tokens.txt',
   ];
 
   /// 检查是否需要释放资产
   static Future<bool> _needsExtraction() async {
     // 检查所有模型是否完整
-    final ttsComplete = await ModelPathService.isTtsModelComplete;
-    final sttComplete = await ModelPathService.isSttModelComplete;
     final marianmtComplete = await ModelPathService.isMarianmtModelComplete;
 
-    if (ttsComplete && sttComplete && marianmtComplete) {
+    if (marianmtComplete) {
       debugPrint('内置模型资产已存在于沙盒，跳过释放');
       return false;
     }
 
-    debugPrint('模型资产不完整，需要释放: TTS=$ttsComplete, STT=$sttComplete, MarianMT=$marianmtComplete');
+    debugPrint('模型资产不完整，需要释放: MarianMT=$marianmtComplete');
     return true;
   }
 

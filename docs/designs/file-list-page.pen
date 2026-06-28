@@ -1,0 +1,449 @@
+{
+  "version": "2.11",
+  "name": "VidLang File List Page - 文件列表页设计",
+  "description": "视频集列表页面，包含搜索栏和文件夹卡片网格",
+  "basedOn": "Pencil UI Design Skill v2.0",
+  "created": "2026-06-27",
+  
+  "children": [
+    {
+      "id": "fileListPage",
+      "type": "frame",
+      "name": "FileListPage - 文件列表页",
+      "width": 390,
+      "height": 844,
+      "fill": "#FAFAFA", // backgroundLight
+      "cornerRadius": 0,
+      "layout": "vertical",
+      "padding": [16, 16, 0, 16],
+      "children": [
+        // 导航栏
+        {
+          "id": "navBar",
+          "type": "frame",
+          "name": "导航栏",
+          "width": "fill_container",
+          "height": 56,
+          "layout": "horizontal",
+          "alignItems": "center",
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "id": "title",
+              "type": "text",
+              "name": "我的视频",
+              "content": "我的视频",
+              "fontSize": 20, // H2
+              "fontWeight": 600,
+              "fill": "#18181B", // textPrimary
+              "textGrowth": "auto"
+            },
+            {
+              "id": "addButton",
+              "type": "frame",
+              "name": "添加按钮",
+              "width": 40,
+              "height": 40,
+              "fill": "#4ADE80", // primaryBrand
+              "cornerRadius": 9999, // 圆形
+              "layout": "vertical",
+              "alignItems": "center",
+              "justifyContent": "center",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#4ADE804D", // primaryBrand with opacity
+                "blur": 6,
+                "offsetY": 2
+              },
+              "children": [
+                {
+                  "id": "addIcon",
+                  "type": "icon_font",
+                  "iconFontFamily": "Material Symbols Rounded",
+                  "iconFontName": "add",
+                  "fontSize": 24,
+                  "width": 24,
+                  "height": 24,
+                  "fill": "#FFFFFF"
+                }
+              ]
+            }
+          ]
+        },
+        
+        // 搜索栏
+        {
+          "id": "searchBar",
+          "type": "frame",
+          "name": "搜索栏",
+          "width": "fill_container",
+          "height": 44, // 标准输入框高度
+          "fill": "#FFFFFF", // surfaceLight
+          "cornerRadius": 8, // radius-md (Pencil Skill)
+          "layout": "horizontal",
+          "alignItems": "center",
+          "padding": [0, 12, 0, 12],
+          "gap": 8,
+          "border": {
+            "all": {"color": "#E4E4E7", "width": 1} // borderLight
+          },
+          "children": [
+            {
+              "id": "searchIcon",
+              "type": "icon_font",
+              "iconFontFamily": "Material Symbols Rounded",
+              "iconFontName": "search",
+              "fontSize": 20,
+              "width": 20,
+              "height": 20,
+              "fill": "#A1A1AA" // textTertiary
+            },
+            {
+              "id": "searchPlaceholder",
+              "type": "text",
+              "name": "搜索提示",
+              "content": "搜索视频或文件夹...",
+              "fontSize": 14, // body
+              "fontWeight": 400,
+              "fill": "#A1A1AA",
+              "textGrowth": "auto"
+            }
+          ]
+        },
+        
+        // 文件夹卡片网格（2列）
+        {
+          "id": "folderGrid",
+          "type": "frame",
+          "name": "文件夹网格",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 12, // gridSpacing (Pencil Skill)
+          "children": [
+            // 第一行：2个卡片
+            {
+              "id": "row1",
+              "type": "frame",
+              "name": "行1",
+              "width": "fill_container",
+              "layout": "horizontal",
+              "gap": 12,
+              "children": [
+                // 卡片1：最近播放的视频集
+                {
+                  "id": "folderCard1",
+                  "type": "frame",
+                  "name": "VideoFolderCard - 英语学习",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "cornerRadius": 12, // radius-lg (Pencil Skill)
+                  "clip": true,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#0000000D", // shadow-sm
+                    "blur": 4,
+                    "offsetY": 2
+                  },
+                  "border": {
+                    "all": {"color": "#E4E4E7", "width": 1}
+                  },
+                  "children": [
+                    // 封面图区域
+                    {
+                      "id": "coverImage1",
+                      "type": "frame",
+                      "name": "封面图",
+                      "width": "fill_container",
+                      "height": 120,
+                      "fill": "#F4F4F5", // surfaceSecondaryLight
+                      "layout": "vertical",
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "id": "coverIcon1",
+                          "type": "icon_font",
+                          "iconFontFamily": "Material Symbols Rounded",
+                          "iconFontName": "play_circle",
+                          "fontSize": 48,
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#4ADE80" // primaryBrand
+                        }
+                      ]
+                    },
+                    // 信息区域
+                    {
+                      "id": "cardInfo1",
+                      "type": "frame",
+                      "name": "卡片信息",
+                      "width": "fill_container",
+                      "padding": [12, 12, 12, 12],
+                      "layout": "vertical",
+                      "gap": 8,
+                      "fill": "#FFFFFF",
+                      "children": [
+                        {
+                          "id": "cardTitle1",
+                          "type": "text",
+                          "name": "英语学习",
+                          "content": "英语学习",
+                          "fontSize": 14, // body
+                          "fontWeight": 500,
+                          "fill": "#18181B",
+                          "maxLines": 1,
+                          "textGrowth": "truncate"
+                        },
+                        {
+                          "id": "cardMeta1",
+                          "type": "frame",
+                          "name": "元数据",
+                          "width": "fill_container",
+                          "layout": "horizontal",
+                          "alignItems": "center",
+                          "justifyContent": "space_between",
+                          "children": [
+                            {
+                              "id": "progressText1",
+                              "type": "text",
+                              "name": "进度",
+                              "content": "12/20 集",
+                              "fontSize": 12, // small
+                              "fontWeight": 400,
+                              "fill": "#71717A", // textSecondary
+                              "textGrowth": "auto"
+                            },
+                            {
+                              "id": "progressBadge1",
+                              "type": "frame",
+                              "name": "进度徽章",
+                              "height": 22,
+                              "padding": [6, 8, 6, 8],
+                              "fill": "#DCFCE7", // primaryBrandLight
+                              "cornerRadius": 6, // radius-sm
+                              "layout": "horizontal",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "id": "progressPercent1",
+                                  "type": "text",
+                                  "name": "60%",
+                                  "content": "60%",
+                                  "fontSize": 10, // caption
+                                  "fontWeight": 500,
+                                  "fill": "#22C55E", // success / primaryBrandDark
+                                  "textGrowth": "auto"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                
+                // 卡片2：另一个视频集
+                {
+                  "id": "folderCard2",
+                  "type": "frame",
+                  "name": "VideoFolderCard - 美剧学习",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "cornerRadius": 12,
+                  "clip": true,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#0000000D",
+                    "blur": 4,
+                    "offsetY": 2
+                  },
+                  "border": {
+                    "all": {"color": "#E4E4E7", "width": 1}
+                  },
+                  "children": [
+                    {
+                      "id": "coverImage2",
+                      "type": "frame",
+                      "name": "封面图",
+                      "width": "fill_container",
+                      "height": 120,
+                      "fill": "#F4F4F5",
+                      "layout": "vertical",
+                      "alignItems": "center",
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "id": "coverIcon2",
+                          "type": "icon_font",
+                          "iconFontFamily": "Material Symbols Rounded",
+                          "iconFontName": "movie",
+                          "fontSize": 48,
+                          "width": 48,
+                          "height": 48,
+                          "fill": "#71717A"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "cardInfo2",
+                      "type": "frame",
+                      "name": "卡片信息",
+                      "width": "fill_container",
+                      "padding": [12, 12, 12, 12],
+                      "layout": "vertical",
+                      "gap": 8,
+                      "fill": "#FFFFFF",
+                      "children": [
+                        {
+                          "id": "cardTitle2",
+                          "type": "text",
+                          "name": "美剧学习",
+                          "content": "美剧学习",
+                          "fontSize": 14,
+                          "fontWeight": 500,
+                          "fill": "#18181B",
+                          "maxLines": 1,
+                          "textGrowth": "truncate"
+                        },
+                        {
+                          "id": "cardMeta2",
+                          "type": "frame",
+                          "name": "元数据",
+                          "width": "fill_container",
+                          "layout": "horizontal",
+                          "alignItems": "center",
+                          "justifyContent": "space_between",
+                          "children": [
+                            {
+                              "id": "progressText2",
+                              "type": "text",
+                              "name": "进度",
+                              "content": "5/15 集",
+                              "fontSize": 12,
+                              "fontWeight": 400,
+                              "fill": "#71717A",
+                              "textGrowth": "auto"
+                            },
+                            {
+                              "id": "progressBadge2",
+                              "type": "frame",
+                              "name": "进度徽章",
+                              "height": 22,
+                              "padding": [6, 8, 6, 8],
+                              "fill": "#FEF3C7", // warning light
+                              "cornerRadius": 6,
+                              "layout": "horizontal",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "id": "progressPercent2",
+                                  "type": "text",
+                                  "name": "33%",
+                                  "content": "33%",
+                                  "fontSize": 10,
+                                  "fontWeight": 500,
+                                  "fill": "#D97706", // warning dark
+                                  "textGrowth": "auto"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            
+            // 第二行：新建文件夹卡片 + 其他
+            {
+              "id": "row2",
+              "type": "frame",
+              "name": "行2",
+              "width": "fill_container",
+              "layout": "horizontal",
+              "gap": 12,
+              "children": [
+                // 新建文件夹卡片
+                {
+                  "id": "newFolderCard",
+                  "type": "frame",
+                  "name": "新建文件夹",
+                  "width": "fill_container",
+                  "height": 180, // 与其他卡片等高
+                  "cornerRadius": 12,
+                  "border": {
+                    "all": {"color": "#E4E4E7", "width": 1, "style": "dashed"}
+                  },
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "newFolderIcon",
+                      "type": "icon_font",
+                      "iconFontFamily": "Material Symbols Rounded",
+                      "iconFontName": "add_circle_outline",
+                      "fontSize": 40,
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#A1A1AA"
+                    },
+                    {
+                      "id": "newFolderLabel",
+                      "type": "text",
+                      "name": "新建文件夹",
+                      "content": "新建文件夹",
+                      "fontSize": 14,
+                      "fontWeight": 400,
+                      "fill": "#A1A1AA",
+                      "textGrowth": "auto"
+                    }
+                  ]
+                },
+                
+                // 占位卡片（示例）
+                {
+                  "id": "placeholderCard",
+                  "type": "frame",
+                  "name": "占位",
+                  "width": "fill_container",
+                  "height": 180,
+                  "cornerRadius": 12,
+                  "fill": "#F4F4F5",
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "justifyContent": "center",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  
+  "designNotes": [
+    "基于 Pencil Skill 的工业级设计规范",
+    "使用 2 列网格布局，间距 12px (gridSpacing)",
+    "卡片圆角 12px (radius-lg)，阴影 blur 4px",
+    "搜索栏高度 44px，圆角 8px (radius-md)",
+    "添加按钮为圆形 (radius-full)，品牌色背景",
+    "进度徽章使用语义化颜色（成功/警告）",
+    "支持虚线边框的新建卡片样式",
+    "文本截断使用 textGrowth: truncate"
+  ],
+  
+  "responsive": {
+    "phone": {"columns": 2},
+    "tablet": {"columns": 3, "cardWidth": "larger"}
+  }
+}

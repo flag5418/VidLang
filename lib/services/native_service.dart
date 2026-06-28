@@ -71,13 +71,13 @@ class NativeService {
   }
 
   /// TTS 朗读
-  static Future<bool> speakWord(String word) async {
-    return TtsService().speakWord(word);
+  static Future<void> speakWord(String word) async {
+    await TtsService().speakWord(word);
   }
 
   /// TTS 朗读字幕
-  static Future<bool> speakSubtitle(String text) async {
-    return TtsService().speakSubtitle(text);
+  static Future<void> speakSubtitle(String text) async {
+    await TtsService().speakSubtitle(text);
   }
 
   /// TTS 清晰朗读
