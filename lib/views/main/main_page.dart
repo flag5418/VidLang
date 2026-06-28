@@ -10,7 +10,6 @@ import 'package:vidlang/views/files/file_list_page.dart';
 import 'package:vidlang/views/home/home_page.dart';
 import 'package:vidlang/views/profile/profile_page.dart';
 import 'package:vidlang/views/word_book/collection_page.dart';
-import 'package:vidlang/widgets/model_download_dialog.dart';
 
 /// 主页面 - 基于 Pencil UI Design Skill 重构
 /// 
@@ -56,7 +55,7 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
     super.dispose();
   }
 
-  /// 检查模型状态，如果需要下载则显示弹窗
+  /// 检查模型状态（MarianMT 翻译模型）
   Future<void> _checkModelStatus() async {
     if (_hasCheckedModels) return;
     _hasCheckedModels = true;
@@ -67,25 +66,10 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
       
       debugPrint('=== 模型状态检查 ===');
       debugPrint('状态: $status');
-      debugPrint('shouldShowDownloadDialog: ${status.shouldShowDownloadDialog}');
       debugPrint('canUseAiFeatures: ${status.canUseAiFeatures}');
       
-      // 如果需要下载模型，显示弹窗
-      if (status.shouldShowDownloadDialog && mounted) {
-        debugPrint('显示下载弹窗，状态: $status');
-        // 延迟显示弹窗，确保页面完全加载
-        await Future.delayed(Duration(milliseconds: 500));
-        
-        if (mounted) {
-          await ModelDownloadDialog.show(
-            context,
-            forceShow: status == LocalModelStatus.missing, // 缺少模型时强制下载
-            onDownloadComplete: () {
-              // 下载完成后刷新状态
-              localModelService.reset();
-            },
-          );
-        }
+      if (status == LocalModelStatus.missing) {
+        debugPrint('MarianMT 翻译模型未找到，请检查 assets 打包');
       }
     } catch (e) {
       debugPrint('检查模型状态失败: $e');

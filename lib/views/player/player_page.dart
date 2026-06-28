@@ -23,7 +23,6 @@ import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
-import 'package:vidlang/widgets/model_download_dialog.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
@@ -721,15 +720,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     if (!canUseAi) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('需要下载AI模型才能使用语音功能'),
-            action: SnackBarAction(
-              label: '去下载',
-              onPressed: () {
-                // 显示模型下载弹窗
-                ModelDownloadDialog.show(context);
-              },
-            ),
+          const SnackBar(
+            content: Text('翻译模型未就绪，请使用收费模式或检查本地模型'),
           ),
         );
       }
