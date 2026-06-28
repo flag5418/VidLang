@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer' as dev;
 
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article_sentence.dart';
@@ -83,6 +84,16 @@ class TranslationInitService {
 
   /// 免费模式：本地 MarianMT 逐句翻译字幕
   static Future<bool> _translateSubtitlesLocal(List<Subtitles> subtitles, void Function(int current, int total) onProgress) async {
+    // 诊断日志：记录磁盘空间
+    try {
+      final dir = await getApplicationSupportDirectory();
+      final stat = await dir.stat();
+      dev.log(
+        'translation start | count=${subtitles.length} | disk=${stat.size} bytes',
+        name: 'TranslationInitService',
+      );
+    } catch (_) {}
+
     int success = 0;
     for (int i = 0; i < subtitles.length; i++) {
       final sub = subtitles[i];

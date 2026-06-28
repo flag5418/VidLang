@@ -218,6 +218,17 @@ class DatabaseService {
         logger.error('corrupted db backup failed', tag: 'DB', error: e);
       }
 
+      // 尝试 ATTACH 导出救援：在删除前尽量把可读数据导出到新文件
+      try {
+        final exportPath = '$path.export-${DateTime.now().millisecondsSinceEpoch}';
+        final exported = await _tryExportToNewDb(path, exportPath);
+        if (exported) {
+          logger.warning('data exported before recovery', tag: 'DB', extra: {'exportPath': exportPath});
+        }
+      } catch (e) {
+        logger.error('export attempt failed', tag: 'DB', error: e);
+      }
+
       // 删除所有数据库文件
       try {
         await _deleteDbFiles(path);
@@ -235,6 +246,63 @@ class DatabaseService {
         rethrow;
       }
     });
+  }
+
+  /// 尝试将损坏数据库的可读数据导出到新文件（ATTACH 方式）
+  /// 返回 true 表示导出成功，新文件可用
+  static Future<bool> _tryExportToNewDb(String corruptedPath, String newPath) async {
+    Database? db;
+    try {
+      db = await openDatabase(corruptedPath, readOnly: true);
+      await db.execute("ATTACH DATABASE ? AS newdb", [newPath]);
+
+      // 获取所有用户表
+      final tables = await db.rawQuery(
+        "SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      );
+
+      for (final row in tables) {
+        final name = row['name'] as String;
+        final sql = (row['sql'] as String?) ?? '';
+
+        // 在新库中创建表结构
+        if (sql.isNotEmpty) {
+          try {
+            final createSql = sql.replaceFirst(
+              RegExp(r'CREATE TABLE\s+' + RegExp.escape(name), caseSensitive: false),
+              'CREATE TABLE newdb.$name',
+            );
+            await db.execute(createSql);
+          } catch (_) {
+            // 创建失败时用 SELECT AS 方式
+            try {
+              await db.execute('CREATE TABLE IF NOT EXISTS newdb.$name AS SELECT * FROM main.$name WHERE 0');
+            } catch (_) {}
+          }
+        }
+
+        // 复制数据
+        try {
+          await db.execute('INSERT INTO newdb.$name SELECT * FROM main.$name WHERE 1=1');
+        } catch (_) {
+          // 部分表可能因 corruption 无法复制，跳过
+        }
+      }
+
+      await db.execute("DETACH DATABASE newdb");
+      logger.warning('export to new db succeeded', tag: 'DB', extra: {'newPath': newPath, 'tables': tables.length});
+      return true;
+    } catch (e) {
+      logger.error('export to new db failed', tag: 'DB', error: e);
+      try {
+        await db?.execute("DETACH DATABASE newdb");
+      } catch (_) {}
+      return false;
+    } finally {
+      try {
+        await db?.close();
+      } catch (_) {}
+    }
   }
 
   static Future<String> _getLegacyDbPath() async {
@@ -328,6 +396,40 @@ class DatabaseService {
       }
     }
     return null;
+  }
+
+  /// 检查数据库完整性
+  /// 返回 true 表示数据库完好，false 表示已损坏
+  static Future<bool> _checkIntegrity(Database db) async {
+    try {
+      final rows = await db.rawQuery('PRAGMA integrity_check;');
+      if (rows.isEmpty) return false;
+      final v = rows.first.values.first?.toString() ?? '';
+      return v.toLowerCase() == 'ok';
+    } catch (e) {
+      logger.error('integrity_check failed', tag: 'DB', error: e);
+      return false;
+    }
+  }
+
+  /// WAL checkpoint：将 WAL 文件合并回主数据库
+  /// 在大批量写入前调用可减少 WAL 文件大小，降低不一致风险
+  static Future<void> _walCheckpoint(Database db) async {
+    try {
+      await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE);');
+    } catch (_) {}
+  }
+
+  /// 异常时备份三个数据库文件（主文件 + wal + shm）
+  static Future<void> _backupDbOnException(String path, String tag) async {
+    try {
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final backupPrefix = '$path.err-$ts-$tag';
+      await _backupDbFiles(path, backupPrefix);
+      logger.warning('db backed up on exception', tag: 'DB', extra: {'backupPrefix': backupPrefix, 'trigger': tag});
+    } catch (e) {
+      logger.error('db backup on exception failed', tag: 'DB', error: e);
+    }
   }
 
   static Future<void> _onConfigure(Database db) async {
@@ -1111,16 +1213,29 @@ class DatabaseService {
     // 与其他写入操作串行化，防止并发写入导致数据库损坏
     return await _writeLock.synchronized(() async {
       final db = await database;
+      final path = await _getDbPath();
       final subtitles = entities.whereType<Subtitles>().toList();
       final articleSentences = entities.whereType<ArticleSentence>().toList();
+      final totalCount = subtitles.length + articleSentences.length;
 
       // 诊断日志：记录更新前的环境信息
       final sw = Stopwatch()..start();
       logger.info(
         'translation batch update start',
         tag: 'DB',
-        extra: {'subtitles': subtitles.length, 'sentences': articleSentences.length},
+        extra: {'subtitles': subtitles.length, 'sentences': articleSentences.length, 'total': totalCount},
       );
+
+      // 1. Pre-check：检查数据库完整性
+      final integrityOk = await _checkIntegrity(db);
+      if (!integrityOk) {
+        logger.fatal('pre-update integrity_check failed, aborting', tag: 'DB', extra: {'total': totalCount});
+        await _backupDbOnException(path, 'pre-check-failed');
+        throw Exception('db integrity check failed before translation update');
+      }
+
+      // 2. WAL checkpoint：将 WAL 合并回主库，减少跨文件不一致风险
+      await _walCheckpoint(db);
 
       Future<int> doUpdate() async {
         int updatedCount = 0;
@@ -1172,10 +1287,29 @@ class DatabaseService {
         return updatedCount;
       }
 
-      if (retry) {
-        return await _retryOnLockError<int>(doUpdate, maxRetries: 3, baseDelayMs: 300) ?? 0;
+      try {
+        final result = retry
+            ? await _retryOnLockError<int>(doUpdate, maxRetries: 3, baseDelayMs: 300) ?? 0
+            : await doUpdate();
+        return result;
+      } catch (e, st) {
+        sw.stop();
+        logger.error(
+          'translation batch update failed',
+          tag: 'DB',
+          error: e,
+          stackTrace: st,
+          extra: {'total': totalCount, 'ms': sw.elapsedMilliseconds},
+        );
+        // 异常时立即备份三个文件，供离线分析
+        await _backupDbOnException(path, 'batch-update-failed');
+        // 再次检查 integrity，记录结果
+        try {
+          final afterOk = await _checkIntegrity(db);
+          logger.error('integrity_check after failure', tag: 'DB', extra: {'ok': afterOk});
+        } catch (_) {}
+        rethrow;
       }
-      return await doUpdate();
     });
   }
 
