@@ -3,6 +3,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { checkIdempotent, deduct, getBalance, getPricingRule, getUserId } from '../ai-proxy/billing.ts'
+// 导入带缓存的异步版本题型生成器
+import {
+  pickListenMeaningItemsWithCache,
+  pickListenReplyItemsWithCache,
+  pickDefinitionChoiceItemsWithCache,
+  pickTranslateMeaningItemsWithCache,
+} from './cache-helpers.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -267,16 +274,46 @@ const WORD_MEANING_MAP: Record<string, string> = {
   'soon': '不久；很快',
 }
 
-/** 获取单词的中文释义（如果没有则返回模糊描述） */
-function getWordMeaning(word: string): string {
+/** 获取单词的中文释义（优先从 word_cache 读取） */
+async function getWordMeaning(word: string, supabase?: any): Promise<string> {
   const lower = word.toLowerCase()
+
+  // ① 如果有 supabase 实例，先查 word_cache
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('word_cache')
+        .select('result')
+        .eq('word', lower)
+        .limit(1)
+
+      if (data && data.length > 0) {
+        const result = data[0].result
+        // 从 definitions 数组中提取中文释义
+        if (Array.isArray(result.definitions) && result.definitions.length > 0) {
+          // 异步递增查询次数
+          supabase.rpc('bump_word_cache_count', { p_word: lower }).catch(() => {})
+          return result.definitions[0] as string
+        }
+      }
+    } catch (e) {
+      // 缓存查询失败，降级到本地映射
+      console.warn(`word_cache lookup failed for "${lower}":`, e)
+    }
+  }
+
+  // ② 降级：使用本地映射表
   return WORD_MEANING_MAP[lower] ?? `「${word}」的释义`
 }
 
-/** 获取干扰释义（基于其他单词的释义） */
-function getDistractorMeanings(targetWord: string, wordPool: string[], count: number): string[] {
+/** 获取干扰释义（基于其他单词的释义，优先从缓存读取） */
+async function getDistractorMeanings(targetWord: string, wordPool: string[], count: number, supabase?: any): Promise<string[]> {
   const others = shuffle(wordPool.filter((w) => w.toLowerCase() !== targetWord.toLowerCase()))
-  return others.slice(0, count).map((w) => getWordMeaning(w))
+  const selected = others.slice(0, count)
+
+  // 并行获取所有干扰词的释义
+  const meanings = await Promise.all(selected.map((w) => getWordMeaning(w, supabase)))
+  return meanings
 }
 
 // ─── 新题型生成函数（优化版） ───
@@ -833,6 +870,9 @@ Deno.serve(async (req: Request) => {
   let sentences: string[] = []
   let allItems: any[] = []
 
+  // ═══ 初始化 Supabase 客户端（用于 word_cache 查询）═══
+  const cacheSupabase = createClient(supabaseUrl, supabaseServiceKey)
+
   if (sourceType === 'word_book') {
     title = '生词本测试'
     resourceCode = 'word_book'
@@ -841,14 +881,14 @@ Deno.serve(async (req: Request) => {
     const wordPool = unique(seeds.map((s) => s.word))
     const seedSentences = seeds.map((s) => s.contextSentence).filter((s) => s && s.length > 5)
 
-    // 生词本模式：复用新版题型生成器
+    // 生词本模式：复用新版题型生成器（传入 supabase 实例以支持缓存查询）
     if (listenChooseCount > 0) allItems.push(...pickListenChooseItems(seedSentences, wordPool, listenChooseCount))
-    if (listenMeaningCount > 0) allItems.push(...pickListenMeaningItems(seedSentences, wordPool, listenMeaningCount))
-    if (listenReplyCount > 0) allItems.push(...pickListenReplyItems(seedSentences, wordPool, listenReplyCount, diffParams))
-    if (definitionChoiceCount > 0) allItems.push(...pickDefinitionChoiceItems(seedSentences, wordPool, definitionChoiceCount))
+    if (listenMeaningCount > 0) allItems.push(...await pickListenMeaningItemsWithCache(seedSentences, wordPool, listenMeaningCount, cacheSupabase))
+    if (listenReplyCount > 0) allItems.push(...await pickListenReplyItemsWithCache(seedSentences, wordPool, listenReplyCount, diffParams, cacheSupabase))
+    if (definitionChoiceCount > 0) allItems.push(...await pickDefinitionChoiceItemsWithCache(seedSentences, wordPool, definitionChoiceCount, cacheSupabase))
     if (spellingCount > 0) allItems.push(...pickWordBookSpellingItems(seeds, spellingCount))
     if (reorderCount > 0) allItems.push(...pickReorderItems(seedSentences, reorderCount, diffParams))
-    if (translateMeaningCount > 0) allItems.push(...pickTranslateMeaningItems(seedSentences, wordPool, translateMeaningCount, diffParams))
+    if (translateMeaningCount > 0) allItems.push(...await pickTranslateMeaningItemsWithCache(seedSentences, wordPool, translateMeaningCount, diffParams, cacheSupabase))
     if (wordRelationCount > 0) allItems.push(...pickWordRelationItems(seedSentences, wordPool, wordRelationCount))
     if (wordPronCount > 0) allItems.push(...pickWordPronItems(wordPool, wordPronCount))
     if (phrasePronCount > 0) allItems.push(...pickPhrasePronItems(seedSentences, phrasePronCount, diffParams))

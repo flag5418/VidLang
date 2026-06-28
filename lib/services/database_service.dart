@@ -1140,13 +1140,21 @@ class DatabaseService {
     for (final sub in subtitles) {
       if (sub.code == null || sub.code!.isEmpty) continue;
       if (sub.contentTranslate == null && sub.translateSource == null) continue;
-      batch.rawUpdate(
-        'UPDATE subtitles SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
-        [sub.contentTranslate, sub.translateSource, DateTime.now().toIso8601String(), sub.code],
-      );
+      final sql = 'UPDATE subtitles SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?';
+      final args = [sub.contentTranslate, sub.translateSource, DateTime.now().toIso8601String(), sub.code];
+      batch.rawUpdate(sql, args);
+      print('[BatchUpdate] subtitles: sql=$sql args=$args');
     }
     final results = await batch.commit(continueOnError: true);
-    return results?.fold<int>(0, (prev, curr) => prev + (curr as int? ?? 0)) ?? 0;
+    int count = 0;
+    if (results != null) {
+      for (final r in results) {
+        if (r is int) count += r;
+        else print('[BatchUpdate] result is not int: ${r.runtimeType} = $r');
+      }
+    }
+    print('[BatchUpdate] subtitles total updated: $count / ${subtitles.length}');
+    return count;
   }
 
   static Future<int> _batchUpdateArticleSentences(Database db, List<ArticleSentence> sentences) async {
@@ -1156,13 +1164,21 @@ class DatabaseService {
     for (final sentence in sentences) {
       if (sentence.code == null || sentence.code!.isEmpty) continue;
       if (sentence.contentTranslate == null && sentence.translateSource == null) continue;
-      batch.rawUpdate(
-        'UPDATE article_sentences SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?',
-        [sentence.contentTranslate, sentence.translateSource, DateTime.now().toIso8601String(), sentence.code],
-      );
+      final sql = 'UPDATE article_sentences SET content_translate = ?, translate_source = ?, updated_at = ? WHERE code = ?';
+      final args = [sentence.contentTranslate, sentence.translateSource, DateTime.now().toIso8601String(), sentence.code];
+      batch.rawUpdate(sql, args);
+      print('[BatchUpdate] article: sql=$sql args=$args');
     }
     final results = await batch.commit(continueOnError: true);
-    return results?.fold<int>(0, (prev, curr) => prev + (curr as int? ?? 0)) ?? 0;
+    int count = 0;
+    if (results != null) {
+      for (final r in results) {
+        if (r is int) count += r;
+        else print('[BatchUpdate] result is not int: ${r.runtimeType} = $r');
+      }
+    }
+    print('[BatchUpdate] article total updated: $count / ${sentences.length}');
+    return count;
   }
 
   /// 批量更新记录

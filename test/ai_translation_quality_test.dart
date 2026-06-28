@@ -453,10 +453,14 @@ class AiTranslationQualityTester {
       'definitions': ['苹果；苹果树', '类似苹果的果实'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'I eat an apple every day.', 'chinese': '我每天吃一个苹果。'}
+        {'english': 'I eat an apple every day.', 'chinese': '我每天吃一个苹果。'},
+        {'english': 'The apple is red and sweet.', 'chinese': '这个苹果又红又甜。'},
+        {'english': 'She picked an apple from the tree.', 'chinese': '她从树上摘了一个苹果。'},
       ],
       'standalone_examples': [
-        {'english': 'The apple is red.', 'chinese': '这个苹果是红色的。'}
+        {'english': 'An apple a day keeps the doctor away.', 'chinese': '一天一苹果，医生远离我。'},
+        {'english': 'This apple tastes delicious.', 'chinese': '这个苹果尝起来很美味。'},
+        {'english': 'He wants to buy some apples.', 'chinese': '他想买一些苹果。'},
       ],
       'morphology': {'plural': 'apples'},
       'mnemonic': 'apple 音似"阿婆"，阿婆爱吃苹果',
@@ -469,10 +473,14 @@ class AiTranslationQualityTester {
       'definitions': ['快乐的；高兴的', '幸福的；满意的'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'She is very happy today.', 'chinese': '她今天非常开心。'}
+        {'english': 'She is very happy today.', 'chinese': '她今天非常开心。'},
+        {'english': 'They lived a happy life together.', 'chinese': '他们一起过着幸福的生活。'},
+        {'english': 'I am happy to help you.', 'chinese': '我很乐意帮助你。'},
       ],
       'standalone_examples': [
-        {'english': 'I feel happy when I play.', 'chinese': '玩耍时我感到快乐。'}
+        {'english': 'Happy birthday to you!', 'chinese': '祝你生日快乐！'},
+        {'english': 'The children look very happy.', 'chinese': '孩子们看起来很开心。'},
+        {'english': 'We had a happy holiday.', 'chinese': '我们度过了一个愉快的假期。'},
       ],
       'morphology': {
         'comparative': 'happier',
@@ -489,16 +497,22 @@ class AiTranslationQualityTester {
       'definitions': ['跑；奔跑', '经营；管理', '运行；运转'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'I run in the park every morning.', 'chinese': '我每天早上在公园跑步。'}
+        {'english': 'I run in the park every morning.', 'chinese': '我每天早上在公园跑步。'},
+        {'english': 'He runs faster than his brother.', 'chinese': '他比他哥哥跑得更快。'},
+        {'english': 'Don\'t run in the hallway.', 'chinese': '不要在走廊里奔跑。'},
       ],
       'standalone_examples': [
-        {'english': 'He runs a small company.', 'chinese': '他经营一家小公司。'}
+        {'english': 'She likes to run in the morning.', 'chinese': '她喜欢早上跑步。'},
+        {'english': 'The company is run by his father.', 'chinese': '这家公司由他的父亲经营。'},
+        {'english': 'This machine runs on electricity.', 'chinese': '这台机器靠电力运行。'},
       ],
       'morphology': {
         'past_tense': 'ran',
         'past_participle': 'run',
         'present_participle': 'running',
         'third_person_singular': 'runs',
+        'is_irregular': true,
+        'note': '不规则动词：run-ran-run',
       },
     },
     'book': {
@@ -509,10 +523,14 @@ class AiTranslationQualityTester {
       'definitions': ['书；书籍', '预订；预约', '登记；记录'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'This book is very interesting.', 'chinese': '这本书很有趣。'}
+        {'english': 'This book is very interesting.', 'chinese': '这本书很有趣。'},
+        {'english': 'She booked a ticket online.', 'chinese': '她在网上预订了一张票。'},
+        {'english': 'I need to book a hotel room.', 'chinese': '我需要预订一个酒店房间。'},
       ],
       'standalone_examples': [
-        {'english': 'I booked a hotel room.', 'chinese': '我预订了一个酒店房间。'}
+        {'english': 'Have you read this book?', 'chinese': '你读过这本书吗？'},
+        {'english': 'Can you book a table for two?', 'chinese': '你能预订一张两人桌吗？'},
+        {'english': 'The library has many books.', 'chinese': '图书馆有很多书。'},
       ],
       'morphology': {'plural': 'books', 'past_tense': 'booked', 'present_participle': 'booking'},
     },
@@ -521,13 +539,17 @@ class AiTranslationQualityTester {
       'phonetic_uk': '/kæt/',
       'phonetic_us': '/kæt/',
       'part_of_speech': '名词',
-      'definitions': ['猫；猫科动物', ' Caterpillar 重型机械(俚语)'],
+      'definitions': ['猫；猫科动物'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'The cat is sleeping on the sofa.', 'chinese': '猫正在沙发上睡觉。'}
+        {'english': 'The cat is sleeping on the sofa.', 'chinese': '猫正在沙发上睡觉。'},
+        {'english': 'My cat likes to eat fish.', 'chinese': '我的猫喜欢吃鱼。'},
+        {'english': 'The cat caught a mouse.', 'chinese': '这只猫抓到了一只老鼠。'},
       ],
       'standalone_examples': [
-        {'english': 'She has two cats.', 'chinese': '她有两只猫。'}
+        {'english': 'She has two cats at home.', 'chinese': '她家里有两只猫。'},
+        {'english': 'The black cat is very cute.', 'chinese': '这只黑猫非常可爱。'},
+        {'english': 'Cats are independent animals.', 'chinese': '猫是独立的动物。'},
       ],
       'morphology': {'plural': 'cats'},
     },
@@ -541,10 +563,14 @@ class AiTranslationQualityTester {
       'definitions': ['抛弃；放弃', '遗弃；舍弃', '中途停止；中止'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'They had to abandon their car in the snow.', 'chinese': '他们不得不把车抛弃在雪地里。'}
+        {'english': 'They had to abandon their car in the snow.', 'chinese': '他们不得不把车抛弃在雪地里。'},
+        {'english': 'Please don\'t abandon your dream.', 'chinese': '请不要放弃你的梦想。'},
+        {'english': 'The crew abandoned the sinking ship.', 'chinese': '船员们放弃了正在下沉的船。'},
       ],
       'standalone_examples': [
-        {'english': 'Don\'t abandon hope.', 'chinese': '不要放弃希望。'}
+        {'english': 'Don\'t abandon hope.', 'chinese': '不要放弃希望。'},
+        {'english': 'She abandoned the idea.', 'chinese': '她放弃了这个想法。'},
+        {'english': 'We will never abandon you.', 'chinese': '我们永远不会抛弃你。'},
       ],
       'morphology': {
         'past_tense': 'abandoned',
@@ -560,10 +586,14 @@ class AiTranslationQualityTester {
       'definitions': ['美丽的；漂亮的', '美好的；极好的', '出色的；完美的'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'She has a beautiful voice.', 'chinese': '她有一副美丽的嗓音。'}
+        {'english': 'She has a beautiful voice.', 'chinese': '她有一副美丽的嗓音。'},
+        {'english': 'The view from here is beautiful.', 'chinese': '从这里看到的景色很美。'},
+        {'english': 'What a beautiful day!', 'chinese': '多美好的一天啊！'},
       ],
       'standalone_examples': [
-        {'english': 'The view is beautiful.', 'chinese': '景色很美。'}
+        {'english': 'You look beautiful tonight.', 'chinese': '你今晚看起来很美。'},
+        {'english': 'The garden is beautiful in spring.', 'chinese': '春天时花园很美丽。'},
+        {'english': 'She is a beautiful young woman.', 'chinese': '她是一位美丽的年轻女子。'},
       ],
       'morphology': {
         'comparative': 'more beautiful',
@@ -580,10 +610,14 @@ class AiTranslationQualityTester {
       'definitions': ['决定；决心', '判断；断定', '使做出决定'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'It\'s difficult to decide between them.', 'chinese': '很难在他们之间做决定。'}
+        {'english': 'It\'s difficult to decide between them.', 'chinese': '很难在他们之间做决定。'},
+        {'english': 'We decided to go home early.', 'chinese': '我们决定早点回家。'},
+        {'english': 'You must decide for yourself.', 'chinese': '你必须自己做决定。'},
       ],
       'standalone_examples': [
-        {'english': 'We decided to go home.', 'chinese': '我们决定回家。'}
+        {'english': 'I haven\'t decided yet.', 'chinese': '我还没决定。'},
+        {'english': 'They decided to get married.', 'chinese': '他们决定结婚。'},
+        {'english': 'Let me decide what to do next.', 'chinese': '让我来决定下一步做什么。'},
       ],
       'morphology': {
         'past_tense': 'decided',
@@ -601,10 +635,14 @@ class AiTranslationQualityTester {
       'definitions': ['环境；自然环境', '周围状况；工作环境'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'We must protect the environment.', 'chinese': '我们必须保护环境。'}
+        {'english': 'We must protect the environment.', 'chinese': '我们必须保护环境。'},
+        {'english': 'The work environment here is great.', 'chinese': '这里的工作环境很好。'},
+        {'english': 'Pollution harms our environment.', 'chinese': '污染危害我们的环境。'},
       ],
       'standalone_examples': [
-        {'english': 'The work environment is good.', 'chinese': '工作环境很好。'}
+        {'english': 'A clean environment is important for health.', 'chinese': '清洁的环境对健康很重要。'},
+        {'english': 'The company cares about the environment.', 'chinese': '这家公司关心环境问题。'},
+        {'english': 'Children need a safe environment to grow.', 'chinese': '孩子需要安全的环境成长。'},
       ],
       'morphology': {'plural': 'environments', 'adjective_form': 'environmental'},
     },
@@ -616,10 +654,14 @@ class AiTranslationQualityTester {
       'definitions': ['必要的；必需的', '必然的；不可避免的'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'Sleep is necessary for health.', 'chinese': '睡眠对健康是必要的。'}
+        {'english': 'Sleep is necessary for health.', 'chinese': '睡眠对健康是必要的。'},
+        {'english': 'Is it really necessary?', 'chinese': '这真的有必要吗？'},
+        {'english': 'Water is necessary for life.', 'chinese': '水是生命所必需的。'},
       ],
       'standalone_examples': [
-        {'english': 'Is it really necessary?', 'chinese': '这真的有必要吗？'}
+        {'english': 'It may not be necessary to go.', 'chinese': '可能没必要去。'},
+        {'english': 'All necessary preparations have been made.', 'chinese': '所有必要的准备工作都已完成。'},
+        {'english': 'If necessary, I can stay late.', 'chinese': '如果有必要，我可以晚点走。'},
       ],
       'morphology': {
         'comparative': 'more necessary',
@@ -638,10 +680,14 @@ class AiTranslationQualityTester {
       'definitions': ['复杂的；精密的', '老练的；见过世面的', '高雅的；有品味的'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'This is a sophisticated system.', 'chinese': '这是一个精密的系统。'}
+        {'english': 'This is a sophisticated system.', 'chinese': '这是一个精密的系统。'},
+        {'english': 'She is a sophisticated woman.', 'chinese': '她是一位老练的女性。'},
+        {'english': 'The restaurant uses sophisticated cooking techniques.', 'chinese': '这家餐厅使用复杂的烹饪技巧。'},
       ],
       'standalone_examples': [
-        {'english': 'She is a sophisticated woman.', 'chinese': '她是一位老练的女性。'}
+        {'english': 'He has sophisticated taste in art.', 'chinese': '他在艺术方面有高雅的品味。'},
+        {'english': 'Modern technology is becoming more sophisticated.', 'chinese': '现代技术变得越来越复杂。'},
+        {'english': 'It was a sophisticated analysis of the problem.', 'chinese': '对这个问题进行了复杂的分析。'},
       ],
       'morphology': {
         'comparative': 'more sophisticated',
@@ -652,17 +698,21 @@ class AiTranslationQualityTester {
     'phenomenon': {
       'word': 'phenomenon',
       'phonetic_uk': '/fəˈnɒm.ɪ.nən/',
-      'phonetic_us': '/fəˈnɑː.mə.nɑːn/',
+      'phonetic_us': '/fəˈnɑːmə.nɑːn/',
       'part_of_speech': '名词',
       'definitions': ['现象', '非凡的人或事；奇迹'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'Rainbow is a natural phenomenon.', 'chinese': '彩虹是一种自然现象。'}
+        {'english': 'Rainbow is a natural phenomenon.', 'chinese': '彩虹是一种自然现象。'},
+        {'english': 'He is a phenomenon in music.', 'chinese': '他是音乐界的奇才。'},
+        {'english': 'This social phenomenon needs study.', 'chinese': '这种社会现象需要研究。'},
       ],
       'standalone_examples': [
-        {'english': 'He is a phenomenon in music.', 'chinese': '他是音乐界的奇才。'}
+        {'english': 'Global warming is a worrying phenomenon.', 'chinese': '全球变暖是一个令人担忧的现象。'},
+        {'english': 'The phenomenon occurs frequently in summer.', 'chinese': '这种现象在夏天经常发生。'},
+        {'english': 'It\'s quite a phenomenon that he succeeded.', 'chinese': '他能成功真是个奇迹。'},
       ],
-      'morphology': {'plural': 'phenomena', 'irregular_note': '不规则复数'},
+      'morphology': {'plural': 'phenomena', 'is_irregular': true, 'note': '不规则复数：phenomenon → phenomena'},
     },
     'controversial': {
       'word': 'controversial',
@@ -672,10 +722,14 @@ class AiTranslationQualityTester {
       'definitions': ['有争议的；引起争论的', '好争论的'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'This is a controversial topic.', 'chinese': '这是一个有争议的话题。'}
+        {'english': 'This is a controversial topic.', 'chinese': '这是一个有争议的话题。'},
+        {'english': 'He made a controversial decision.', 'chinese': '他做了一个有争议的决定。'},
+        {'english': 'The movie was controversial but popular.', 'chinese': '这部电影有争议但很受欢迎。'},
       ],
       'standalone_examples': [
-        {'english': 'He made a controversial decision.', 'chinese': '他做了一个有争议的决定。'}
+        {'english': 'Her views are controversial.', 'chinese': '她的观点有争议。'},
+        {'english': 'It remains a controversial issue.', 'chinese': '这仍然是一个有争议的问题。'},
+        {'english': 'The controversial law was passed.', 'chinese': '这项有争议的法律通过了。'},
       ],
       'morphology': {
         'noun_form': 'controversy',
@@ -690,10 +744,14 @@ class AiTranslationQualityTester {
       'definitions': ['企业家；创业者', '主办者；承包人'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'She is a successful entrepreneur.', 'chinese': '她是一位成功的企业家。'}
+        {'english': 'She is a successful entrepreneur.', 'chinese': '她是一位成功的企业家。'},
+        {'english': 'Young entrepreneurs are rising.', 'chinese': '年轻创业者正在崛起。'},
+        {'english': 'He started as an entrepreneur at age 20.', 'chinese': '他20岁时就开始创业了。'},
       ],
       'standalone_examples': [
-        {'english': 'Young entrepreneurs are rising.', 'chinese': '年轻创业者正在崛起。'}
+        {'english': 'Being an entrepreneur requires courage.', 'chinese': '成为一名企业家需要勇气。'},
+        {'english': 'Many entrepreneurs work long hours.', 'chinese': '许多企业家工作时间很长。'},
+        {'english': 'She is a tech entrepreneur.', 'chinese': '她是一位科技企业家。'},
       ],
       'morphology': {'plural': 'entrepreneurs'},
     },
@@ -705,10 +763,14 @@ class AiTranslationQualityTester {
       'definitions': ['心理的；精神上的', '心理学的'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'He has psychological problems.', 'chinese': '他有心理问题。'}
+        {'english': 'He has psychological problems.', 'chinese': '他有心理问题。'},
+        {'english': 'Psychological health is important.', 'chinese': '心理健康很重要。'},
+        {'english': 'The stress caused psychological damage.', 'chinese': '这种压力造成了心理伤害。'},
       ],
       'standalone_examples': [
-        {'english': 'Psychological health is important.', 'chinese': '心理健康很重要。'}
+        {'english': 'She studies psychology at university.', 'chinese': '她在大学学习心理学。'},
+        {'english': 'There may be a psychological explanation.', 'chinese': '可能有心理学上的解释。'},
+        {'english': 'The film explores psychological themes.', 'chinese': '这部电影探讨了心理主题。'},
       ],
       'morphology': {
         'noun_form': 'psychology',
@@ -725,10 +787,14 @@ class AiTranslationQualityTester {
       'definitions': ['无处不在的；普遍存在的', '到处出现的'],
       'difficulty': 'cet6',
       'examples': [
-        {'english': 'Smartphones have become ubiquitous.', 'chinese': '智能手机已经无处不在。'}
+        {'english': 'Smartphones have become ubiquitous.', 'chinese': '智能手机已经无处不在。'},
+        {'english': 'The ubiquitous influence of social media.', 'chinese': '社交媒体的无处不在的影响。'},
+        {'english': 'Advertising is ubiquitous in modern cities.', 'chinese': '广告在现代城市中随处可见。'},
       ],
       'standalone_examples': [
-        {'english': 'The ubiquitous influence of social media.', 'chinese': '社交媒体的无处不在的影响。'}
+        {'english': 'Coffee shops are ubiquitous in Seattle.', 'chinese': '西雅图到处都是咖啡店。'},
+        {'english': 'Plastic has become ubiquitous in daily life.', 'chinese': '塑料在日常生活中已经无处不在。'},
+        {'english': 'His ubiquitous presence annoyed everyone.', 'chinese': '他无处不在的存在让每个人都很烦。'},
       ],
       'morphology': {
         'noun_form': 'ubiquity',
@@ -744,10 +810,14 @@ class AiTranslationQualityTester {
       'definitions': ['史无前例的；空前的', '前所未有的；无先例的'],
       'difficulty': 'cet6',
       'examples': [
-        {'english': 'The team faced unprecedented challenges.', 'chinese': '团队面临了史无前例的挑战。'}
+        {'english': 'The team faced unprecedented challenges.', 'chinese': '团队面临了史无前例的挑战。'},
+        {'english': 'This is an unprecedented opportunity.', 'chinese': '这是一个前所未有的机会。'},
+        {'english': 'The success was unprecedented in history.', 'chinese': '这次成功在历史上是史无前例的。'},
       ],
       'standalone_examples': [
-        {'english': 'This is an unprecedented opportunity.', 'chinese': '这是一个前所未有的机会。'}
+        {'english': 'The company saw unprecedented growth.', 'chinese': '该公司经历了前所未有的增长。'},
+        {'english': 'Unprecedented changes are happening.', 'chinese': '前所未有的变化正在发生。'},
+        {'english': 'At an unprecedented speed.', 'chinese': '以史无前例的速度。'},
       ],
       'morphology': {
         'noun_form': 'precedent',
@@ -763,10 +833,14 @@ class AiTranslationQualityTester {
       'definitions': ['一丝不苟的；细致的', '小心翼翼的；精确的'],
       'difficulty': 'cet6',
       'examples': [
-        {'english': 'She is meticulous in her work.', 'chinese': '她工作一丝不苟。'}
+        {'english': 'She is meticulous in her work.', 'chinese': '她工作一丝不苟。'},
+        {'english': 'Meticulous planning is required.', 'chinese': '需要细致的计划。'},
+        {'english': 'He kept meticulous records of everything.', 'chinese': '他对每件事都做了精确的记录。'},
       ],
       'standalone_examples': [
-        {'english': 'Meticulous planning is required.', 'chinese': '需要细致的计划。'}
+        {'english': 'The scientist was meticulous about details.', 'chinese': '这位科学家对细节很严谨。'},
+        {'english': 'Meticulous attention to detail is essential.', 'chinese': '对细节的一丝不苟是必不可少的。'},
+        {'english': 'She gave a meticulous explanation.', 'chinese': '她给出了一个细致的解释。'},
       ],
       'morphology': {
         'adverb_form': 'meticulously',
@@ -782,10 +856,14 @@ class AiTranslationQualityTester {
       'definitions': ['短暂的；瞬息的', '朝生暮命的；短命的'],
       'difficulty': 'gre',
       'examples': [
-        {'english': 'Fame is often ephemeral.', 'chinese': '名声往往是短暂的。'}
+        {'english': 'Fame is often ephemeral.', 'chinese': '名声往往是短暂的。'},
+        {'english': 'The ephemeral beauty of cherry blossoms.', 'chinese': '樱花短暂的美丽。'},
+        {'english': 'Trends in fashion are ephemeral.', 'chinese': '时尚潮流是短暂的。'},
       ],
       'standalone_examples': [
-        {'english': 'The ephemeral beauty of cherry blossoms.', 'chinese': '樱花短暂的美丽。'}
+        {'english': 'Happiness can be ephemeral.', 'chinese': '幸福可能是短暂的。'},
+        {'english': 'The ephemeral nature of social media fame.', 'chinese': '社交媒体名气的短暂性。'},
+        {'english': 'An ephemeral pleasure.', 'chinese': '一种短暂的快乐。'},
       ],
       'morphology': {
         'noun_form': 'ephemerality',
@@ -802,10 +880,14 @@ class AiTranslationQualityTester {
       'definitions': ['意外发现美好事物的能力；机缘凑巧', '偶然发现珍奇事物的本领'],
       'difficulty': 'gre',
       'examples': [
-        {'english': 'It was pure serendipity that we met.', 'chinese': '我们相遇纯属机缘巧合。'}
+        {'english': 'It was pure serendipity that we met.', 'chinese': '我们相遇纯属机缘巧合。'},
+        {'english': 'Serendipity plays a role in scientific discoveries.', 'chinese': '机缘巧合在科学发现中起着作用。'},
+        {'english': 'The discovery was a result of serendipity.', 'chinese': '这次发现是机缘巧合的结果。'},
       ],
       'standalone_examples': [
-        {'english': 'Serendipity plays a role in scientific discoveries.', 'chinese': '机缘巧合在科学发现中起着作用。'}
+        {'english': 'I found the book by serendipity.', 'chinese': '我偶然发现了这本书。'},
+        {'english': 'Serendipity brought us together.', 'chinese': '机缘巧合让我们走到了一起。'},
+        {'english': 'A moment of serendipity changed my life.', 'chinese': '一次意外的机遇改变了我的生活。'},
       ],
       'morphology': {'plural': 'serendipities', 'adjective_form': 'serendipitous'},
     },
@@ -819,10 +901,14 @@ class AiTranslationQualityTester {
       'definitions': ['我（主格）'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'I am a student.', 'chinese': '我是一个学生。'}
+        {'english': 'I am a student.', 'chinese': '我是一个学生。'},
+        {'english': 'I like music.', 'chinese': '我喜欢音乐。'},
+        {'english': 'I will help you.', 'chinese': '我会帮助你。'},
       ],
       'standalone_examples': [
-        {'english': 'I like music.', 'chinese': '我喜欢音乐。'}
+        {'english': 'I think therefore I am.', 'chinese': '我思故我在。'},
+        {'english': 'I have a dream.', 'chinese': '我有一个梦想。'},
+        {'english': 'I can do this.', 'chinese': '我能做到。'},
       ],
       'morphology': {},
       'note': '人称代词主格，无词形变化',
@@ -835,17 +921,22 @@ class AiTranslationQualityTester {
       'definitions': ['设置；放置', '一套；一副', '（日）落山', '固定；凝固'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'Please set the table.', 'chinese': '请摆放餐桌。'}
+        {'english': 'Please set the table.', 'chinese': '请摆放餐桌。'},
+        {'english': 'He set a new record.', 'chinese': '他创下了新纪录。'},
+        {'english': 'She set the alarm for 7am.', 'chinese': '她把闹钟设在了早上7点。'},
       ],
       'standalone_examples': [
-        {'english': 'He set a new record.', 'chinese': '他创下了新纪录。'}
+        {'english': 'Let me set up the meeting.', 'chinese': '我来安排会议。'},
+        {'english': 'The sun sets in the west.', 'chinese': '太阳在西边落下。'},
+        {'english': 'I bought a set of tools.', 'chinese': '我买了一套工具。'},
       ],
       'morphology': {
         'past_tense': 'set',
         'past_participle': 'set',
         'present_participle': 'setting',
         'third_person_singular': 'sets',
-        'note': '不规则动词',
+        'is_irregular': true,
+        'note': '不规则动词：set-set-set',
       },
     },
     'a': {
@@ -856,10 +947,14 @@ class AiTranslationQualityTester {
       'definitions': ['一个（不定冠词，用于辅音音素前）', '某一；任一'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'This is a book.', 'chinese': '这是一本书。'}
+        {'english': 'This is a book.', 'chinese': '这是一本书。'},
+        {'english': 'He wants to be a doctor.', 'chinese': '他想成为一名医生。'},
+        {'english': 'I need a pen.', 'chinese': '我需要一支笔。'},
       ],
       'standalone_examples': [
-        {'english': 'He wants to be a doctor.', 'chinese': '他想成为一名医生。'}
+        {'english': 'She is a teacher.', 'chinese': '她是一名老师。'},
+        {'english': 'It\'s a beautiful day.', 'chinese': '这是美好的一天。'},
+        {'english': 'Can I have a glass of water?', 'chinese': '能给我一杯水吗？'},
       ],
       'morphology': {},
       'note': '不定冠词，无词形变化',
@@ -1148,7 +1243,7 @@ class AiTranslationQualityTester {
     return score.clamp(0, 10);
   }
 
-  /// R5: 例句质量
+  /// R5: 例句质量（优化版：要求至少3条例句）
   double _testExampleQuality(MockAiDefinitionResult? result, WordTestCase testCase, List<String> issues, List<String> warnings) {
     if (result == null) {
       warnings.add('⚠️ 无 AI 返回数据');
@@ -1157,15 +1252,17 @@ class AiTranslationQualityTester {
 
     final allExamples = [...result.examples, ...result.standaloneExamples];
     if (allExamples.isEmpty) {
-      warnings.add('⚠️ 缺少例句');
-      return 3;
+      issues.add('❌ 缺少例句（新Prompt要求至少3条）');
+      return 0;
     }
 
-    var score = 8.0; // 基础分
+    var score = 6.0; // 基础分（降低了，因为要求更严格）
     final targetWord = testCase.word.toLowerCase();
     var hasTargetWord = false;
+    var exampleCount = 0;
 
     for (final ex in allExamples) {
+      exampleCount++;
       final enLower = ex.english.toLowerCase();
       // 检查例句是否包含目标单词
       if (enLower.contains(targetWord) || enLower.contains(targetWord.replaceAll("'", ""))) {
@@ -1175,20 +1272,33 @@ class AiTranslationQualityTester {
       // 检查中文翻译是否为空
       if (ex.chinese.trim().isEmpty) {
         warnings.add('⚠️ 例句中文翻译为空: "${ex.english}"');
-        score -= 2;
+        score -= 1.5;
       }
+    }
+
+    // ── 新规则：例句数量检查（要求至少3条）──
+    final examplesCount = result.examples.length;
+    final standaloneCount = result.standaloneExamples.length;
+
+    if (examplesCount < 3) {
+      issues.add('❌ examples 数量不足: $examplesCount/3 (新Prompt要求至少3条)');
+      score -= 3;
+    } else if (examplesCount == 3) {
+      score += 1; // 达标
+    } else if (examplesCount > 3) {
+      score += 1.5; // 丰富加分
+    }
+
+    if (standaloneCount < 3) {
+      warnings.add('⚠️ standalone_examples 数量不足: $standaloneCount/3 (建议至少3条)');
+      score -= 1;
+    } else {
+      score += 0.5; // 达标加分
     }
 
     if (!hasTargetWord) {
       issues.add('❌ 所有例句均不包含目标单词 "$targetWord"');
-      score -= 5;
-    }
-
-    // 检查例句数量
-    if (allExamples.length >= 3) {
-      score += 1; // 例句丰富加分
-    } else if (allExamples.length == 1) {
-      score -= 1; // 例句偏少扣分
+      score -= 4;
     }
 
     return score.clamp(0, 10);

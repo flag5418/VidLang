@@ -677,27 +677,50 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             _buildRichContextSentence(),
             const SizedBox(height: 8),
           ],
-          // 中文翻译
+          // 中文翻译（高亮当前单词的中文释义）
           if (widget.data.sentenceTranslation != null ||
               widget.data.translation != null)
-            Text(
-              widget.data.sentenceTranslation ?? widget.data.translation!,
-              style: TextStyle(
-                color: cs.onSurfaceVariant,
-                fontSize: 13,
-                height: 1.4,
+            _buildRichChineseTranslation(),
+          // 语境中的词义
+          if (widget.data.wordMeaningInContext != null &&
+              widget.data.wordMeaningInContext!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '💡 在此句中：${widget.data.wordMeaningInContext}',
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: 12,
+                  height: 1.4,
+                ),
               ),
             ),
+          ],
         ],
       ),
     );
   }
 
   /// 高亮英文句子中的单词
+  /// 支持两种模式：
+  /// 1. AI 已用【】包裹高亮 → 直接渲染高亮标记
+  /// 2. 原始句子 → 自动查找并高亮目标单词
   Widget _buildRichContextSentence() {
     final sentence = widget.data.contextSentence!;
     final word = widget.data.word;
-    // 先尝试精确匹配原词
+    final cs = Theme.of(context).colorScheme;
+
+    // 检查是否已包含 AI 高亮标记【】
+    if (sentence.contains('【') && sentence.contains('】')) {
+      return _buildHighlightedText(sentence, highlightColor: const Color(0xFF1976D2));
+    }
+
+    // 降级：自动匹配并高亮
     final escapedWord = RegExp.escape(word);
     final regex = RegExp(escapedWord, caseSensitive: false);
     final match = regex.firstMatch(sentence);
@@ -706,7 +729,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       return Text(
         sentence,
         style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+          color: cs.onSurface.withValues(alpha: 0.7),
           fontSize: 14,
           height: 1.5,
         ),
@@ -718,7 +741,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     return RichText(
       text: TextSpan(
         style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+          color: cs.onSurface.withValues(alpha: 0.7),
           fontSize: 14,
           height: 1.5,
         ),
@@ -733,6 +756,73 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           ),
           TextSpan(text: sentence.substring(end)),
         ],
+      ),
+    );
+  }
+
+  /// 高亮中文翻译中的词义
+  /// 支持两种模式：
+  /// 1. AI 已用【】包裹高亮 → 直接渲染
+  /// 2. 原始翻译 → 直接显示
+  Widget _buildRichChineseTranslation() {
+    final translation = widget.data.sentenceTranslation ?? widget.data.translation ?? '';
+    final cs = Theme.of(context).colorScheme;
+
+    // 检查是否包含 AI 高亮标记
+    if (translation.contains('【') && translation.contains('】')) {
+      return _buildHighlightedText(translation, highlightColor: const Color(0xFFE65100));
+    }
+
+    // 无高亮标记，直接显示
+    return Text(
+      translation,
+      style: TextStyle(
+        color: cs.onSurfaceVariant,
+        fontSize: 13,
+        height: 1.4,
+      ),
+    );
+  }
+
+  /// 渲染带【】高亮标记的文本
+  Widget _buildHighlightedText(String text, {required Color highlightColor}) {
+    final cs = Theme.of(context).colorScheme;
+    // 按【】分割文本
+    final parts = <InlineSpan>[];
+    final regex = RegExp(r'【([^】]*)】');
+    int lastEnd = 0;
+
+    for (final match in regex.allMatches(text)) {
+      // 高亮前的普通文本
+      if (match.start > lastEnd) {
+        parts.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+        ));
+      }
+      // 高亮文本
+      parts.add(TextSpan(
+        text: match.group(1) ?? '',
+        style: TextStyle(
+          color: highlightColor,
+          fontWeight: FontWeight.bold,
+          backgroundColor: highlightColor.withValues(alpha: 0.1),
+        ),
+      ));
+      lastEnd = match.end;
+    }
+    // 剩余文本
+    if (lastEnd < text.length) {
+      parts.add(TextSpan(text: text.substring(lastEnd)));
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(
+          color: cs.onSurface.withValues(alpha: 0.7),
+          fontSize: 14,
+          height: 1.5,
+        ),
+        children: parts,
       ),
     );
   }

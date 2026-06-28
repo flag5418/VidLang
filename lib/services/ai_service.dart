@@ -302,8 +302,11 @@ class AiService {
 
   /// 调用 AI 释义（ai_definition）
   ///
-  /// 优先查询全局缓存（word_cache 表），命中则直接返回，
-  /// 未命中才调用 AI，并将结果写入缓存。
+  /// **三级缓存策略**：
+  /// 1. **完全命中**：缓存中有完整数据（含 context_sentence_info）→ 直接返回
+  /// 2. **部分命中**：缓存有基础释义，但缺少当前句信息 → 仅补充 context_sentence_info
+  /// 3. **未命中**：调用 AI 获取完整释义 → 写入缓存
+  ///
   /// 本地模型可用时：优先使用本地模型
   ///
   /// [word] 目标单词
@@ -317,21 +320,61 @@ class AiService {
     Map<String, dynamic>? billing,
   }) async {
     final cacheKey = word.toLowerCase().trim();
+    final hasContext = contextSentence?.isNotEmpty ?? false;
 
-    // ① 先查缓存
-    try {
-      final cached = await _readWordCache(cacheKey);
-      if (cached != null) {
-        dev.log('word cache HIT: $cacheKey', name: 'AiService');
-        // 异步递增命中次数，不阻塞返回
-        _bumpWordCacheCount(cacheKey);
-        return cached;
+    // ════════════════════════════════════════════
+    // ① 查询缓存（无上下文时直接返回）
+    // ════════════════════════════════════════════
+    if (!hasContext) {
+      try {
+        final cached = await _readWordCache(cacheKey);
+        if (cached != null) {
+          dev.log('word cache HIT (no-context): $cacheKey', name: 'AiService');
+          _bumpWordCacheCount(cacheKey);
+          return cached;
+        }
+      } catch (e) {
+        dev.log('word cache read error: $e', name: 'AiService');
       }
-    } catch (e) {
-      dev.log('word cache read error: $e', name: 'AiService');
     }
 
-    // ② 未命中，调 AI（优先使用本地模型）
+    // ════════════════════════════════════════════
+    // ② 有上下文时的智能缓存策略
+    // ════════════════════════════════════════════
+    if (hasContext) {
+      try {
+        final cached = await _readWordCache(cacheKey);
+        if (cached != null) {
+          // 检查是否已有该句子的 context_sentence_info
+          final hasContextInfo = _hasContextForSentence(cached, contextSentence!);
+
+          if (hasContextInfo) {
+            // ✅ 完全命中：直接返回
+            dev.log('word cache HIT (with-context): $cacheKey', name: 'AiService');
+            _bumpWordCacheCount(cacheKey);
+            return cached;
+          } else {
+            // ⚡ 部分命中：仅补充 context_sentence_info
+            dev.log('word cache PARTIAL HIT: $cacheKey (need context info)', name: 'AiService');
+            final enriched = await _enrichWithContext(cached, contextSentence!, billing: billing);
+            if (enriched != null) {
+              // 异步更新缓存（不阻塞返回）
+              _writeWordCache(cacheKey, enriched);
+              return enriched;
+            }
+            // 补充失败，降级返回基础缓存
+            _bumpWordCacheCount(cacheKey);
+            return cached;
+          }
+        }
+      } catch (e) {
+        dev.log('word cache context check error: $e', name: 'AiService');
+      }
+    }
+
+    // ════════════════════════════════════════════
+    // ③ 完全未命中：调用 AI
+    // ════════════════════════════════════════════
     dev.log('word cache MISS: $cacheKey, calling AI', name: 'AiService');
     final detail = await callAiProxy(
       ruleCode: 'ai_definition',
@@ -342,12 +385,12 @@ class AiService {
       sourceCode: sourceCode,
       params: {
         'word': word,
-        if (contextSentence?.isNotEmpty ?? false) 'context_sentence': contextSentence,
+        if (hasContext) 'sentence': contextSentence,
       },
       billing: billing,
     );
 
-    // ③ 成功时写入缓存
+    // ④ 成功时写入缓存
     if (detail.success && detail.source == 'ai') {
       try {
         await _writeWordCache(cacheKey, detail);
@@ -357,6 +400,78 @@ class AiService {
     }
 
     return detail;
+  }
+
+  /// 检查缓存数据是否已包含指定句子的上下文信息
+  static bool _hasContextForSentence(WordDetail detail, String sentence) {
+    // 如果原句匹配，说明已有上下文信息
+    if (detail.contextSentence != null &&
+        detail.contextSentence!.contains(sentence.substring(0, sentence.length.clamp(0, 20)))) {
+      return true;
+    }
+    // 或者检查 sentenceTranslation 是否非空（说明之前查询过带上下文的）
+    return detail.sentenceTranslation != null && detail.sentenceTranslation!.isNotEmpty;
+  }
+
+  /// 为已有的 WordDetail 补充 context_sentence_info
+  ///
+  /// 复用缓存的 base 信息，仅请求 AI 生成当前句的高亮和翻译。
+  /// 这样可以节省约 60% 的 token 消耗。
+  static Future<WordDetail?> _enrichWithContext(
+    WordDetail baseDetail,
+    String contextSentence, {
+    Map<String, dynamic>? billing,
+  }) async {
+    try {
+      // 调用 AI 仅获取 context_sentence_info
+      final result = await callAiProxyRaw(
+        ruleCode: 'ai_definition',
+        scene: 'player',
+        entry: 'subtitle_tap_enrich',
+        params: {
+          'word': baseDetail.word,
+          'sentence': contextSentence,
+          'mode': 'context_only', // 告诉 Edge Function 只需要上下文信息
+        },
+        billing: billing,
+      );
+
+      if (result['ok'] != true || result['result'] == null) {
+        return null;
+      }
+
+      final aiResult = result['result'] as Map<String, dynamic>;
+      final contextInfo = aiResult['context_sentence_info'];
+
+      if (contextInfo is! Map<String, dynamic>) {
+        return null;
+      }
+
+      // 合并到基础 WordDetail
+      return WordDetail(
+        word: baseDetail.word,
+        pronounce: baseDetail.pronounce,
+        definitions: baseDetail.definitions,
+        standaloneExamples: baseDetail.standaloneExamples,
+        difficulty: baseDetail.difficulty,
+        morphology: baseDetail.morphology,
+        mnemonic: baseDetail.mnemonic,
+        // 使用新的上下文信息
+        contextSentence: contextInfo['word_highlighted_sentence'] as String? ??
+            contextInfo['original_sentence'] as String? ??
+            contextSentence,
+        sentenceTranslation: contextInfo['sentence_translation'] as String?,
+        wordMeaningInContext: contextInfo['word_meaning_in_context'] as String?,
+        translation: baseDetail.translation,
+        success: true,
+        costCny: (result['cost_cny'] as num?)?.toDouble(),
+        balanceAfter: (result['balance_after'] as num?)?.toDouble(),
+        source: 'ai_enriched', // 标记来源为"AI增强"
+      );
+    } catch (e) {
+      dev.log('_enrichWithContext error: $e', name: 'AiService');
+      return null;
+    }
   }
 
   // ─── Word Cache 辅助方法 ─────────────────────────────
