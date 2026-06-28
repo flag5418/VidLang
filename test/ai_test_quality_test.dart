@@ -61,7 +61,9 @@ class QualityReport {
     print('总计: ${results.length} 项测试');
     print('通过: $passCount 项 ✅');
     print('失败: $failCount 项 ❌');
-    print('通过率: ${(passCount / results.length * 100).toStringAsFixed(1)}%');
+    if (results.isNotEmpty) {
+      print('通过率: ${(passCount / results.length * 100).toStringAsFixed(1)}%');
+    }
     print('${'=' * 80}\n');
   }
 }
@@ -70,10 +72,10 @@ class QualityReport {
 
 /// 难度参数接口
 class DifficultyParams {
-  final int minWords;      // 组句题最小单词数
-  final int maxWords;      // 组句题最大单词数
-  final int minWordLen;    // 拼写/选择题最小单词长度
-  final int maxWordLen;    // 拼写/选择题最大单词长度
+  final int minWords;       // 组句题最小单词数
+  final int maxWords;       // 组句题最大单词数
+  final int minWordLen;     // 拼写/选择题最小单词长度
+  final int maxWordLen;     // 拼写/选择题最大单词长度
   final int maxSentenceLen; // 翻译/听写句子最大字符数
 
   DifficultyParams({
@@ -86,7 +88,7 @@ class DifficultyParams {
 }
 
 /// 难度参数配置（与 ai-test-plan/index.ts 保持一致）
-const Map<String, DifficultyParams> DIFFICULTY_PARAMS = {
+final Map<String, DifficultyParams> difficultyParamsMap = {
   'beginner': DifficultyParams(
     minWords: 3, maxWords: 7, minWordLen: 3, maxWordLen: 5, maxSentenceLen: 40,
   ),
@@ -118,7 +120,7 @@ List<String> shuffleList(List<String> arr) {
   return a;
 }
 
-List<String> unique(List<String> arr) {
+List<String> uniqueList(List<String> arr) {
   final seen = <String>{};
   final out = <String>[];
   for (final x in arr) {
@@ -130,13 +132,13 @@ List<String> unique(List<String> arr) {
 }
 
 List<String> tokenizeWords(String text) {
-  final regex = RegExp(r'[A-Za-z]+(?:\'[A-Za-z]+)?');
+  final regex = RegExp(r"[A-Za-z]+(?:'[A-Za-z]+)?");
   return regex.allMatches(text).map((m) => m.group(0)!.trim()).where((t) => t.isNotEmpty).toList();
 }
 
 Map<String, dynamic> maskWord(String sentence, String word) {
   // 简化版：直接用单词匹配
-  final pattern = RegExp('\\b${RegExp.escape(word)}\\b', caseSensitive: false);
+  final pattern = RegExp(r'\b' + RegExp.escape(word) + r'\b', caseSensitive: false);
   if (!pattern.hasMatch(sentence)) {
     return {'masked': sentence, 'ok': false};
   }
@@ -190,7 +192,7 @@ List<String> extractWordPool(List<String> sentences, DifficultyParams params) {
       words.add(lw);
     }
   }
-  return unique(words);
+  return uniqueList(words);
 }
 
 /// 拼写填空题
@@ -588,7 +590,7 @@ List<Map<String, dynamic>> pickSentencePronItems(
 // ─── 测试数据 ───
 
 /// 模拟字幕数据（包含不同难度的句子）
-const List<String> TEST_SENTENCES = [
+const List<String> testSentences = [
   // 简单句子（适合 beginner）
   'I have a cat.',
   'She likes apples.',
@@ -621,25 +623,6 @@ const List<String> TEST_SENTENCES = [
   'Furthermore, empirical evidence suggests that socioeconomic factors significantly influence educational outcomes in underserved communities worldwide.',
 ];
 
-/// 模拟生词本数据
-const List<Map<String, String>> TEST_WORD_BOOK = [
-  {'word': 'one', 'translation': '一', 'sentence': 'I have one apple.'},
-  {'word': 'two', 'translation': '二', 'sentence': 'She has two cats.'},
-  {'word': 'three', 'translation': '三', 'sentence': 'There are three dogs.'},
-  {'word': 'apple', 'translation': '苹果', 'sentence': 'This apple is red.'},
-  {'word': 'banana', 'translation': '香蕉', 'sentence': 'I like banana.'},
-  {'word': 'cat', 'translation': '猫', 'sentence': 'The cat is cute.'},
-  {'word': 'dog', 'translation': '狗', 'sentence': 'My dog is friendly.'},
-  {'word': 'happy', 'translation': '快乐的', 'sentence': 'She looks happy today.'},
-  {'word': 'run', 'translation': '跑', 'sentence': 'He can run fast.'},
-  {'word': 'beautiful', 'translation': '美丽的', 'sentence': 'The flower is beautiful.'},
-  {'word': 'knowledge', 'translation': '知识', 'sentence': 'Knowledge is power.'},
-  {'word': 'experience', 'translation': '经验', 'sentence': 'She has much experience.'},
-  {'word': 'government', 'translation': '政府', 'sentence': 'The government made a decision.'},
-  {'word': 'environment', 'translation': '环境', 'sentence': 'We should protect the environment.'},
-  {'word': 'communication', 'translation': '交流', 'sentence': 'Communication is important.'},
-];
-
 // ─── 验证函数 ───
 
 /// 检查答案是否泄露在选项中（除了正确答案本身）
@@ -650,7 +633,8 @@ bool checkAnswerNotLeaked(Map<String, dynamic> item) {
   if (answer == null || options == null) return true;
 
   // 检查是否有重复的正确答案出现在选项中
-  final answerCount = options.where((o) => o.toString().toLowerCase() == answer.toString().toLowerCase()).length;
+  final answerStr = answer.toString().toLowerCase();
+  final answerCount = options.where((o) => o.toString().toLowerCase() == answerStr).length;
   if (answerCount > 1) {
     return false; // 答案重复出现
   }
@@ -675,14 +659,10 @@ bool checkPromptNoAnswerLeak(Map<String, dynamic> item) {
 
   if (answer.isEmpty) return true;
 
-  // 检查 prompt 中是否直接暴露了完整答案（对于某些题型是允许的）
-  final combinedPrompt = '$prompt $promptCn'.toLowerCase();
-  final answerLower = answer.toLowerCase();
-
   // 对于特定题型，检查是否有不当的答案泄露
   if (item['type'] == 'definition_choice' || item['type'] == 'listen_meaning') {
     // 这些题型不应该在中文提示中直接给出英文答案
-    if (promptCn.toLowerCase().contains(answerLower) && item['sub_type'] == 'en_to_cn') {
+    if (promptCn.toLowerCase().contains(answer.toLowerCase()) && item['sub_type'] == 'en_to_cn') {
       // en_to_cn 类型不应该在提示中包含答案
       return false;
     }
@@ -691,7 +671,7 @@ bool checkPromptNoAnswerLeak(Map<String, dynamic> item) {
   return true;
 }
 
-/// 检查干扰项是否与答案过于相似（编辑距离）
+/// 检查干扰项是否与答案过于相似
 bool checkDistractorQuality(Map<String, dynamic> item) {
   final answer = (item['answer'] ?? item['correct_answer'])?.toString()?.toLowerCase() ?? '';
   final options = item['options'] as List<dynamic>?;
@@ -711,6 +691,25 @@ bool checkDistractorQuality(Map<String, dynamic> item) {
   }
 
   return true;
+}
+
+// ─── 辅助打印函数 ───
+
+void printItemDetail(Map<String, dynamic> item, [int? index]) {
+  final prefix = index != null ? '   │   ├── 第${index}题' : '   │   ├──';
+  print('$prefix [${item['type']}]');
+  print('   │   │   Prompt: ${item['prompt_cn'] ?? item['prompt']}');
+  if (item['sentence'] != null) print('   │   │   句子: ${item['sentence']}');
+  if (item['masked'] != null) print('   │   │   挖空: ${item['masked']}');
+  if (item['options'] != null) print('   │   │   选项: ${jsonEncode(item['options'])}');
+  if (item['answer'] != null) print('   │   │   ✔️ 答案: ${item['answer']}');
+  if (item['correct_answer'] != null) print('   │   │   ✔️ 正确答案: ${item['correct_answer']}');
+  if (item['answer_index'] != null) print('   │   │   答案索引: ${item['answer_index']}');
+  if (item['answers'] != null) print('   │   │   ✔️ 多选答案: ${jsonEncode(item['answers'])}');
+  if (item['letter_pool'] != null) print('   │   │   字母池: ${jsonEncode(item['letter_pool'])}');
+  if (item['ref_text'] != null) print('   │   │   参考文本: ${item['ref_text']}');
+  if (item['sub_type'] != null) print('   │   │   子类型: ${item['sub_type']}');
+  if (item['relation_type'] != null) print('   │   │   关系类型: ${item['relation_type']}');
 }
 
 // ─── 主测试函数 ───
@@ -755,7 +754,7 @@ void main() {
   // ═══════════════════════════════════════════════════════════════
 
   print('\n${'=' * 80}');
-  print('【第四部分）答案合理性验证');
+  print('【第四部分】答案合理性验证');
   print('${'=' * 80}\n');
 
   _testAnswerQuality(report);
@@ -781,85 +780,72 @@ void _analyzePrompts(QualityReport report) {
   print('│  各题型 AI 提示词（Prompt）一览                              │');
   print('└─────────────────────────────────────────────────────────────┘\n');
 
-  const prompts = {
+  final prompts = {
     'reorder': {
       'prompt': '请按正确顺序组句',
-      'prompt_en': 'Please reorder the words to form a correct sentence',
       'description': '组句题：将打乱的单词重新排列成正确的句子',
     },
     'spelling': {
       'prompt': '请根据句子拼写缺失单词',
-      'prompt_en': 'Spell the missing word based on the sentence context',
       'description': '拼写填空：根据上下文补全被挖空的单词',
     },
     'mcq': {
       'prompt': '请选择最合适的单词填空',
-      'prompt_en': 'Select the most appropriate word to fill in the blank',
       'description': '选择题：从4个选项中选择正确的单词填入空格',
     },
     'listen_choose': {
-      'prompt': 'Listen and select the word you hear',
-      'prompt_cn': '听发音，选择你听到的单词',
+      'prompt': 'Listen and select the word you hear / 听发音，选择你听到的单词',
       'description': '听音选词：播放单词发音，从选项中选出听到的词',
     },
     'listen_meaning': {
-      'prompt': 'Listen and select the word with similar meaning',
-      'prompt_cn': '听发音，选择与该词意思最接近的选项',
+      'prompt': 'Listen and select the word with similar meaning / 听发音，选择与该词意思最接近的选项',
       'description': '听音辩义：播放单词发音，选择意思最接近的选项',
-      '⚠️ 问题': '当前实现：选项都是其他英文单词而非释义，无法真正测试"辩义"能力',
+      'issue': '当前实现：选项都是其他英文单词而非释义，无法真正测试"辩义"能力',
     },
     'listen_reply': {
-      'prompt': 'Listen to the question and select the best answer',
-      'prompt_cn': '听以下句子，选择最佳回答',
+      'prompt': 'Listen to the question and select the best answer / 听以下句子，选择最佳回答',
       'description': '听音回复：播放问题，选择最佳回答',
-      '⚠️ 问题': '当前实现：答案是从句子中间随机取的词，不一定是真正的"回答"',
+      'issue': '当前实现：答案是从句子中间随机取的词，不一定是真正的"回答"',
     },
     'definition_choice': {
-      'prompt': 'What is the meaning of "{word}"? / Which word matches the meaning?',
-      'prompt_cn': '单词 "{word}" 的意思是什么？/ 哪个单词符合给出的含义？（提示词：{word}）',
+      'prompt': 'What is the meaning of "{word}"? / 哪个单词符合给出的含义？（提示词：{word}）',
       'description': '释义选择：英译中或中译英',
-      '⚠️ 问题': '当前实现：cn_to_en 子类型在提示词中直接暴露了答案（提示词：{word}），且选项都是英文单词而非中文释义',
+      'issue': '当前实现：cn_to_en 子类型在提示词中直接暴露了答案（提示词：{word}），且选项都是英文单词而非中文释义',
     },
     'translate_meaning': {
-      'prompt': 'Read the sentence and select the option with the closest meaning',
-      'prompt_cn': '阅读以下英文句子，选择与原文含义最接近的选项',
+      'prompt': 'Read the sentence and select the option with the closest meaning / 阅读以下英文句子，选择与原文含义最接近的选项',
       'description': '英义互译：选择与原文含义最接近的选项',
-      '⚠️ 问题': '当前实现：选项是其他英文句子而非中文翻译，无法真正测试翻译能力',
+      'issue': '当前实现：选项是其他英文句子而非中文翻译，无法真正测试翻译能力',
     },
     'word_relation': {
-      'prompt': 'Select synonyms/antonyms/same category words of "{word}"',
-      'prompt_cn': '选择以下单词的同义词/反义词/同类词（可多选）',
+      'prompt': 'Select synonyms/antonyms/same category words of "{word}" / 选择以下单词的同义词/反义词/同类词（可多选）',
       'description': '词性测试：选择同义词、反义词或同类词',
-      '⚠️ 问题': '当前实现：正确答案是随机选取的，并非真正的同义词/反义词',
+      'issue': '当前实现：正确答案是随机选取的，并非真正的同义词/反义词',
     },
     'word_pron': {
-      'prompt': 'Please read aloud: {word}',
-      'prompt_cn': '请跟读以下单词：{word}',
+      'prompt': 'Please read aloud: {word} / 请跟读以下单词：{word}',
       'description': '跟读单词：用户朗读单词并进行评分',
     },
     'phrase_pron': {
-      'prompt': 'Please read aloud: {phrase}',
-      'prompt_cn': '请跟读以下短语：{phrase}',
+      'prompt': 'Please read aloud: {phrase} / 请跟读以下短语：{phrase}',
       'description': '跟读短语：用户朗读短语并进行评分',
     },
     'sentence_pron': {
-      'prompt': 'Please read aloud: {sentence}',
-      'prompt_cn': '请跟读以下句子：{sentence}',
+      'prompt': 'Please read aloud: {sentence} / 请跟读以下句子：{sentence}',
       'description': '句子跟读：用户朗读句子并进行评分',
     },
   };
 
   prompts.forEach((type, info) {
     print('┌─ 【$type】${info['description']} ─────────────────────────────┐');
-    print('│ 英文 Prompt: ${info['prompt'] ?? info['prompt_en']}');
-    if (info['prompt_cn'] != null) print('│ 中文 Prompt: ${info['prompt_cn']}');
-    if (info.containsKey('⚠️ 问题')) {
-      print('│ ⚠️  潜在问题: ${info['⚠️ 问题']}');
+    print('│ Prompt: ${info['prompt']}');
+    if (info.containsKey('issue')) {
+      print('│ ⚠️  潜在问题: ${info['issue']}');
       report.add(TestResult(
         testName: 'Prompt 分析 [$type]',
         passed: false,
         message: '发现潜在问题',
-        details: info['⚠️ 问题'],
+        details: info['issue'],
       ));
     } else {
       report.add(TestResult(
@@ -878,24 +864,24 @@ void _testDifficultyParams(QualityReport report) {
   final difficulties = ['beginner', 'elementary', 'intermediate', 'advanced', 'professional'];
 
   print('📊 难度参数对比表:\n');
-  print('│ 难度 │ 最小词数 │ 最大词数 │ 最小词长 │ 最大词长 │ 最大句长 │');
-  print('│──────│─────────│─────────│─────────│─────────│─────────│');
+  print('│ 难度     │ 最小词数 │ 最大词数 │ 最小词长 │ 最大词长 │ 最大句长 │');
+  print('│──────────│─────────│─────────│─────────│─────────│─────────│');
 
   for (final diff in difficulties) {
-    final params = DIFFICULTY_PARAMS[diff]!;
-    print('│ ${diff.padRight(6)} │ ${params.minWords.toString().padLeft(7)} │ ${params.maxWords.toString().padLeft(7)} │ ${params.minWordLen.toString().padLeft(7)} │ ${params.maxWordLen.toString().padLeft(7)} │ ${params.maxSentenceLen.toString().padLeft(7)} │');
+    final params = difficultyParamsMap[diff]!;
+    print('│ ${diff.padRight(8)} │ ${params.minWords.toString().padLeft(7)} │ ${params.maxWords.toString().padLeft(7)} │ ${params.minWordLen.toString().padLeft(7)} │ ${params.maxWordLen.toString().padLeft(7)} │ ${params.maxSentenceLen.toString().padLeft(7)} │');
   }
   print('');
 
   // 验证难度递增规律
   for (int i = 1; i < difficulties.length; i++) {
-    final prev = DIFFICULTY_PARAMS[difficulties[i - 1]]!;
-    final curr = DIFFICULTY_PARAMS[difficulties[i]]!;
+    final prev = difficultyParamsMap[difficulties[i - 1]]!;
+    final curr = difficultyParamsMap[difficulties[i]]!;
 
     // 检查最小词数是否非递减
     final minWordsOk = curr.minWords >= prev.minWords;
     report.add(TestResult(
-      testName: '难度递增验证 [${difficulties[i]}].minWords >= ${difficulties[i-1]}',
+      testName: '难度递增验证 [${difficulties[i]}].minWords >= ${difficulties[i - 1]}',
       passed: minWordsOk,
       message: minWordsOk ? '${curr.minWords} >= ${prev.minWords} ✓' : '${curr.minWords} < ${prev.minWords} ✗',
       details: {'current': curr.minWords, 'previous': prev.minWords},
@@ -904,7 +890,7 @@ void _testDifficultyParams(QualityReport report) {
     // 检查最大词数是否递增
     final maxWordsOk = curr.maxWords > prev.maxWords;
     report.add(TestResult(
-      testName: '难度递增验证 [${difficulties[i]}].maxWords > ${difficulties[i-1]}',
+      testName: '难度递增验证 [${difficulties[i]}].maxWords > ${difficulties[i - 1]}',
       passed: maxWordsOk,
       message: maxWordsOk ? '${curr.maxWords} > ${prev.maxWords} ✓' : '${curr.maxWords} <= ${prev.maxWords} ✗',
     ));
@@ -912,28 +898,28 @@ void _testDifficultyParams(QualityReport report) {
     // 检查最大句长是否递增
     final maxSentLenOk = curr.maxSentenceLen > prev.maxSentenceLen;
     report.add(TestResult(
-      testName: '难度递增验证 [${difficulties[i]}].maxSentenceLen > ${difficulties[i-1]}',
+      testName: '难度递增验证 [${difficulties[i]}].maxSentenceLen > ${difficulties[i - 1]}',
       passed: maxSentLenOk,
       message: maxSentLenOk ? '${curr.maxSentenceLen} > ${prev.maxSentenceLen} ✓' : '${curr.maxSentenceLen} <= ${prev.maxSentenceLen} ✗',
     ));
   }
 
   // 验证 beginner 参数确实更简单
-  final beginner = DIFFICULTY_PARAMS['beginner']!;
+  final beginner = difficultyParamsMap['beginner']!;
   report.add(TestResult(
     testName: '入门级参数合理性',
     passed: beginner.maxWords <= 7 && beginner.maxWordLen <= 5 && beginner.maxSentenceLen <= 40,
     message: '入门级应使用简短句子和小词汇',
-    details: beginner,
+    details: 'maxWords=${beginner.maxWords}, maxWordLen=${beginner.maxWordLen}, maxSentenceLen=${beginner.maxSentenceLen}',
   ));
 
   // 验证 professional 参数确实更难
-  final professional = DIFFICULTY_PARAMS['professional']!;
+  final professional = difficultyParamsMap['professional']!;
   report.add(TestResult(
     testName: '专业级参数合理性',
     passed: professional.minWords >= 6 && professional.minWordLen >= 5 && professional.maxSentenceLen >= 200,
     message: '专业级应使用长句和复杂词汇',
-    details: professional,
+    details: 'minWords=${professional.minWords}, minWordLen=${professional.minWordLen}, maxSentenceLen=${professional.maxSentenceLen}',
   ));
 }
 
@@ -943,8 +929,8 @@ void _testAllQuestionTypes(QualityReport report) {
   final difficulties = ['beginner', 'intermediate', 'advanced'];
 
   for (final difficulty in difficulties) {
-    final params = DIFFICULTY_PARAMS[difficulty]!;
-    final wordPool = extractWordPool(TEST_SENTENCES, params);
+    final params = difficultyParamsMap[difficulty]!;
+    final wordPool = extractWordPool(testSentences, params);
 
     print('\n📝 难度级别: $difficulty (${params.maxSentenceLen}字符以内)');
     print('   词池大小: ${wordPool.length} 个单词\n');
@@ -955,18 +941,18 @@ void _testAllQuestionTypes(QualityReport report) {
     }
 
     // 测试每种题型
-    _testAndPrintType('reorder (组句)', () => pickReorderItems(TEST_SENTENCES, 2, params), report);
-    _testAndPrintType('spelling (拼写)', () => pickSpellingItems(TEST_SENTENCES, wordPool, 2), report);
-    _testAndPrintType('mcq (选择)', () => pickMcqItems(TEST_SENTENCES, wordPool, 2), report);
+    _testAndPrintType('reorder (组句)', () => pickReorderItems(testSentences, 2, params), report);
+    _testAndPrintType('spelling (拼写)', () => pickSpellingItems(testSentences, wordPool, 2), report);
+    _testAndPrintType('mcq (选择)', () => pickMcqItems(testSentences, wordPool, 2), report);
     _testAndPrintType('listen_choose (听音选词)', () => pickListenChooseItems(wordPool, 2), report);
     _testAndPrintType('listen_meaning (听音辩义)', () => pickListenMeaningItems(wordPool, 2), report);
-    _testAndPrintType('listen_reply (听音回复)', () => pickListenReplyItems(TEST_SENTENCES, wordPool, 2, params), report);
+    _testAndPrintType('listen_reply (听音回复)', () => pickListenReplyItems(testSentences, wordPool, 2, params), report);
     _testAndPrintType('definition_choice (释义选择)', () => pickDefinitionChoiceItems(wordPool, 2), report);
-    _testAndPrintType('translate_meaning (英义互译)', () => pickTranslateMeaningItems(TEST_SENTENCES, wordPool, 2, params), report);
+    _testAndPrintType('translate_meaning (英义互译)', () => pickTranslateMeaningItems(testSentences, wordPool, 2, params), report);
     _testAndPrintType('word_relation (词性测试)', () => pickWordRelationItems(wordPool, 2), report);
     _testAndPrintType('word_pron (跟读单词)', () => pickWordPronItems(wordPool, 2), report);
-    _testAndPrintType('phrase_pron (跟读短语)', () => pickPhrasePronItems(TEST_SENTENCES, 2, params), report);
-    _testAndPrintType('sentence_pron (跟读句子)', () => pickSentencePronItems(TEST_SENTENCES, 2, params), report);
+    _testAndPrintType('phrase_pron (跟读短语)', () => pickPhrasePronItems(testSentences, 2, params), report);
+    _testAndPrintType('sentence_pron (跟读句子)', () => pickSentencePronItems(testSentences, 2, params), report);
   }
 }
 
@@ -987,7 +973,7 @@ void _testAndPrintType(
     if (items.isNotEmpty) {
       print('   ├── $typeName: 生成 ${items.length} 题 ✅');
       for (int i = 0; i < items.length; i++) {
-        _printItemDetail(items[i], i + 1);
+        printItemDetail(items[i], i + 1);
       }
     } else {
       print('   ├── $typeName: 未生成题目（可能词池/句子不足）⚠️');
@@ -998,24 +984,8 @@ void _testAndPrintType(
       passed: false,
       message: '生成失败: $e',
     ));
-    print('   ├── $TypeError: $e ❌');
+    print('   ├── $typeName: Error: $e ❌');
   }
-}
-
-void _printItemDetail(Map<String, dynamic> item, int index) {
-  print('   │   ├── 第${index}题 [${item['type']}]');
-  print('   │   │   Prompt: ${item['prompt_cn'] ?? item['prompt']}');
-  if (item['sentence'] != null) print('   │   │   句子: ${item['sentence']}');
-  if (item['masked'] != null) print('   │   │   挖空: ${item['masked']}');
-  if (item['options'] != null) print('   │   │   选项: ${jsonEncode(item['options'])}');
-  if (item['answer'] != null) print('   │   │   ✔️ 答案: ${item['answer']}');
-  if (item['correct_answer'] != null) print('   │   │   ✔️ 正确答案: ${item['correct_answer']}');
-  if (item['answer_index'] != null) print('   │   │   答案索引: ${item['answer_index']}');
-  if (item['answers'] != null) print('   │   │   ✔️ 多选答案: ${jsonEncode(item['answers'])}');
-  if (item['letter_pool'] != null) print('   │   │   字母池: ${jsonEncode(item['letter_pool'])}');
-  if (item['ref_text'] != null) print('   │   │   参考文本: ${item['ref_text']}');
-  if (item['sub_type'] != null) print('   │   │   子类型: ${item['sub_type']}');
-  if (item['relation_type'] != null) print('   │   │   关系类型: ${item['relation_type']}');
 }
 
 // ─── 第四部分：答案质量验证 ───
@@ -1024,8 +994,8 @@ void _testAnswerQuality(QualityReport report) {
   print('\n🔍 答案质量深度验证\n');
 
   // 使用 intermediate 难度进行全面测试
-  final params = DIFFICULTY_PARAMS['intermediate']!;
-  final wordPool = extractWordPool(TEST_SENTENCES, params);
+  final params = difficultyParamsMap['intermediate']!;
+  final wordPool = extractWordPool(testSentences, params);
 
   if (wordPool.length < 8) {
     print('⚠️ 词池不足，跳过答案质量测试');
@@ -1034,15 +1004,15 @@ void _testAnswerQuality(QualityReport report) {
 
   // 生成足够多的题目进行验证
   final allItems = <Map<String, dynamic>>[
-    ...pickMcqItems(TEST_SENTENCES, wordPool, 5),
+    ...pickMcqItems(testSentences, wordPool, 5),
     ...pickListenChooseItems(wordPool, 5),
     ...pickListenMeaningItems(wordPool, 5),
     ...pickDefinitionChoiceItems(wordPool, 5),
-    ...pickSpellingItems(TEST_SENTENCES, wordPool, 5),
-    ...pickReorderItems(TEST_SENTENCES, 5, params),
-    ...pickTranslateMeaningItems(TEST_SENTENCES, wordPool, 5, params),
+    ...pickSpellingItems(testSentences, wordPool, 5),
+    ...pickReorderItems(testSentences, 5, params),
+    ...pickTranslateMeaningItems(testSentences, wordPool, 5, params),
     ...pickWordRelationItems(wordPool, 5),
-    ...pickListenReplyItems(TEST_SENTENCES, wordPool, 5, params),
+    ...pickListenReplyItems(testSentences, wordPool, 5, params),
   ];
 
   print('共生成 ${allItems.length} 道题目进行质量验证\n');
@@ -1053,7 +1023,7 @@ void _testAnswerQuality(QualityReport report) {
     if (!checkAnswerNotLeaked(item)) {
       leakCount++;
       print('❌ 答案泄露/重复:');
-      _printItemDetail(item, 0);
+      printItemDetail(item);
       print('');
     }
   }
@@ -1071,7 +1041,7 @@ void _testAnswerQuality(QualityReport report) {
     if (!checkNoDuplicateOptions(item)) {
       dupOptionCount++;
       print('❌ 选项重复:');
-      _printItemDetail(item, 0);
+      printItemDetail(item);
       print('');
     }
   }
@@ -1088,7 +1058,7 @@ void _testAnswerQuality(QualityReport report) {
     if (!checkPromptNoAnswerLeak(item)) {
       promptLeakCount++;
       print('❌ Prompt 泄露答案:');
-      _printItemDetail(item, 0);
+      printItemDetail(item);
       print('');
     }
   }
@@ -1105,7 +1075,7 @@ void _testAnswerQuality(QualityReport report) {
     if (!checkDistractorQuality(item)) {
       poorDistractorCount++;
       print('⚠️ 干扰项质量差（过于相似）:');
-      _printItemDetail(item, 0);
+      printItemDetail(item);
       print('');
     }
   }
@@ -1125,8 +1095,8 @@ void _testKnownIssues(QualityReport report) {
   // 问题1：definition_choice 的 cn_to_en 类型在提示词中泄露答案
   print('--- 问题1：definition_choice 提示词泄露答案 ---\n');
 
-  final wordPool = ['one', 'two', 'apple', 'cat', 'dog'];
-  defItems = pickDefinitionChoiceItems(wordPool, 10);
+  final wordPool = ['one', 'two', 'apple', 'cat', 'dog', 'happy', 'run', 'beautiful'];
+  final defItems = pickDefinitionChoiceItems(wordPool, 10);
 
   int leakFound = 0;
   for (final item in defItems) {
@@ -1134,7 +1104,7 @@ void _testKnownIssues(QualityReport report) {
       final promptCn = item['prompt_cn']?.toString() ?? '';
       final answer = item['answer']?.toString() ?? '';
 
-      if (promptCn.contains(answer)) {
+      if (promptCn.toLowerCase().contains(answer.toLowerCase())) {
         leakFound++;
         print('❌ 发现答案泄露:');
         print('   Prompt CN: $promptCn');
@@ -1148,14 +1118,14 @@ void _testKnownIssues(QualityReport report) {
   report.add(TestResult(
     testName: '[严重] definition_choice cn_to_en 答案泄露',
     passed: leakFound == 0,
-    message: leakFound == 0 ? '未发现答案泄露' : '$leakCount 处发现提示词直接包含答案！用户可以直接从提示中看到正确答案',
+    message: leakFound == 0 ? '未发现答案泄露' : '$leakFound 处发现提示词直接包含答案！用户可以直接从提示中看到正确答案',
     details: {'leakCount': leakFound, '影响': '用户无需知道答案即可答对，测试无效'},
   ));
 
   // 问题2：listen_meaning 选项不是释义而是其他单词
   print('--- 问题2：listen_meaning 选项设计不合理 ---\n');
 
-  listenMeaningItems = pickListenMeaningItems(wordPool, 3);
+  final listenMeaningItems = pickListenMeaningItems(wordPool, 3);
 
   for (final item in listenMeaningItems) {
     final options = item['options'] as List<dynamic>?;
@@ -1179,7 +1149,7 @@ void _testKnownIssues(QualityReport report) {
   // 问题3：word_relation 正确答案随机选取
   print('--- 问题3：word_relation 正确答案无语义依据 ---\n');
 
-  relationItems = pickWordRelationItems(wordPool, 3);
+  final relationItems = pickWordRelationItems(wordPool, 3);
 
   for (final item in relationItems) {
     print('题型: ${item['type']} (${item['relation_type']})');
@@ -1200,7 +1170,7 @@ void _testKnownIssues(QualityReport report) {
   // 问题4：listen_reply 答案选取不合理
   print('--- 问题4：listen_reply 答案选取策略有问题 ---\n');
 
-  replyItems = pickListenReplyItems(TEST_SENTENCES, wordPool, 3, DIFFICULTY_PARAMS['intermediate']!);
+  final replyItems = pickListenReplyItems(testSentences, wordPool, 3, difficultyParamsMap['intermediate']!);
 
   for (final item in replyItems) {
     print('问题句: ${item['ref_text']}');
@@ -1219,15 +1189,13 @@ void _testKnownIssues(QualityReport report) {
   // 问题5：translate_meaning 选项是英文句子
   print('--- 问题5：translate_meaning 选项设计问题 ---\n');
 
-  transItems = pickTranslateMeaningItems(TEST_SENTENCES, wordPool, 3, DIFFICULTY_PARAMS['intermediate']!);
+  final transItems = pickTranslateMeaningItems(testSentences, wordPool, 3, difficultyParamsMap['intermediate']!);
 
   for (final item in transItems) {
     final options = item['options'] as List<dynamic>?;
-    final allEnglish = options?.every((o) => RegExp(r'[a-zA-Z]').hasMatch(o.toString())) ?? false;
 
     print('原句: ${item['display_text']}');
     print('选项: ${jsonEncode(options)}');
-    print('选项全是英文: $allEnglish');
     print('⚠️ 问题: 该题型要求选择"含义最接近的选项"，但选项是其他英文句子而非中文翻译\n');
   }
 

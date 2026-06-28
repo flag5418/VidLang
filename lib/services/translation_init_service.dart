@@ -33,22 +33,18 @@ class TranslationInitService {
   static int countNeedTranslate<T>(List<T> items, SubscriptionMode mode) {
     int count = 0;
     for (final item in items) {
-      String? translate;
       int? source;
       if (item is Subtitles) {
-        translate = item.contentTranslate;
         source = item.translateSource;
       } else if (item is ArticleSentence) {
-        translate = item.contentTranslate;
         source = item.translateSource;
       }
-      final hasContent = (translate ?? '').trim().isNotEmpty;
-
-      if (!hasContent) {
-        count++;
-      } else if (mode == SubscriptionMode.premium && source != TranslateSource.ai.value && source != TranslateSource.cloud.value) {
-        count++;
-      }
+      // 免费模式：translateSource != 0 表示需要翻译
+      // 收费模式：translateSource != 1 表示需要翻译
+      final needsTranslate = mode == SubscriptionMode.free
+          ? (source == null || source == TranslateSource.none.value || source == TranslateSource.native.value)
+          : (source != TranslateSource.ai.value && source != TranslateSource.cloud.value);
+      if (needsTranslate) count++;
     }
     return count;
   }
