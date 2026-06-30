@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -29,7 +29,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
-    _user = AppConfig.currentUser;
+    _user = AppKeysService.currentUser;
     _loadAvatar();
   }
 
@@ -70,7 +70,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       _user!.avatar = targetPath;
       await DatabaseService.update(_user!);
-      AppConfig.currentUser = _user;
+      AppKeysService.currentUser = _user;
     } catch (e) {
       if (!mounted) return;
       AppToast.show(context, '头像保存失败: $e');
@@ -83,7 +83,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       try {
         _user!.nickname = result.trim();
         await DatabaseService.update(_user!);
-        AppConfig.currentUser = _user;
+        AppKeysService.currentUser = _user;
         if (!mounted) return;
         setState(() {});
       } catch (e) {

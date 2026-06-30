@@ -75,15 +75,15 @@ class AiEvaluationLog extends BaseEntity {
     resourceType = map['resource_type'] ?? 'music';
     resourceTitle = map['resource_title'];
     language = map['language'] ?? 'en';
-    sentenceFollowAvgScore = (map['sentence_follow_avg_score'] as num?)?.toDouble();
+    sentenceFollowAvgScore = _toDouble(map['sentence_follow_avg_score']);
     sentenceFollowCount = map['sentence_follow_count'] ?? 0;
-    fullFollowAvgScore = (map['full_follow_avg_score'] as num?)?.toDouble();
+    fullFollowAvgScore = _toDouble(map['full_follow_avg_score']);
     fullFollowCount = map['full_follow_count'] ?? 0;
-    resourceScore = (map['resource_score'] as num?)?.toDouble();
+    resourceScore = _toDouble(map['resource_score']);
     evaluationJson = map['evaluation_json'] ?? '';
     summary = map['summary'];
     overallLevel = map['overall_level'];
-    costCny = (map['cost_cny'] as num?)?.toDouble();
+    costCny = _toDouble(map['cost_cny']);
     evaluatedAt = map['evaluated_at'] != null ? DateTime.parse(map['evaluated_at']) : DateTime.now();
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
@@ -93,5 +93,12 @@ class AiEvaluationLog extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

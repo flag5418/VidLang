@@ -9,12 +9,44 @@
 
 // ─── 模型配置（全局统一维护）─────────────────────────────
 
-/** 阿里云百炼模型配置表 — 英语学习 App 专用 */
+/** 阿里云百炼模型配置表 — 英语学习 App 专用
+ *
+ * ⚠️⚠️⚠️ 费用控制红线（2026-06 联网核查确认）⚠️⚠️⚠️
+ *
+ * 1. TTS 模型必须用 'qwen-tts'（不是 qwen3-tts！开源名 ≠ API ID）
+ *    - 价格：输入 0.0016元/千Token + 输出 0.01元/千Token
+ *    - 10 秒音频 ≈ 0.005 元
+ *
+ * 2. Chat 模型必须用 'qwen-turbo'（最便宜）
+ *    - 价格：输入 0.0003元/千Token + 输出 0.0006元/千Token
+ *    - 一次翻译 ≈ 0.00027 元
+ *
+ * 3. 绝对禁止使用的参数（会导致静默升配到高价模型）：
+ *    ❌ deep_thinking / enable_thinking → 可能升配到 qwq-plus 或 qwen-max
+ *    ❌ model 设为 qwen-max / qwen-plus → 费用暴增 6-66 倍
+ *    ❌ 额外的 parameters 字段 → 可能触发高级功能计费
+ *
+ * 4. 之前一次翻译花 5 元的原因推测：
+ *    → 可能误用了 qwen-max 或开启了 deep_thinking 模式
+ */
 export const QWEN_MODELS = {
-  /** 文本大模型：对话/翻译/推理（唯一文本模型） */
+  /** 文本大模型：对话/翻译/推理（唯一文本模型，性价比最高） */
   TURBO: 'qwen-turbo',
-  /** 语音合成 TTS：CosyVoice-v3-Flash */
-  TTS: 'CosyVoice-v3-Flash',
+  /**
+   * 语音合成 TTS：qwen-tts（百炼平台官方 TTS 模型）
+   *
+   * 使用 DashScope /api/v1/services/aigc/multimodal-generation/generation 端点
+   * 计费：输入 0.0016元/千Token + 输出 0.01元/千Token
+   * 支持音色（voice 参数）：
+   *   英文：Aiden(男英), Chelsie(女英), Cherry(女英), Ethan(男英), Serena(女英)
+   *   中文：Dylan(北京话-男), Jada(吴语-女), Sunny(四川话-女)
+   *
+   * ⚠️ 注意：
+   *   - 百炼平台 API 的 model ID 是 'qwen-tts'（不是 qwen3-tts！）
+   *   - qwen3-tts 是开源本地部署模型的名称，不是百炼 API 的 model ID
+   *   - 绝对不要使用 deep_thinking/enable_thinking 等参数，会导致静默升配到高价模型
+   */
+  TTS: 'qwen-tts',
   /** 语音识别 ASR：fun-asr-realtime */
   ASR: 'fun-asr-realtime',
   /** 实时对话：多模态实时模型 */
@@ -62,6 +94,9 @@ export interface DefinitionResult {
   examples?: { english: string; chinese: string }[]
   standalone_examples?: { english: string; chinese: string }[]
   morphology?: Record<string, any>
+  synonyms?: string[]      // V4 新增：同义词列表
+  antonyms?: string[]      // V4 新增：反义词列表
+  category?: string        // V4 新增：语义类别（emotion/action/size 等）
   mnemonic?: string
 }
 
@@ -156,13 +191,18 @@ export async function qwenChat(
 /**
  * AI 释义：查询单词释义、例句、音标
  *
- * 返回 Map 结构：
+ * 返回 Map 结构（与 Flutter WordDetail.fromAiResult 对齐）：
  * {
- *   word, phonetic_uk, phonetic_us, part_of_speech,
- *   definitions, difficulty, examples, standalone_examples,
- *   context_sentence_info,  // 新增：当前句释义（含高亮）
- *   morphology, mnemonic
+ *   word, phonetic_uk, phonetic_us,
+ *   definitions: [{ part_of_speech, chinese_meaning, english_meaning, examples }],
+ *   standalone_examples: [{ english, chinese }],
+ *   difficulty, morphology, mnemonic,
+ *   context_sentence_info (仅当传入 sentence 时)
  * }
+ *
+ * 关键设计：definitions 是结构化对象数组（非纯字符串数组），
+ *           每个元素包含 part_of_speech + chinese_meaning + english_meaning + examples，
+ *           与 Flutter 端 WordDefinition 模型一一对应。
  */
 export async function definition(
   apiKey: string,
@@ -185,44 +225,63 @@ export async function definition(
 【toefl - 托福】 corroborate, disparate, ephemeral, laudable, meticulous, pragmatic, succinct, ubiquitous
 【gre - GRE】 serendipity, ephemeral, ubiquitous, esoteric, obsequious, perspicacious, quixotic, surreptitious`
 
-  let prompt = `请用中文详细解释英语单词"${word}"，要求返回严格的 JSON 格式（不要 markdown 代码块标记）：
+  let prompt = `你是一个专业的英语词典编辑。请为单词"${word}"生成详细的词典条目。
+
+返回严格的 JSON 格式（不要 markdown 代码块标记，不要注释）：
+
 {
   "word": "${word}",
   "phonetic_uk": "英式音标（IPA格式，如 /ˈæp.əl/）",
   "phonetic_us": "美式音标（IPA格式，如 /ˈæp.əl/）",
-  "part_of_speech": "词性（名词/动词/形容词/副词/代词/冠词/介词/连词）",
-  "definitions": ["核心中文释义1", "引申中文释义2"],
-  "difficulty": "仅限以下值之一: primary / juniorHigh / seniorHigh / cet4 / cet6 / postgraduate / ielts / toefl / gre",
-  "examples": [
-    {"english": "例句1英文（必须包含原词${word}）", "chinese": "例句1中文翻译"},
-    {"english": "例句2英文（必须包含原词${word}）", "chinese": "例句2中文翻译"},
-    {"english": "例句3英文（必须包含原词${word}）", "chinese": "例句3中文翻译"}
+  "definitions": [
+    {
+      "part_of_speech": "词性缩写（n./v./adj./adv./pron./art./prep./conj.），多义词按词性分组，每个词性一个元素",
+      "chinese_meaning": "该词性下的核心中文释义（简洁准确，多个义项用分号；分隔）",
+      "english_meaning": "用英语解释该单词在该词性下的含义（2-10个英文单词，适合英语学习者理解）",
+      "examples": [
+        {"english": "例句英文，必须包含原词${word}（忽略大小写），自然地道", "chinese": "对应的中文翻译"},
+        {"english": "例句2英文", "chinese": "例句2中文翻译"},
+        {"english": "例句3英文", "chinese": "例句3中文翻译"}
+      ]
+    }
   ],
   "standalone_examples": [
-    {"english": "独立例句1英文（必须包含原词${word}）", "chinese": "独立例句1中文翻译"},
+    {"english": "独立例句1英文（必须包含原词${word}，用于例句区块展示）", "chinese": "独立例句1中文翻译"},
     {"english": "独立例句2英文（必须包含原词${word}）", "chinese": "独立例句2中文翻译"},
     {"english": "独立例句3英文（必须包含原词${word}）", "chinese": "独立例句3中文翻译"}
   ],
+  "difficulty": "仅限以下值之一: primary / juniorHigh / seniorHigh / cet4 / cet6 / postgraduate / ielts / toefl / gre",
   "morphology": {
-    "plural": "复数形式（名词必填）",
-    "past_tense": "过去式（动词必填）",
-    "past_participle": "过去分词（动词必填）",
-    "present_participle": "现在分词（动词必填）",
-    "third_person_singular": "第三人称单数（动词必填）",
+    "plural": "复数形式（名词必填，如 apples）",
+    "past_tense": "过去式（规则动词必填，如 picked）",
+    "past_participle": "过去分词（规则动词必填，如 picked）",
+    "present_participle": "现在分词（动词必填，如 picking）",
+    "third_person_singular": "第三人称单数（动词必填，如 picks）",
     "comparative": "比较级（形容词/副词必填）",
     "superlative": "最高级（形容词/副词必填）",
-    "is_irregular": true/false,
-    "note": "不规则变化说明（如有）"
+    "adverb": "副词形式（形容词必填，如 happily）",
+    "noun": "名词形式（如 happiness）",
+    "is_irregular": false,
+    "note": "不规则变化说明（如有不规则变化则填这里）"
   },
-  "mnemonic": "记忆法或词源解析（可选）"
+  "synonyms": ["同义词1", "同义词2", "同义词3"],
+  "antonyms": ["反义词1", "反义词2"],
+  "category": "语义类别（仅限以下值之一: emotion / action / size / quality / appearance / time / place / object / nature / abstract / food / animal / number / person / technology / education / business / health / travel / other）",
+  "mnemonic": "记忆法或词源解析（一句话帮助记忆，可选）"
 }
 
-重要规则：
-1. examples 和 standalone_examples 必须各返回至少3条例句
-2. 每条例句的 english 必须包含原词 ${word}（忽略大小写）
-3. 例句要自然、地道、适合英语学习者理解
-4. morphology 根据词性填写对应字段，无关字段设为 null
-5. difficulty 值必须在上述9个枚举值中选择
+⚠️ 极其重要的输出规则：
+1. definitions 必须是对象数组（不是字符串数组！），每个元素必须包含 part_of_speech + chinese_meaning + english_meaning + examples 四个字段
+2. 多义词按不同词性分成多个 definition 元素（如 apple 作名词"苹果"一个元素，作动词"试探"另一个元素）
+3. english_meaning 是必填字段！用简单易懂的英文解释该词含义，帮助学习者建立英英思维
+4. 每个 definition 内的 examples 至少 3 条；standalone_examples 也至少 3 条
+5. 所有例句的 english 字段必须包含原词 ${word}
+6. morphology 根据实际词性填写，无关字段设为 null
+7. difficulty 值严格在 9 个枚举值中选择
+8. synonyms 提供 2-4 个常见同义词（同词性优先）
+9. antonyms 提供 1-3 个常见反义词（如有）
+10. category 必须在指定的语义类别枚举值中选择
+11. 输出纯 JSON，不要包裹在 markdown 代码块中
 
 ${difficultyReference}`
 
@@ -234,8 +293,8 @@ ${difficultyReference}`
 "context_sentence_info": {
   "original_sentence": "${sentence}",
   "word_highlighted_sentence": "将原句中的 ${word} 用【】包裹高亮，如 This is an 【unprecedented】 challenge.",
-  "sentence_translation": "整句的中文翻译，其中 ${word} 的中文释义用【】包裹高亮",
-  "word_meaning_in_context": "${word} 在此句中的具体含义（结合语境的精准翻译）"
+  "sentence_translation": "整句的中文翻译，其中 ${word} 的中文释义用【】包裹高亮显示",
+  "word_meaning_in_context": "${word} 在此句中的具体含义（结合语境的精准翻译，一句话）"
 }`
     // 因增加了 context_sentence_info，提高 maxTokens
   }
@@ -243,7 +302,7 @@ ${difficultyReference}`
   const raw = await qwenChat(apiKey, baseUrl, {
     prompt,
     temperature: 0.3,
-    maxTokens: sentence ? 1200 : 800, // 有上下文句子时增加 token 上限
+    maxTokens: sentence ? 1500 : 1000, // 增加 token 上限以容纳更丰富的输出
     model: model || DEFAULT_CHAT_MODEL,
   })
 

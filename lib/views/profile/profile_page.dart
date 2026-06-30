@@ -15,7 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/billing_summary.dart';
 import 'package:vidlang/models/user.dart';
@@ -27,6 +27,7 @@ import 'package:vidlang/services/billing_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/stats_service.dart';
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_page.dart';
 import 'package:vidlang/views/profile/edit_profile_page.dart';
@@ -56,6 +57,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   late Future<BillingOverview> _billingOverviewFuture;
   SummaryStats _summaryStats = const SummaryStats();
   int _wifiPort = 9999;
+  String _ttsCacheLabel = '加载中...';
+  int _ttsCacheSize = 20;
 
   @override
   void initState() {
@@ -64,15 +67,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _checkUser();
     _loadSummaryStats();
     _loadWifiPort();
+    _loadTtsCacheInfo();
   }
 
   Future<void> _checkUser() async {
-    var user = AppConfig.currentUser;
+    var user = AppKeysService.currentUser;
     if (user == null) {
       final code = await DatabaseService.getCurrentUserCode();
       if (code != null && code.isNotEmpty) {
         user = await BaseEntityExtension.findByCode<User>(code, () => User());
-        AppConfig.currentUser = user;
+        AppKeysService.currentUser = user;
       }
     }
     if (!mounted) return;
@@ -141,6 +145,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   title: 'AI 模型设置',
                   subtitle: '管理本地AI模型',
                   onTap: () => _navigateToModelSettings(),
+                ),
+                _SettingItem(
+                  icon: Icons.volume_up_rounded,
+                  title: 'TTS 缓存管理',
+                  subtitle: '$_ttsCacheLabel',
+                  onTap: () => _showTtsCacheDialog(),
                 ),
                 if (_isSupabaseUser)
                   _SettingItem(
@@ -297,8 +307,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
           // Toggle switch
           GestureDetector(
-            onTap: () {
-              ref.read(subscriptionProvider.notifier).setMode(isPremium ? SubscriptionMode.free : SubscriptionMode.premium);
+            onTap: () async {
+              await ref.read(subscriptionProvider.notifier).setMode(isPremium ? SubscriptionMode.free : SubscriptionMode.premium);
             },
             child: Container(
               width: 50.w,
@@ -521,7 +531,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         text: mode.label,
         icon: mode.icon,
         trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary, size: 20.sp) : null,
-        onTap: () => ref.read(themeModeProvider.notifier).setMode(mode),
+          onTap: () async => await ref.read(themeModeProvider.notifier).setMode(mode),
       );
     }).toList();
     await AppBottomSheetMenu.show(context, title: '外观设置', items: items);
@@ -536,7 +546,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         subtitle: level.description,
         icon: level.icon,
         trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary, size: 20.sp) : null,
-        onTap: () => ref.read(difficultyProvider.notifier).setLevel(level),
+          onTap: () async => await ref.read(difficultyProvider.notifier).setLevel(level),
       );
     }).toList();
     await AppBottomSheetMenu.show(context, title: '学习难度', items: items);
@@ -571,6 +581,186 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  // ==================== TTS 缓存管理 ====================
+
+  Future<void> _loadTtsCacheInfo() async {
+    try {
+      final size = await SettingsService.getTtsCacheSize();
+      final stats = await TtsService().getCacheStats();
+      if (mounted) {
+        setState(() {
+          _ttsCacheSize = size;
+          _ttsCacheLabel = '${stats.count} 条缓存 · ${stats.sizeLabel}';
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _ttsCacheLabel = '缓存不可用');
+    }
+  }
+
+  void _showTtsCacheDialog() async {
+    // 先刷新最新数据
+    final stats = await TtsService().getCacheStats();
+    final cacheSize = await SettingsService.getTtsCacheSize();
+
+    if (!mounted) return;
+
+    final sizeController = TextEditingController(text: cacheSize.toString());
+
+    showGeneralDialog(
+      context: context,
+      pageBuilder: (buildContext, animation, secondaryAnimation) {
+        final cs = Theme.of(buildContext).colorScheme;
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 320.w,
+              padding: EdgeInsets.all(20.w),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(14.r),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 标题
+                  Row(
+                    children: [
+                      Icon(Icons.volume_up_rounded, color: cs.primary, size: 22.sp),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'TTS 缓存管理',
+                        style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // 当前状态
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: cs.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Column(
+                          children: [
+                            Text(
+                              '${stats.count}',
+                              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: cs.primary),
+                            ),
+                            Text('缓存条数', style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant)),
+                          ],
+                        ),
+                        Container(width: 1, height: 30.h, color: cs.outline.withValues(alpha: 0.3)),
+                        Column(
+                          children: [
+                            Text(
+                              stats.sizeLabel,
+                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: cs.primary),
+                            ),
+                            Text('占用空间', style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // 最大条数设置
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '最大缓存条数（5-200）',
+                      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500, color: cs.onSurface),
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  TextField(
+                    controller: sizeController,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(fontSize: 15.sp, color: cs.onSurface),
+                    decoration: InputDecoration(
+                      hintText: '输入 5-200 之间的数字',
+                      hintStyle: TextStyle(fontSize: 13.sp, color: cs.outline),
+                      filled: true,
+                      fillColor: cs.surfaceContainerHighest,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '提示：相同文本的 TTS 音频会缓存在本地，重复播放时秒开。',
+                      style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant),
+                    ),
+                  ),
+
+                  SizedBox(height: 20.h),
+
+                  // 按钮行
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            await TtsService().clearCache();
+                            if (!mounted) return;
+                            Navigator.pop(buildContext);
+                            setState(() => _ttsCacheLabel = '0 条缓存 · 0KB');
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('TTS 缓存已清除')));
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                          ),
+                          child: Text('清除缓存', style: TextStyle(fontSize: 14.sp, color: cs.error)),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () async {
+                            final newSize = int.tryParse(sizeController.text.trim());
+                            if (newSize == null || newSize < 5 || newSize > 200) {
+                              ScaffoldMessenger.of(buildContext).showSnackBar(const SnackBar(content: Text('请输入 5-200 之间的数字')));
+                              return;
+                            }
+                            await SettingsService.setTtsCacheSize(newSize);
+                            if (!mounted) return;
+                            Navigator.pop(buildContext);
+                            setState(() {
+                              _ttsCacheSize = newSize;
+                              _ttsCacheLabel = '${stats.count} 条缓存 · ${stats.sizeLabel}';
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已设置为 $newSize 条')));
+                          },
+                          style: FilledButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                          ),
+                          child: const Text('保存'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _logout() async {
     final confirm = await AppConfirmDialog.show(
       context,
@@ -582,7 +772,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
     if (confirm != true || !mounted) return;
 
-    final user = AppConfig.currentUser;
+    final user = AppKeysService.currentUser;
     final loginName = user?.email ?? user?.username ?? '';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_login_name', loginName);

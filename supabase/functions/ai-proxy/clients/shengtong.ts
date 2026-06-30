@@ -182,15 +182,23 @@ export async function shengtongEvaluate(
   bodyBytes.set(audioBytes, textPart.length);
   bodyBytes.set(endPart, textPart.length + audioBytes.length);
 
-  // 发送请求
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": `multipart/form-data; boundary=${boundary}`,
-      "Request-Index": "0",
-    },
-    body: bodyBytes,
-  });
+  // 发送请求（15 秒超时，与客户端 WebSocket 评分超时一致）
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Request-Index": "0",
+      },
+      body: bodyBytes,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const errText = await response.text();
@@ -200,6 +208,9 @@ export async function shengtongEvaluate(
   }
 
   const result = await response.json() as any;
+
+  // ═══ 完整打印声通原始返回 JSON（用于调试和了解评分数据结构）═══
+  console.log(`🎤 [Shengtong] HTTP REST 返回原始JSON:`, JSON.stringify(result, null, 2));
 
   // 检查声通返回码
   if (result.code !== undefined && result.code !== 0) {

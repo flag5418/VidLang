@@ -29,7 +29,7 @@ class PricingRule {
       nameZh: json['name_zh'] as String? ?? '',
       descriptionZh: json['description_zh'] as String? ?? '',
       model: json['model'] as String? ?? '',
-      priceCny: (json['price_cny'] as num?)?.toDouble() ?? 0,
+      priceCny: _toDouble(json['price_cny']) ?? 0,
       status: json['status'] as String? ?? 'active',
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'] as String) : null,
     );
@@ -64,6 +64,13 @@ class PricingRule {
     } catch (_) {
       return null;
     }
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 
   /// 获取多条规则

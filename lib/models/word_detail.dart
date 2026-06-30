@@ -444,10 +444,17 @@ class WordDetail {
     translation: json['translation'] as String?,
     success: json['success'] as bool? ?? true,
     error: json['error'] as String?,
-    costCny: (json['cost_cny'] as num?)?.toDouble(),
-    balanceAfter: (json['balance_after'] as num?)?.toDouble(),
+    costCny: _toDouble(json['cost_cny']),
+    balanceAfter: _toDouble(json['balance_after']),
     source: json['source'] as String? ?? 'native',
   );
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
 }
 
 /// DifficultyLevel 与 WordBook 整数难度的双向映射

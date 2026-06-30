@@ -63,9 +63,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
   Color _drawerText() => AppColors.onSurface;
   Color _drawerTextVariant() => AppColors.onSurfaceVariant;
 
-  /// 检查是否可以使用 AI 功能
-  bool get _canUseAiFeatures => LocalModelService.instance.canUseAiFeatures;
-
   @override
   void initState() {
     super.initState();
@@ -382,7 +379,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           }
           setState(() => _showReadAloud = shouldBeOpen);
         }),
-      _plainTextBtn(
+      if (hs) _plainTextBtn(
         "清晰朗读",
         hs ? _isTtsSpeaking : false,
         hs
@@ -395,8 +392,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
               }
             : null,
       ),
-      _plainTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible()),
-      _plainTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible()),
+      if (hs) _plainTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible()),
+      if (hs) _plainTextBtn("翻译", s.translateVisible, () => n.toggleTranslateVisible()),
       if (hs) _plainTextBtn("单句暂停", s.singleSentencePause, () => n.toggleSingleSentencePause()),
       if (hs) _plainTextBtn("由慢到快", s.slowToFastActive, () => n.toggleSlowToFastCurrentSentence()),
       // 循环模式按钮
@@ -696,28 +693,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     return null;
   }
 
-  /// 单词朗读：优先使用本地 Piper TTS，系统 TTS 作为降级方案
+  /// 单词朗读：通过统一 TTS 服务自动按订阅模式分流
+  /// - 免费模式 → 原生 TTS（无需 AI 模型）
+  /// - 收费模式 → 云端阿里云 TTS（ai-proxy Edge Function）
   Future<void> _speakSelectedWord(String word) async {
-    // 检查 AI 功能是否可用
-    final canUseAi = _canUseAiFeatures;
-    debugPrint('=== TTS 检查 ===');
-    debugPrint('canUseAiFeatures: $canUseAi');
-    debugPrint('LocalModelService.canUseAiFeatures: ${LocalModelService.instance.canUseAiFeatures}');
-    debugPrint('LocalModelService.hasAllModels: ${LocalModelService.instance.hasAllModels}');
-    debugPrint('LocalModelService.currentStatus: ${LocalModelService.instance.currentStatus}');
-
-    if (!canUseAi) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('翻译模型未就绪，请使用收费模式或检查本地模型'),
-          ),
-        );
-      }
-      return;
-    }
-
-    // 使用统一 TTS 服务
     final subState = ref.read(subscriptionProvider);
     try {
       await TtsService().speakClarity(
@@ -1045,6 +1024,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     final lang = video?.language ?? 'en';
     final code = s.videoCode ?? '';
     final subState = ref.read(subscriptionProvider);
+    final size = MediaQuery.of(context).size;
+    final isLandscape = size.width > size.height;
 
     Future<void> playAtSubtitleIndex(int index) async {
       if (index < 0 || index >= n.subtitles.length) return;
@@ -1054,6 +1035,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
     }
 
     // 内联渲染：直接返回 Positioned Widget，不创建新路由，避免视频黑屏
+    // 横屏时限制最大高度不超过 60%，确保视频区域仍然可见
     return Positioned(
       left: 0,
       right: 0,
@@ -1093,7 +1075,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage> with WidgetsBindingObse
           playAtSubtitleIndex: playAtSubtitleIndex,
           subscriptionMode: subState.mode,
         ),
-        heightFactor: 0.55,
+        heightFactor: isLandscape ? 0.6 : 0.55,
         onClose: () => setState(() => _showReadAloud = false),
       ),
     );

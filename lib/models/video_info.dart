@@ -215,7 +215,7 @@ class VideoInfo extends BaseEntity {
     artist = map['artist'];
     album = map['album'];
     coverSource = map['cover_source'];
-    lastFollowScore = (map['last_follow_score'] as num?)?.toDouble();
+    lastFollowScore = _toDouble(map['last_follow_score']);
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;
@@ -224,6 +224,13 @@ class VideoInfo extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 

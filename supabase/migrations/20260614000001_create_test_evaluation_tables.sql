@@ -62,8 +62,8 @@ CREATE INDEX IF NOT EXISTS idx_test_evaluation_record_id ON public.test_evaluati
 
 -- 声通 app_settings
 INSERT INTO public.app_settings (key, value, description) VALUES
-  ('shengtong_app_key', '17618890190005e3', '声通 App Key'),
-  ('shengtong_secret_key', '5d0b32c950794688f6caf0c797980cde', '声通 Secret Key'),
+  ('shengtong_app_key', '17827042090007b7', '声通 App Key'),
+  ('shengtong_secret_key', '074713c03b62c75d1bee970dab2706e', '声通 Secret Key'),
   ('shengtong_server_url', 'https://api.stkouyu.com:8443', '声通 API 端点')
 ON CONFLICT (key) DO UPDATE SET
   value = excluded.value,

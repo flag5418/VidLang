@@ -1,11 +1,10 @@
 /// 首页
 ///
-/// 顶部：大图宣传位（预留）
+/// 顶部：2×2 统计九宫格（连续/今日/生词/已学）
 /// 中段：3段资源快速启动（视频/文章/音频）
 ///   - 每段显示标题 + "更多"按钮
-///   - 显示最近3个文件夹，第一个为"正在播放"
+///   - 显示最近文件夹横向列表，第一个为"正在播放"
 ///   - 无资源时显示缺省引导
-/// 底部：统计信息（🔥 ⏱ 📖 🎯）
 library;
 
 import 'package:flutter/material.dart';
@@ -55,7 +54,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         _stats = results[1] as HomeStats;
         _loading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[HomePage] _loadData failed: $e\n$st');
       if (!mounted) return;
       setState(() => _loading = false);
     }
@@ -198,66 +198,123 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _buildStatsSection(ColorScheme colorScheme) {
+    final brightness = Theme.of(context).brightness;
     final stats = [
-      _StatItem(
-        icon: Icons.local_fire_department,
-        label: '连续',
-        value: '${_stats.streakDays} 天',
-        color: Colors.orange,
+      _GridStatItem(
+        icon: Icons.local_fire_department_rounded,
+        label: '连续学习',
+        value: '${_stats.streakDays}',
+        unit: '天',
+        gradient: const [Color(0xFFFF6B35), Color(0xFFFF8E53)],
+        bgAlpha: brightness == Brightness.dark ? 0.15 : 0.08,
       ),
-      _StatItem(
-        icon: Icons.timer_outlined,
-        label: '今日',
+      _GridStatItem(
+        icon: Icons.schedule_rounded,
+        label: '今日时长',
         value: _formatDuration(_stats.todayDuration),
-        color: colorScheme.primary,
+        unit: '',
+        gradient: const [Color(0xFF4284FC), Color(0xFF5B9FFF)],
+        bgAlpha: brightness == Brightness.dark ? 0.15 : 0.08,
       ),
-      _StatItem(
-        icon: Icons.book,
-        label: '生词',
+      _GridStatItem(
+        icon: Icons.menu_book_rounded,
+        label: '生词本',
         value: '${_stats.wordCount}',
-        color: Colors.green,
+        unit: '词',
+        gradient: const [Color(0xFF22C55E), Color(0xFF4ADE80)],
+        bgAlpha: brightness == Brightness.dark ? 0.15 : 0.08,
       ),
-      _StatItem(
-        icon: Icons.check_circle_outline,
-        label: '已学',
+      _GridStatItem(
+        icon: Icons.task_alt_rounded,
+        label: '已学资源',
         value: '${_stats.resourceCount}',
-        color: Colors.purple,
+        unit: '个',
+        gradient: const [Color(0xFFA855F7), Color(0xFFC084FC)],
+        bgAlpha: brightness == Brightness.dark ? 0.15 : 0.08,
       ),
     ];
 
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.space5),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        color: AppColors.getSurface(brightness: Theme.of(context).brightness),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 10.w,
+        crossAxisSpacing: 10.w,
+        childAspectRatio: 1.4,
       ),
-      child: Row(
-        children: stats.map((item) {
-          return Expanded(
-            child: Column(
-              children: [
-                Icon(item.icon, size: 20.sp, color: item.color),
-                SizedBox(height: 6.h),
-                Text(
-                  item.value,
-                  style: TextStyle(
-                    fontSize: AppTypography.fontSizeLarge,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: AppTypography.fontSizeXSmall,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+      itemCount: stats.length,
+      itemBuilder: (context, index) => _buildStatCard(stats[index], brightness, colorScheme),
+    );
+  }
+
+  Widget _buildStatCard(_GridStatItem item, Brightness brightness, ColorScheme colorScheme) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [item.gradient[0].withValues(alpha: item.bgAlpha), item.gradient[1].withValues(alpha: item.bgAlpha * 0.6)],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: item.gradient[0].withValues(alpha: brightness == Brightness.dark ? 0.2 : 0.12),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(14.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(6.w),
+              decoration: BoxDecoration(
+                color: item.gradient[0].withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(item.icon, size: 18.sp, color: item.gradient[0]),
             ),
-          );
-        }).toList(),
+            SizedBox(height: 10.h),
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: item.value,
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
+                      height: 1.2,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  if (item.unit.isNotEmpty)
+                    TextSpan(
+                      text: ' ${item.unit}',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.2,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              item.label,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -270,56 +327,68 @@ class _HomePageState extends ConsumerState<HomePage> {
   ) {
     final folders = _recentFolders[type] ?? [];
     final hasResources = folders.isNotEmpty;
-    final typeColor = AppColors.colorForType(
-      type,
-      brightness: Theme.of(context).brightness,
-    );
+    final brightness = Theme.of(context).brightness;
+    final typeColor = AppColors.colorForType(type, brightness: brightness);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 标题行：带图标背景胶囊 + 标题 + 更多按钮
         Row(
           children: [
-            Icon(icon, size: 20.sp, color: typeColor),
-            SizedBox(width: 8.w),
+            Container(
+              padding: EdgeInsets.all(7.w),
+              decoration: BoxDecoration(
+                color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(icon, size: 18.sp, color: typeColor),
+            ),
+            SizedBox(width: 10.w),
             Text(
               title,
               style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w600,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w700,
                 color: colorScheme.onSurface,
+                letterSpacing: -0.3,
               ),
             ),
             const Spacer(),
-            InkWell(
-              onTap: () => _goToResources(type),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '更多',
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w500,
-                        color: colorScheme.onSurfaceVariant,
+            Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              child: InkWell(
+                onTap: () => _goToResources(type),
+                borderRadius: BorderRadius.circular(AppRadius.full),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '更多',
+                        style: TextStyle(
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w600,
+                          color: typeColor,
+                          letterSpacing: 0.2,
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 2.w),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 16.sp,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ],
+                      SizedBox(width: 2.w),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16.sp,
+                        color: typeColor,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 14.h),
         if (!hasResources)
           _buildEmptySection(colorScheme, icon, type, typeColor)
         else
@@ -339,27 +408,33 @@ class _HomePageState extends ConsumerState<HomePage> {
         : type == 'article'
         ? '文章'
         : '音频';
+    final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: () => _goToResources(type),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 32.h, horizontal: 16.w),
+        padding: EdgeInsets.symmetric(vertical: 28.h, horizontal: 20.w),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          color: typeColor.withValues(alpha: 0.04),
+          color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.08 : 0.05),
+          border: Border.all(
+            color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.1),
+            width: 1,
+          ),
+          // 虚线边框效果用 dashed 模拟
         ),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(12.w),
+              padding: EdgeInsets.all(14.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: typeColor.withValues(alpha: 0.08),
+                color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.12 : 0.08),
               ),
               child: Icon(
                 icon,
-                size: 24.sp,
-                color: typeColor.withValues(alpha: 0.8),
+                size: 26.sp,
+                color: typeColor.withValues(alpha: 0.7),
               ),
             ),
             SizedBox(height: AppSpacing.md),
@@ -368,15 +443,16 @@ class _HomePageState extends ConsumerState<HomePage> {
               style: TextStyle(
                 color: colorScheme.onSurface,
                 fontSize: 15.sp,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: 6.h),
             Text(
-              '点击进入资源页创建',
+              '点击添加$typeName资源',
               style: TextStyle(
-                fontSize: 13.sp,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                fontSize: 12.5.sp,
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],
@@ -415,18 +491,23 @@ class _HomePageState extends ConsumerState<HomePage> {
     final m = (seconds % 3600) ~/ 60;
     return '$h小时$m分钟';
   }
+
 }
 
-class _StatItem {
+class _GridStatItem {
   final IconData icon;
   final String label;
   final String value;
-  final Color color;
+  final String unit;
+  final List<Color> gradient;
+  final double bgAlpha;
 
-  const _StatItem({
+  const _GridStatItem({
     required this.icon,
     required this.label,
     required this.value,
-    required this.color,
+    required this.unit,
+    required this.gradient,
+    required this.bgAlpha,
   });
 }

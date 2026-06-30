@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
@@ -9,7 +8,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/models/article_chapter.dart';
@@ -18,7 +17,7 @@ import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/article_translation.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/subtitles.dart';
-import 'package:vidlang/services/ai_service.dart';
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/dictionary_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
@@ -158,7 +157,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   ArticleTranslation? _translation;
   bool _showTranslation = false;
   bool _loadingTranslation = false;
-  bool get _isPaidMode => AppConfig.currentUser?.authProvider == 'supabase';
+  bool get _isPaidMode => AppKeysService.currentUser?.authProvider == 'supabase';
 
   // 划词工具栏
   String? _selectionText;
@@ -612,86 +611,55 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   // ── TTS ──
+  // 使用统一的 TtsService（内部走 UnifiedTtsService，支持持久化缓存）
 
-  Future<void> _speakText(String text) async {
-    if (_isPaidMode) {
-      await _speakWithAiTts(text);
-    } else {
-      await _speakWithNativeTts(text);
-    }
+  /// 统一日志输出（release 模式也可见）
+  void _articleTtsLog(String msg) {
+    // ignore: avoid_print
+    print(msg);
   }
 
-  Future<void> _speakWithAiTts(String text) async {
+  Future<void> _speakText(String text) async {
+    // 停止之前的播放
+    _stopSpeaking();
+
+    final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+    _articleTtsLog('📖 [ArticleTTS] _speakText | mode=$mode | text="${text.length > 50 ? '${text.substring(0, 50)}...' : text}"');
+
+    // 准备单词列表用于高亮（在播放前准备好）
+    final wordRegex = RegExp(r'\b\w+\b');
+    final wordMatches = wordRegex.allMatches(text).toList();
+    _ttsWords = wordMatches.map((m) => m.group(0)!).toList();
+    _ttsWordOffsets = wordMatches.map((m) => m.start).toList();
+
     setState(() {
       _isSpeaking = true;
       _isSpeakingSelection = false;
-      _ttsCurrentWordIndex = -1;
+      _ttsCurrentWordIndex = _ttsWords.isNotEmpty ? 0 : -1;
     });
 
     try {
-      final result = await AiService.getTtsAudio(text: text, sourceType: 'article', sourceCode: widget.articleCode);
-
-      if (result == null || !mounted) {
-        print('⚠️ AI TTS 返回 null，回退到系统 TTS');
-        setState(() => _isSpeaking = false);
-        if (mounted) await _speakWithNativeTts(text);
-        return;
-      }
-
-      final audioBase64 = result['audioBase64'] as String?;
-      if (audioBase64 == null || audioBase64.isEmpty) {
-        print('⚠️ AI TTS 返回空音频，回退到系统 TTS');
-        setState(() => _isSpeaking = false);
-        if (mounted) await _speakWithNativeTts(text);
-        return;
-      }
-
-      final tmpDir = Directory.systemTemp;
-      final file = File('${tmpDir.path}/tts_article_premium.mp3');
-      await file.writeAsBytes(base64.decode(audioBase64));
-
-      // 准备单词列表用于高亮
-      final wordRegex = RegExp(r'\b\w+\b');
-      final wordMatches = wordRegex.allMatches(text).toList();
-      _ttsWords = wordMatches.map((m) => m.group(0)!).toList();
-      _ttsWordOffsets = wordMatches.map((m) => m.start).toList();
-      _ttsCurrentWordIndex = _ttsWords.isNotEmpty ? 0 : -1;
-      if (mounted) setState(() {});
-
-      await _audioPlayer?.stop();
-      _audioPositionSub?.cancel();
-      _audioDurationSub?.cancel();
-      _audioTotalDurationMs = null;
-
-      // 监听音频总时长
-      _audioDurationSub = _audioPlayer?.onDurationChanged.listen((d) {
-        _audioTotalDurationMs = d.inMilliseconds;
-      });
-
-      // 监听播放位置，同步单词高亮（仅向前递增，避免进度跳跃）
-      _audioPositionSub = _audioPlayer?.onPositionChanged.listen((position) {
-        if (!mounted || _ttsWords.isEmpty || _audioTotalDurationMs == null || _audioTotalDurationMs == 0) return;
-        final progress = position.inMilliseconds / _audioTotalDurationMs!;
-        final wordIdx = (progress * _ttsWords.length).floor().clamp(0, _ttsWords.length - 1);
-        if (wordIdx > _ttsCurrentWordIndex) {
-          setState(() => _ttsCurrentWordIndex = wordIdx);
-        }
-      });
-
-      await _audioPlayer?.play(ap.DeviceFileSource(file.path));
-
-      _audioPlayer?.onPlayerComplete.first.then((_) {
-        _audioPositionSub?.cancel();
-        _audioDurationSub?.cancel();
-        _finishSpeaking();
-        if (_isReadingAll) _readAllNext();
-      });
+      // 使用统一 TTS 服务（自带缓存、日志、分流逻辑）
+      await TtsService().speakClarity(
+        text: text,
+        mode: mode,
+        onEvent: (event) {
+          _articleTtsLog('📖 [ArticleTTS] event=${event.type} ${event.message ?? ""}');
+          if (event.type == TtsEventType.loading && mounted) {
+            // loading 状态：可以显示加载指示器（当前保持 isSpeaking=true 即可）
+          }
+        },
+        onComplete: () {
+          _articleTtsLog('📖 [ArticleTTS] onComplete');
+          _finishSpeaking();
+          if (_isReadingAll) _readAllNext();
+        },
+      );
     } catch (e) {
-      print('⚠️ AI TTS 异常: $e');
-      _audioPositionSub?.cancel();
-      _audioDurationSub?.cancel();
+      _articleTtsLog('📖 [ArticleTTS] 异常: $e');
       if (mounted) {
-        setState(() => _isSpeaking = false);
+        _finishSpeaking();
+        // 回退到原生 TTS
         await _speakWithNativeTts(text);
       }
     }
@@ -1432,27 +1400,35 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.bookmark_rounded, color: _showMarkManagerPopup ? cs.primary : cs.onSurfaceVariant, size: 24.sp),
-                  onPressed: () => setState(() {
-                    _showMarkManagerPopup = !_showMarkManagerPopup;
-                    _showFontSizePopup = false;
-                    _showArticleList = false;
-                  }),
-                  tooltip: '标记管理',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                // 书签按钮 + 角标（Stack 叠加）
+                SizedBox(
+                  width: 36.w,
+                  height: 36.w,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      // 书签图标
+                      IconButton(
+                        icon: Icon(Icons.bookmark_rounded, color: _showMarkManagerPopup ? cs.primary : cs.onSurfaceVariant, size: 24.sp),
+                        onPressed: () => setState(() {
+                          _showMarkManagerPopup = !_showMarkManagerPopup;
+                          _showFontSizePopup = false;
+                          _showArticleList = false;
+                        }),
+                        tooltip: '标记管理',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      // 角标：右上角偏移
+                      Positioned(
+                        top: -2.h,
+                        right: -2.w,
+                        child: _buildMarkBadge(cs),
+                      ),
+                    ],
+                  ),
                 ),
-                if (_markRecords.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(left: 4.w, right: 12.w),
-                    child: Text(
-                      '${_markRecords.length}',
-                      style: TextStyle(fontSize: 13.sp, color: cs.primary, fontWeight: FontWeight.bold),
-                    ),
-                  )
-                else
-                  SizedBox(width: 16.w),
                 IconButton(
                   icon: Icon(Icons.text_fields_rounded, color: _showFontSizePopup ? cs.primary : cs.onSurfaceVariant, size: 24.sp),
                   onPressed: () => setState(() {
@@ -1467,6 +1443,38 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ── 书签角标 ──
+
+  /// 在书签图标右上角显示数量角标
+  /// 无书签时返回 SizedBox.shrink（Stack 内不占位）
+  Widget _buildMarkBadge(ColorScheme cs) {
+    if (_markRecords.isEmpty) return const SizedBox.shrink();
+
+    final count = _markRecords.length;
+    final label = count > 99 ? '99+' : '$count';
+
+    return Container(
+      constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.w),
+      decoration: BoxDecoration(
+        color: cs.primary,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: cs.surface, width: 1.5),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: count > 9 ? 9.sp : 10.sp,
+            color: cs.onPrimary,
+            fontWeight: FontWeight.bold,
+            height: 1.2,
+          ),
         ),
       ),
     );

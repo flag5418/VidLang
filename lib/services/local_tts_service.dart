@@ -112,6 +112,10 @@ class LocalTtsService {
   }
 
   /// 合成语音并保存为文件
+  ///
+  /// 使用 flutter_tts 的 synthesizeToFile API 将文本合成为音频文件。
+  /// iOS: 通过 AVSpeechSynthesizer 写入 .caf 文件，然后返回路径
+  /// Android: 通过 TextToSpeech.synthesizeToFile 写入 .wav 文件
   Future<String?> synthesizeToFile({
     required String text,
     String outputPath = '',
@@ -126,6 +130,7 @@ class LocalTtsService {
     }
 
     try {
+      // 构建输出路径
       if (outputPath.isEmpty) {
         final tempDir = await getTemporaryDirectory();
         final fileName = 'tts_${DateTime.now().millisecondsSinceEpoch}.m4a';
@@ -136,10 +141,25 @@ class LocalTtsService {
         await _tts!.setVoice(_availableVoices[speakerId]);
       }
 
-      await _tts!.speak(text);
-      return outputPath;
-    } catch (e) {
-      debugPrint('TTS 合成失败: $e');
+      // 使用 flutter_tts 的 synthesizeToFile 方法（不是 speak！）
+      // speak() 只会通过扬声器播放，不会写入文件
+      final result = await _tts!.synthesizeToFile(text, outputPath);
+
+      // 验证文件是否真的被创建
+      if (result == 1) {
+        final file = File(outputPath);
+        if (await file.exists() && await file.length() > 0) {
+          debugPrint('✅ [NativeTTS] 合成成功: ${file.length()} bytes → ${outputPath.split('/').last}');
+          return outputPath;
+        }
+      }
+
+      // synthesizeToFile 返回失败或文件不存在 → 降级方案：使用 speak + 系统录音不可行
+      // 直接返回 null 让上层处理
+      debugPrint('⚠️ [NativeTTS] synthesizeToFile 未生成有效文件 (result=$result), path=$outputPath');
+      return null;
+    } catch (e, stack) {
+      debugPrint('❌ [NativeTTS] 合成异常: $e\n$stack');
       return null;
     }
   }

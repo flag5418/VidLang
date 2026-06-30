@@ -7,8 +7,15 @@ class BillingTrendPoint {
   factory BillingTrendPoint.fromJson(Map<String, dynamic> json) {
     return BillingTrendPoint(
       date: json['date'] as String? ?? '',
-      total: (json['total'] as num?)?.toDouble() ?? 0,
+      total: _toDouble(json['total']) ?? 0,
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -33,11 +40,26 @@ class BillingSummaryItem {
     return BillingSummaryItem(
       key: (json['key'] ?? json['resource_code'] ?? json['folder_code'] ?? '').toString(),
       label: (json['label'] ?? json['resource_title'] ?? json['folder_title'] ?? '').toString(),
-      count: (json['count'] as num?)?.toInt() ?? 0,
-      total: (json['total'] as num?)?.toDouble() ?? 0,
+      count: _toInt(json['count']) ?? 0,
+      total: _toDouble(json['total']) ?? 0,
       folderCode: json['folder_code'] as String?,
       folderTitle: json['folder_title'] as String?,
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }
 
@@ -58,9 +80,16 @@ class BillingRuleItem {
     return BillingRuleItem(
       ruleCode: json['rule_code'] as String? ?? '',
       nameZh: json['name_zh'] as String? ?? '',
-      priceCny: (json['price_cny'] as num?)?.toDouble() ?? 0,
+      priceCny: _toDouble(json['price_cny']) ?? 0,
       isChargeable: json['is_chargeable'] as bool? ?? false,
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -84,7 +113,7 @@ class BillingOverview {
   factory BillingOverview.fromJson(Map<String, dynamic> json) {
     return BillingOverview(
       day: json['day'] as String? ?? '',
-      dayTotal: (json['day_total'] as num?)?.toDouble() ?? 0,
+      dayTotal: _toDouble(json['day_total']) ?? 0,
       trend: ((json['trend'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => BillingTrendPoint.fromJson(Map<String, dynamic>.from(e)))
@@ -102,6 +131,13 @@ class BillingOverview {
           .map((e) => BillingRuleItem.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -161,9 +197,16 @@ class BillingDetailItem {
       entry: json['entry'] as String? ?? '',
       sourcePage: json['source_page'] as String? ?? '',
       actionName: json['action_name'] as String? ?? '',
-      costCny: (json['cost_cny'] as num?)?.toDouble() ?? 0,
+      costCny: _toDouble(json['cost_cny']) ?? 0,
       createdAt: json['created_at'] as String? ?? '',
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -216,8 +259,8 @@ class BillingResourceTypeDetails {
       day: json['day'] as String? ?? '',
       resourceType: json['resource_type'] as String? ?? '',
       resourceLabel: json['resource_label'] as String? ?? '',
-      count: (summary['count'] as num?)?.toInt() ?? 0,
-      total: (summary['total'] as num?)?.toDouble() ?? 0,
+      count: _toInt(summary['count']) ?? 0,
+      total: _toDouble(summary['total']) ?? 0,
       folders: ((json['folders'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => BillingSummaryItem.fromJson(Map<String, dynamic>.from(e)))
@@ -227,6 +270,21 @@ class BillingResourceTypeDetails {
           .map((e) => BillingSummaryItem.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }
 
@@ -265,12 +323,27 @@ class BillingResourceDetails {
       resourceTitle: resource['resource_title'] as String? ?? '',
       folderCode: resource['folder_code'] as String? ?? '',
       folderTitle: resource['folder_title'] as String? ?? '',
-      count: (resource['count'] as num?)?.toInt() ?? 0,
-      total: (resource['total'] as num?)?.toDouble() ?? 0,
+      count: _toInt(resource['count']) ?? 0,
+      total: _toDouble(resource['total']) ?? 0,
       details: ((json['details'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => BillingDetailItem.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

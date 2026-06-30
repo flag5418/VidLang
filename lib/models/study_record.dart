@@ -122,9 +122,9 @@ class StudyRecord extends BaseEntity {
     playCount = map['play_count'] ?? 0;
     segmentsStudied = map['segments_studied'] ?? 0;
     wordsSaved = map['words_saved'] ?? 0;
-    testScore = (map['test_score'] as num?)?.toDouble();
+    testScore = _toDouble(map['test_score']);
     followCount = map['follow_count'] ?? 0;
-    bestFollowScore = (map['best_follow_score'] as num?)?.toDouble();
+    bestFollowScore = _toDouble(map['best_follow_score']);
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;
@@ -133,5 +133,12 @@ class StudyRecord extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

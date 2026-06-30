@@ -77,7 +77,7 @@ class ArticleChapter extends BaseEntity {
     chapterIndex = map['chapter_index'] ?? 0;
     sentenceCount = map['sentence_count'] ?? 0;
     plainText = map['plain_text'] ?? '';
-    progress = (map['progress'] as num?)?.toDouble() ?? 0.0;
+    progress = _toDouble(map['progress']) ?? 0.0;
     startSentenceIndex = map['start_sentence_index'] ?? 0;
     endSentenceIndex = map['end_sentence_index'] ?? 0;
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
@@ -88,5 +88,12 @@ class ArticleChapter extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

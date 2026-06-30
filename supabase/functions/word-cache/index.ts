@@ -10,7 +10,7 @@
  * 路由：
  * - GET  /?action=stats          → 缓存统计
  * - POST /?action=prefill        → 批量预填充
- * - POST /?action=prewarm        → 后台预热（返回任务ID）
+ * - POST /?action=refresh        → V4: 刷新已有单词的 synonyms/antonyms/category 字段
  * - GET  /?action=get&word=xxx   → 查询单词缓存
  * - DELETE/?action=cleanup       → 清理过期缓存
  */
@@ -353,17 +353,35 @@ async function prefillWords(
           continue
         }
         
-        // 写入缓存
+        // 写入缓存（V4：同时填充 synonyms/antonyms/category 独立列）
+        const cacheData: any = {
+          word: normalizedWord,
+          result: result,
+          query_count: 0,
+        }
+
+        // V4 扩展：从 AI 结果中提取字段到独立列（加速查询）
+        if (result.synonyms && Array.isArray(result.synonyms)) {
+          cacheData.synonyms = result.synonyms
+        }
+        if (result.antonyms && Array.isArray(result.antonyms)) {
+          cacheData.antonyms = result.antonyms
+        }
+        if (result.category && typeof result.category === 'string') {
+          cacheData.category = result.category
+        }
+        if (result.morphology) {
+          if (result.morphology.adverb) {
+            cacheData.morphology_adverb = result.morphology.adverb
+          }
+          if (result.morphology.noun) {
+            cacheData.morphology_noun = result.morphology.noun
+          }
+        }
+
         const { error: upsertError } = await supabase
           .from('word_cache')
-          .upsert(
-            {
-              word: normalizedWord,
-              result: result,
-              query_count: 0,
-            },
-            { onConflict: 'word' },
-          )
+          .upsert(cacheData, { onConflict: 'word' })
         
         if (upsertError) {
           failed++
@@ -414,16 +432,19 @@ Deno.serve(async (req: Request) => {
     switch (action) {
       case 'stats':
         return await handleStats(supabase)
-      
+
       case 'prefill':
         return await handlePrefill(req, supabase)
-      
+
+      case 'refresh':
+        return await handleRefresh(req, supabase)
+
       case 'get':
         return await handleGet(url, supabase)
-      
+
       case 'cleanup':
         return await handleCleanup(supabase, url)
-      
+
       default:
         return jsonResponse({ error: `Unknown action: ${action}` }, 400)
     }
@@ -524,6 +545,111 @@ async function handlePrefill(req: Request, supabase: any): Promise<Response> {
   })
   
   return jsonResponse(result)
+}
+
+/**
+ * V4 刷新：为已有单词补充 synonyms/antonyms/category 字段
+ *
+ * 用法：POST /?action=refresh
+ * Body: { "limit": 100, "dry_run": false }
+ */
+async function handleRefresh(req: Request, supabase: any): Promise<Response> {
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405)
+  }
+
+  const body = await req.json().catch(() => ({}))
+  const limit = Math.min(body.limit || 50, 500) // 单次最多处理 500 个
+  const dryRun = body.dry_run ?? false
+
+  // 获取 AI 配置
+  const aiConfig = await getAiConfig(supabase)
+  if (!aiConfig.apiKey) {
+    return jsonResponse({ error: 'AI API key not configured' }, 500)
+  }
+
+  // 查询缺少 V4 字段的单词（synonyms 为空或 NULL）
+  const { data: wordsToUpdate } = await supabase
+    .from('word_cache')
+    .select('word')
+    .or('synonyms.is.null,synonyms.eq.{}')
+    .order('query_count', { ascending: false })
+    .limit(limit)
+
+  if (!wordsToUpdate || wordsToUpdate.length === 0) {
+    return jsonResponse({
+      success: true,
+      message: '所有单词已包含 V4 字段，无需刷新',
+      updated_count: 0,
+    })
+  }
+
+  let updated = 0
+  let failed = 0
+  const errors: Array<{ word: string; error: string }> = []
+
+  for (const row of wordsToUpdate) {
+    try {
+      // 重新调用 AI 获取完整释义（包含新字段）
+      const result = await fetchWordDefinition(aiConfig.apiKey, aiConfig.baseUrl, row.word)
+
+      if (!result || !result.word) {
+        failed++
+        errors.push({ word: row.word, error: 'AI returned empty result' })
+        continue
+      }
+
+      if (!dryRun) {
+        // 更新记录，填充 V4 新字段
+        const updateData: any = {
+          result: result, // 更新整个 result JSON
+          updated_at: new Date().toISOString(),
+        }
+
+        // 提取到独立列
+        if (result.synonyms && Array.isArray(result.synonyms)) {
+          updateData.synonyms = result.synonyms
+        }
+        if (result.antonyms && Array.isArray(result.antonyms)) {
+          updateData.antonyms = result.antonyms
+        }
+        if (result.category && typeof result.category === 'string') {
+          updateData.category = result.category
+        }
+        if (result.morphology) {
+          if (result.morphology.adverb) updateData.morphology_adverb = result.morphology.adverb
+          if (result.morphology.noun) updateData.morphology_noun = result.morphology.noun
+        }
+
+        const { error } = await supabase
+          .from('word_cache')
+          .update(updateData)
+          .eq('word', row.word)
+
+        if (error) {
+          failed++
+          errors.push({ word: row.word, error: error.message })
+        } else {
+          updated++
+        }
+      } else {
+        // dry_run 模式：只统计不更新
+        updated++
+      }
+    } catch (e: any) {
+      failed++
+      errors.push({ word: row.word, error: e.message || String(e) })
+    }
+  }
+
+  return jsonResponse({
+    success: true,
+    mode: dryRun ? 'dry_run' : 'live',
+    total_found: wordsToUpdate.length,
+    updated_count: updated,
+    failed_count: failed,
+    errors: errors.slice(0, 20),
+  })
 }
 
 /**

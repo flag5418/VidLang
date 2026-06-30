@@ -139,18 +139,18 @@ class RecordingRecord extends BaseEntity {
     sentenceCode = map['sentence_code'];
     audioPath = map['audio_path'] ?? '';
     durationMs = map['duration_ms'] ?? 0;
-    overallScore = (map['overall_score'] as num?)?.toDouble();
-    fluencyScore = (map['fluency_score'] as num?)?.toDouble();
-    accuracyScore = (map['accuracy_score'] as num?)?.toDouble();
-    completenessScore = (map['completeness_score'] as num?)?.toDouble();
+    overallScore = _toDouble(map['overall_score']);
+    fluencyScore = _toDouble(map['fluency_score']);
+    accuracyScore = _toDouble(map['accuracy_score']);
+    completenessScore = _toDouble(map['completeness_score']);
     wordScoresJson = map['word_scores_json'];
     rawResultJson = map['raw_result_json'];
     language = map['language'];
     refText = map['ref_text'];
     subtitleIndex = map['subtitle_index'];
-    originalVolume = (map['original_volume'] as num?)?.toDouble();
+    originalVolume = _toDouble(map['original_volume']);
     headphoneMode = map['headphone_mode'] == 1;
-    speed = (map['speed'] as num?)?.toDouble();
+    speed = _toDouble(map['speed']);
     recordedAt = map['recorded_at'] != null ? DateTime.parse(map['recorded_at']) : DateTime.now();
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
@@ -160,5 +160,12 @@ class RecordingRecord extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

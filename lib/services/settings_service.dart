@@ -5,6 +5,11 @@ import 'package:vidlang/models/playback_settings.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/services/database_service.dart';
 
+/// 统一用户设置服务
+///
+/// 所有设置都存储到 config 表，并按 user_code 隔离，确保多用户环境下设置独立。
+/// 提供统一的读写接口，支持多种数据类型（布尔、整数、浮点数、字符串、JSON）。
+
 /// 全局与视频集播放设置读写
 class SettingsService {
   SettingsService._();
@@ -126,11 +131,13 @@ class SettingsService {
     return int.tryParse(row.value!);
   }
 
+  /// 查找配置项（按当前用户隔离）
   static Future<Config?> _findConfig(String category, String key) async {
+    final userCode = await DatabaseService.getCurrentUserCode();
     final list = await DatabaseService.findByCondition(
       () => Config(),
-      where: 'category = ? AND key = ? AND is_deleted = 0',
-      whereArgs: [category, key],
+      where: 'category = ? AND key = ? AND is_deleted = 0' + (userCode != null ? ' AND user_code = ?' : ''),
+      whereArgs: userCode != null ? [category, key, userCode] : [category, key],
       limit: 1,
     );
     return list.isNotEmpty ? list.first : null;
@@ -144,6 +151,7 @@ class SettingsService {
     await _upsertConfig(categoryPlayback, key, ValueType.number, value.toString());
   }
 
+  /// 插入或更新配置项（按当前用户隔离）
   static Future<void> _upsertConfig(
     String category,
     String key,
@@ -157,13 +165,62 @@ class SettingsService {
       await DatabaseService.update(existing);
       return;
     }
+    final userCode = await DatabaseService.getCurrentUserCode();
     final config = Config(
       category: category,
       key: key,
       valueType: type,
       value: value,
-    );
+    )..userCode = userCode; // 设置当前用户 code，实现多用户隔离
     await DatabaseService.insert(config);
+  }
+
+  // ==================== 订阅/计费模式设置 ====================
+
+  static const String categorySubscription = 'subscription';
+  static const String keySubscriptionMode = 'subscription_mode';
+
+  /// 获取订阅模式（免费/付费）
+  static Future<String> getSubscriptionMode() async {
+    final row = await _findConfig(categorySubscription, keySubscriptionMode);
+    return row?.value ?? 'free';
+  }
+
+  /// 设置订阅模式（免费/付费）
+  static Future<void> setSubscriptionMode(String mode) async {
+    await _upsertConfig(categorySubscription, keySubscriptionMode, ValueType.string, mode);
+  }
+
+  // ==================== 外观/主题设置 ====================
+
+  static const String categoryAppearance = 'appearance';
+  static const String keyThemeMode = 'theme_mode';
+
+  /// 获取主题模式（light/dark/system）
+  static Future<String> getThemeMode() async {
+    final row = await _findConfig(categoryAppearance, keyThemeMode);
+    return row?.value ?? 'system';
+  }
+
+  /// 设置主题模式
+  static Future<void> setThemeMode(String mode) async {
+    await _upsertConfig(categoryAppearance, keyThemeMode, ValueType.string, mode);
+  }
+
+  // ==================== 学习难度设置 ====================
+
+  static const String categoryLearning = 'learning';
+  static const String keyDifficultyLevel = 'difficulty_level';
+
+  /// 获取学习难度等级
+  static Future<String> getDifficultyLevel() async {
+    final row = await _findConfig(categoryLearning, keyDifficultyLevel);
+    return row?.value ?? 'intermediate';
+  }
+
+  /// 设置学习难度等级
+  static Future<void> setDifficultyLevel(String level) async {
+    await _upsertConfig(categoryLearning, keyDifficultyLevel, ValueType.string, level);
   }
 
   static Future<double> getPlayerPlaybackSpeed() async {
@@ -282,6 +339,9 @@ class SettingsService {
     await _upsertConfig(categoryPlayer, keyAudioOriginalVolumeMusic, ValueType.number, value.clamp(0.0, 1.0).toString());
   }
 
+  static const String categoryAi = 'ai';
+  static const String keyTtsCacheSize = 'tts_cache_size';
+
   static const String categoryWordDisplay = 'word_display';
   static const String keyWordDisplaySections = 'sections_order';
 
@@ -314,5 +374,21 @@ class SettingsService {
       ValueType.json,
       jsonEncode(sections),
     );
+  }
+
+  // ─── TTS 缓存设置 ─────────────────────────────
+
+  /// 获取 TTS 持久化缓存最大条数（默认 20）
+  static Future<int> getTtsCacheSize() async {
+    final row = await _findConfig(categoryAi, keyTtsCacheSize);
+    final v = int.tryParse(row?.value ?? '20') ?? 20;
+    // 限制范围：5 ~ 200
+    return v.clamp(5, 200);
+  }
+
+  /// 设置 TTS 持久化缓存最大条数
+  static Future<void> setTtsCacheSize(int value) async {
+    final v = value.clamp(5, 200);
+    await _upsertConfig(categoryAi, keyTtsCacheSize, ValueType.number, v.toString());
   }
 }

@@ -8,7 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/evaluation_api.dart';
@@ -2102,12 +2102,18 @@ class _TestRunPageState extends State<_TestRunPage> {
 
     try {
       // 确定评测类型
-      final coreType = type == 'word_pron' ? 'en.word.eval' : 'en.sent.eval';
+      final coreType = type == 'word_pron' ? 'word.eval' : 'sent.eval';
 
-      // 方式1：优先使用 ShengtongEvaluator WebSocket 直连（与 ShadowReader 一致）
+      // 方式1：使用 ShengtongEvaluator WebSocket 直连（key 从 AppKeysService 获取）
+final stAppKey = AppKeysService.instance.shengtongAppKey;
+final stSecretKey = AppKeysService.instance.shengtongSecretKey;
+      if (stAppKey == null || stAppKey.isEmpty || stSecretKey == null || stSecretKey.isEmpty) {
+        debugPrint('⚠️ [TestPage] 声通密钥未就绪');
+        return null;
+      }
       final evaluator = ShengtongEvaluator(
-        appKey: AppConfig.shengtongAppKey,
-        secretKey: AppConfig.shengtongSecretKey,
+        appKey: stAppKey,
+        secretKey: stSecretKey,
       );
 
       final completer = Completer<Map<String, dynamic>?>();
@@ -2169,7 +2175,7 @@ class _TestRunPageState extends State<_TestRunPage> {
       debugPrint('Shengtong evaluation failed, fallback to Edge Function: $e');
       await _evaluateWithEdgeFunction(
         audioPath,
-        type == 'word_pron' ? 'en.word.eval' : 'en.sent.eval',
+        type == 'word_pron' ? 'word.eval' : 'sent.eval',
         refText,
       );
     } finally {
@@ -2214,6 +2220,8 @@ class _TestRunPageState extends State<_TestRunPage> {
           if (!_submitted) _submit();
         }
       } else {
+        // Edge Function 返回了非 ok 响应（详情已在 EvaluationApi 中打印）
+        debugPrint('Edge Function 评分返回空结果，coreType=$coreType, refText=$refText');
         if (mounted) {
           setState(() {
             _pronState = 'scored';

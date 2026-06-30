@@ -23,7 +23,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
-import 'package:vidlang/config.dart' as app_config;
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_bookmark.dart';
@@ -101,7 +101,7 @@ void main() {
 
 Future<void> _initializeAsyncDependencies() async {
   try {
-    await Supabase.initialize(url: app_config.AppConfig.supabaseUrl, anonKey: app_config.AppConfig.supabaseAnonKey);
+    await Supabase.initialize(url: AppKeysService.supabaseUrl, anonKey: AppKeysService.supabaseAnonKey);
 
     DatabaseService.registerEntities({
       'video_folder': EntityConfig(creator: () => VideoFolder(), description: '视频文件夹表'),
@@ -266,7 +266,7 @@ class _AppEntryState extends State<_AppEntry> {
         return const LoginPage();
       }
 
-      app_config.AppConfig.currentUser = user;
+      AppKeysService.currentUser = user;
 
       // 第四步：异步验证 Supabase session（不阻塞 UI）
       if (user.authProvider == 'supabase') {
@@ -277,6 +277,10 @@ class _AppEntryState extends State<_AppEntry> {
       } else {
         await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: false);
       }
+
+      // 第五步：登录/自动恢复成功后，加载 API Keys（TTS、评测等）
+      // 不阻塞导航，后台异步加载
+      AppKeysService.loadFromRemote();
 
       return const MainPage();
     } catch (e) {

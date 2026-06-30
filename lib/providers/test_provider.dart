@@ -313,9 +313,9 @@ class TestNotifier extends StateNotifier<TestState> {
 
   Future<void> _scoreSpeech(TestItem item, String audioBase64) async {
     try {
-      final coreType = item.type == QuestionType.wordPron
-          ? 'en.word.eval'
-          : 'en.sent.eval';
+final coreType = item.type == QuestionType.wordPron
+ ? 'word.eval'
+ : 'sent.eval';
 
       final result = await EvaluationApi.scorePronunciation(
         coreType: coreType,

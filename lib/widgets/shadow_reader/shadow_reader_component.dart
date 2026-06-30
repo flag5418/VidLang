@@ -13,7 +13,7 @@ import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
 import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/subtitles.dart';
@@ -148,8 +148,8 @@ class ShadowReaderComponent extends ConsumerStatefulWidget {
       builder: (context) {
         final size = MediaQuery.of(context).size;
         final isLandscape = size.width > size.height && size.width >= 600;
-        // 横屏时增加占比以防止底部截断，但仍不全屏
-        final factor = isLandscape ? 0.85 : heightFactor;
+        // 横屏时适当增加占比（防止截断），但不超出 65%，避免遮挡视频区域导致"全黑"
+        final factor = isLandscape ? (heightFactor > 0.6 ? 0.6 : heightFactor) : heightFactor;
         return SafeArea(
           bottom: true,
           child: SizedBox(
@@ -925,38 +925,68 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent> w
     }
   }
 
-  // ━━━ 评分逻辑 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ━━━ 评分逻辑（统一通过 Edge Function 调用） ━━━━━━━
   Future<void> _evaluateRecording(String audioPath, ShadowReaderConfig cfg) async {
     if (_isEvaluating) return;
     _isEvaluating = true;
     try {
-      _evaluator?.dispose();
-      _evaluator = ShengtongEvaluator(appKey: AppConfig.shengtongAppKey, secretKey: AppConfig.shengtongSecretKey);
+      // 使用 ShengtongEvaluator 本地 WebSocket 直连（支持实时流式评测）
+      // 密钥从 AppKeysService 动态加载（与 TTS 架构一致）
+final stAppKey = AppKeysService.instance.shengtongAppKey;
+final stSecretKey = AppKeysService.instance.shengtongSecretKey;
+
+      if (stAppKey == null || stAppKey.isEmpty || stSecretKey == null || stSecretKey.isEmpty) {
+        debugPrint('⚠️ [ShadowReader] 声通密钥未就绪，跳过评测');
+        _isEvaluating = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('声通服务未配置')));
+        }
+        return;
+      }
+
+      _evaluator = ShengtongEvaluator(
+        appKey: stAppKey,
+        secretKey: stSecretKey,
+        baseUrl: AppKeysService.shengtongBaseUrl,
+      );
+
       final completer = Completer<Map<String, dynamic>?>();
       _evaluator!.onResult = (r) {
         if (!completer.isCompleted) completer.complete(r);
       };
       _evaluator!.onError = (e) {
+        debugPrint('❌ [ShadowReader] 声通评测错误: $e');
         if (!completer.isCompleted) completer.complete(null);
       };
-      final coreType = '${cfg.language}.sent.eval';
+
+      final coreType = 'sent.eval';
       await _evaluator!.connect(coreType);
-      _evaluator!.start(coreType: coreType, refText: cfg.subtitle.content, userId: 'user');
+      await _evaluator!.start(
+        coreType: coreType,
+        refText: cfg.subtitle.content,
+        userId: 'user',
+      );
+
       final bytes = await File(audioPath).readAsBytes();
       _evaluator!.feed(bytes);
       _evaluator!.stop();
+
       final result = await completer.future.timeout(const Duration(seconds: 15));
+
       if (result == null) {
+        debugPrint('⚠️ [ShadowReader] 声通评分返回空结果，可能超时或服务不可用');
+        _isEvaluating = false;
         if (mounted) {
           setState(() => _state = 'idle');
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('评分服务暂时不可用')));
         }
         return;
       }
+
       final overall = (result['overall'] as num?)?.toDouble();
       final fluency = (result['fluency'] as num?)?.toDouble();
       final accuracy = (result['accuracy'] as num?)?.toDouble();
-      final completeness = (result['completeness'] as num?)?.toDouble();
+      final completeness = (result['integrity'] as num?)?.toDouble(); // 注意：声通返回的是 integrity
       final recordingDurationMs = _recordingStartTime != null ? DateTime.now().difference(_recordingStartTime!).inMilliseconds : 0;
       final record = RecordingRecord(
         resourceCode: cfg.resourceCode,

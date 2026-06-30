@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:vidlang/services/settings_service.dart';
 
 /// 订阅模式
 enum SubscriptionMode {
@@ -88,16 +89,35 @@ class SubscriptionState {
 }
 
 /// 订阅/付费状态管理 Provider
+/// 
+/// 现在使用 SettingsService 持久化到 config 表，支持多用户隔离。
+/// 应用重启后会自动恢复上次的模式设置。
 final subscriptionProvider = StateNotifierProvider<SubscriptionNotifier, SubscriptionState>((ref) {
   return SubscriptionNotifier();
 });
 
 class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
-  SubscriptionNotifier() : super(SubscriptionState(isIOS: Platform.isIOS));
+  SubscriptionNotifier() : super(SubscriptionState(isIOS: Platform.isIOS)) {
+    _loadFromStorage(); // 初始化时从持久化存储加载
+  }
 
-  /// 切换免费/付费模式
-  void setMode(SubscriptionMode mode) {
+  /// 从 config 表加载订阅模式
+  Future<void> _loadFromStorage() async {
+    try {
+      final modeStr = await SettingsService.getSubscriptionMode();
+      final mode = modeStr == 'premium' ? SubscriptionMode.premium : SubscriptionMode.free;
+      if (state.mode != mode) {
+        state = state.copyWith(mode: mode);
+      }
+    } catch (_) {
+      // 加载失败时使用默认值
+    }
+  }
+
+  /// 切换免费/付费模式（自动持久化）
+  Future<void> setMode(SubscriptionMode mode) async {
     state = state.copyWith(mode: mode);
+    await SettingsService.setSubscriptionMode(mode.name); // 持久化到 config 表
   }
 
   /// 更新余额

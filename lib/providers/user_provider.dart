@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -50,7 +50,7 @@ class UserNotifier extends StateNotifier<User?> {
       }
       // 保存当前用户到数据库配置
       await DatabaseService.setCurrentUserCode(state!.code);
-      AppConfig.currentUser = state;
+      AppKeysService.currentUser = state;
     } else {
       state = null;
     }
@@ -62,7 +62,7 @@ class UserNotifier extends StateNotifier<User?> {
   Future<void> logout() async {
     state = null;
     await DatabaseService.clearCurrentUser();
-    AppConfig.currentUser = null;
+    AppKeysService.currentUser = null;
   }
 
   /// 加载当前用户
@@ -92,7 +92,7 @@ class UserNotifier extends StateNotifier<User?> {
       if (updatedUser.code != null) {
         await DatabaseService.setCurrentUserCode(updatedUser.code);
       }
-      AppConfig.currentUser = updatedUser;
+      AppKeysService.currentUser = updatedUser;
     }
   }
 
@@ -105,7 +105,7 @@ class UserNotifier extends StateNotifier<User?> {
     if (state != null) {
       state!.token = newToken;
       await state!.save();
-      AppConfig.currentUser = state;
+      AppKeysService.currentUser = state;
     }
   }
 
@@ -141,7 +141,7 @@ class UserNotifier extends StateNotifier<User?> {
     await user.save();
     state = user;
     await DatabaseService.setCurrentUserCode(user.code);
-    AppConfig.currentUser = user;
+    AppKeysService.currentUser = user;
     return user;
   }
 }

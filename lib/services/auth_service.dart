@@ -7,7 +7,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart' as local;
 import 'package:vidlang/services/database_service.dart';
@@ -195,7 +195,7 @@ class AuthService {
   /// 不一致时抛出 [SessionHijackedException]。
   void ensureActiveSession() {
     // 本地用户（非 Supabase）不校验
-    if (AppConfig.currentUser?.authProvider != 'supabase') return;
+    if (AppKeysService.currentUser?.authProvider != 'supabase') return;
 
     // 尚未注册 session（如刚刚登录还未完成注册）则跳过
     if (_localSessionId == null) return;
@@ -335,8 +335,8 @@ class AuthService {
         final user = existingSupabaseAdmin.first;
         user.password = _hashPassword(newPassword);
         await DatabaseService.update(user);
-        if (AppConfig.currentUser?.code == user.code) {
-          AppConfig.currentUser = user;
+        if (AppKeysService.currentUser?.code == user.code) {
+          AppKeysService.currentUser = user;
         }
       }
     } on SessionHijackedException {
@@ -361,7 +361,7 @@ class AuthService {
     await _secureStorage.delete(key: _kSupabaseEmail);
     await _secureStorage.delete(key: _kSupabasePassword);
     await DatabaseService.clearCurrentUser();
-    AppConfig.currentUser = null;
+    AppKeysService.currentUser = null;
   }
 
   // ==================== 本地用户认证 ====================
@@ -391,7 +391,7 @@ class AuthService {
 
     // 设置当前用户
     await DatabaseService.setCurrentUserCode(user.code);
-    AppConfig.currentUser = user;
+    AppKeysService.currentUser = user;
     return user;
   }
 
@@ -461,8 +461,8 @@ class AuthService {
     await DatabaseService.update(user);
 
     // 如果修改的是当前用户，更新内存
-    if (AppConfig.currentUser?.code == userCode) {
-      AppConfig.currentUser = user;
+    if (AppKeysService.currentUser?.code == userCode) {
+      AppKeysService.currentUser = user;
     }
   }
 
@@ -473,19 +473,19 @@ class AuthService {
       throw AuthException('用户不存在');
     }
     await DatabaseService.setCurrentUserCode(user.code);
-    AppConfig.currentUser = user;
+    AppKeysService.currentUser = user;
   }
 
   /// 退出当前用户（不删除用户数据，仅清除当前会话）
   Future<void> logoutCurrentUser() async {
-    final currentUser = AppConfig.currentUser;
+    final currentUser = AppKeysService.currentUser;
     if (currentUser != null && currentUser.authProvider == 'supabase') {
       // Supabase 用户退出：清除 Supabase 会话 + 安全存储 + 停止 Realtime
       await signOut();
     } else {
       // 本地用户退出：仅清除当前用户标记
       await DatabaseService.clearCurrentUser();
-      AppConfig.currentUser = null;
+      AppKeysService.currentUser = null;
     }
   }
 
@@ -521,8 +521,8 @@ class AuthService {
       user.password = _hashPassword(newPassword);
     }
     await DatabaseService.update(user);
-    if (AppConfig.currentUser?.code == userCode) {
-      AppConfig.currentUser = user;
+    if (AppKeysService.currentUser?.code == userCode) {
+      AppKeysService.currentUser = user;
     }
   }
 
@@ -537,7 +537,7 @@ class AuthService {
     final currentUserCode = await DatabaseService.getCurrentUserCode();
     if (currentUserCode == userCode) {
       await DatabaseService.clearCurrentUser();
-      AppConfig.currentUser = null;
+      AppKeysService.currentUser = null;
     }
     await DatabaseService.delete(user);
   }
@@ -657,7 +657,7 @@ class AuthService {
 
     if (setAsCurrent) {
       await DatabaseService.setCurrentUserCode(localUser.code);
-      AppConfig.currentUser = localUser;
+      AppKeysService.currentUser = localUser;
     }
   }
 

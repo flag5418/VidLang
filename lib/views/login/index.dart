@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/views/main/main_page.dart';
 
 enum _AuthMode { login, register, verifyOtp }
@@ -655,6 +656,9 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _navigateToMain() {
+    // 登录成功后，立即从服务端加载所有 API Key（TTS、评测等）
+    // 不阻塞导航，后台异步加载
+    AppKeysService.loadFromRemote();
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainPage()), (route) => false);
   }
 

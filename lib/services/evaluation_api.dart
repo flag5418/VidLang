@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// 评测 API 客户端
@@ -42,7 +43,7 @@ class EvaluationApi {
   // ─── 声通评测 ───
 
   /// 声通发音评分
-  /// [coreType]: en.word.eval | en.sent.eval
+  /// [coreType]: word.eval | sent.eval（⚠️ 不带语言前缀，参考声通文档）
   /// [refText]: 参考文本
   /// [audioBase64]: 用户录音 base64
   static Future<Map<String, dynamic>?> scorePronunciation({
@@ -70,11 +71,17 @@ class EvaluationApi {
       );
       final data = resp.data as Map<String, dynamic>?;
       if (data?['ok'] == true && data?['result'] != null) {
-        return data!['result'] as Map<String, dynamic>;
+        final result = data!['result'] as Map<String, dynamic>;
+        // ═══ 完整打印声通评分返回 JSON（用于了解数据结构、设计评分 UI）═══
+        debugPrint('🎤 [EvaluationApi] 声通评分返回完整JSON: ${const JsonEncoder.withIndent('  ').convert(result)}');
+        return result;
       }
       if (data?['error'] == 'insufficient_balance') {
         throw Exception('余额不足，本次评级需要 ¥${data!['required_cny']}');
       }
+      // 打印服务端返回的错误详情，避免日志被吞
+      debugPrint('EvaluationApi.scorePronunciation 服务端返回错误: '
+          'error=${data?['error']}, message=${data?['message']}, raw=$data');
       return null;
     } catch (e) {
       print('EvaluationApi.scorePronunciation error: $e');

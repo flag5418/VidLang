@@ -29,6 +29,7 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/article_parser.dart';
 import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -222,19 +223,23 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
                 ),
               ),
-              itemBuilder: (context) => [
+              itemBuilder: (context) {
+                final isPremium = ref.watch(subscriptionProvider).mode == SubscriptionMode.premium;
+                return [
                 PopupMenuItem(value: 'import', child: _popupMenuItem(Icons.add_circle_outline, '选择导入（可多选）', colorScheme)),
                 if (Platform.isIOS && folderType == FolderContentType.video)
                   PopupMenuItem(value: 'importFolder', child: _popupMenuItem(Icons.folder_open, '导入文件夹（全部）', colorScheme)),
                 PopupMenuDivider(height: 1),
                 PopupMenuItem(value: 'wifi', child: _popupMenuItem(Icons.wifi_rounded, 'WiFi 导入', colorScheme)),
                 PopupMenuItem(value: 'rename', child: _popupMenuItem(Icons.edit_outlined, '重命名', colorScheme)),
-                PopupMenuItem(value: 'test', child: _popupMenuItem(Icons.quiz_outlined, '综合测试', colorScheme)),
-                if (folderType == FolderContentType.video)
+                if (isPremium)
+                  PopupMenuItem(value: 'test', child: _popupMenuItem(Icons.quiz_outlined, '综合测试', colorScheme)),
+                if (isPremium && folderType == FolderContentType.video)
                   PopupMenuItem(value: 'aiConversation', child: _popupMenuItem(Icons.forum_outlined, 'AI 对话', colorScheme)),
                 PopupMenuDivider(height: 1),
                 PopupMenuItem(value: 'deleteAll', child: _popupMenuItem(Icons.delete_forever_rounded, '全部删除', colorScheme)),
-              ],
+              ];
+              },
             ),
           ],
         ),
@@ -384,8 +389,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             onPlay: () => _playVideo(mainVideo),
             onRename: () => _showVideoRenameDialog(mainVideo),
             onImportSubtitle: () => _importSubtitleForVideo(mainVideo),
-            onAiConversation: () => _openAiConversationForVideo(mainVideo),
-            onUnitTest: () => _showUnitTestForVideo(mainVideo),
+            onAiConversation: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _openAiConversationForVideo(mainVideo) : null,
+            onUnitTest: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _showUnitTestForVideo(mainVideo) : null,
             onDelete: () => _confirmDeleteVideo(mainVideo),
           ),
         if (mainVideo != null) SizedBox(height: AppSpacing.md),
@@ -407,8 +412,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               onTap: () => _playVideo(video),
               onRename: () => _showVideoRenameDialog(video),
               onImportSubtitle: () => _importSubtitleForVideo(video),
-              onAiConversation: () => _openAiConversationForVideo(video),
-              onUnitTest: () => _showUnitTestForVideo(video),
+              onAiConversation: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _openAiConversationForVideo(video) : null,
+              onUnitTest: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _showUnitTestForVideo(video) : null,
               onDelete: () => _confirmDeleteVideo(video),
             );
           },

@@ -97,9 +97,16 @@ class ConversationSession {
       instructions: json['instructions'] as String,
       voice: json['voice'] as String? ?? 'Ethan',
       model: json['model'] as String? ?? 'qwen3.5-omni-plus-realtime',
-      costCny: (json['cost_cny'] as num).toDouble(),
-      balanceAfter: (json['balance_after'] as num).toDouble(),
+      costCny: _toDouble(json['cost_cny']) ?? 0,
+      balanceAfter: _toDouble(json['balance_after']) ?? 0,
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 

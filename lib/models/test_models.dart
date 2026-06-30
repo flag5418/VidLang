@@ -242,7 +242,7 @@ class TestSession extends BaseEntity {
         ? DateTime.parse(map['completed_at'])
         : null;
     status = map['status'] ?? 'in_progress';
-    totalScore = (map['total_score'] as num?)?.toDouble();
+    totalScore = _toDouble(map['total_score']);
     durationSeconds = map['duration_seconds'] ?? 0;
     totalItems = map['total_items'] ?? 0;
     completedItems = map['completed_items'] ?? 0;
@@ -264,6 +264,13 @@ class TestSession extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -352,7 +359,7 @@ class TestItem extends BaseEntity {
     correctAnswer = map['correct_answer'];
     userAnswer = map['user_answer'];
     userAudioPath = map['user_audio_path'];
-    score = (map['score'] as num?)?.toDouble();
+    score = _toDouble(map['score']);
     isCorrect = map['is_correct'] == 1;
     rawResult = map['raw_result'];
     aiAnalysis = map['ai_analysis'];
@@ -371,6 +378,13 @@ class TestItem extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -398,7 +412,7 @@ class TestEvaluation extends BaseEntity {
     try {
       final decoded = jsonDecode(categoryScoresJson!);
       if (decoded is Map<String, dynamic>) {
-        return decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+        return decoded.map((k, v) => MapEntry(k, v is num ? v.toDouble() : (v is String ? double.tryParse(v) ?? 0 : 0)));
       }
       return {};
     } catch (_) {
@@ -435,7 +449,7 @@ class TestEvaluation extends BaseEntity {
     code = map['code'];
     userCode = map['user_code'];
     testSessionId = map['test_session_id'] ?? 0;
-    overallScore = (map['overall_score'] as num?)?.toDouble();
+    overallScore = _toDouble(map['overall_score']);
     categoryScoresJson = map['category_scores_json'];
     weakPoints = map['weak_points'];
     suggestions = map['suggestions'];
@@ -454,5 +468,12 @@ class TestEvaluation extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

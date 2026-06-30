@@ -33,7 +33,7 @@ import {
   wordLink,
   QWEN_MODELS,
 } from './clients/qwen-chat.ts'
-import { qwenTts } from './clients/qwen-tts.ts'
+import { qwenTts, qwenTtsStreaming } from './clients/qwen-tts.ts'
 import { shengtongEvaluate } from './clients/shengtong.ts'
 
 // ─── 路由表 ───
@@ -250,6 +250,9 @@ Deno.serve(async (req: Request) => {
       )
     }
     // 7c. TTS 走独立路由（API 格式不同）
+    // 支持两种模式：
+    //   - 同步模式（默认）：一次性返回完整 base64 音频
+    //   - 流式模式（params.stream=true）：通过 SSE 逐步返回音频分片
     else if (ruleCode === 'ai_tts') {
       if (!qwenApiKey) {
         return json(
@@ -261,10 +264,45 @@ Deno.serve(async (req: Request) => {
           500,
         )
       }
-      result = await qwenTts(qwenApiKey, {
-        text: params.text,
-        voice: params.voice,
-      })
+
+      // 流式模式：使用 SSE 返回音频分片
+      if (params.stream === true) {
+        const audioChunks: string[] = [];
+
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            resolve(); // 超时也返回已收到的数据
+          }, 30000);
+
+          qwenTtsStreaming(
+            qwenApiKey,
+            {
+              text: params.text,
+              voice: params.voice,
+            },
+            (chunk) => {
+              audioChunks.push(chunk);
+            },
+            () => {
+              clearTimeout(timeout);
+              resolve();
+            },
+            (err) => {
+              clearTimeout(timeout);
+              reject(err);
+            },
+          );
+        });
+
+        // 将所有分片合并为完整的 base64
+        result = { audioBase64: audioChunks.join(''), format: 'mp3' };
+      } else {
+        // 同步模式（默认）
+        result = await qwenTts(qwenApiKey, {
+          text: params.text,
+          voice: params.voice,
+        });
+      }
     }
     // 7d. Chat 类路由（翻译、释义等）
     else {

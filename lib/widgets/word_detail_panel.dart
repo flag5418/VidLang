@@ -912,6 +912,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   Widget _buildExamples() {
     if (widget.data.standaloneExamples.isEmpty) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
+    final targetWord = widget.data.word;
     return _buildSectionContainer(
       title: WordDetailSection.examples.label,
       child: Column(
@@ -926,15 +927,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        ex.english,
-                        style: TextStyle(
-                          color: cs.onSurfaceVariant,
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
+                      // 英文例句：高亮目标单词
+                      _buildExampleEnglish(ex.english, targetWord, cs),
                       const SizedBox(height: 2),
+                      // 中文翻译
                       Text(
                         ex.chinese,
                         style: TextStyle(
@@ -950,6 +946,54 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  /// 渲染例句英文，自动高亮目标单词
+  Widget _buildExampleEnglish(String english, String targetWord, ColorScheme cs) {
+    // 检查是否已包含 AI 高亮标记【】
+    if (english.contains('【') && english.contains('】')) {
+      return _buildHighlightedText(english, highlightColor: const Color(0xFF1976D2));
+    }
+
+    // 自动匹配并高亮目标单词（忽略大小写、忽略标点后缀）
+    final escapedWord = RegExp.escape(targetWord);
+    final regex = RegExp(r'\b' + escapedWord + r'\b', caseSensitive: false);
+    final match = regex.firstMatch(english);
+
+    if (match == null) {
+      return Text(
+        english,
+        style: TextStyle(
+          color: cs.onSurfaceVariant,
+          fontSize: 14,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
+    final start = match.start;
+    final end = match.end;
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(
+          color: cs.onSurfaceVariant,
+          fontSize: 14,
+          fontStyle: FontStyle.italic,
+        ),
+        children: [
+          TextSpan(text: english.substring(0, start)),
+          TextSpan(
+            text: english.substring(start, end),
+            style: const TextStyle(
+              color: Color(0xFF1976D2),
+              fontWeight: FontWeight.bold,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          TextSpan(text: english.substring(end)),
+        ],
       ),
     );
   }

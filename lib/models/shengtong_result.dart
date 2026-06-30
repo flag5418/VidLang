@@ -80,11 +80,11 @@ class ShengtongSentenceResult {
 
   factory ShengtongSentenceResult.fromJson(Map<String, dynamic> json) {
     return ShengtongSentenceResult(
-      overall: (json['overall'] as num?)?.toDouble() ?? 0.0,
-      fluency: (json['fluency'] as num?)?.toDouble() ?? 0.0,
-      pronunciation: (json['pronunciation'] as num?)?.toDouble() ?? 0.0,
-      integrity: (json['integrity'] as num?)?.toDouble() ?? 0.0,
-      rhythm: (json['rhythm'] as num?)?.toDouble() ?? 0.0,
+      overall: _parseDouble(json['overall']) ?? 0.0,
+      fluency: _parseDouble(json['fluency']) ?? 0.0,
+      pronunciation: _parseDouble(json['pronunciation']) ?? 0.0,
+      integrity: _parseDouble(json['integrity']) ?? 0.0,
+      rhythm: _parseDouble(json['rhythm']) ?? 0.0,
       speed: json['speed'] as int?,
       duration: _parseDouble(json['duration']),
       numericDuration: _parseDouble(json['numeric_duration']),
@@ -271,8 +271,8 @@ class ShengtongWordScores {
   factory ShengtongWordScores.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const ShengtongWordScores();
     return ShengtongWordScores(
-      overall: (json['overall'] as num?)?.toDouble() ?? 0.0,
-      pronunciation: (json['pronunciation'] as num?)?.toDouble() ?? 0.0,
+      overall: _toDouble(json['overall']) ?? 0.0,
+      pronunciation: _toDouble(json['pronunciation']) ?? 0.0,
       prominence: json['prominence'] as int?,
       stress: (json['stress'] as List?)
               ?.map((s) => ShengtongStress.fromJson(s as Map<String, dynamic>))
@@ -287,6 +287,13 @@ class ShengtongWordScores {
       if (prominence != null) 'prominence': prominence,
       if (stress != null) 'stress': stress!.map((s) => s.toJson()).toList(),
     };
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -339,7 +346,7 @@ class ShengtongPhonic {
     return ShengtongPhonic(
       spell: json['spell'] as String? ?? '',
       phoneme: (json['phoneme'] as List?)?.map((e) => e as String).toList() ?? [],
-      overall: (json['overall'] as num?)?.toDouble() ?? 0.0,
+      overall: _toDouble(json['overall']) ?? 0.0,
     );
   }
 
@@ -349,6 +356,13 @@ class ShengtongPhonic {
       'phoneme': phoneme,
       'overall': overall,
     };
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -370,7 +384,7 @@ class ShengtongPhoneme {
     return ShengtongPhoneme(
       phoneme: json['phoneme'] as String? ?? '',
       span: ShengtongSpan.fromJson(json['span'] as Map<String, dynamic>),
-      pronunciation: (json['pronunciation'] as num?)?.toDouble() ?? 0.0,
+      pronunciation: _toDouble(json['pronunciation']) ?? 0.0,
       stressMark: json['stress_mark'] as int? ?? 0,
     );
   }
@@ -382,6 +396,13 @@ class ShengtongPhoneme {
       'pronunciation': pronunciation,
       'stress_mark': stressMark,
     };
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 
@@ -448,7 +469,7 @@ class ShengtongStress {
       stress: json['stress'] as int? ?? 0,
       refStress: json['ref_stress'] as int? ?? 0,
       phonemeOffset: json['phoneme_offset'] as int? ?? 0,
-      overall: (json['overall'] as num?)?.toDouble() ?? 0.0,
+      overall: _toDouble(json['overall']) ?? 0.0,
     );
   }
 
@@ -461,6 +482,13 @@ class ShengtongStress {
       'phoneme_offset': phonemeOffset,
       'overall': overall,
     };
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }
 

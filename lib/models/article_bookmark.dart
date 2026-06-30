@@ -61,7 +61,7 @@ class ArticleBookmark extends BaseEntity {
     articleCode = map['article_code'] ?? '';
     paragraphIndex = map['paragraph_index'] ?? 0;
     sentenceIndex = map['sentence_index'] ?? 0;
-    scrollOffset = (map['scroll_offset'] as num?)?.toDouble() ?? 0.0;
+    scrollOffset = _toDouble(map['scroll_offset']) ?? 0.0;
     note = map['note'];
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
@@ -71,5 +71,12 @@ class ArticleBookmark extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

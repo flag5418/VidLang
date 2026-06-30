@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -108,7 +108,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   // ==================== 用户卡片 ====================
 
   Widget _buildUserCard(User user, ColorScheme cs) {
-    final isCurrent = AppConfig.currentUser?.code == user.code;
+    final isCurrent = AppKeysService.currentUser?.code == user.code;
     final displayName = user.nickname.isNotEmpty ? user.nickname : user.username;
 
     return Container(

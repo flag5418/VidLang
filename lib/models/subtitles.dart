@@ -117,7 +117,7 @@ class Subtitles extends BaseEntity {
     source = map['source'];
     pronunciation = map['pronunciation'];
     pronunciationMapJson = map['pronunciation_map_json'];
-    confidence = (map['confidence'] as num?)?.toDouble();
+    confidence = _toDouble(map['confidence']);
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
     deletedAt = map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null;
@@ -126,5 +126,12 @@ class Subtitles extends BaseEntity {
     updatedBy = map['updated_by'];
     deletedBy = map['deleted_by'];
     return this;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

@@ -40,7 +40,7 @@ class AiService {
   /// - 成功：返回 WordDetail（含释义/翻译/音标）
   /// - 余额不足：返回 WordDetail.error(isInsufficientBalance: true)
   /// - 其他错误：返回 WordDetail.error
-  /// - 本地模型可用时：优先使用本地模型
+  /// - [preferLocal] 为 true 且本地模型可用时，优先使用本地模型（默认 false，走云端）
   static Future<WordDetail> callAiProxy({
     required String ruleCode,
     required String scene,
@@ -50,15 +50,16 @@ class AiService {
     String? sourceCode,
     Map<String, dynamic> params = const {},
     Map<String, dynamic>? billing,
+    bool preferLocal = false,
   }) async {
     final requestId = _uuid.v4();
 
     try {
-      dev.log('🚀 callAiProxy START: word="$word" ruleCode="$ruleCode" scene="$scene" entry="$entry" requestId=$requestId',
+      dev.log('🚀 callAiProxy START: word="$word" ruleCode="$ruleCode" scene="$scene" entry="$entry" requestId=$requestId preferLocal=$preferLocal',
           name: 'AiService');
 
-      // 检查是否可以使用本地模型
-      if (canUseLocalModels) {
+      // 仅在明确要求使用本地模型时才检查
+      if (preferLocal && canUseLocalModels) {
         dev.log('📱 Using local model for: $ruleCode', name: 'AiService');
         return await _callLocalModel(
           ruleCode: ruleCode,
@@ -203,7 +204,7 @@ class AiService {
   ///
   /// 成功返回 `{'ok': true, 'result': {...}, 'cost_cny': ..., 'balance_after': ...}`
   /// 失败返回 `{'ok': false, 'error': ..., 'message': ...}`
-  /// 本地模型可用时：优先使用本地模型
+  /// [preferLocal] 为 true 且本地模型可用时，优先使用本地模型（默认 false，走云端）
   static Future<Map<String, dynamic>> callAiProxyRaw({
     required String ruleCode,
     required String scene,
@@ -212,11 +213,12 @@ class AiService {
     String? sourceType,
     String? sourceCode,
     Map<String, dynamic>? billing,
+    bool preferLocal = false,
   }) async {
     final requestId = _uuid.v4();
 
-    // 检查是否可以使用本地模型
-    if (canUseLocalModels) {
+    // 仅在明确要求使用本地模型时才检查
+    if (preferLocal && canUseLocalModels) {
       dev.log('📱 Using local model for raw call: $ruleCode', name: 'AiService');
       return await _callLocalModelRaw(
         ruleCode: ruleCode,
@@ -307,10 +309,10 @@ class AiService {
   /// 2. **部分命中**：缓存有基础释义，但缺少当前句信息 → 仅补充 context_sentence_info
   /// 3. **未命中**：调用 AI 获取完整释义 → 写入缓存
   ///
-  /// 本地模型可用时：优先使用本地模型
-  ///
   /// [word] 目标单词
   /// [contextSentence] 字幕完整句子（可选，有则结合语境）
+  /// [sourceType] 资源类型（video/article/music/wordbook），用于动态设置 scene
+  /// [sourceCode] 资源编码
   /// [billing] 付费参数
   static Future<WordDetail> getDefinition({
     required String word,
@@ -356,7 +358,7 @@ class AiService {
           } else {
             // ⚡ 部分命中：仅补充 context_sentence_info
             dev.log('word cache PARTIAL HIT: $cacheKey (need context info)', name: 'AiService');
-            final enriched = await _enrichWithContext(cached, contextSentence!, billing: billing);
+            final enriched = await _enrichWithContext(cached, contextSentence!, billing: billing, sourceType: sourceType);
             if (enriched != null) {
               // 异步更新缓存（不阻塞返回）
               _writeWordCache(cacheKey, enriched);
@@ -376,9 +378,12 @@ class AiService {
     // ③ 完全未命中：调用 AI
     // ════════════════════════════════════════════
     dev.log('word cache MISS: $cacheKey, calling AI', name: 'AiService');
+    // 根据 sourceType 动态设置 scene（符合 billing-redesign §4.3.1）
+    final defScene = _resolveScene(sourceType);
+
     final detail = await callAiProxy(
       ruleCode: 'ai_definition',
-      scene: 'player',
+      scene: defScene,
       entry: 'subtitle_tap',
       word: word,
       sourceType: sourceType,
@@ -421,12 +426,14 @@ class AiService {
     WordDetail baseDetail,
     String contextSentence, {
     Map<String, dynamic>? billing,
+    String? sourceType,
   }) async {
     try {
       // 调用 AI 仅获取 context_sentence_info
+      // enrich 复用相同的 scene 策略
       final result = await callAiProxyRaw(
         ruleCode: 'ai_definition',
-        scene: 'player',
+        scene: _resolveScene(sourceType),
         entry: 'subtitle_tap_enrich',
         params: {
           'word': baseDetail.word,
@@ -517,6 +524,7 @@ class AiService {
   ///
   /// 新版后端返回结构化 Map：
   /// { translation, phrase_explanations?, part_of_speech?, word_forms? }
+  /// [preferLocal] 为 true 且本地模型可用时，优先使用本地翻译（默认 false，走云端阿里云翻译）
   static Future<WordDetail> translateText({
     required String text,
     String sourceLanguage = 'en',
@@ -524,10 +532,14 @@ class AiService {
     String? sourceType,
     String? sourceCode,
     Map<String, dynamic>? billing,
+    bool preferLocal = false,
   }) async {
+    // 根据 sourceType 动态设置 scene
+    final transScene = _resolveScene(sourceType);
+
     final result = await callAiProxy(
       ruleCode: 'ai_translate',
-      scene: 'player',
+      scene: transScene,
       entry: 'trans_btn',
       word: text,
       sourceType: sourceType,
@@ -538,18 +550,20 @@ class AiService {
         'target_language': targetLanguage,
       },
       billing: billing,
+      preferLocal: preferLocal,
     );
     return result;
   }
 
   /// 翻译对话中的英文回复为中文
-  /// 本地模型可用时：优先使用本地模型
+  /// [preferLocal] 为 true 且本地模型可用时，优先使用本地模型（默认 false，走云端）
   static Future<String?> translateConversationText({
     required String text,
     Map<String, dynamic>? billing,
+    bool preferLocal = false,
   }) async {
-    // 检查是否可以使用本地模型
-    if (canUseLocalModels) {
+    // 仅在明确要求使用本地模型时才检查
+    if (preferLocal && canUseLocalModels) {
       dev.log('📱 Using local model for conversation translation', name: 'AiService');
       try {
         final result = await _localAi.translate(
@@ -599,16 +613,19 @@ class AiService {
   }
 
   /// 调用 AI TTS（ai_tts）
-  /// 本地模型可用时：优先使用本地 Piper TTS
+  /// [preferLocal] 为 true 且本地模型可用时，优先使用本地 Piper TTS（默认 false，走云端千问 TTS）
   static Future<Map<String, dynamic>?> getTtsAudio({
     required String text,
     String language = 'en-US',
     String? sourceType,
     String? sourceCode,
     Map<String, dynamic>? billing,
+    bool preferLocal = false,
   }) async {
-    // 检查是否可以使用本地 TTS
-    if (canUseLocalModels) {
+    // 根据 sourceType 动态设置 scene
+    final ttsScene = _resolveScene(sourceType);
+    // 仅在明确要求使用本地 TTS 时才检查
+    if (preferLocal && canUseLocalModels) {
       dev.log('📱 Using local Piper TTS for: $text', name: 'AiService');
       try {
         final audioPath = await _localAi.synthesizeToFile(
@@ -645,7 +662,7 @@ class AiService {
         _functionName,
         body: {
           'rule_code': 'ai_tts',
-          'scene': 'player',
+          'scene': ttsScene,
           'entry': 'tts_btn',
           'request_id': requestId,
           'params': {
@@ -664,6 +681,30 @@ class AiService {
       return data['result'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
+    }
+  }
+
+  // ─── Scene 动态化辅助方法 ─────────────────────────────
+
+  /// 根据 sourceType 解析对应的 scene 值
+  ///
+  /// 符合 billing-redesign §4.3.1 设计：
+  /// - article → 'reader'（文章阅读器）
+  /// - video   → 'player'（视频播放器）
+  /// - music   → 'player'（音频播放器，复用 player）
+  /// - wordbook → 'wordbook'（生词本）
+  /// - 其他/默认 → 'player'
+  static String _resolveScene(String? sourceType) {
+    switch (sourceType) {
+      case 'article':
+        return 'reader';
+      case 'video':
+      case 'music':
+        return 'player';
+      case 'wordbook':
+        return 'wordbook';
+      default:
+        return 'player';
     }
   }
 }

@@ -9,11 +9,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/test_models.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/providers/test_provider.dart';
-import 'package:vidlang/services/evaluation_api.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/views/test/test_result_page.dart';
@@ -602,8 +601,16 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
 
     try {
       final tmpDir = await getTemporaryDirectory();
-      _pronRecordingPath = '${tmpDir.path}/pron_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _pronRecorder.start(const RecordConfig(), path: _pronRecordingPath!);
+      _pronRecordingPath = '${tmpDir.path}/pron_${DateTime.now().millisecondsSinceEpoch}.wav';
+      // 使用 WAV 格式录制（声通要求 16000Hz/16bit/单声道 WAV）
+      await _pronRecorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.wav,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: _pronRecordingPath!,
+      );
 
       _pronRecordingTimer?.cancel();
       _pronRecordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -646,7 +653,10 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
     if (mounted) setState(() => _pronState = 'idle');
   }
 
-  /// 声通评分（优先 WebSocket 直连，降级到 Edge Function）
+  /// 声通实时评测（本地 WebSocket 直连，支持流式评分）
+  ///
+  /// 密钥从 AppKeysService 动态加载（登录时从 app_settings 表读取），
+  /// 与 TTS 的 DashScopeTtsService 架构保持一致。
   Future<void> _evaluatePronunciation(String audioPath, String refText, String typeName) async {
     if (refText.isEmpty) {
       if (mounted) setState(() => _pronState = 'idle');
@@ -655,12 +665,29 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
 
     try {
       // 确定评测类型
-      final coreType = typeName.contains('word') ? 'en.word.eval' : 'en.sent.eval';
+      final coreType = typeName.contains('word') ? 'word.eval' : 'sent.eval';
 
-      // 方式1：优先使用 ShengtongEvaluator WebSocket 直连
+      // 从 AppKeysService 获取动态密钥（与 TTS 统一架构）
+final stAppKey = AppKeysService.instance.shengtongAppKey;
+final stSecretKey = AppKeysService.instance.shengtongSecretKey;
+
+      if (stAppKey == null || stAppKey.isEmpty || stSecretKey == null || stSecretKey.isEmpty) {
+        debugPrint('⚠️ [TestSession] 声通密钥未就绪，请确认已登录且 app_settings 已配置');
+        if (mounted) {
+          setState(() {
+            _pronState = 'scored';
+            _pronScore = 0.0;
+            _pronFeedback = '声通服务未配置，请联系管理员';
+          });
+        }
+        return;
+      }
+
+      // 使用 ShengtongEvaluator 本地 WebSocket 直连（支持实时流式评测）
       final evaluator = ShengtongEvaluator(
-        appKey: AppConfig.shengtongAppKey,
-        secretKey: AppConfig.shengtongSecretKey,
+        appKey: stAppKey,
+        secretKey: stSecretKey,
+        baseUrl: AppKeysService.shengtongBaseUrl,
       );
 
       final completer = Completer<Map<String, dynamic>?>();
@@ -668,19 +695,27 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
         if (!completer.isCompleted) completer.complete(r);
       };
       evaluator.onError = (e) {
+        debugPrint('❌ [TestSession] 声通评测错误: $e');
         if (!completer.isCompleted) completer.complete(null);
       };
 
+      // 连接并开始评测
       await evaluator.connect(coreType);
-      evaluator.start(coreType: coreType, refText: refText, userId: 'test_user');
+      await evaluator.start(
+        coreType: coreType,
+        refText: refText,
+        userId: 'test_user',
+      );
 
+      // 发送音频数据
       final file = File(audioPath);
       if (await file.exists()) {
         final bytes = await file.readAsBytes();
         evaluator.feed(bytes);
       }
-      evaluator.stop();
 
+      // 停止评测并等待结果
+      evaluator.stop();
       final result = await completer.future.timeout(const Duration(seconds: 15));
       evaluator.dispose();
 
@@ -705,67 +740,27 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
           _submitPronResult(overall ?? 0);
         }
       } else {
-        // 声通不可用，降级到 Edge Function 评分
-        await _evaluateWithEdgeFunction(audioPath, coreType, refText);
-      }
-    } catch (e) {
-      debugPrint('Shengtong evaluation failed, fallback to Edge Function: $e');
-      await _evaluateWithEdgeFunction(audioPath, typeName.contains('word') ? 'en.word.eval' : 'en.sent.eval', refText);
-    } finally {
-      // 清理临时文件
-      try { await File(audioPath).delete(); } catch (_) {}
-    }
-  }
-
-  /// 降级：通过 Edge Function 评分
-  Future<void> _evaluateWithEdgeFunction(String audioPath, String coreType, String refText) async {
-    try {
-      final file = File(audioPath);
-      if (!await file.exists()) {
-        if (mounted) setState(() => _pronState = 'idle');
-        return;
-      }
-
-      final bytes = await file.readAsBytes();
-      final base64Audio = base64Encode(bytes);
-
-      final result = await EvaluationApi.scorePronunciation(
-        coreType: coreType,
-        refText: refText,
-        audioBase64: base64Audio,
-      );
-
-      if (result != null) {
-        final overall = (result['overall'] ?? result['score'] ?? 0) as num;
-        if (mounted) {
-          setState(() {
-            _pronState = 'scored';
-            _pronScore = overall.toDouble();
-            _pronFeedback = overall.toDouble() >= 60 ? '完成跟读练习。' : '再试一次吧！';
-          });
-          _pronScore = overall.toDouble();
-          _submitPronResult(overall.toDouble());
-        }
-      } else {
+        debugPrint('⚠️ [TestSession] 声通评测返回空结果');
         if (mounted) {
           setState(() {
             _pronState = 'scored';
             _pronScore = 0.0;
-            _pronFeedback = '评分服务暂不可用，已记录练习。';
+            _pronFeedback = '评分失败，请重试';
           });
-          _pronScore = 0.0;
-          _submitPronResult(0.0); // 仍然允许提交
         }
       }
     } catch (e) {
-      debugPrint('Edge Function evaluation error: $e');
+      debugPrint('❌ [TestSession] 声通评测异常: $e');
       if (mounted) {
         setState(() {
           _pronState = 'idle';
           _pronScore = null;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('评分失败: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('评测失败: $e')));
       }
+    } finally {
+      // 清理临时文件
+      try { await File(audioPath).delete(); } catch (_) {}
     }
   }
 

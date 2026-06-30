@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:omni_player/omni_player.dart';
 import 'package:record/record.dart';
-import 'package:vidlang/config.dart';
+import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
@@ -1561,11 +1561,22 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     try {
       final video = n.currentVideo;
       final language = video?.language ?? 'en';
-      final coreType = '$language.sent.eval';
+      final coreType = 'sent.eval';
       final userCode = video?.userCode ?? 'anonymous';
 
       _evaluator?.dispose();
-      _evaluator = ShengtongEvaluator(appKey: AppConfig.shengtongAppKey, secretKey: AppConfig.shengtongSecretKey);
+      // 声通 key 从 AppKeysService 获取
+final stAppKey = AppKeysService.instance.shengtongAppKey;
+final stSecretKey = AppKeysService.instance.shengtongSecretKey;
+      if (stAppKey == null || stAppKey.isEmpty || stSecretKey == null || stSecretKey.isEmpty) {
+        debugPrint('⚠️ [AudioPlayer] 声通密钥未就绪，跳过评测');
+        return null;
+      }
+      _evaluator = ShengtongEvaluator(
+        appKey: stAppKey,
+        secretKey: stSecretKey,
+        baseUrl: AppKeysService.shengtongBaseUrl,
+      );
 
       final completer = Completer<Map<String, dynamic>?>();
       _evaluator!.onResult = (result) {
@@ -1576,7 +1587,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       };
 
       await _evaluator!.connect(coreType);
-      _evaluator!.start(coreType: coreType, refText: sub.content, userId: userCode);
+      await _evaluator!.start(coreType: coreType, refText: sub.content, userId: userCode);
 
       final audioFile = File(audioPath);
       final bytes = await audioFile.readAsBytes();
@@ -1584,6 +1595,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       _evaluator!.stop();
 
       final result = await completer.future.timeout(const Duration(seconds: 10));
+
+      if (result == null) {
+        debugPrint('AudioPlayer 声通评分返回空结果，可能超时或服务不可用，coreType=$coreType');
+      }
 
       if (result != null && mounted) {
         final overall = (result['overall'] as num?)?.toDouble();
