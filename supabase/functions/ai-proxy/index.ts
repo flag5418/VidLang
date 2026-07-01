@@ -27,6 +27,7 @@ import {
 } from './billing.ts'
 import {
   aiChat,
+  analyzePronunciation,
   definition,
   translateConversationResponse,
   translateText,
@@ -42,6 +43,23 @@ const ROUTES: Record<
   string,
   (apiKey: string, baseUrl: string, params: any, model?: string) => Promise<any>
 > = {
+  ai_audio_evaluation: (key, url, p, model) =>
+    analyzePronunciation(key, url, {
+      overall_score: p.overall_score,
+      fluency_score: p.fluency_score,
+      integrity_score: p.integrity_score,
+      accuracy_score: p.accuracy_score,
+      pronunciation_score: p.pronunciation_score,
+      weak_dimensions: p.weak_dimensions,
+      error_words: p.error_words,
+      missing_words: p.missing_words,
+      stress_errors: p.stress_errors,
+      phoneme_errors: p.phoneme_errors,
+      total_words: p.total_words,
+      correct_words: p.correct_words,
+      ref_text: p.ref_text,
+      history_summary: p.history_summary,
+    }, model),
   ai_definition: (key, url, p, model) =>
     definition(key, url, p.word, p.sentence, model),
   ai_translate: (key, url, p, model) =>
@@ -440,6 +458,9 @@ function actionMeta(ruleCode: string): { key: string; label: string } {
   }
   if (ruleCode === 'st_pron_score') {
     return { key: 'st_pron_score', label: '跟读评分' }
+  }
+  if (ruleCode === 'ai_audio_evaluation') {
+    return { key: 'ai_audio_evaluation', label: 'AI 发音分析' }
   }
   if (ruleCode === 'ai_test_plan') {
     return { key: 'ai_test_plan', label: 'AI 出题' }

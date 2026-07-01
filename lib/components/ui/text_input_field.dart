@@ -6,7 +6,7 @@ import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 
 /// 文本输入框组件
-/// 
+///
 /// 基于 Pencil UI Design Skill 的输入框规范：
 /// - 白色背景
 /// - 12px 圆角
@@ -16,40 +16,40 @@ import '../../theme/app_spacing.dart';
 class TextInputField extends StatefulWidget {
   /// 标签文字
   final String? label;
-  
+
   /// 提示文字
   final String? hint;
-  
+
   /// 控制器
   final TextEditingController? controller;
-  
+
   /// 是否密码输入
   final bool obscureText;
-  
+
   /// 前缀图标
   final IconData? prefixIcon;
-  
+
   /// 后缀图标
   final IconData? suffixIcon;
-  
+
   /// 后缀图标点击事件
   final VoidCallback? onSuffixTap;
-  
+
   /// 最大行数
   final int maxLines;
-  
+
   /// 输入变化回调
   final ValueChanged<String>? onChanged;
-  
+
   /// 提交回调
   final ValueChanged<String>? onSubmitted;
-  
+
   /// 验证器
   final FormFieldValidator<String>? validator;
-  
+
   /// 初始值
   final String? initialValue;
-  
+
   /// 是否只读
   final bool readOnly;
 
@@ -75,7 +75,6 @@ class TextInputField extends StatefulWidget {
 }
 
 class _TextInputFieldState extends State<TextInputField> {
-  bool _isFocused = false;
   late FocusNode _focusNode;
 
   @override
@@ -92,9 +91,7 @@ class _TextInputFieldState extends State<TextInputField> {
     super.dispose();
   }
 
-  void _onFocusChange() {
-    setState(() => _isFocused = _focusNode.hasFocus);
-  }
+  void _onFocusChange() {}
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +112,7 @@ class _TextInputFieldState extends State<TextInputField> {
               ),
             ),
           ),
-        
+
         // 输入框
         TextField(
           controller: widget.controller,
@@ -125,10 +122,7 @@ class _TextInputFieldState extends State<TextInputField> {
           readOnly: widget.readOnly,
           onChanged: widget.onChanged,
           onSubmitted: widget.onSubmitted,
-          style: TextStyle(
-            fontSize: 16.sp,
-            color: AppColors.textPrimary,
-          ),
+          style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: TextStyle(
@@ -136,25 +130,33 @@ class _TextInputFieldState extends State<TextInputField> {
               color: AppColors.textTertiary,
             ),
             prefixIcon: widget.prefixIcon != null
-              ? Icon(widget.prefixIcon, size: 22.w, color: AppColors.textTertiary)
-              : null,
+                ? Icon(
+                    widget.prefixIcon,
+                    size: 22.w,
+                    color: AppColors.textTertiary,
+                  )
+                : null,
             suffixIcon: widget.suffixIcon != null
-              ? IconButton(
-                  icon: Icon(widget.suffixIcon, size: 22.w, color: AppColors.textTertiary),
-                  onPressed: widget.onSuffixTap,
-                )
-              : null,
-            
+                ? IconButton(
+                    icon: Icon(
+                      widget.suffixIcon,
+                      size: 22.w,
+                      color: AppColors.textTertiary,
+                    ),
+                    onPressed: widget.onSuffixTap,
+                  )
+                : null,
+
             // Pencil Skill: 背景和边框样式
             filled: true,
             fillColor: Theme.of(context).colorScheme.surface,
-            
+
             // 默认边框
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.input),
               borderSide: BorderSide(color: AppColors.borderLight),
             ),
-            
+
             // Focus 状态：主色调边框，2px 宽度
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.input),
@@ -163,26 +165,32 @@ class _TextInputFieldState extends State<TextInputField> {
                 width: 2.0, // Pencil Skill: focus 时加粗边框
               ),
             ),
-            
+
             // 错误状态
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.input),
               borderSide: BorderSide(color: AppColors.error),
             ),
-            
+
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadius.input),
               borderSide: BorderSide(color: AppColors.error, width: 2),
             ),
-            
+
             contentPadding: EdgeInsets.symmetric(
               horizontal: AppSpacing.inputPadding.w,
-              vertical: (widget.maxLines > 1 ? AppSpacing.md : AppSpacing.inputPadding).h,
+              vertical:
+                  (widget.maxLines > 1
+                          ? AppSpacing.md
+                          : AppSpacing.inputPadding)
+                      .h,
             ),
           ),
           // 键盘类型优化
-          textInputAction: widget.maxLines == 1 ? TextInputAction.next : TextInputAction.newline,
-          
+          textInputAction: widget.maxLines == 1
+              ? TextInputAction.next
+              : TextInputAction.newline,
+
           // 输入格式化（可选）
           inputFormatters: _getInputFormatters(),
         ),

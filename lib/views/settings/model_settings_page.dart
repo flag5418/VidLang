@@ -56,7 +56,7 @@ class _ModelSettingsPageState extends State<ModelSettingsPage> {
     final icon = _modelStatus == LocalModelStatus.ready ? Icons.check_circle : Icons.warning_amber_rounded;
 
     return Card(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(

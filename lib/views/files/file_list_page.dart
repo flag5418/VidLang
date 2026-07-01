@@ -405,7 +405,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
   }
 
   void _showFolderMenu(VideoFolder folder) async {
-    final result = await AppBottomSheetMenu.show(
+    await AppBottomSheetMenu.show(
       context,
       items: [
         AppBottomSheetMenuItem(

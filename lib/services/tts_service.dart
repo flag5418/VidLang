@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io' as io;
 
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/foundation.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/services/dashscope_tts_service.dart';
 import 'package:vidlang/services/unified_tts_service.dart';
 
 /// TTS 事件回调
@@ -53,7 +55,7 @@ enum TtsEventType {
 ///
 /// 统一通过 UnifiedTtsService 调用：
 /// - 免费模式 → 原生系统 TTS（iOS AVSpeechSynthesizer / Android TTS）
-/// - 收费模式 → 阿里云 TTS（Edge Function，带持久化磁盘缓存优化）
+/// - 收费模式 → 阿里云 TTS（PCM 流式播放，低延迟）
 ///
 /// 性能优化：
 /// - 云端 TTS 结果持久化到 Documents/tts_cache/，重复点击同一句秒开
@@ -66,7 +68,6 @@ class TtsService {
   TtsService._internal();
 
   bool _isSpeaking = false;
-  ap.AudioPlayer? _currentPlayer;
 
   /// 是否正在朗读
   bool get isSpeaking => _isSpeaking;
@@ -102,15 +103,109 @@ class TtsService {
     onEvent?.call(const TtsEvent.loading());
 
     try {
-      final result = await UnifiedTtsService.instance.synthesize(text: text, mode: targetMode);
+      if (targetMode == SubscriptionMode.premium) {
+        // 收费模式：使用 PCM 流式播放（低延迟）
+        await _speakPremium(text: text, onEvent: onEvent, onComplete: onComplete);
+      } else {
+        // 免费模式：使用原生 TTS（文件播放）
+        await _speakFree(text: text, onEvent: onEvent, onComplete: onComplete);
+      }
+    } catch (e) {
+      _ttsLog('🔊 [TtsPlayer] 💥 异常: $e');
+      onEvent?.call(TtsEvent.error('TTS 错误: $e'));
+      _isSpeaking = false;
+      onEvent?.call(const TtsEvent.completed());
+      if (onComplete != null) onComplete();
+    }
+  }
 
-      if (result.success && result.audioPath.isNotEmpty) {
-        // 通知 UI：开始播放
+  /// 收费模式：使用 DashScope PCM 流式播放
+  Future<void> _speakPremium({
+    required String text,
+    void Function(TtsEvent)? onEvent,
+    FutureOr<void> Function()? onComplete,
+  }) async {
+    _ttsLog('🔊 [TtsPlayer] 🎵 使用 PCM 流式播放: "$text"');
+
+    // 通知 UI：开始播放
+    onEvent?.call(const TtsEvent.playing());
+
+    final completer = Completer<void>();
+
+    await DashScopeTtsService.instance.streamSynthesizeAndPlay(
+      text: text,
+      onComplete: () {
+        _ttsLog('🔊 [TtsPlayer] ✅ PCM 流式播放完成');
+        _isSpeaking = false;
+        onEvent?.call(const TtsEvent.completed());
+        if (onComplete != null) onComplete();
+        if (!completer.isCompleted) completer.complete();
+      },
+      onError: (error) {
+        _ttsLog('🔊 [TtsPlayer] ❌ PCM 流式播放错误: $error');
+        _isSpeaking = false;
+        onEvent?.call(TtsEvent.error('TTS 播放错误: $error'));
+        onEvent?.call(const TtsEvent.completed());
+        if (onComplete != null) onComplete();
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
+
+    // 等待播放完成或错误
+    await completer.future;
+  }
+
+  /// 免费模式：使用原生 TTS（文件播放或直接播放）
+  Future<void> _speakFree({
+    required String text,
+    void Function(TtsEvent)? onEvent,
+    FutureOr<void> Function()? onComplete,
+  }) async {
+    final result = await UnifiedTtsService.instance.synthesize(text: text, mode: SubscriptionMode.free);
+
+    if (result.success) {
+      // 检查是否为直接播放模式（audioPath 为空）
+      if (result.audioPath.isEmpty || result.format == 'direct') {
+        _ttsLog('🔊 [TtsPlayer] 📢 使用直接播放模式（跳过文件）');
         onEvent?.call(const TtsEvent.playing());
+        // 直接播放已完成，因为 synthesizeToAudio 已经调用了 speak
+        // 等待一小段时间模拟播放完成（原生 TTS 通常很快）
+        await Future.delayed(const Duration(milliseconds: 500));
+        _ttsLog('🔊 [TtsPlayer] ✅ 直接播放完成');
+        _isSpeaking = false;
+        onEvent?.call(const TtsEvent.completed());
+        if (onComplete != null) onComplete();
+        return;
+      }
 
-        final player = ap.AudioPlayer();
-        _currentPlayer = player;
+      // 检查文件是否存在且有效
+      final file = io.File(result.audioPath);
+      if (!await file.exists()) {
+        _ttsLog('🔊 [TtsPlayer] ❌ 音频文件不存在: ${result.audioPath}');
+        onEvent?.call(TtsEvent.error('音频文件不存在'));
+        _isSpeaking = false;
+        if (onComplete != null) onComplete();
+        return;
+      }
 
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        _ttsLog('🔊 [TtsPlayer] ❌ 音频文件为空: ${result.audioPath}');
+        onEvent?.call(TtsEvent.error('音频文件为空'));
+        _isSpeaking = false;
+        if (onComplete != null) onComplete();
+        return;
+      }
+
+      _ttsLog('🔊 [TtsPlayer] 📁 音频文件就绪: ${fileSize} bytes | ${result.audioPath.split('/').last}');
+
+      // 通知 UI：开始播放
+      onEvent?.call(const TtsEvent.playing());
+
+      // 使用 audioplayers 播放文件
+      final player = ap.AudioPlayer();
+
+      try {
         final playSw = Stopwatch()..start();
         await player.play(ap.DeviceFileSource(result.audioPath));
         playSw.stop();
@@ -119,33 +214,22 @@ class TtsService {
 
         await player.onPlayerComplete.first;
 
-        // 播放完成，清理引用
-        _currentPlayer?.dispose();
-        _currentPlayer = null;
-        _isSpeaking = false;
-
-        // 注意：不再删除缓存文件！
-        // 缓存已由 UnifiedTtsService 持久化到 Documents 目录，
-        // 下次调用相同文本时直接从磁盘读取，实现秒开。
-
-        // 通知 UI：播放完成
-        onEvent?.call(const TtsEvent.completed());
-        if (onComplete != null) onComplete();
-        return;
-      } else {
-        // 合成失败
-        _ttsLog('🔊 [TtsPlayer] ❌ 合成失败: ${result.error}');
-        onEvent?.call(TtsEvent.error(result.error ?? 'TTS 合成失败'));
+        _ttsLog('🔊 [TtsPlayer] ✅ 播放完成');
+      } finally {
+        await player.dispose();
       }
-    } catch (e) {
-      _ttsLog('🔊 [TtsPlayer] 💥 异常: $e');
-      onEvent?.call(TtsEvent.error('TTS 错误: $e'));
-    }
 
-    _currentPlayer = null;
-    _isSpeaking = false;
-    onEvent?.call(const TtsEvent.completed());
-    if (onComplete != null) onComplete();
+      _isSpeaking = false;
+      onEvent?.call(const TtsEvent.completed());
+      if (onComplete != null) onComplete();
+    } else {
+      // 合成失败
+      _ttsLog('🔊 [TtsPlayer] ❌ 合成失败: ${result.error}');
+      onEvent?.call(TtsEvent.error(result.error ?? 'TTS 合成失败'));
+      _isSpeaking = false;
+      onEvent?.call(const TtsEvent.completed());
+      if (onComplete != null) onComplete();
+    }
   }
 
   /// 朗读单词（慢速、清晰）
@@ -197,9 +281,8 @@ class TtsService {
   /// 停止朗读
   Future<void> stop() async {
     _isSpeaking = false;
-    await _currentPlayer?.stop();
-    await _currentPlayer?.dispose();
-    _currentPlayer = null;
+    // 停止 PCM 播放器（通过释放资源）
+    await DashScopeTtsService.instance.stopPcmPlayback();
   }
 
   void _ttsLog(String message) {

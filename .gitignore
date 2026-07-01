@@ -4,13 +4,16 @@
 .pub/
 build/
 *.iml
-.idea/
-.vscode/
 *.lock
 
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+.vscode/extensions.json
 
 # Android
 android/.gradle/
@@ -41,6 +44,12 @@ web/firebase-messaging-sw.js
 .supabase_cli/
 flutter_01.log
 sherpa-onnx/
+
+# Deploy scripts (contain secrets)
+supabase/deploy-*.sh
+
+# Local pre-cached native libraries
+pods-cache/
 
 # Models
 models/

@@ -1,22 +1,37 @@
-/// 设备信息工具类（iPhone 专用）
+/// 设备信息工具类（已废弃）
 ///
-/// 集中管理网格列数、间距等固定值。
-/// 仅支持 iPhone portrait 布局。
+/// DEPRECATED: 请使用新的设备类型系统：
+/// - `lib/models/device_type.dart` - AppDeviceType 枚举
+/// - `lib/providers/device_type_provider.dart` - DeviceTypeProvider
+/// - `lib/utils/device_config.dart` - DeviceConfig 配置类
 library;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vidlang/models/device_type.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/utils/device_config.dart';
 
 class DeviceUtils {
   DeviceUtils._();
 
-  /// 初始化（空操作，仅为向后兼容）
+  /// 初始化（已废弃，由 DeviceTypeProvider 接管）
   static Future<void> initialize() async {}
 
-  /// 网格列数（iPhone 固定 2 列）
-  static const int gridColumns = 2;
+  /// 获取当前设备类型
+  static AppDeviceType getDeviceType(WidgetRef ref) {
+    return ref.read(deviceTypeProvider);
+  }
+
+  /// 网格列数 - 根据设备类型动态返回
+  static int get gridColumns {
+    return DeviceConfig.ipadGridColumns;
+  }
 
   /// 网格间距
   static const double gridSpacing = 12.0;
 
-  /// 页面水平内边距
-  static const double pagePadding = 16.0;
+  /// 页面水平内边距 - 根据设备类型返回
+  static double get pagePadding {
+    return 16.0;
+  }
 }

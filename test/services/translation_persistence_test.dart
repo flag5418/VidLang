@@ -207,10 +207,7 @@ void main() {
           contentTranslate: '你好',
           translateSource: 2,
         )..code = 'sub-101',
-        Subtitles(
-          videoCode: 'test-video',
-          content: 'World',
-        )..code = 'sub-102',
+        Subtitles(videoCode: 'test-video', content: 'World')..code = 'sub-102',
       ];
 
       final updatedCount = await updateTranslationsByCode(subtitles);
@@ -252,7 +249,11 @@ void main() {
       ];
       await updateTranslationsByCode(subs1);
 
-      var row = await db.query('subtitles', where: 'code = ?', whereArgs: ['sub-201']);
+      var row = await db.query(
+        'subtitles',
+        where: 'code = ?',
+        whereArgs: ['sub-201'],
+      );
       expect(row.first['content_translate'], equals('第一次翻译'));
       expect(row.first['translate_source'], equals(2));
 
@@ -266,7 +267,11 @@ void main() {
       ];
       await updateTranslationsByCode(subs2);
 
-      row = await db.query('subtitles', where: 'code = ?', whereArgs: ['sub-201']);
+      row = await db.query(
+        'subtitles',
+        where: 'code = ?',
+        whereArgs: ['sub-201'],
+      );
       expect(row.first['content_translate'], equals('第二次翻译'));
       expect(row.first['translate_source'], equals(2));
     });
@@ -288,9 +293,8 @@ void main() {
       expect(sub.translateSource, equals(2));
       expect(sub.contentTranslate, equals('你好'));
 
-      final needsTranslate = sub.translateSource == null ||
-          sub.translateSource == -1 ||
-          sub.translateSource == 0;
+      final needsTranslate =
+          sub.translateSource == -1 || sub.translateSource == 0;
 
       expect(needsTranslate, isFalse, reason: '已有翻译的记录不应再次翻译');
     });
@@ -312,9 +316,8 @@ void main() {
       expect(sub.translateSource, equals(-1));
       expect(sub.contentTranslate, isNull);
 
-      final needsTranslate = sub.translateSource == null ||
-          sub.translateSource == -1 ||
-          sub.translateSource == 0;
+      final needsTranslate =
+          sub.translateSource == -1 || sub.translateSource == 0;
 
       expect(needsTranslate, isTrue, reason: '无翻译的记录应标记为需要翻译');
     });

@@ -88,6 +88,10 @@ dependencies:
   # 音频播放 - 用于播放 TTS 和录音文件
   audioplayers: ^6.1.0
 
+  # PCM 音频播放器 - 用于流式播放 TTS 合成的 PCM 数据
+  flutter_pcm_player:
+    path: plugs/flutter_pcm_player
+
   # 录音 - 用于录制用户语音
   record: ^6.0.0
 
@@ -101,6 +105,8 @@ dependencies:
   # 官方浏览: https://hugeicons.com/icons
   hugeicons: ^1.1.7
   image_picker: ^1.1.2
+  http: any
+  http_parser: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

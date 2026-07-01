@@ -53,7 +53,14 @@ class FileState {
   /// 错误信息
   final String? error;
 
-  FileState({this.folders = const [], this.currentFolder, this.videos = const [], this.currentVideo, this.isLoading = false, this.error});
+  FileState({
+    this.folders = const [],
+    this.currentFolder,
+    this.videos = const [],
+    this.currentVideo,
+    this.isLoading = false,
+    this.error,
+  });
 
   /// 复制并返回新状态
   FileState copyWith({
@@ -102,12 +109,6 @@ class FileNotifier extends StateNotifier<FileState> {
     return false;
   }
 
-  bool _shouldDeletePhysicalPath({required VideoFolder folder, required String path, required List<String> sandboxPrefixes}) {
-    if (path.isEmpty) return false;
-    if (folder.type == VideoFolderType.real) return true;
-    return _startsWithAnyPrefix(path, sandboxPrefixes);
-  }
-
   bool _shouldDeletePhysicalPathForVideo({
     required VideoFolder folder,
     required VideoInfo video,
@@ -115,7 +116,8 @@ class FileNotifier extends StateNotifier<FileState> {
     required List<String> sandboxPrefixes,
   }) {
     if (path.isEmpty) return false;
-    final isReal = folder.type == VideoFolderType.real || video.fileType == 'real';
+    final isReal =
+        folder.type == VideoFolderType.real || video.fileType == 'real';
     if (isReal) return true;
     return _startsWithAnyPrefix(path, sandboxPrefixes);
   }
@@ -125,8 +127,10 @@ class FileNotifier extends StateNotifier<FileState> {
       await migrateLegacyLeafFolders();
       List<VideoFolder> folders = await DatabaseService.findByCondition(
         () => VideoFolder(),
-        where: "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != ''",
-        orderBy: 'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
+        where:
+            "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != ''",
+        orderBy:
+            'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
       );
 
       final seenCodes = <String>{};
@@ -146,11 +150,18 @@ class FileNotifier extends StateNotifier<FileState> {
 
   /// 将旧版无 parent 的视频集挂到默认分组（仅含视频或绑定路径的条目）
   Future<void> migrateLegacyLeafFolders() async {
-    final legacy = await DatabaseService.findByCondition(() => VideoFolder(), where: "(parent_code IS NULL OR parent_code = '') AND is_deleted = 0");
+    final legacy = await DatabaseService.findByCondition(
+      () => VideoFolder(),
+      where: "(parent_code IS NULL OR parent_code = '') AND is_deleted = 0",
+    );
     if (legacy.isEmpty) return;
     final groupCode = await SettingsService.ensureDefaultGroupCode();
     for (final folder in legacy) {
-      final count = await DatabaseService.count(() => VideoInfo(), where: 'folder_code = ? AND is_deleted = 0', whereArgs: [folder.code]);
+      final count = await DatabaseService.count(
+        () => VideoInfo(),
+        where: 'folder_code = ? AND is_deleted = 0',
+        whereArgs: [folder.code],
+      );
       if (count > 0 || folder.path.isNotEmpty) {
         folder.parentCode = groupCode;
         await DatabaseService.update(folder);
@@ -170,8 +181,10 @@ class FileNotifier extends StateNotifier<FileState> {
 
       List<VideoFolder> folders = await DatabaseService.findByCondition(
         () => VideoFolder(),
-        where: "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != ''",
-        orderBy: 'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
+        where:
+            "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != ''",
+        orderBy:
+            'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
       );
 
       // 去重 - 根据 code 去重
@@ -186,12 +199,20 @@ class FileNotifier extends StateNotifier<FileState> {
 
       logger.info('found ${folders.length} folders', tag: 'FOLDER');
       for (final f in folders) {
-        logger.debug('${f.name} code=${f.code} parentCode=${f.parentCode}', tag: 'FOLDER');
+        logger.debug(
+          '${f.name} code=${f.code} parentCode=${f.parentCode}',
+          tag: 'FOLDER',
+        );
       }
 
       state = state.copyWith(folders: folders, isLoading: false, error: null);
     } catch (e, st) {
-      logger.error('loadFolders failed', tag: 'FOLDER', error: e, stackTrace: st);
+      logger.error(
+        'loadFolders failed',
+        tag: 'FOLDER',
+        error: e,
+        stackTrace: st,
+      );
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -231,7 +252,13 @@ class FileNotifier extends StateNotifier<FileState> {
         }
       }
 
-      state = state.copyWith(currentFolder: folder, videos: videos, currentVideo: currentVideo, isLoading: false, error: null);
+      state = state.copyWith(
+        currentFolder: folder,
+        videos: videos,
+        currentVideo: currentVideo,
+        isLoading: false,
+        error: null,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -275,14 +302,23 @@ class FileNotifier extends StateNotifier<FileState> {
         }
       }
 
-      state = state.copyWith(currentFolder: folder, videos: videos, currentVideo: currentVideo, error: null);
+      state = state.copyWith(
+        currentFolder: folder,
+        videos: videos,
+        currentVideo: currentVideo,
+        error: null,
+      );
     } catch (e) {
       state = state.copyWith(error: e.toString());
     }
   }
 
   /// 创建叶子视频集（挂在默认或指定分组下）
-  Future<String?> createFolder(String name, {String? parentCode, String contentType = 'video'}) async {
+  Future<String?> createFolder(
+    String name, {
+    String? parentCode,
+    String contentType = 'video',
+  }) async {
     state = state.copyWith(isLoading: true);
     try {
       final duplicated = await DatabaseService.findByCondition(
@@ -296,8 +332,12 @@ class FileNotifier extends StateNotifier<FileState> {
         return '视频集名称已存在';
       }
 
-      final groupCode = parentCode ?? await SettingsService.ensureDefaultGroupCode();
-      final folderContentType = FolderContentType.values.firstWhere((e) => e.name == contentType, orElse: () => FolderContentType.video);
+      final groupCode =
+          parentCode ?? await SettingsService.ensureDefaultGroupCode();
+      final folderContentType = FolderContentType.values.firstWhere(
+        (e) => e.name == contentType,
+        orElse: () => FolderContentType.video,
+      );
       VideoFolder folder = VideoFolder(
         name: name,
         type: VideoFolderType.virtual,
@@ -356,7 +396,11 @@ class FileNotifier extends StateNotifier<FileState> {
       VideoFolder? folder = await findFolderByCode(code);
       if (folder != null) {
         final sandboxPrefixes = await _sandboxPrefixes();
-        final videos = await DatabaseService.findByCondition(() => VideoInfo(), where: 'folder_code = ? AND is_deleted = 0', whereArgs: [code]);
+        final videos = await DatabaseService.findByCondition(
+          () => VideoInfo(),
+          where: 'folder_code = ? AND is_deleted = 0',
+          whereArgs: [code],
+        );
 
         final filePaths = <String>[];
         final subtitlePaths = <String>[];
@@ -364,17 +408,29 @@ class FileNotifier extends StateNotifier<FileState> {
         final currentCoverPaths = <String>[];
 
         for (final v in videos) {
-          if (_shouldDeletePhysicalPathForVideo(folder: folder, video: v, path: v.filePath, sandboxPrefixes: sandboxPrefixes)) {
+          if (_shouldDeletePhysicalPathForVideo(
+            folder: folder,
+            video: v,
+            path: v.filePath,
+            sandboxPrefixes: sandboxPrefixes,
+          )) {
             filePaths.add(v.filePath);
           }
           final subtitlePath = v.subtitlePath;
           if (subtitlePath != null &&
               subtitlePath.isNotEmpty &&
-              _shouldDeletePhysicalPathForVideo(folder: folder, video: v, path: subtitlePath, sandboxPrefixes: sandboxPrefixes)) {
+              _shouldDeletePhysicalPathForVideo(
+                folder: folder,
+                video: v,
+                path: subtitlePath,
+                sandboxPrefixes: sandboxPrefixes,
+              )) {
             subtitlePaths.add(subtitlePath);
           }
           if (v.cover != null && v.cover!.isNotEmpty) coverPaths.add(v.cover!);
-          if (v.currentCover != null && v.currentCover!.isNotEmpty) currentCoverPaths.add(v.currentCover!);
+          if (v.currentCover != null && v.currentCover!.isNotEmpty) {
+            currentCoverPaths.add(v.currentCover!);
+          }
 
           final videoCode = v.code;
           if (videoCode != null && videoCode.isNotEmpty) {
@@ -405,9 +461,13 @@ class FileNotifier extends StateNotifier<FileState> {
 
         state = state.copyWith(
           folders: state.folders.where((f) => f.code != code).toList(),
-          currentFolder: state.currentFolder?.code == code ? null : state.currentFolder,
+          currentFolder: state.currentFolder?.code == code
+              ? null
+              : state.currentFolder,
           videos: state.currentFolder?.code == code ? const [] : state.videos,
-          currentVideo: state.currentFolder?.code == code ? null : state.currentVideo,
+          currentVideo: state.currentFolder?.code == code
+              ? null
+              : state.currentVideo,
           isLoading: false,
           error: null,
         );
@@ -439,7 +499,13 @@ class FileNotifier extends StateNotifier<FileState> {
       state = state.copyWith(isLoading: false);
       return null;
     } catch (e, st) {
-      logger.error('deleteFolder failed', tag: 'DELETE', error: e, stackTrace: st, extra: {'folderCode': code});
+      logger.error(
+        'deleteFolder failed',
+        tag: 'DELETE',
+        error: e,
+        stackTrace: st,
+        extra: {'folderCode': code},
+      );
       state = state.copyWith(isLoading: false, error: e.toString());
       return e.toString();
     }
@@ -453,14 +519,21 @@ class FileNotifier extends StateNotifier<FileState> {
         await f.delete();
       }
     } catch (e, st) {
-      logger.error('delete file failed', tag: 'DELETE', error: e, stackTrace: st, extra: {'path': filePath});
+      logger.error(
+        'delete file failed',
+        tag: 'DELETE',
+        error: e,
+        stackTrace: st,
+        extra: {'path': filePath},
+      );
     }
   }
 
   Future<void> deleteCoverIfExists(String? coverPath) async {
     if (coverPath == null || coverPath.isEmpty) return;
     try {
-      if (coverPath.startsWith('covers/') || coverPath.startsWith('screenshot/')) {
+      if (coverPath.startsWith('covers/') ||
+          coverPath.startsWith('screenshot/')) {
         await ThumbnailService.deleteThumbnail(coverPath);
         return;
       }
@@ -469,7 +542,13 @@ class FileNotifier extends StateNotifier<FileState> {
         await f.delete();
       }
     } catch (e, st) {
-      logger.error('delete cover failed', tag: 'DELETE', error: e, stackTrace: st, extra: {'path': coverPath});
+      logger.error(
+        'delete cover failed',
+        tag: 'DELETE',
+        error: e,
+        stackTrace: st,
+        extra: {'path': coverPath},
+      );
     }
   }
 
@@ -489,7 +568,12 @@ class FileNotifier extends StateNotifier<FileState> {
 
       await DatabaseService.batchUpdate(updatedVideos);
 
-      state = state.copyWith(videos: updatedVideos, currentVideo: video, isLoading: false, error: null);
+      state = state.copyWith(
+        videos: updatedVideos,
+        currentVideo: video,
+        isLoading: false,
+        error: null,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -528,10 +612,19 @@ class FileNotifier extends StateNotifier<FileState> {
         await DatabaseService.batchUpdate(updatedVideos);
 
         // 更新文件夹的播放信息
-        await updateFolderPlayInfo(video.folderCode, videoCode, video.currentPosition);
+        await updateFolderPlayInfo(
+          video.folderCode,
+          videoCode,
+          video.currentPosition,
+        );
         await FolderStatsService.refreshFolderStats(video.folderCode);
 
-        state = state.copyWith(videos: updatedVideos, currentVideo: video, isLoading: false, error: null);
+        state = state.copyWith(
+          videos: updatedVideos,
+          currentVideo: video,
+          isLoading: false,
+          error: null,
+        );
       }
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -544,7 +637,10 @@ class FileNotifier extends StateNotifier<FileState> {
   /// [currentPosition] 当前播放位置（毫秒）
   ///
   /// 保存播放进度到数据库，用于断点续播
-  Future<void> updateVideoProgress(String videoCode, int currentPosition) async {
+  Future<void> updateVideoProgress(
+    String videoCode,
+    int currentPosition,
+  ) async {
     state = state.copyWith(isLoading: true);
     try {
       VideoInfo? video = await findVideoByCode(videoCode);
@@ -554,7 +650,11 @@ class FileNotifier extends StateNotifier<FileState> {
         await DatabaseService.update(video);
 
         // 更新文件夹播放信息
-        await updateFolderPlayInfo(video.folderCode, videoCode, currentPosition);
+        await updateFolderPlayInfo(
+          video.folderCode,
+          videoCode,
+          currentPosition,
+        );
 
         // 重新加载视频列表
         final folderCode = state.currentFolder?.code;
@@ -630,9 +730,13 @@ class FileNotifier extends StateNotifier<FileState> {
   /// [startTime] 学习开始时间
   ///
   /// 在用户开始学习时创建一条记录
-  Future<void> createStudyRecord(String resourceCode, String resourceType, String? folderCode, DateTime startTime) async {
+  Future<void> createStudyRecord(
+    String resourceCode,
+    String resourceType,
+    String? folderCode,
+    DateTime startTime,
+  ) async {
     try {
-      final now = DateTime.now();
       StudyRecord record = StudyRecord(
         resourceCode: resourceCode,
         resourceType: resourceType,
@@ -654,7 +758,12 @@ class FileNotifier extends StateNotifier<FileState> {
   /// [playCount] 本次完整播放次数
   ///
   /// 查找该资源最近一条未完成的记录并更新
-  Future<void> completeStudyRecord(String resourceCode, DateTime endTime, int duration, int playCount) async {
+  Future<void> completeStudyRecord(
+    String resourceCode,
+    DateTime endTime,
+    int duration,
+    int playCount,
+  ) async {
     try {
       // 查找该资源最近一条未完成的记录
       List<StudyRecord> records = await DatabaseService.findByCondition(
@@ -708,14 +817,24 @@ class FileNotifier extends StateNotifier<FileState> {
         final folder = await findFolderByCode(video.folderCode);
         final sandboxPrefixes = await _sandboxPrefixes();
         if (folder != null &&
-            _shouldDeletePhysicalPathForVideo(folder: folder, video: video, path: video.filePath, sandboxPrefixes: sandboxPrefixes)) {
+            _shouldDeletePhysicalPathForVideo(
+              folder: folder,
+              video: video,
+              path: video.filePath,
+              sandboxPrefixes: sandboxPrefixes,
+            )) {
           await deleteFileIfExists(video.filePath);
         }
         final subtitlePath = video.subtitlePath;
         if (folder != null &&
             subtitlePath != null &&
             subtitlePath.isNotEmpty &&
-            _shouldDeletePhysicalPathForVideo(folder: folder, video: video, path: subtitlePath, sandboxPrefixes: sandboxPrefixes)) {
+            _shouldDeletePhysicalPathForVideo(
+              folder: folder,
+              video: video,
+              path: subtitlePath,
+              sandboxPrefixes: sandboxPrefixes,
+            )) {
           await deleteFileIfExists(subtitlePath);
         }
         await deleteCoverIfExists(video.cover);
@@ -778,7 +897,10 @@ class FileNotifier extends StateNotifier<FileState> {
   ///
   /// [videoCode] 视频 code
   /// [subtitlePath] 字幕文件路径
-  Future<void> importSubtitleForVideo(String videoCode, String subtitlePath) async {
+  Future<void> importSubtitleForVideo(
+    String videoCode,
+    String subtitlePath,
+  ) async {
     state = state.copyWith(isLoading: true);
     try {
       VideoInfo? video = await findVideoByCode(videoCode);
@@ -788,7 +910,11 @@ class FileNotifier extends StateNotifier<FileState> {
       await DatabaseService.update(video);
 
       // 调用服务导入字幕内容
-      await FilePickerService.importSubtitleToDb(subtitlePath, video.folderCode, videoCode);
+      await FilePickerService.importSubtitleToDb(
+        subtitlePath,
+        video.folderCode,
+        videoCode,
+      );
 
       final folderCode = state.currentFolder?.code;
       if (folderCode != null) {
@@ -807,7 +933,10 @@ class FileNotifier extends StateNotifier<FileState> {
   ///
   /// 更新文件夹的 lastVideoCode、lastPlayDate、lastPlayDuration
   /// 更新视频集播放设置
-  Future<void> updateFolderPlaybackSettings(String folderCode, PlaybackSettings settings) async {
+  Future<void> updateFolderPlaybackSettings(
+    String folderCode,
+    PlaybackSettings settings,
+  ) async {
     final folder = await findFolderByCode(folderCode);
     if (folder == null) return;
     folder.skipOpening = settings.skipOpening;
@@ -823,7 +952,11 @@ class FileNotifier extends StateNotifier<FileState> {
     await loadFolders();
   }
 
-  Future<void> updateFolderPlayInfo(String folderCode, String videoCode, int playDuration) async {
+  Future<void> updateFolderPlayInfo(
+    String folderCode,
+    String videoCode,
+    int playDuration,
+  ) async {
     try {
       VideoFolder? folder = await findFolderByCode(folderCode);
       if (folder != null) {
@@ -841,13 +974,21 @@ class FileNotifier extends StateNotifier<FileState> {
 
   /// 根据code查找文件夹
   Future<VideoFolder?> findFolderByCode(String code) async {
-    List<VideoFolder> folders = await DatabaseService.findByCondition(() => VideoFolder(), where: 'code = ? AND is_deleted = 0', whereArgs: [code]);
+    List<VideoFolder> folders = await DatabaseService.findByCondition(
+      () => VideoFolder(),
+      where: 'code = ? AND is_deleted = 0',
+      whereArgs: [code],
+    );
     return folders.isNotEmpty ? folders.first : null;
   }
 
   /// 根据code查找视频
   Future<VideoInfo?> findVideoByCode(String code) async {
-    List<VideoInfo> videos = await DatabaseService.findByCondition(() => VideoInfo(), where: 'code = ? AND is_deleted = 0', whereArgs: [code]);
+    List<VideoInfo> videos = await DatabaseService.findByCondition(
+      () => VideoInfo(),
+      where: 'code = ? AND is_deleted = 0',
+      whereArgs: [code],
+    );
     return videos.isNotEmpty ? videos.first : null;
   }
 }

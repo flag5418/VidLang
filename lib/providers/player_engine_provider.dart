@@ -9,12 +9,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 
-final playerEngineProvider = StateNotifierProvider.autoDispose<PlayerEngineNotifier, PlayerEngineState>((ref) => PlayerEngineNotifier(ref));
+final playerEngineProvider =
+    StateNotifierProvider.autoDispose<PlayerEngineNotifier, PlayerEngineState>(
+      (ref) => PlayerEngineNotifier(ref),
+    );
 
 class PlayerEngineState {
   static const Object _unset = Object();
@@ -130,11 +132,15 @@ class PlayerEngineState {
       position: position ?? this.position,
       duration: duration ?? this.duration,
       buffered: buffered ?? this.buffered,
-      videoSize: identical(videoSize, _unset) ? this.videoSize : videoSize as VideoSize?,
+      videoSize: identical(videoSize, _unset)
+          ? this.videoSize
+          : videoSize as VideoSize?,
       speed: speed ?? this.speed,
       looping: looping ?? this.looping,
       controlsVisible: controlsVisible ?? this.controlsVisible,
-      currentSubtitleIndex: identical(currentSubtitleIndex, _unset) ? this.currentSubtitleIndex : currentSubtitleIndex as int?,
+      currentSubtitleIndex: identical(currentSubtitleIndex, _unset)
+          ? this.currentSubtitleIndex
+          : currentSubtitleIndex as int?,
       subtitleVisible: subtitleVisible ?? this.subtitleVisible,
       translateVisible: translateVisible ?? this.translateVisible,
       singleSentencePause: singleSentencePause ?? this.singleSentencePause,
@@ -152,9 +158,15 @@ class PlayerEngineState {
       followModeActive: followModeActive ?? this.followModeActive,
       originalVolume: originalVolume ?? this.originalVolume,
       isRecording: isRecording ?? this.isRecording,
-      lastFollowScore: identical(lastFollowScore, _unset) ? this.lastFollowScore : lastFollowScore as double?,
-      abLoopStart: identical(abLoopStart, _unset) ? this.abLoopStart : abLoopStart as Duration?,
-      abLoopEnd: identical(abLoopEnd, _unset) ? this.abLoopEnd : abLoopEnd as Duration?,
+      lastFollowScore: identical(lastFollowScore, _unset)
+          ? this.lastFollowScore
+          : lastFollowScore as double?,
+      abLoopStart: identical(abLoopStart, _unset)
+          ? this.abLoopStart
+          : abLoopStart as Duration?,
+      abLoopEnd: identical(abLoopEnd, _unset)
+          ? this.abLoopEnd
+          : abLoopEnd as Duration?,
     );
   }
 }
@@ -173,13 +185,11 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   DateTime? _lastProgressSavedAt;
   int? _lastPausedSubtitleIndex;
-  int? _currentSentenceIdx; // 正在播放的句子索引，用于单句暂停精确控制
+  // 正在播放的句子索引，用于单句暂停精确控制
 
   // 学习记录相关
   bool _studyRecordCreated = false;
-  DateTime? _studyStartTime;
   String? _studyResourceCode;
-  String? _studyResourceType;
   Timer? _articleTimer;
 
   bool _slowToFastActive = false;
@@ -252,14 +262,11 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _folder = folder;
     _lastProgressSavedAt = null;
     _lastPausedSubtitleIndex = null;
-    _currentSentenceIdx = null;
 
     // 切换资源时，通过 LearningStatsService 统一管理会话
     await _completeCurrentStudyRecord();
     final resourceType = _folderTypeToResourceType(folder.folderType);
-    _studyStartTime = DateTime.now();
     _studyResourceCode = videoCode;
-    _studyResourceType = resourceType;
     _studyRecordCreated = false;
 
     // 统一使用 LearningStatsService.beginSession（打开即计时，无延迟）
@@ -278,7 +285,8 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     if (_closed || op != _opSeq) return;
     final translateVisible = await SettingsService.getPlayerTranslateVisible();
     if (_closed || op != _opSeq) return;
-    final singleSentencePause = await SettingsService.getPlayerSingleSentencePause();
+    final singleSentencePause =
+        await SettingsService.getPlayerSingleSentencePause();
     if (_closed || op != _opSeq) return;
 
     _setStateSafely(
@@ -290,7 +298,9 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         translateVisible: translateVisible,
         singleSentencePause: singleSentencePause,
         playerState: PlayerState.loading,
-        position: Duration(milliseconds: video.currentPosition.clamp(0, 1 << 30)),
+        position: Duration(
+          milliseconds: video.currentPosition.clamp(0, 1 << 30),
+        ),
         duration: Duration(milliseconds: video.duration.clamp(0, 1 << 30)),
         buffered: 0.0,
         videoSize: null,
@@ -313,13 +323,25 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         }
       }
       if (!exists) {
-        _setStateSafely(state.copyWith(errorMessage: '视频文件不存在：$path', playerState: PlayerState.error));
+        _setStateSafely(
+          state.copyWith(
+            errorMessage: '视频文件不存在：$path',
+            playerState: PlayerState.error,
+          ),
+        );
         return;
       }
     }
 
     final isAudio = folder.folderType == FolderContentType.music;
-    await _player.open(MediaItem(url: url, title: video.name.isEmpty ? url : video.name, isVideo: !isAudio), autoPlay: false);
+    await _player.open(
+      MediaItem(
+        url: url,
+        title: video.name.isEmpty ? url : video.name,
+        isVideo: !isAudio,
+      ),
+      autoPlay: false,
+    );
     if (_closed || op != _opSeq) return;
     await _player.setSpeed(speed);
     if (_closed || op != _opSeq) return;
@@ -352,14 +374,11 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _folder = folder;
     _lastProgressSavedAt = null;
     _lastPausedSubtitleIndex = null;
-    _currentSentenceIdx = null;
 
     // 切换资源时，通过 LearningStatsService 统一管理会话
     await _completeCurrentStudyRecord();
     final resourceType = _folderTypeToResourceType(folder.folderType);
-    _studyStartTime = DateTime.now();
     _studyResourceCode = videoCode;
-    _studyResourceType = resourceType;
     _studyRecordCreated = false;
 
     try {
@@ -377,9 +396,11 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     if (_closed || op != _opSeq) return;
     final translateVisible = await SettingsService.getPlayerTranslateVisible();
     if (_closed || op != _opSeq) return;
-    final singleSentencePause = await SettingsService.getPlayerSingleSentencePause();
+    final singleSentencePause =
+        await SettingsService.getPlayerSingleSentencePause();
     if (_closed || op != _opSeq) return;
-    final pronunciationVisible = await SettingsService.getAudioPronunciationVisible();
+    final pronunciationVisible =
+        await SettingsService.getAudioPronunciationVisible();
     if (_closed || op != _opSeq) return;
     final originalVolume = audioType == 'music'
         ? await SettingsService.getAudioOriginalVolumeMusic()
@@ -398,7 +419,9 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         originalVolume: originalVolume,
         audioType: audioType,
         playerState: PlayerState.loading,
-        position: Duration(milliseconds: video.currentPosition.clamp(0, 1 << 30)),
+        position: Duration(
+          milliseconds: video.currentPosition.clamp(0, 1 << 30),
+        ),
         duration: Duration(milliseconds: video.duration.clamp(0, 1 << 30)),
         buffered: 0.0,
         videoSize: null,
@@ -423,7 +446,12 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         }
       }
       if (!exists) {
-        _setStateSafely(state.copyWith(errorMessage: '音频文件不存在', playerState: PlayerState.error));
+        _setStateSafely(
+          state.copyWith(
+            errorMessage: '音频文件不存在',
+            playerState: PlayerState.error,
+          ),
+        );
         return;
       }
     }
@@ -431,7 +459,13 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     final artist = video.artist;
     final album = video.album;
     await _player.open(
-      MediaItem(url: url, title: video.name.isEmpty ? url : video.name, artist: artist, album: album, isVideo: false),
+      MediaItem(
+        url: url,
+        title: video.name.isEmpty ? url : video.name,
+        artist: artist,
+        album: album,
+        isVideo: false,
+      ),
       autoPlay: false,
     );
     if (_closed || op != _opSeq) return;
@@ -448,7 +482,8 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
   }
 
   void setSubtitles(List<Subtitles> list) {
-    _subtitles = List<Subtitles>.from(list)..sort((a, b) => (a.startPosition).compareTo(b.startPosition));
+    _subtitles = List<Subtitles>.from(list)
+      ..sort((a, b) => (a.startPosition).compareTo(b.startPosition));
     _setStateSafely(state.copyWith(hasSubtitles: _subtitles.isNotEmpty));
     _syncSubtitleIndexForPosition(state.position.inMilliseconds);
   }
@@ -475,7 +510,6 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
         final sub = _subtitles[idx];
         await _player.seek(Duration(milliseconds: sub.startPosition.toInt()));
         _lastPausedSubtitleIndex = null;
-        _currentSentenceIdx = null;
       }
     }
     await _player.play();
@@ -486,7 +520,12 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
   }
 
   Future<void> seekToMs(int ms) async {
-    final safe = ms.clamp(0, state.duration.inMilliseconds > 0 ? state.duration.inMilliseconds : 1 << 30);
+    final safe = ms.clamp(
+      0,
+      state.duration.inMilliseconds > 0
+          ? state.duration.inMilliseconds
+          : 1 << 30,
+    );
     await _player.seek(Duration(milliseconds: safe));
   }
 
@@ -529,20 +568,25 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     final v = !state.singleSentencePause;
     _setStateSafely(state.copyWith(singleSentencePause: v));
     _lastPausedSubtitleIndex = null;
-    _currentSentenceIdx = null;
     await SettingsService.setPlayerSingleSentencePause(v);
   }
 
   Future<void> previousSentence() async {
     if (_subtitles.isEmpty) return;
-    final idx = state.currentSubtitleIndex ?? _indexForPosition(state.position.inMilliseconds) ?? 0;
+    final idx =
+        state.currentSubtitleIndex ??
+        _indexForPosition(state.position.inMilliseconds) ??
+        0;
     final next = (idx - 1).clamp(0, _subtitles.length - 1);
     await _jumpToSubtitle(next, restartSlowToFast: true);
   }
 
   Future<void> nextSentence() async {
     if (_subtitles.isEmpty) return;
-    final idx = state.currentSubtitleIndex ?? _indexForPosition(state.position.inMilliseconds) ?? 0;
+    final idx =
+        state.currentSubtitleIndex ??
+        _indexForPosition(state.position.inMilliseconds) ??
+        0;
     final next = (idx + 1).clamp(0, _subtitles.length - 1);
     await _jumpToSubtitle(next, restartSlowToFast: true);
   }
@@ -563,7 +607,13 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
   void setShutdownTimer(int seconds) {
     _shutdownTimer?.cancel();
     _shutdownTimer = null;
-    _setStateSafely(state.copyWith(shutdownTimerSeconds: seconds, shutdownTimerType: 'time', shutdownEpisodeCount: 0));
+    _setStateSafely(
+      state.copyWith(
+        shutdownTimerSeconds: seconds,
+        shutdownTimerType: 'time',
+        shutdownEpisodeCount: 0,
+      ),
+    );
     SettingsService.setPlayerShutdownTimerType('time');
     SettingsService.setPlayerShutdownTimerSeconds(seconds);
     SettingsService.setPlayerShutdownEpisodeCount(0);
@@ -578,13 +628,21 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     _shutdownTimer = null;
     _playedEpisodeCount = 0;
     if (type == 'time') {
-      _setStateSafely(state.copyWith(shutdownTimerType: 'time', shutdownEpisodeCount: 0));
+      _setStateSafely(
+        state.copyWith(shutdownTimerType: 'time', shutdownEpisodeCount: 0),
+      );
       SettingsService.setPlayerShutdownTimerType('time');
       SettingsService.setPlayerShutdownEpisodeCount(0);
       final sec = state.shutdownTimerSeconds;
       if (sec > 0) _startShutdownTimer(sec);
     } else {
-      _setStateSafely(state.copyWith(shutdownTimerType: 'episode', shutdownTimerSeconds: 0, shutdownEpisodeCount: state.shutdownEpisodeCount));
+      _setStateSafely(
+        state.copyWith(
+          shutdownTimerType: 'episode',
+          shutdownTimerSeconds: 0,
+          shutdownEpisodeCount: state.shutdownEpisodeCount,
+        ),
+      );
       SettingsService.setPlayerShutdownTimerType('episode');
       SettingsService.setPlayerShutdownTimerSeconds(0);
     }
@@ -592,7 +650,13 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   void setShutdownEpisodeCount(int count) {
     _playedEpisodeCount = 0;
-    _setStateSafely(state.copyWith(shutdownEpisodeCount: count, shutdownTimerType: 'episode', shutdownTimerSeconds: 0));
+    _setStateSafely(
+      state.copyWith(
+        shutdownEpisodeCount: count,
+        shutdownTimerType: 'episode',
+        shutdownTimerSeconds: 0,
+      ),
+    );
     SettingsService.setPlayerShutdownEpisodeCount(count);
     SettingsService.setPlayerShutdownTimerType('episode');
     SettingsService.setPlayerShutdownTimerSeconds(0);
@@ -631,7 +695,9 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   Future<void> exitFollowMode() async {
     if (!state.followModeActive) return;
-    _setStateSafely(state.copyWith(followModeActive: false, isRecording: false));
+    _setStateSafely(
+      state.copyWith(followModeActive: false, isRecording: false),
+    );
     await _player.setVolume(1.0);
   }
 
@@ -648,7 +714,8 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     final mode = state.loopingMode;
 
     // Episode-based shutdown check
-    if (state.shutdownTimerType == 'episode' && state.shutdownEpisodeCount > 0) {
+    if (state.shutdownTimerType == 'episode' &&
+        state.shutdownEpisodeCount > 0) {
       _playedEpisodeCount++;
       if (_playedEpisodeCount >= state.shutdownEpisodeCount) {
         _playedEpisodeCount = 0;
@@ -798,27 +865,42 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
       }),
       _player.errorStream.listen((msg) {
         if (_closed) return;
-        _setStateSafely(state.copyWith(errorMessage: msg, playerState: PlayerState.error));
+        _setStateSafely(
+          state.copyWith(errorMessage: msg, playerState: PlayerState.error),
+        );
       }),
     ]);
     _initialized = true;
   }
 
   Future<VideoInfo?> _findVideo(String code) async {
-    final list = await DatabaseService.findByCondition(() => VideoInfo(), where: 'code = ? AND is_deleted = 0', whereArgs: [code], limit: 1);
+    final list = await DatabaseService.findByCondition(
+      () => VideoInfo(),
+      where: 'code = ? AND is_deleted = 0',
+      whereArgs: [code],
+      limit: 1,
+    );
     return list.isNotEmpty ? list.first : null;
   }
 
   Future<VideoFolder?> _findFolder(String folderCode) async {
     if (folderCode.isEmpty) return null;
-    final list = await DatabaseService.findByCondition(() => VideoFolder(), where: 'code = ? AND is_deleted = 0', whereArgs: [folderCode], limit: 1);
+    final list = await DatabaseService.findByCondition(
+      () => VideoFolder(),
+      where: 'code = ? AND is_deleted = 0',
+      whereArgs: [folderCode],
+      limit: 1,
+    );
     return list.isNotEmpty ? list.first : null;
   }
 
   String _asPlayableUrl(String raw) {
     final v = raw.trim();
     if (v.isEmpty) return v;
-    if (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('rtsp://') || v.startsWith('rtmp://')) {
+    if (v.startsWith('http://') ||
+        v.startsWith('https://') ||
+        v.startsWith('rtsp://') ||
+        v.startsWith('rtmp://')) {
       return v;
     }
     if (v.startsWith('file://')) return v;
@@ -915,13 +997,15 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     return lo.clamp(0, _subtitles.length - 1);
   }
 
-  Future<void> _jumpToSubtitle(int index, {required bool restartSlowToFast}) async {
+  Future<void> _jumpToSubtitle(
+    int index, {
+    required bool restartSlowToFast,
+  }) async {
     if (_subtitles.isEmpty) return;
     final i = index.clamp(0, _subtitles.length - 1);
     final s = _subtitles[i];
     _setStateSafely(state.copyWith(currentSubtitleIndex: i));
     _lastPausedSubtitleIndex = null;
-    _currentSentenceIdx = null;
     await _player.seek(Duration(milliseconds: s.startPosition.toInt()));
     if (restartSlowToFast && _slowToFastActive) {
       await _startSlowToFast();
@@ -950,7 +1034,9 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   Future<void> _startSlowToFast() async {
     if (_subtitles.isEmpty) return;
-    final idx = state.currentSubtitleIndex ?? _indexForPosition(state.position.inMilliseconds);
+    final idx =
+        state.currentSubtitleIndex ??
+        _indexForPosition(state.position.inMilliseconds);
     if (idx == null) return;
     final s = _subtitles[idx];
     _slowStartMs = s.startPosition.toInt();
@@ -1080,20 +1166,19 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
   List<Subtitles> get subtitles => _subtitles;
 
   /// Seek to subtitle index (no auto-play)
-  Future<void> jumpToSubtitle(int index) => _jumpToSubtitle(index, restartSlowToFast: false);
+  Future<void> jumpToSubtitle(int index) =>
+      _jumpToSubtitle(index, restartSlowToFast: false);
 
   /// Set single sentence pause mode (not toggle)
   void setSingleSentencePause(bool value) {
     _setStateSafely(state.copyWith(singleSentencePause: value));
     _lastPausedSubtitleIndex = null;
-    _currentSentenceIdx = null;
     SettingsService.setPlayerSingleSentencePause(value);
   }
 
   /// Reset the pause flag (used when user manually clicks play)
   void resetPauseFlag() {
     _lastPausedSubtitleIndex = null;
-    _currentSentenceIdx = null;
   }
 
   // ==================== 学习记录 ====================
@@ -1122,8 +1207,6 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
     } catch (_) {}
 
     _studyRecordCreated = false;
-    _studyStartTime = null;
     _studyResourceCode = null;
-    _studyResourceType = null;
   }
 }

@@ -8,9 +8,16 @@ class Id3Tags {
   final Uint8List? coverData;
   final String? coverMimeType;
 
-  const Id3Tags({this.title, this.artist, this.album, this.coverData, this.coverMimeType});
+  const Id3Tags({
+    this.title,
+    this.artist,
+    this.album,
+    this.coverData,
+    this.coverMimeType,
+  });
 
-  bool get hasInfo => title != null || artist != null || album != null || coverData != null;
+  bool get hasInfo =>
+      title != null || artist != null || album != null || coverData != null;
 }
 
 class Id3Parser {
@@ -76,7 +83,9 @@ class Id3Parser {
 
       if (frameSize <= 0 || frameSize > 10 * 1024 * 1024) {
         bytesRead += 10 + frameSize;
-        if (frameSize > 0) await raf.setPosition(await raf.position() + frameSize);
+        if (frameSize > 0) {
+          await raf.setPosition(await raf.position() + frameSize);
+        }
         continue;
       }
 
@@ -184,11 +193,12 @@ class Id3Parser {
     final mimeEnd = data.indexOf(0, offset);
     if (mimeEnd < 0) return null;
 
-    final mimeType = String.fromCharCodes(data.sublist(offset, mimeEnd)).toLowerCase();
+    final mimeType = String.fromCharCodes(
+      data.sublist(offset, mimeEnd),
+    ).toLowerCase();
     offset = mimeEnd + 1;
 
     if (offset >= data.length) return null;
-    final pictureType = data[offset];
     offset += 1;
 
     if (encoding == 1 || encoding == 2) {

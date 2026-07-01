@@ -20,7 +20,7 @@ import {
   generateCacheStats,
 } from './cache-helpers-v4.ts'
 import { generateQuestions, DispatchInput, QuestionType, DifficultyLevel } from './agents/agent-dispatcher.ts'
-import { validateItem as v4ValidateItem } from './quality-gate.ts'
+import { validateItem as v4ValidateItem, isChoiceQuestion } from './quality-gate.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -792,20 +792,30 @@ Deno.serve(async (req) => {
   // ═══ 全局质量门：过滤所有不合规的题目 ═══
   // （对应设计文档 06-test-system.md §4.2 质量门机制）
   const validatedItems = allItems.filter((item) => {
-    const result = validateItem(item)
+    const result = v4ValidateItem(item)
     if (!result.valid) {
       console.warn(`[quality_gate] 题目被过滤: type=${item.type} reason=${item.ref_text ?? item.display_text ?? item.sentence ?? 'N/A'}`)
     }
     return result.valid
   })
 
-  if (validatedItems.length === 0) {
+  // ═══ 降级兜底：如果全部题目被过滤，但有非选择题，则保留非选择题 ═══
+  let finalItems = validatedItems
+  if (validatedItems.length === 0 && allItems.length > 0) {
+    const nonChoiceItems = allItems.filter((item) => !isChoiceQuestion(item))
+    if (nonChoiceItems.length > 0) {
+      console.warn(`[quality_gate] 降级: 所有选择题被过滤，保留 ${nonChoiceItems.length} 道非选择题`)
+      finalItems = nonChoiceItems
+    }
+  }
+
+  if (finalItems.length === 0) {
     console.warn('[quality_gate] 所有题目均未通过质量门检查，返回 no_items')
     return json({ ok: false, error: 'no_items', message: '所有生成的题目均未通过质量检查，请尝试更换测试素材或调整配置' }, 400)
   }
 
-  const items = shuffle(validatedItems)
-  console.log(`[quality_gate] 出题完成: 总生成 ${allItems.length} 题, 通过 ${validatedItems.length} 题, 过滤 ${allItems.length - validatedItems.length} 题`)
+  const items = shuffle(finalItems)
+  console.log(`[quality_gate] 出题完成: 总生成 ${allItems.length} 题, 通过 ${finalItems.length} 题, 过滤 ${allItems.length - finalItems.length} 题`)
 
   let balanceAfter = balanceBefore
   let idempotent = false

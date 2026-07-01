@@ -358,7 +358,7 @@ class AiService {
           } else {
             // ⚡ 部分命中：仅补充 context_sentence_info
             dev.log('word cache PARTIAL HIT: $cacheKey (need context info)', name: 'AiService');
-            final enriched = await _enrichWithContext(cached, contextSentence!, billing: billing, sourceType: sourceType);
+            final enriched = await _enrichWithContext(cached, contextSentence, billing: billing, sourceType: sourceType);
             if (enriched != null) {
               // 异步更新缓存（不阻塞返回）
               _writeWordCache(cacheKey, enriched);

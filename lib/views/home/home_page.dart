@@ -1,10 +1,8 @@
 /// 首页
 ///
-/// 顶部：2×2 统计九宫格（连续/今日/生词/已学）
-/// 中段：3段资源快速启动（视频/文章/音频）
-///   - 每段显示标题 + "更多"按钮
-///   - 显示最近文件夹横向列表，第一个为"正在播放"
-///   - 无资源时显示缺省引导
+/// 支持 iPhone/iPad 两套独立 UI 设计：
+/// - iPhone: 单列布局，2列统计卡片，横向滚动文件夹
+/// - iPad: 双列布局，左侧统计+资源概览，右侧推荐资源列表
 library;
 
 import 'package:flutter/material.dart';
@@ -12,8 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/components/folder_card.dart';
 import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -99,7 +99,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       } catch (_) {}
     }
 
-    // 播放第一个资源（按 order_index 排序）
     try {
       final videos = await DatabaseService.findByCondition(
         () => VideoInfo(),
@@ -134,70 +133,253 @@ class _HomePageState extends ConsumerState<HomePage> {
     } catch (_) {}
   }
 
+  AppDeviceType get _deviceType => ref.read(deviceTypeProvider);
+  bool get _isIpad => _deviceType.isTablet;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final brightness = Theme.of(context).brightness;
 
+    if (_isIpad) {
+      return Scaffold(
+        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+        body: _buildIpadBody(colorScheme, brightness),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
-      appBar: AppBar(
-        title: Text(
-          'VidLang',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-          ),
+      appBar: _buildIphoneAppBar(colorScheme),
+      body: _buildIphoneBody(colorScheme, brightness),
+    );
+  }
+
+  // ============================================================
+  // iPhone 布局
+  // ============================================================
+
+  AppBar _buildIphoneAppBar(ColorScheme colorScheme) {
+    return AppBar(
+      title: Text(
+        'VidLang',
+        style: TextStyle(
+          fontSize: 18.sp,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
         ),
-        elevation: 0,
-        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
-        scrolledUnderElevation: 0.5,
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.pagePadding,
-                  vertical: AppSpacing.md,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStatsSection(colorScheme),
-                    SizedBox(height: AppSpacing.lg),
-                    _buildResourceSection(
-                      colorScheme,
-                      'video',
-                      '视频',
-                      Icons.movie_outlined,
-                    ),
-                    SizedBox(height: AppSpacing.lg),
-                    _buildResourceSection(
-                      colorScheme,
-                      'music',
-                      '音频',
-                      Icons.music_note_outlined,
-                    ),
-                    SizedBox(height: AppSpacing.lg),
-                    _buildResourceSection(
-                      colorScheme,
-                      'article',
-                      '文章',
-                      Icons.menu_book_outlined,
-                    ),
-                    SizedBox(height: AppSpacing.md),
-                  ],
-                ),
+      elevation: 0,
+      backgroundColor: AppColors.getSurfaceHighest(brightness: Theme.of(context).brightness),
+      scrolledUnderElevation: 0.5,
+    );
+  }
+
+  Widget _buildIphoneBody(ColorScheme colorScheme, Brightness brightness) {
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.pagePadding,
+                vertical: AppSpacing.md,
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStatsSection(colorScheme, isIpad: false),
+                  SizedBox(height: AppSpacing.lg),
+                  _buildResourceSection(colorScheme, 'video', '视频', Icons.movie_outlined, isIpad: false),
+                  SizedBox(height: AppSpacing.lg),
+                  _buildResourceSection(colorScheme, 'music', '音频', Icons.music_note_outlined, isIpad: false),
+                  SizedBox(height: AppSpacing.lg),
+                  _buildResourceSection(colorScheme, 'article', '文章', Icons.menu_book_outlined, isIpad: false),
+                  SizedBox(height: AppSpacing.md),
+                ],
+              ),
+            ),
+    );
+  }
+
+  // ============================================================
+  // iPad 布局 - 双栏
+  // ============================================================
+
+  Widget _buildIpadBody(ColorScheme colorScheme, Brightness brightness) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 左侧栏：统计卡片 + 资源概览
+          Expanded(
+            flex: 4,
+            child: _buildIpadLeftColumn(colorScheme, brightness),
+          ),
+          // 右侧栏：推荐资源列表
+          Expanded(
+            flex: 6,
+            child: _buildIpadRightColumn(colorScheme, brightness),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatsSection(ColorScheme colorScheme) {
+  Widget _buildIpadLeftColumn(ColorScheme colorScheme, Brightness brightness) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 品牌区
+          Row(
+            children: [
+              Icon(Icons.school_rounded, size: 36.w, color: colorScheme.primary),
+              SizedBox(width: 12.w),
+              Text(
+                'VidLang',
+                style: TextStyle(
+                  fontSize: 28.sp,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 32.h),
+          // 统计卡片 - 2x2 网格
+          _buildStatsSection(colorScheme, isIpad: true),
+          SizedBox(height: 32.h),
+          // 资源快速入口
+          _buildResourceSection(colorScheme, 'video', '视频', Icons.movie_outlined, isIpad: true),
+          SizedBox(height: 24.h),
+          _buildResourceSection(colorScheme, 'music', '音频', Icons.music_note_outlined, isIpad: true),
+          SizedBox(height: 24.h),
+          _buildResourceSection(colorScheme, 'article', '文章', Icons.menu_book_outlined, isIpad: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIpadRightColumn(ColorScheme colorScheme, Brightness brightness) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.5),
+        border: Border(left: BorderSide(color: colorScheme.outlineVariant, width: 1)),
+      ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '最近访问',
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            SizedBox(height: 20.h),
+            // 视频资源
+            _buildIpadResourceGrid(colorScheme, 'video', '视频', Icons.movie_outlined, brightness),
+            SizedBox(height: 24.h),
+            // 音频资源
+            _buildIpadResourceGrid(colorScheme, 'music', '音频', Icons.music_note_outlined, brightness),
+            SizedBox(height: 24.h),
+            // 文章资源
+            _buildIpadResourceGrid(colorScheme, 'article', '文章', Icons.menu_book_outlined, brightness),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIpadResourceGrid(ColorScheme colorScheme, String type, String title, IconData icon, Brightness brightness) {
+    final folders = _recentFolders[type] ?? [];
+    final typeColor = AppColors.colorForType(type, brightness: brightness);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20.sp, color: typeColor),
+            SizedBox(width: 8.w),
+            Text(
+              title,
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => _goToResources(type),
+              child: Text('更多', style: TextStyle(fontSize: 14.sp, color: typeColor)),
+            ),
+          ],
+        ),
+        SizedBox(height: 12.h),
+        if (folders.isEmpty)
+          _buildIpadEmptySection(colorScheme, icon, type, typeColor)
+        else
+          Wrap(
+            spacing: 16.w,
+            runSpacing: 16.w,
+            children: folders.map((folder) {
+              return SizedBox(
+                width: 200.w,
+                child: FolderCard(
+                  folder: folder,
+                  onTap: () => _openFolder(folder),
+                  onLongPress: () {},
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildIpadEmptySection(ColorScheme colorScheme, IconData icon, String type, Color typeColor) {
+    final brightness = Theme.of(context).brightness;
+    final typeName = type == 'video' ? '视频' : type == 'article' ? '文章' : '音频';
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 20.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.08 : 0.05),
+        border: Border.all(color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.1)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 32.sp, color: typeColor.withValues(alpha: 0.5)),
+          SizedBox(height: 12.h),
+          Text(
+            '暂无$typeName',
+            style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+          ),
+          SizedBox(height: 8.h),
+          TextButton(
+            onPressed: () => _goToResources(type),
+            child: Text('点击添加', style: TextStyle(fontSize: 14.sp, color: typeColor)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // 统计卡片（iPhone/iPad 共用）
+  // ============================================================
+
+  Widget _buildStatsSection(ColorScheme colorScheme, {required bool isIpad}) {
     final brightness = Theme.of(context).brightness;
     final stats = [
       _GridStatItem(
@@ -234,21 +416,29 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
     ];
 
+    final columns = isIpad ? 2 : 2;
+    final spacing = isIpad ? 16.0.w : 10.w;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10.w,
-        crossAxisSpacing: 10.w,
-        childAspectRatio: 1.4,
+        crossAxisCount: columns,
+        mainAxisSpacing: spacing,
+        crossAxisSpacing: spacing,
+        childAspectRatio: isIpad ? 1.6 : 1.4,
       ),
       itemCount: stats.length,
-      itemBuilder: (context, index) => _buildStatCard(stats[index], brightness, colorScheme),
+      itemBuilder: (context, index) => _buildStatCard(stats[index], brightness, colorScheme, isIpad: isIpad),
     );
   }
 
-  Widget _buildStatCard(_GridStatItem item, Brightness brightness, ColorScheme colorScheme) {
+  Widget _buildStatCard(_GridStatItem item, Brightness brightness, ColorScheme colorScheme, {required bool isIpad}) {
+    final padding = isIpad ? 20.0.w : 14.w;
+    final iconSize = isIpad ? 24.0.sp : 18.0.sp;
+    final valueSize = isIpad ? 28.0.sp : 22.0.sp;
+    final labelSize = isIpad ? 14.0.sp : 11.0.sp;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -263,27 +453,27 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(14.w),
+        padding: EdgeInsets.all(padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(6.w),
+              padding: EdgeInsets.all(isIpad ? 8.w : 6.w),
               decoration: BoxDecoration(
                 color: item.gradient[0].withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: Icon(item.icon, size: 18.sp, color: item.gradient[0]),
+              child: Icon(item.icon, size: iconSize, color: item.gradient[0]),
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: isIpad ? 14.h : 10.h),
             RichText(
               text: TextSpan(
                 children: [
                   TextSpan(
                     text: item.value,
                     style: TextStyle(
-                      fontSize: 22.sp,
+                      fontSize: valueSize,
                       fontWeight: FontWeight.w800,
                       color: colorScheme.onSurface,
                       height: 1.2,
@@ -294,7 +484,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     TextSpan(
                       text: ' ${item.unit}',
                       style: TextStyle(
-                        fontSize: 12.sp,
+                        fontSize: isIpad ? 14.sp : 12.sp,
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurfaceVariant,
                         height: 1.2,
@@ -303,11 +493,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
               ),
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: isIpad ? 6.h : 4.h),
             Text(
               item.label,
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: labelSize,
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurfaceVariant,
                 letterSpacing: 0.2,
@@ -319,11 +509,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  // ============================================================
+  // 资源区块（iPhone 横向滚动 / iPad 共用 _buildResourceSection）
+  // ============================================================
+
   Widget _buildResourceSection(
     ColorScheme colorScheme,
     String type,
     String title,
     IconData icon,
+    {required bool isIpad}
   ) {
     final folders = _recentFolders[type] ?? [];
     final hasResources = folders.isNotEmpty;
@@ -333,7 +528,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题行：带图标背景胶囊 + 标题 + 更多按钮
         Row(
           children: [
             Container(
@@ -376,11 +570,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                       ),
                       SizedBox(width: 2.w),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 16.sp,
-                        color: typeColor,
-                      ),
+                      Icon(Icons.chevron_right_rounded, size: 16.sp, color: typeColor),
                     ],
                   ),
                 ),
@@ -403,11 +593,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     String type,
     Color typeColor,
   ) {
-    final typeName = type == 'video'
-        ? '视频'
-        : type == 'article'
-        ? '文章'
-        : '音频';
+    final typeName = type == 'video' ? '视频' : type == 'article' ? '文章' : '音频';
     final brightness = Theme.of(context).brightness;
     return GestureDetector(
       onTap: () => _goToResources(type),
@@ -421,7 +607,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.1),
             width: 1,
           ),
-          // 虚线边框效果用 dashed 模拟
         ),
         child: Column(
           children: [
@@ -431,11 +616,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 shape: BoxShape.circle,
                 color: typeColor.withValues(alpha: brightness == Brightness.dark ? 0.12 : 0.08),
               ),
-              child: Icon(
-                icon,
-                size: 26.sp,
-                color: typeColor.withValues(alpha: 0.7),
-              ),
+              child: Icon(icon, size: 26.sp, color: typeColor.withValues(alpha: 0.7)),
             ),
             SizedBox(height: AppSpacing.md),
             Text(
@@ -491,7 +672,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     final m = (seconds % 3600) ~/ 60;
     return '$h小时$m分钟';
   }
-
 }
 
 class _GridStatItem {

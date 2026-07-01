@@ -8,7 +8,6 @@ void main() {
   group('ShengtongEvaluator', () {
     const testAppKey = 'test_app_key_123';
     const testSecretKey = 'test_secret_key_456';
-    const testUserId = 'test_user';
 
     test('constructor throws ArgumentError when appKey is empty', () {
       expect(
@@ -61,20 +60,22 @@ void main() {
           capturedResult = result;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {
-            'overall': 78.5,
-            'fluency': 82.0,
-            'accuracy': 75.3,
-            'completeness': 80.1,
-            'wordScores': [
-              {'word': 'hello', 'score': 80},
-              {'word': 'world', 'score': 77},
-            ],
-          },
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {
+              'overall': 78.5,
+              'fluency': 82.0,
+              'accuracy': 75.3,
+              'completeness': 80.1,
+              'wordScores': [
+                {'word': 'hello', 'score': 80},
+                {'word': 'world', 'score': 77},
+              ],
+            },
+          }),
+        );
 
         expect(capturedResult, isNotNull);
         expect(capturedResult!['overall'], equals(78.5));
@@ -95,11 +96,13 @@ void main() {
           capturedError = error;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'connect',
-          'code': 4001,
-          'error': 'Application not found',
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'connect',
+            'code': 4001,
+            'error': 'Application not found',
+          }),
+        );
 
         expect(capturedError, equals('Application not found'));
       });
@@ -115,10 +118,7 @@ void main() {
           capturedState = state;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'connect',
-          'code': 0,
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'connect', 'code': 0}));
 
         expect(capturedState, equals(true));
       });
@@ -134,11 +134,13 @@ void main() {
           capturedError = error;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'connect',
-          'code': 1001,
-          'error': 'Invalid app key',
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'connect',
+            'code': 1001,
+            'error': 'Invalid app key',
+          }),
+        );
 
         expect(capturedError, equals('Invalid app key'));
       });
@@ -154,11 +156,9 @@ void main() {
           capturedResult = result;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': null,
-        }));
+        evaluator.handleMessage(
+          jsonEncode({'cmd': 'eval', 'code': 0, 'result': null}),
+        );
 
         expect(capturedResult, isNull);
       });
@@ -174,11 +174,9 @@ void main() {
           capturedResult = result;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 1,
-          'error': 'Evaluation failed',
-        }));
+        evaluator.handleMessage(
+          jsonEncode({'cmd': 'eval', 'code': 1, 'error': 'Evaluation failed'}),
+        );
 
         expect(capturedResult, isNull);
       });
@@ -189,7 +187,10 @@ void main() {
           secretKey: testSecretKey,
         );
 
-        expect(() => evaluator.handleMessage('not valid json'), returnsNormally);
+        expect(
+          () => evaluator.handleMessage('not valid json'),
+          returnsNormally,
+        );
       });
     });
 
@@ -205,16 +206,18 @@ void main() {
           capturedResult = result;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {
-            'overall': 85.5,
-            'fluency': 90.0,
-            'accuracy': 82.0,
-            'completeness': 88.0,
-          },
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {
+              'overall': 85.5,
+              'fluency': 90.0,
+              'accuracy': 82.0,
+              'completeness': 88.0,
+            },
+          }),
+        );
 
         expect(capturedResult, isNotNull);
         expect(capturedResult!['overall'], equals(85.5));
@@ -234,13 +237,13 @@ void main() {
           capturedResult = result;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {
-            'overall': 95,
-          },
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {'overall': 95},
+          }),
+        );
 
         expect(capturedResult, isNotNull);
         expect(capturedResult!['overall'], equals(95));
@@ -257,16 +260,18 @@ void main() {
           capturedResult = result;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {
-            'overall': 92.0,
-            'fluency': 90.5,
-            'accuracy': 93.5,
-            'completeness': 94.0,
-          },
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {
+              'overall': 92.0,
+              'fluency': 90.5,
+              'accuracy': 93.5,
+              'completeness': 94.0,
+            },
+          }),
+        );
 
         expect(capturedResult, isNotNull);
         expect(capturedResult!['overall'], equals(92.0));
@@ -339,10 +344,7 @@ void main() {
           capturedError = error;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'start',
-          'code': 0,
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'start', 'code': 0}));
 
         expect(capturedError, isNull);
       });
@@ -358,11 +360,13 @@ void main() {
           capturedError = error;
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'start',
-          'code': 1002,
-          'error': 'Invalid ref text',
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'start',
+            'code': 1002,
+            'error': 'Invalid ref text',
+          }),
+        );
 
         expect(capturedError, equals('Invalid ref text'));
       });
@@ -375,9 +379,7 @@ void main() {
           secretKey: testSecretKey,
         );
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'stop',
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'stop'}));
       });
     });
 
@@ -421,10 +423,7 @@ void main() {
           secretKey: testSecretKey,
         );
 
-        final bytes = utf8.encode(jsonEncode({
-          'cmd': 'connect',
-          'code': 0,
-        }));
+        final bytes = utf8.encode(jsonEncode({'cmd': 'connect', 'code': 0}));
         evaluator.handleMessage(bytes);
       });
     });
@@ -441,17 +440,21 @@ void main() {
           results.add(result);
         };
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {'overall': 80.0, 'fluency': 85.0},
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {'overall': 80.0, 'fluency': 85.0},
+          }),
+        );
 
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {'overall': 90.0, 'fluency': 92.0},
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {'overall': 90.0, 'fluency': 92.0},
+          }),
+        );
 
         expect(results.length, equals(2));
         expect(results[0]['overall'], equals(80.0));
@@ -497,34 +500,28 @@ void main() {
         };
 
         // Step 1: Connect
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'connect',
-          'code': 0,
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'connect', 'code': 0}));
         expect(connected, equals(true));
 
         // Step 2: Start evaluation
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'start',
-          'code': 0,
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'start', 'code': 0}));
 
         // Step 3: Stop evaluation
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'stop',
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'stop'}));
 
         // Step 4: Receive result
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'eval',
-          'code': 0,
-          'result': {
-            'overall': 87.5,
-            'fluency': 90.0,
-            'accuracy': 85.0,
-            'completeness': 88.5,
-          },
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'eval',
+            'code': 0,
+            'result': {
+              'overall': 87.5,
+              'fluency': 90.0,
+              'accuracy': 85.0,
+              'completeness': 88.5,
+            },
+          }),
+        );
 
         expect(finalResult, isNotNull);
         expect(finalResult!['overall'], equals(87.5));
@@ -551,11 +548,13 @@ void main() {
         };
 
         // Connection fails
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'connect',
-          'code': 4001,
-          'error': 'Service unavailable',
-        }));
+        evaluator.handleMessage(
+          jsonEncode({
+            'cmd': 'connect',
+            'code': 4001,
+            'error': 'Service unavailable',
+          }),
+        );
 
         expect(finalError, equals('Service unavailable'));
         expect(finalResult, isNull);
@@ -573,14 +572,8 @@ void main() {
         };
 
         // Connect and start, but no eval result comes
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'connect',
-          'code': 0,
-        }));
-        evaluator.handleMessage(jsonEncode({
-          'cmd': 'start',
-          'code': 0,
-        }));
+        evaluator.handleMessage(jsonEncode({'cmd': 'connect', 'code': 0}));
+        evaluator.handleMessage(jsonEncode({'cmd': 'start', 'code': 0}));
 
         // No result should have been captured
         expect(finalResult, isNull);

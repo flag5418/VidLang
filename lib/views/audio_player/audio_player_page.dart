@@ -21,7 +21,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/file_picker_service.dart';
 import 'package:vidlang/services/initial_letter_cover.dart';
 import 'package:vidlang/services/lrc_parser.dart';
-import 'package:vidlang/services/shengtong_evaluator.dart';
+import 'package:vidlang/services/shengtong_http_evaluator.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/tts_service.dart';
@@ -40,19 +40,24 @@ class AudioPlayerPage extends ConsumerStatefulWidget {
   final List<VideoInfo>? folderVideos;
   final String audioType;
 
-  const AudioPlayerPage({super.key, required this.videoCode, this.folderVideos, this.audioType = 'music'});
+  const AudioPlayerPage({
+    super.key,
+    required this.videoCode,
+    this.folderVideos,
+    this.audioType = 'music',
+  });
 
   @override
   ConsumerState<AudioPlayerPage> createState() => _AudioPlayerPageState();
 }
 
-class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsBindingObserver {
+class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
+    with WidgetsBindingObserver {
   bool _initialized = false;
   bool _showSettings = false;
   bool _showAudioList = false;
   bool _showFollow = false;
   bool _isTtsSpeaking = false;
-  bool _translationInProgress = false;
   bool? _hasHeadphone;
   List<VideoInfo>? _folderVideosOverride;
   String? _resolvedCoverPath;
@@ -64,7 +69,6 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordingPath;
   bool _isEvaluating = false;
-  ShengtongEvaluator? _evaluator;
   Timer? _autoStopTimer;
   DateTime? _recordingStartTime;
 
@@ -76,16 +80,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   bool get _drawerOpen => _showSettings || _showAudioList;
 
   // Player overlay is always dark regardless of theme mode
-  Color _drawerBg() => AppColors.surface;
-  Color _drawerElevated() => AppColors.surfaceElevated;
   Color _drawerText() => AppColors.onSurface;
   Color _drawerTextVariant() => AppColors.onSurfaceVariant;
-  Color _drawerDivider() => Colors.white12;
-  Color _drawerOverlay() => Colors.black38;
 
   List<double> get _speedOptions {
     final isMusic = widget.audioType == 'music';
-    return isMusic ? [0.5, 0.75, 1.0, 1.25, 1.5] : [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    return isMusic
+        ? [0.5, 0.75, 1.0, 1.25, 1.5]
+        : [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
   }
 
   @override
@@ -120,7 +122,6 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     WidgetsBinding.instance.removeObserver(this);
     _autoStopTimer?.cancel();
     _aliAudioPlayer.dispose();
-    _evaluator?.dispose();
     _recorder.dispose();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -165,7 +166,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Future<void> _loadFolderVideos() async {
-    final videos = await DatabaseService.findByCondition(() => VideoInfo(), where: 'code = ? AND is_deleted = 0', whereArgs: [widget.videoCode]);
+    final videos = await DatabaseService.findByCondition(
+      () => VideoInfo(),
+      where: 'code = ? AND is_deleted = 0',
+      whereArgs: [widget.videoCode],
+    );
     if (videos.isEmpty) return;
     final fc = videos.first.folderCode;
     if (fc.isEmpty) return;
@@ -179,23 +184,32 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   /// 检查并初始化翻译（借鉴视频播放器方案）
-  Future<void> _checkAndInitializeTranslation(PlayerEngineNotifier notifier) async {
+  Future<void> _checkAndInitializeTranslation(
+    PlayerEngineNotifier notifier,
+  ) async {
     final subtitles = notifier.subtitles;
     if (subtitles.isEmpty) return;
 
     final subState = ref.read(subscriptionProvider);
-    final needCount = TranslationInitService.countNeedTranslate(subtitles, subState.mode);
+    final needCount = TranslationInitService.countNeedTranslate(
+      subtitles,
+      subState.mode,
+    );
     if (needCount == 0) return;
 
-    _translationInProgress = true;
-
     if (!mounted) return;
-    TDMessage.showMessage(context: context, content: '正在进行翻译初始化...', theme: MessageTheme.info, duration: 2000, visible: true);
+    TDMessage.showMessage(
+      context: context,
+      content: '正在进行翻译初始化...',
+      theme: MessageTheme.info,
+      duration: 2000,
+      visible: true,
+    );
 
     final currentTitle = notifier.currentVideo?.name ?? widget.videoCode;
 
     try {
-      final success = await TranslationInitService.translateSubtitles(
+      await TranslationInitService.translateSubtitles(
         subtitles: subtitles,
         videoCode: widget.videoCode,
         title: currentTitle,
@@ -209,15 +223,23 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     } catch (e) {
       debugPrint('Translation init failed: $e');
       if (mounted) {
-        TDMessage.showMessage(context: context, content: '翻译初始化失败: $e', theme: MessageTheme.error, duration: 3000, visible: true);
+        TDMessage.showMessage(
+          context: context,
+          content: '翻译初始化失败: $e',
+          theme: MessageTheme.error,
+          duration: 3000,
+          visible: true,
+        );
       }
-    } finally {
-      _translationInProgress = false;
-    }
+    } finally {}
   }
 
   /// 处理清晰朗读
-  void _handleClaritySpeak(PlayerEngineNotifier n, PlayerEngineState s, Subtitles cs) async {
+  void _handleClaritySpeak(
+    PlayerEngineNotifier n,
+    PlayerEngineState s,
+    Subtitles cs,
+  ) async {
     final wasPlaying = s.playerState == PlayerState.playing;
     if (wasPlaying) n.player.pause();
 
@@ -265,11 +287,15 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
     // Try ID3 tags
     if (video.artist == null && video.album == null) {
-      final id3Tags = await AudioRecognitionService.extractId3Tags(video.filePath);
+      final id3Tags = await AudioRecognitionService.extractId3Tags(
+        video.filePath,
+      );
       if (id3Tags != null) {
         if (id3Tags.artist != null) video.artist = id3Tags.artist;
         if (id3Tags.album != null) video.album = id3Tags.album;
-        if (id3Tags.title != null && video.name.isEmpty) video.name = id3Tags.title!;
+        if (id3Tags.title != null && video.name.isEmpty) {
+          video.name = id3Tags.title!;
+        }
         if (id3Tags.coverData != null) {
           final coverCode = '${DateTime.now().millisecondsSinceEpoch}';
           final coverPath = 'covers/${video.folderCode}/$coverCode.jpg';
@@ -282,13 +308,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           coverFile = coverPath;
         }
         await DatabaseService.update(video);
-        ref.read(playerEngineProvider.notifier).openAudioByCode(widget.videoCode, widget.audioType);
+        ref
+            .read(playerEngineProvider.notifier)
+            .openAudioByCode(widget.videoCode, widget.audioType);
       }
     }
 
     // Generate initial letter cover
     if (coverFile == null || coverFile.isEmpty) {
-      final generated = await InitialLetterCover.generate(video.name, video.folderCode);
+      final generated = await InitialLetterCover.generate(
+        video.name,
+        video.folderCode,
+      );
       if (generated != null) {
         video.cover = generated;
         video.coverSource = 'initial_letter';
@@ -337,30 +368,52 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       if (!hasArtistInfo) {
         final info = await _showSongInfoInputDialog(video.name);
         if (info == null) return;
-        if (info['title'] != null && info['title']!.isNotEmpty) video.name = info['title']!;
-        if (info['artist'] != null && info['artist']!.isNotEmpty) video.artist = info['artist'];
+        if (info['title'] != null && info['title']!.isNotEmpty) {
+          video.name = info['title']!;
+        }
+        if (info['artist'] != null && info['artist']!.isNotEmpty) {
+          video.artist = info['artist'];
+        }
         await DatabaseService.update(video);
       }
     }
 
     if (!mounted) return;
-    DialogUtils.show(context: context, barrierDismissible: false, builder: (_) => _buildProgressDialog());
+    DialogUtils.show(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _buildProgressDialog(),
+    );
 
     try {
       if (widget.audioType == 'music') {
-        final result = await AudioRecognitionService.searchLyrics(videoCode: widget.videoCode, title: video.name, artist: video.artist);
+        final result = await AudioRecognitionService.searchLyrics(
+          videoCode: widget.videoCode,
+          title: video.name,
+          artist: video.artist,
+        );
         if (!mounted) return;
         Navigator.pop(context);
         if (result.ok) {
-          await AudioRecognitionService.saveLyricsResultToDb(videoCode: widget.videoCode, result: result);
-          await ref.read(playerEngineProvider.notifier).reloadSubtitles(widget.videoCode);
+          await AudioRecognitionService.saveLyricsResultToDb(
+            videoCode: widget.videoCode,
+            result: result,
+          );
+          await ref
+              .read(playerEngineProvider.notifier)
+              .reloadSubtitles(widget.videoCode);
           if (mounted) setState(() {});
-          unawaited(ConversationService.uploadSubtitlesToCloud(widget.videoCode));
+          unawaited(
+            ConversationService.uploadSubtitlesToCloud(widget.videoCode),
+          );
         } else {
           _showRecognitionFailed();
         }
       } else {
-        final result = await AudioRecognitionService.recognizeSpeech(videoCode: widget.videoCode, filePath: video.filePath);
+        final result = await AudioRecognitionService.recognizeSpeech(
+          videoCode: widget.videoCode,
+          filePath: video.filePath,
+        );
         if (!mounted) return;
         Navigator.pop(context);
         if (result.ok) {
@@ -370,9 +423,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             language: result.language,
             source: result.source,
           );
-          await ref.read(playerEngineProvider.notifier).reloadSubtitles(widget.videoCode);
+          await ref
+              .read(playerEngineProvider.notifier)
+              .reloadSubtitles(widget.videoCode);
           if (mounted) setState(() {});
-          unawaited(ConversationService.uploadSubtitlesToCloud(widget.videoCode));
+          unawaited(
+            ConversationService.uploadSubtitlesToCloud(widget.videoCode),
+          );
         } else {
           _showRecognitionFailed();
         }
@@ -386,10 +443,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
   void _showRecognitionFailed() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未能识别此音频内容，已转入欣赏模式')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('未能识别此音频内容，已转入欣赏模式')));
   }
 
-  Future<Map<String, String>?> _showSongInfoInputDialog(String currentName) async {
+  Future<Map<String, String>?> _showSongInfoInputDialog(
+    String currentName,
+  ) async {
     final titleCtrl = TextEditingController(text: currentName);
     final artistCtrl = TextEditingController();
     final cs = Theme.of(context).colorScheme;
@@ -408,7 +469,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               const SizedBox(height: 12),
               Text(
                 '请输入歌曲信息',
-                style: TextStyle(color: cs.onSurface, fontSize: 15.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: cs.onSurface,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -422,8 +487,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 decoration: InputDecoration(
                   labelText: '歌曲名',
                   labelStyle: TextStyle(color: cs.onSurfaceVariant),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: cs.outline),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: cs.primary),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -433,8 +502,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 decoration: InputDecoration(
                   labelText: '演唱者',
                   labelStyle: TextStyle(color: cs.onSurfaceVariant),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: cs.outline),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: cs.primary),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -443,14 +516,23 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: Text('跳过,先欣赏', style: TextStyle(color: cs.onSurfaceVariant)),
+                    child: Text(
+                      '跳过,先欣赏',
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   TextButton(
-                    onPressed: () => Navigator.pop(ctx, {'title': titleCtrl.text.trim(), 'artist': artistCtrl.text.trim()}),
+                    onPressed: () => Navigator.pop(ctx, {
+                      'title': titleCtrl.text.trim(),
+                      'artist': artistCtrl.text.trim(),
+                    }),
                     child: Text(
                       '搜索歌词',
-                      style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: cs.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -471,7 +553,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           color: Colors.transparent,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            decoration: BoxDecoration(color: cs.surfaceContainerHigh, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -510,22 +595,34 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       final ext = filePath.toLowerCase();
       List<Subtitles> parsed;
       if (ext.endsWith('.lrc')) {
-        parsed = LrcParser.parseContent(await file.readAsString(), widget.videoCode);
+        parsed = LrcParser.parseContent(
+          await file.readAsString(),
+          widget.videoCode,
+        );
       } else {
         final stats = await FilePickerService.importSubtitleToDb(
           filePath,
-          ref.read(playerEngineProvider.notifier).currentVideo?.folderCode ?? '',
+          ref.read(playerEngineProvider.notifier).currentVideo?.folderCode ??
+              '',
           widget.videoCode,
         );
         if (mounted) {
-          await ref.read(playerEngineProvider.notifier).reloadSubtitles(widget.videoCode);
+          await ref
+              .read(playerEngineProvider.notifier)
+              .reloadSubtitles(widget.videoCode);
           setState(() {});
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导入成功，共${stats.subtitlesInserted}条字幕')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('导入成功，共${stats.subtitlesInserted}条字幕')),
+          );
         }
         return;
       }
       if (parsed.isEmpty) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未能解析出有效字幕')));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('未能解析出有效字幕')));
+        }
         return;
       }
       for (final sub in parsed) {
@@ -542,12 +639,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         await DatabaseService.update(videos.first);
       }
       if (mounted) {
-        await ref.read(playerEngineProvider.notifier).reloadSubtitles(widget.videoCode);
+        await ref
+            .read(playerEngineProvider.notifier)
+            .reloadSubtitles(widget.videoCode);
         setState(() {});
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导入成功，共${parsed.length}条歌词')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('导入成功，共${parsed.length}条歌词')));
       }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('字幕导入失败')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('字幕导入失败')));
+      }
     }
   }
 
@@ -560,7 +665,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     final subtitlesList = notifier.subtitles;
     final hasSubtitles = subtitlesList.isNotEmpty;
     final idx = state.currentSubtitleIndex;
-    final currentSub = (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length) ? subtitlesList[idx] : null;
+    final currentSub =
+        (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length)
+        ? subtitlesList[idx]
+        : null;
     final isMusic = state.audioType == 'music';
     final followLabel = isMusic ? '跟唱' : '跟读';
 
@@ -578,7 +686,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           // 1. Background with blur
           _buildBackground(),
           // 1.5 Dark overlay for subtitle readability
-          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.55))),
+          Positioned.fill(
+            child: Container(color: Colors.black.withValues(alpha: 0.55)),
+          ),
           // 2. Full-screen subtitle list
           if (hasSubtitles)
             Positioned.fill(
@@ -630,12 +740,33 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               ),
             ),
           // 3. Top bar
-          Positioned(top: 0, left: 0, right: 0, child: _buildTopBar(state, notifier)),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _buildTopBar(state, notifier),
+          ),
           // 4. Bottom area
-          Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomArea(state, notifier, hasSubtitles, followLabel, currentSub)),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildBottomArea(
+              state,
+              notifier,
+              hasSubtitles,
+              followLabel,
+              currentSub,
+            ),
+          ),
           // 4.5 Follow panel (inline overlay)
           if (_showFollow && currentSub != null && !_drawerOpen)
-            Positioned(left: 0, right: 0, bottom: 0, child: _buildFollowPanel(state, notifier, currentSub)),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildFollowPanel(state, notifier, currentSub),
+            ),
           // 5. Drawer overlay
           if (_drawerOpen)
             GestureDetector(
@@ -659,11 +790,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                     width: MediaQuery.of(context).size.width > 600 ? 360 : 320,
                     decoration: BoxDecoration(
                       color: AppColors.surface.withValues(alpha: 0.85),
-                      border: Border(left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
+                      border: Border(
+                        left: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          width: 0.5,
+                        ),
+                      ),
                     ),
                     child: SafeArea(
                       left: false,
-                      child: _showSettings ? _buildSettingsContent(state, notifier) : _buildAudioListContent(state, notifier),
+                      child: _showSettings
+                          ? _buildSettingsContent(state, notifier)
+                          : _buildAudioListContent(state, notifier),
                     ),
                   ),
                 ),
@@ -683,7 +821,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-            child: Image.file(File(coverPath), fit: BoxFit.cover, errorBuilder: (_, e, s) => _buildGradientBackground()),
+            child: Image.file(
+              File(coverPath),
+              fit: BoxFit.cover,
+              errorBuilder: (_, e, s) => _buildGradientBackground(),
+            ),
           ),
         ),
       );
@@ -702,7 +844,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [HSLColor.fromAHSL(1.0, hue1, 0.5, 0.25).toColor(), HSLColor.fromAHSL(1.0, hue2, 0.4, 0.15).toColor()],
+            colors: [
+              HSLColor.fromAHSL(1.0, hue1, 0.5, 0.25).toColor(),
+              HSLColor.fromAHSL(1.0, hue2, 0.4, 0.15).toColor(),
+            ],
           ),
         ),
       ),
@@ -714,9 +859,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   Widget _buildTopBar(PlayerEngineState s, PlayerEngineNotifier n) {
     final topPadding = MediaQuery.of(context).padding.top;
     return Container(
-      padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 32.h, bottom: 8.h) + const EdgeInsets.symmetric(horizontal: 8),
+      padding:
+          EdgeInsets.only(
+            top: topPadding > 0 ? topPadding : 32.h,
+            bottom: 8.h,
+          ) +
+          const EdgeInsets.symmetric(horizontal: 8),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black87, Colors.transparent]),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black87, Colors.transparent],
+        ),
       ),
       child: Row(
         children: [
@@ -731,7 +885,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   width: 44.r,
                   height: 44.r,
                   child: Center(
-                    child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20.sp),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
                   ),
                 ),
               ),
@@ -744,7 +902,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               children: [
                 Text(
                   s.title,
-                  style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
@@ -763,10 +925,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               margin: const EdgeInsets.only(right: 4),
-              decoration: BoxDecoration(color: _scoreColor(s.lastFollowScore!).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: _scoreColor(s.lastFollowScore!).withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Text(
                 '🎤${s.lastFollowScore!.round()}',
-                style: TextStyle(color: _scoreColor(s.lastFollowScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _scoreColor(s.lastFollowScore!),
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           _topBtn(
@@ -800,7 +969,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Center(child: Icon(icon, color: active ? AppColors.primary : Colors.white, size: 24)),
+          child: Center(
+            child: Icon(
+              icon,
+              color: active ? AppColors.primary : Colors.white,
+              size: 24,
+            ),
+          ),
         ),
       ),
     );
@@ -808,18 +983,29 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
   // ─── Bottom Area ─────────────────────────────────
 
-  Widget _buildBottomArea(PlayerEngineState s, PlayerEngineNotifier n, bool hasSubtitles, String followLabel, Subtitles? currentSub) {
+  Widget _buildBottomArea(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    bool hasSubtitles,
+    String followLabel,
+    Subtitles? currentSub,
+  ) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.only(bottom: bottomPadding > 0 ? bottomPadding : 12),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87]),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.black87],
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Follow control bar (inline, above progress)
-          if (!_showFollow && s.followModeActive && !_drawerOpen) _buildFollowBar(s, n, currentSub, followLabel),
+          if (!_showFollow && s.followModeActive && !_drawerOpen)
+            _buildFollowBar(s, n, currentSub, followLabel),
           // Progress bar
           _buildProgressBar(s, n),
           // Control row
@@ -831,7 +1017,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   }
 
   Widget _buildProgressBar(PlayerEngineState s, PlayerEngineNotifier n) {
-    final p = s.duration.inMilliseconds > 0 ? s.position.inMilliseconds / s.duration.inMilliseconds : 0.0;
+    final p = s.duration.inMilliseconds > 0
+        ? s.position.inMilliseconds / s.duration.inMilliseconds
+        : 0.0;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -850,7 +1038,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
               ),
-              child: Slider(value: p.clamp(0.0, 1.0), onChanged: (v) => n.seekToMs((v * s.duration.inMilliseconds).round())),
+              child: Slider(
+                value: p.clamp(0.0, 1.0),
+                onChanged: (v) =>
+                    n.seekToMs((v * s.duration.inMilliseconds).round()),
+              ),
             ),
           ),
           Text(
@@ -862,7 +1054,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     );
   }
 
-  Widget _buildControlRow(PlayerEngineState s, PlayerEngineNotifier n, bool hasSubtitles, String followLabel, Subtitles? currentSub) {
+  Widget _buildControlRow(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    bool hasSubtitles,
+    String followLabel,
+    Subtitles? currentSub,
+  ) {
     final video = n.currentVideo;
     final language = video?.language ?? 'en';
     final evalSupported = _supportedEvalLanguages.contains(language);
@@ -871,12 +1069,29 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       child: Row(
         children: [
           // Left: main playback controls
-          if (hasSubtitles) _ctrlBtn(Icons.skip_previous_rounded, () => n.previousSentence(), size: 28),
-          _ctrlBtn(s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded, () => n.togglePlayPause(), size: 32),
-          if (hasSubtitles) _ctrlBtn(Icons.skip_next_rounded, () => n.nextSentence(), size: 28),
+          if (hasSubtitles)
+            _ctrlBtn(
+              Icons.skip_previous_rounded,
+              () => n.previousSentence(),
+              size: 28,
+            ),
+          _ctrlBtn(
+            s.playerState == PlayerState.playing
+                ? Icons.pause_rounded
+                : Icons.play_arrow_rounded,
+            () => n.togglePlayPause(),
+            size: 32,
+          ),
+          if (hasSubtitles)
+            _ctrlBtn(Icons.skip_next_rounded, () => n.nextSentence(), size: 28),
           const Spacer(),
           // Right: feature buttons
-          if (hasSubtitles) _miniBtn('单句', s.singleSentencePause, () => n.toggleSingleSentencePause()),
+          if (hasSubtitles)
+            _miniBtn(
+              '单句',
+              s.singleSentencePause,
+              () => n.toggleSingleSentencePause(),
+            ),
           if (hasSubtitles) const SizedBox(width: 6),
           PopupMenuButton<double>(
             initialValue: s.speed,
@@ -885,7 +1100,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             },
             offset: const Offset(0, -220),
             color: AppColors.surfaceElevated,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: _miniBtn(
               '${s.speed.toStringAsFixed(1)}X',
               s.speed != 1.0,
@@ -903,7 +1120,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                       style: TextStyle(
                         color: active ? AppColors.primary : Colors.white,
                         fontSize: 13,
-                        fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: active
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -922,7 +1141,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 n.enterFollowMode();
                 n.setSingleSentencePause(true);
                 if (currentSub != null) {
-                  n.seekToMs(Duration(milliseconds: currentSub.startPosition.toInt()).inMilliseconds);
+                  n.seekToMs(
+                    Duration(
+                      milliseconds: currentSub.startPosition.toInt(),
+                    ).inMilliseconds,
+                  );
                   Future.microtask(() => n.player.play());
                 }
               }
@@ -931,9 +1154,15 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           // 清晰朗读按钮
           if (hasSubtitles) ...[
             const SizedBox(width: 6),
-            _miniBtn('朗读', _isTtsSpeaking, _isTtsSpeaking
-                ? () => _stopClaritySpeak()
-                : (currentSub != null ? () => _handleClaritySpeak(n, s, currentSub) : null)),
+            _miniBtn(
+              '朗读',
+              _isTtsSpeaking,
+              _isTtsSpeaking
+                  ? () => _stopClaritySpeak()
+                  : (currentSub != null
+                        ? () => _handleClaritySpeak(n, s, currentSub)
+                        : null),
+            ),
           ],
         ],
       ),
@@ -966,10 +1195,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: active ? AppColors.primary : Colors.transparent, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Text(
             label,
-            style: TextStyle(color: active ? Colors.white : Colors.white70, fontSize: 13, fontWeight: active ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(
+              color: active ? Colors.white : Colors.white70,
+              fontSize: 13,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ),
       ),
@@ -978,17 +1214,29 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
   // ─── Follow Control Bar ──────────────────────────
 
-  Widget _buildFollowBar(PlayerEngineState s, PlayerEngineNotifier n, Subtitles? currentSub, String followLabel) {
+  Widget _buildFollowBar(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    Subtitles? currentSub,
+    String followLabel,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              Icon(s.isRecording ? Icons.mic_rounded : Icons.mic_none_rounded, color: s.isRecording ? Colors.redAccent : AppColors.primary, size: 16),
+              Icon(
+                s.isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
+                color: s.isRecording ? Colors.redAccent : AppColors.primary,
+                size: 16,
+              ),
               const SizedBox(width: 8),
               Text(
                 s.isRecording ? '录音中' : '准备$followLabel',
@@ -1006,10 +1254,15 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                     trackHeight: 2,
                     activeTrackColor: AppColors.primary,
                     inactiveTrackColor: Colors.white12,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 4,
+                    ),
                     thumbColor: AppColors.primary,
                   ),
-                  child: Slider(value: s.originalVolume, onChanged: (v) => n.setOriginalVolume(v)),
+                  child: Slider(
+                    value: s.originalVolume,
+                    onChanged: (v) => n.setOriginalVolume(v),
+                  ),
                 ),
               ),
               Text(
@@ -1025,7 +1278,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.headphones_outlined, size: 14, color: AppColors.warning),
+                  Icon(
+                    Icons.headphones_outlined,
+                    size: 14,
+                    color: AppColors.warning,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '建议佩戴耳机',
@@ -1040,14 +1297,26 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: s.isRecording ? null : () => _startFollowRecording(s, n, currentSub),
+                  onTap: s.isRecording
+                      ? null
+                      : () => _startFollowRecording(s, n, currentSub),
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    decoration: BoxDecoration(color: s.isRecording ? Colors.white24 : AppColors.primary, borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: s.isRecording ? Colors.white24 : AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     child: Text(
                       s.isRecording ? '录音中...' : '开始$followLabel',
-                      style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
@@ -1060,11 +1329,21 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                     onTap: () => _stopFollowRecording(s, n, currentSub),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      decoration: BoxDecoration(color: Colors.redAccent.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Text(
                         '停止',
-                        style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -1080,7 +1359,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   // ─── Settings Drawer ─────────────────────────────
 
   /// 跟唱/跟读组件（内联渲染，替代旧的 _buildFollowBar）
-  Widget _buildFollowPanel(PlayerEngineState s, PlayerEngineNotifier n, Subtitles currentSub) {
+  Widget _buildFollowPanel(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    Subtitles currentSub,
+  ) {
     final video = n.currentVideo;
     final lang = video?.language ?? 'en';
     final isMusic = widget.audioType == 'music';
@@ -1088,7 +1371,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     Future<void> playAtSubtitleIndex(int index) async {
       if (index < 0 || index >= n.subtitles.length) return;
       final sub = n.subtitles[index];
-      await n.seekToMs(Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds);
+      await n.seekToMs(
+        Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds,
+      );
       await n.player.play();
     }
 
@@ -1143,12 +1428,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             children: [
               Text(
                 '设置',
-                style: TextStyle(color: _drawerText(), fontSize: 14.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _drawerText(),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               GestureDetector(
                 onTap: () => setState(() => _showSettings = false),
-                child: Icon(Icons.close_rounded, color: _drawerTextVariant(), size: 20),
+                child: Icon(
+                  Icons.close_rounded,
+                  color: _drawerTextVariant(),
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -1157,9 +1450,21 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             children: [
-              _settingSwitch('字幕显示', s.subtitleVisible, () => n.toggleSubtitleVisible()),
-              _settingSwitch('中文注音', s.pronunciationVisible, () => n.togglePronunciationVisible()),
-              _settingSwitch('中文翻译', s.translateVisible, () => n.toggleTranslateVisible()),
+              _settingSwitch(
+                '字幕显示',
+                s.subtitleVisible,
+                () => n.toggleSubtitleVisible(),
+              ),
+              _settingSwitch(
+                '中文注音',
+                s.pronunciationVisible,
+                () => n.togglePronunciationVisible(),
+              ),
+              _settingSwitch(
+                '中文翻译',
+                s.translateVisible,
+                () => n.toggleTranslateVisible(),
+              ),
               const SizedBox(height: 8),
               _settingLabel('字幕字号'),
               SliderTheme(
@@ -1168,7 +1473,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   activeTrackColor: AppColors.primary,
                   inactiveTrackColor: Colors.white12,
                   thumbColor: AppColors.primary,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
                 ),
                 child: Slider(
                   value: s.subtitleFontSize,
@@ -1196,16 +1503,29 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                       onTap: () => n.setLoopingMode(mode),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(color: active ? AppColors.primary : Colors.white12, borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: active ? AppColors.primary : Colors.white12,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(icon, size: 13, color: active ? Colors.white : Colors.white54),
+                            Icon(
+                              icon,
+                              size: 13,
+                              color: active ? Colors.white : Colors.white54,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               label,
-                              style: TextStyle(color: active ? Colors.white : Colors.white70, fontSize: 11.sp),
+                              style: TextStyle(
+                                color: active ? Colors.white : Colors.white70,
+                                fontSize: 11.sp,
+                              ),
                             ),
                           ],
                         ),
@@ -1226,15 +1546,28 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 14, color: AppColors.primary),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           '开始智能匹配',
-                          style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
+                          style: TextStyle(
+                            color: _drawerTextVariant(),
+                            fontSize: 12.sp,
+                          ),
                         ),
                       ],
                     ),
@@ -1253,15 +1586,28 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white12,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.upload_file_rounded, size: 14, color: AppColors.primary),
+                        Icon(
+                          Icons.upload_file_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           '选择字幕文件',
-                          style: TextStyle(color: _drawerTextVariant(), fontSize: 12.sp),
+                          style: TextStyle(
+                            color: _drawerTextVariant(),
+                            fontSize: 12.sp,
+                          ),
                         ),
                       ],
                     ),
@@ -1293,7 +1639,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
               SizedBox(
                 height: 28,
                 child: FittedBox(
-                  child: Switch(value: value, onChanged: (_) => onChanged(), activeThumbColor: AppColors.primary, inactiveThumbColor: Colors.white38, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  child: Switch(
+                    value: value,
+                    onChanged: (_) => onChanged(),
+                    activeThumbColor: AppColors.primary,
+                    inactiveThumbColor: Colors.white38,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ),
             ],
@@ -1306,14 +1658,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
   Widget _settingLabel(String label) {
     return Text(
       label,
-      style: TextStyle(color: _drawerTextVariant(), fontSize: 13.sp, fontWeight: FontWeight.w500),
+      style: TextStyle(
+        color: _drawerTextVariant(),
+        fontSize: 13.sp,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 
   // ─── Audio List Drawer ───────────────────────────
 
   Widget _buildAudioListContent(PlayerEngineState s, PlayerEngineNotifier n) {
-    final list = s.folderVideos.isNotEmpty ? s.folderVideos : (_folderVideosOverride ?? const <VideoInfo>[]);
+    final list = s.folderVideos.isNotEmpty
+        ? s.folderVideos
+        : (_folderVideosOverride ?? const <VideoInfo>[]);
     return Column(
       children: [
         Container(
@@ -1323,7 +1681,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
             children: [
               Text(
                 '音频列表',
-                style: TextStyle(color: _drawerText(), fontSize: 15.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _drawerText(),
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const Spacer(),
               Text(
@@ -1335,7 +1697,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                 onTap: () => setState(() => _showAudioList = false),
                 child: Padding(
                   padding: const EdgeInsets.all(4.0),
-                  child: Icon(Icons.close_rounded, color: _drawerTextVariant(), size: 22),
+                  child: Icon(
+                    Icons.close_rounded,
+                    color: _drawerTextVariant(),
+                    size: 22,
+                  ),
                 ),
               ),
             ],
@@ -1347,11 +1713,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.music_off_outlined, size: 48, color: Colors.white24),
+                      Icon(
+                        Icons.music_off_outlined,
+                        size: 48,
+                        color: Colors.white24,
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         '暂无可播音频',
-                        style: TextStyle(color: Colors.white54, fontSize: 13.sp),
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13.sp,
+                        ),
                       ),
                     ],
                   ),
@@ -1362,7 +1735,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                   itemBuilder: (_, i) {
                     final v = list[i];
                     final isCurrent = v.code == s.videoCode;
-                    final durationStr = v.duration > 0 ? _fmtDuration(Duration(milliseconds: v.duration)) : '--:--';
+                    final durationStr = v.duration > 0
+                        ? _fmtDuration(Duration(milliseconds: v.duration))
+                        : '--:--';
                     return Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -1377,9 +1752,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                           margin: const EdgeInsets.symmetric(vertical: 4),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+                            color: isCurrent
+                                ? AppColors.primary.withValues(alpha: 0.15)
+                                : Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
-                            border: isCurrent ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
+                            border: isCurrent
+                                ? Border.all(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                  )
+                                : null,
                           ),
                           child: Row(
                             children: [
@@ -1388,15 +1771,25 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: isCurrent ? AppColors.primary.withValues(alpha: 0.3) : Colors.white12,
+                                  color: isCurrent
+                                      ? AppColors.primary.withValues(alpha: 0.3)
+                                      : Colors.white12,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Center(
                                   child: isCurrent
-                                      ? Icon(Icons.equalizer_rounded, color: AppColors.primary, size: 22)
+                                      ? Icon(
+                                          Icons.equalizer_rounded,
+                                          color: AppColors.primary,
+                                          size: 22,
+                                        )
                                       : Text(
                                           '${i + 1}',
-                                          style: TextStyle(color: Colors.white54, fontSize: 14.sp, fontWeight: FontWeight.w500),
+                                          style: TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                 ),
                               ),
@@ -1409,9 +1802,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                                     Text(
                                       v.name,
                                       style: TextStyle(
-                                        color: isCurrent ? AppColors.primary : Colors.white,
+                                        color: isCurrent
+                                            ? AppColors.primary
+                                            : Colors.white,
                                         fontSize: 14.sp,
-                                        fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                                        fontWeight: isCurrent
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -1421,32 +1818,53 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                                       children: [
                                         // Subtitle status
                                         Icon(
-                                          v.hasSubtitles ? Icons.subtitles_rounded : Icons.subtitles_off_rounded,
+                                          v.hasSubtitles
+                                              ? Icons.subtitles_rounded
+                                              : Icons.subtitles_off_rounded,
                                           size: 14,
-                                          color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white24,
+                                          color: v.hasSubtitles
+                                              ? Colors.greenAccent.withValues(
+                                                  alpha: 0.7,
+                                                )
+                                              : Colors.white24,
                                         ),
                                         const SizedBox(width: 3),
                                         Text(
                                           v.hasSubtitles ? '有字幕' : '无字幕',
                                           style: TextStyle(
-                                            color: v.hasSubtitles ? Colors.greenAccent.withValues(alpha: 0.7) : Colors.white30,
+                                            color: v.hasSubtitles
+                                                ? Colors.greenAccent.withValues(
+                                                    alpha: 0.7,
+                                                  )
+                                                : Colors.white30,
                                             fontSize: 12.sp,
                                           ),
                                         ),
                                         const SizedBox(width: 10),
                                         // Duration
-                                        Icon(Icons.access_time_rounded, size: 12, color: Colors.white30),
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: 12,
+                                          color: Colors.white30,
+                                        ),
                                         const SizedBox(width: 3),
                                         Text(
                                           durationStr,
-                                          style: TextStyle(color: Colors.white38, fontSize: 12.sp),
+                                          style: TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 12.sp,
+                                          ),
                                         ),
-                                        if (v.artist != null && v.artist!.isNotEmpty) ...[
+                                        if (v.artist != null &&
+                                            v.artist!.isNotEmpty) ...[
                                           const SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
                                               v.artist!,
-                                              style: TextStyle(color: Colors.white30, fontSize: 12.sp),
+                                              style: TextStyle(
+                                                color: Colors.white30,
+                                                fontSize: 12.sp,
+                                              ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -1460,14 +1878,23 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
                               // Score badge
                               if (v.lastFollowScore != null)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: _scoreColor(v.lastFollowScore!).withValues(alpha: 0.2),
+                                    color: _scoreColor(
+                                      v.lastFollowScore!,
+                                    ).withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     '${v.lastFollowScore!.round()}',
-                                    style: TextStyle(color: _scoreColor(v.lastFollowScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      color: _scoreColor(v.lastFollowScore!),
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                             ],
@@ -1491,10 +1918,18 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
   // ─── Follow Recording Logic ──────────────────────
 
-  Future<void> _startFollowRecording(PlayerEngineState s, PlayerEngineNotifier n, Subtitles? currentSub) async {
+  Future<void> _startFollowRecording(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    Subtitles? currentSub,
+  ) async {
     if (currentSub == null) return;
     if (!await _recorder.hasPermission()) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
+      }
       return;
     }
 
@@ -1503,7 +1938,8 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
 
     try {
       final tmpDir = Directory.systemTemp;
-      final path = '${tmpDir.path}/follow_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path =
+          '${tmpDir.path}/follow_${DateTime.now().millisecondsSinceEpoch}.m4a';
       await _recorder.start(const RecordConfig(), path: path);
       _recordingPath = path;
 
@@ -1522,19 +1958,34 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       final bufferMs = widget.audioType == 'music' ? 1000 : 500;
       final remainingMs = endMs - s.position.inMilliseconds;
       if (remainingMs > 0) {
-        _autoStopTimer = Timer(Duration(milliseconds: remainingMs + bufferMs), () {
-          if (mounted && ref.read(playerEngineProvider).isRecording) {
-            _stopFollowRecording(ref.read(playerEngineProvider), n, currentSub);
-          }
-        });
+        _autoStopTimer = Timer(
+          Duration(milliseconds: remainingMs + bufferMs),
+          () {
+            if (mounted && ref.read(playerEngineProvider).isRecording) {
+              _stopFollowRecording(
+                ref.read(playerEngineProvider),
+                n,
+                currentSub,
+              );
+            }
+          },
+        );
       }
     } catch (_) {
       n.setRecording(false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('录音启动失败')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('录音启动失败')));
+      }
     }
   }
 
-  Future<void> _stopFollowRecording(PlayerEngineState s, PlayerEngineNotifier n, Subtitles? currentSub) async {
+  Future<void> _stopFollowRecording(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    Subtitles? currentSub,
+  ) async {
     _autoStopTimer?.cancel();
     if (_recordingPath == null) return;
 
@@ -1554,7 +2005,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
     _evaluateRecording(path, s, n, currentSub);
   }
 
-  Future<void> _evaluateRecording(String audioPath, PlayerEngineState s, PlayerEngineNotifier n, Subtitles sub) async {
+  Future<void> _evaluateRecording(
+    String audioPath,
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+    Subtitles sub,
+  ) async {
     if (_isEvaluating) return;
     _isEvaluating = true;
 
@@ -1564,50 +2020,44 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage> with WidgetsB
       final coreType = 'sent.eval';
       final userCode = video?.userCode ?? 'anonymous';
 
-      _evaluator?.dispose();
       // 声通 key 从 AppKeysService 获取
-final stAppKey = AppKeysService.instance.shengtongAppKey;
-final stSecretKey = AppKeysService.instance.shengtongSecretKey;
-      if (stAppKey == null || stAppKey.isEmpty || stSecretKey == null || stSecretKey.isEmpty) {
+      final stAppKey = AppKeysService.instance.shengtongAppKey;
+      final stSecretKey = AppKeysService.instance.shengtongSecretKey;
+      if (stAppKey == null ||
+          stAppKey.isEmpty ||
+          stSecretKey == null ||
+          stSecretKey.isEmpty) {
         debugPrint('⚠️ [AudioPlayer] 声通密钥未就绪，跳过评测');
-        return null;
+        return;
       }
-      _evaluator = ShengtongEvaluator(
+      // 使用 ShengtongHttpEvaluator HTTP 方式评测
+      final evaluator = ShengtongHttpEvaluator(
         appKey: stAppKey,
         secretKey: stSecretKey,
         baseUrl: AppKeysService.shengtongBaseUrl,
       );
 
-      final completer = Completer<Map<String, dynamic>?>();
-      _evaluator!.onResult = (result) {
-        if (!completer.isCompleted) completer.complete(result);
-      };
-      _evaluator!.onError = (error) {
-        if (!completer.isCompleted) completer.complete(null);
-      };
+      final result = await evaluator.evaluate(
+        coreType: coreType,
+        refText: sub.content,
+        audioPath: audioPath,
+        userId: userCode,
+      );
 
-      await _evaluator!.connect(coreType);
-      await _evaluator!.start(coreType: coreType, refText: sub.content, userId: userCode);
-
-      final audioFile = File(audioPath);
-      final bytes = await audioFile.readAsBytes();
-      _evaluator!.feed(bytes);
-      _evaluator!.stop();
-
-      final result = await completer.future.timeout(const Duration(seconds: 10));
-
-      if (result == null) {
+      if (result.isEmpty) {
         debugPrint('AudioPlayer 声通评分返回空结果，可能超时或服务不可用，coreType=$coreType');
       }
 
-      if (result != null && mounted) {
+      if (result.isNotEmpty && mounted) {
         final overall = (result['overall'] as num?)?.toDouble();
         final fluency = (result['fluency'] as num?)?.toDouble();
         final accuracy = (result['accuracy'] as num?)?.toDouble();
         final completeness = (result['completeness'] as num?)?.toDouble();
 
         // Calculate actual recording duration
-        final recordingDurationMs = _recordingStartTime != null ? DateTime.now().difference(_recordingStartTime!).inMilliseconds : 0;
+        final recordingDurationMs = _recordingStartTime != null
+            ? DateTime.now().difference(_recordingStartTime!).inMilliseconds
+            : 0;
 
         final record = RecordingRecord(
           resourceCode: widget.videoCode,
@@ -1640,21 +2090,34 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
 
         _showScoreResult(overall, fluency, accuracy, completeness);
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('评分服务暂时不可用')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('评分服务暂时不可用')));
       }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('评分失败，请检查声通配置')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('评分失败，请检查声通配置')));
+      }
     } finally {
       _isEvaluating = false;
     }
   }
 
-  void _showScoreResult(double? overall, double? fluency, double? accuracy, double? completeness) {
+  void _showScoreResult(
+    double? overall,
+    double? fluency,
+    double? accuracy,
+    double? completeness,
+  ) {
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -1662,13 +2125,21 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
           children: [
             Text(
               '跟读评分',
-              style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 12),
             if (overall != null)
               Text(
                 '${overall.round()}',
-                style: TextStyle(color: _scoreColor(overall), fontSize: 48.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _scoreColor(overall),
+                  fontSize: 48.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             const SizedBox(height: 8),
             Row(
@@ -1693,7 +2164,10 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
                     Navigator.pop(ctx);
                     ref.read(playerEngineProvider.notifier).nextSentence();
                   },
-                  child: Text('下一句', style: TextStyle(color: AppColors.primary)),
+                  child: Text(
+                    '下一句',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
                 ),
               ],
             ),
@@ -1708,7 +2182,11 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
       children: [
         Text(
           '${score.round()}',
-          style: TextStyle(color: _scoreColor(score), fontSize: 20.sp, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: _scoreColor(score),
+            fontSize: 20.sp,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
@@ -1740,7 +2218,9 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
     final video = notifier.currentVideo;
     final idx = state.currentSubtitleIndex;
     final subs = notifier.subtitles;
-    final currentSub = (idx != null && idx >= 0 && idx < subs.length) ? subs[idx] : null;
+    final currentSub = (idx != null && idx >= 0 && idx < subs.length)
+        ? subs[idx]
+        : null;
 
     final result = await WordBookService.saveWord(
       word: word,
@@ -1756,8 +2236,12 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
   }
 
   String _fmtDuration(Duration d) {
-    final h = d.inHours, m = d.inMinutes.remainder(60), s = d.inSeconds.remainder(60);
-    if (h > 0) return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    final h = d.inHours,
+        m = d.inMinutes.remainder(60),
+        s = d.inSeconds.remainder(60);
+    if (h > 0) {
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 

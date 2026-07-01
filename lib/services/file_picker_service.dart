@@ -24,18 +24,30 @@ class _LocalVideoImportResult {
   final int subtitlesInserted;
   final int participlesInserted;
 
-  const _LocalVideoImportResult({required this.video, required this.subtitlesInserted, required this.participlesInserted});
+  const _LocalVideoImportResult({
+    required this.video,
+    required this.subtitlesInserted,
+    required this.participlesInserted,
+  });
 
-  const _LocalVideoImportResult.empty() : video = null, subtitlesInserted = 0, participlesInserted = 0;
+  const _LocalVideoImportResult.empty()
+    : video = null,
+      subtitlesInserted = 0,
+      participlesInserted = 0;
 }
 
 class _SubtitleImportStats {
   final int subtitlesInserted;
   final int participlesInserted;
 
-  const _SubtitleImportStats({required this.subtitlesInserted, required this.participlesInserted});
+  const _SubtitleImportStats({
+    required this.subtitlesInserted,
+    required this.participlesInserted,
+  });
 
-  const _SubtitleImportStats.empty() : subtitlesInserted = 0, participlesInserted = 0;
+  const _SubtitleImportStats.empty()
+    : subtitlesInserted = 0,
+      participlesInserted = 0;
 }
 
 /// 文件选择服务类
@@ -55,10 +67,24 @@ class _SubtitleImportStats {
 /// - SRT、ASS、SSA、VTT
 class FilePickerService {
   /// 支持的视频文件扩展名列表
-  static const List<String> supportedVideoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'];
+  static const List<String> supportedVideoExtensions = [
+    '.mp4',
+    '.mov',
+    '.avi',
+    '.mkv',
+    '.webm',
+    '.flv',
+    '.wmv',
+  ];
 
   /// 支持的字幕文件扩展名列表
-  static const List<String> supportedSubtitleExtensions = ['.srt', '.ass', '.ssa', '.vtt', '.lrc'];
+  static const List<String> supportedSubtitleExtensions = [
+    '.srt',
+    '.ass',
+    '.ssa',
+    '.vtt',
+    '.lrc',
+  ];
 
   /// 选择文件夹
   ///
@@ -68,7 +94,10 @@ class FilePickerService {
     try {
       // 使用 getDirectoryPath 方法专门选择文件夹
       // withData: false 确保不加载文件内容，只获取路径
-      final folderPath = await FilePicker.getDirectoryPath(dialogTitle: '选择视频文件夹', lockParentWindow: !Platform.isIOS);
+      final folderPath = await FilePicker.getDirectoryPath(
+        dialogTitle: '选择视频文件夹',
+        lockParentWindow: !Platform.isIOS,
+      );
 
       if (folderPath != null && folderPath.isNotEmpty) {
         // 检查是否为文件夹
@@ -100,7 +129,9 @@ class FilePickerService {
     return rawPath;
   }
 
-  static Future<Map<String, List<String>>> scanFilesInFolder(String folderPath) async {
+  static Future<Map<String, List<String>>> scanFilesInFolder(
+    String folderPath,
+  ) async {
     final videoFiles = <String>[];
     final subtitleFiles = <String>[];
     final normalized = normalizePath(folderPath);
@@ -134,7 +165,9 @@ class FilePickerService {
       debugPrint('scanFilesInFolder error: $e\n$st');
     }
 
-    debugPrint('scanFilesInFolder: $normalized -> ${videoFiles.length} videos, ${subtitleFiles.length} subtitles');
+    debugPrint(
+      'scanFilesInFolder: $normalized -> ${videoFiles.length} videos, ${subtitleFiles.length} subtitles',
+    );
     return {'videos': videoFiles, 'subtitles': subtitleFiles};
   }
 
@@ -146,7 +179,11 @@ class FilePickerService {
     try {
       final normalized = normalizePath(folderPath);
       // 检查所有状态，包括已删除的，防止重复导入
-      final folders = await DatabaseService.findByCondition(() => VideoFolder(), where: 'path = ?', whereArgs: [normalized]);
+      final folders = await DatabaseService.findByCondition(
+        () => VideoFolder(),
+        where: 'path = ?',
+        whereArgs: [normalized],
+      );
       return folders.isNotEmpty;
     } catch (e) {
       return false;
@@ -178,8 +215,12 @@ class FilePickerService {
 
       final currentUserCode = await DatabaseService.getCurrentUserCode();
       final beforeVideoTotal = await DatabaseService.count(() => VideoInfo());
-      final beforeSubtitleTotal = await DatabaseService.count(() => Subtitles());
-      final beforeParticipleTotal = await DatabaseService.count(() => Participle());
+      final beforeSubtitleTotal = await DatabaseService.count(
+        () => Subtitles(),
+      );
+      final beforeParticipleTotal = await DatabaseService.count(
+        () => Participle(),
+      );
 
       debugPrint(
         '[IMPORT_FOLDER][START] userCode=$currentUserCode path=$normalizedPath '
@@ -233,24 +274,39 @@ class FilePickerService {
       logger.info(
         'creating folder',
         tag: 'IMPORT_FOLDER',
-        extra: {'name': folder.name, 'code': folder.code, 'parentCode': folder.parentCode, 'path': folder.path},
+        extra: {
+          'name': folder.name,
+          'code': folder.code,
+          'parentCode': folder.parentCode,
+          'path': folder.path,
+        },
       );
 
       await SettingsService.applyGlobalDefaultsToFolder(folder);
       await DatabaseService.insert(folder);
 
       // 验证插入是否成功
-      final inserted = await DatabaseService.findByCondition(() => VideoFolder(), where: 'code = ?', whereArgs: [folderCode]);
-      debugPrint('[IMPORT_FOLDER][INFO] inserted folder count = ${inserted.length}');
+      final inserted = await DatabaseService.findByCondition(
+        () => VideoFolder(),
+        where: 'code = ?',
+        whereArgs: [folderCode],
+      );
+      debugPrint(
+        '[IMPORT_FOLDER][INFO] inserted folder count = ${inserted.length}',
+      );
       if (inserted.isNotEmpty) {
         final f = inserted.first;
-        debugPrint('[IMPORT_FOLDER][INFO] inserted folder name=${f.name} code=${f.code} parentCode=${f.parentCode} isDeleted=${f.isDeleted}');
+        debugPrint(
+          '[IMPORT_FOLDER][INFO] inserted folder name=${f.name} code=${f.code} parentCode=${f.parentCode} isDeleted=${f.isDeleted}',
+        );
       }
 
       // 建立字幕文件映射（基于文件名）
       final subtitleMap = <String, String>{};
       for (final subtitlePath in subtitlePaths) {
-        final baseName = _getFileNameWithoutExtension(path.basename(subtitlePath));
+        final baseName = _getFileNameWithoutExtension(
+          path.basename(subtitlePath),
+        );
         subtitleMap[baseName] = subtitlePath;
       }
 
@@ -261,13 +317,19 @@ class FilePickerService {
       int insertedParticiples = 0;
       for (int i = 0; i < videoPaths.length; i++) {
         final videoPath = videoPaths[i];
-        final videoName = _getFileNameWithoutExtension(path.basename(videoPath));
+        final videoName = _getFileNameWithoutExtension(
+          path.basename(videoPath),
+        );
 
         // 查找匹配的字幕文件
         final subtitlePath = subtitleMap[videoName];
 
         // 导入视频
-        final result = await _importLocalVideo(videoPath, folderCode, subtitlePath: subtitlePath);
+        final result = await _importLocalVideo(
+          videoPath,
+          folderCode,
+          subtitlePath: subtitlePath,
+        );
 
         if (result.video != null) {
           insertedVideos++;
@@ -289,7 +351,9 @@ class FilePickerService {
       );
       final afterVideoTotal = await DatabaseService.count(() => VideoInfo());
       final afterSubtitleTotal = await DatabaseService.count(() => Subtitles());
-      final afterParticipleTotal = await DatabaseService.count(() => Participle());
+      final afterParticipleTotal = await DatabaseService.count(
+        () => Participle(),
+      );
 
       debugPrint(
         '[IMPORT_FOLDER][DONE] folderCode=$folderCode name=$folderName '
@@ -310,7 +374,11 @@ class FilePickerService {
   /// [videoPath] 视频文件路径
   /// [folderCode] 目标视频集 code
   /// [subtitlePath] 字幕文件路径（可选）
-  static Future<_LocalVideoImportResult> _importLocalVideo(String videoPath, String folderCode, {String? subtitlePath}) async {
+  static Future<_LocalVideoImportResult> _importLocalVideo(
+    String videoPath,
+    String folderCode, {
+    String? subtitlePath,
+  }) async {
     try {
       videoPath = normalizePath(videoPath);
       if (subtitlePath != null && subtitlePath.isNotEmpty) {
@@ -322,7 +390,9 @@ class FilePickerService {
       }
 
       final displayFileName = path.basename(videoPath);
-      final displayNameWithoutExt = _getFileNameWithoutExtension(displayFileName);
+      final displayNameWithoutExt = _getFileNameWithoutExtension(
+        displayFileName,
+      );
       final fileExtension = _getFileExtension(displayFileName);
       if (!_isVideoFile(fileExtension)) {
         return const _LocalVideoImportResult.empty();
@@ -335,7 +405,8 @@ class FilePickerService {
       if (isIosTmp) {
         final existingByName = await DatabaseService.findByCondition(
           () => VideoInfo(),
-          where: 'folder_code = ? AND name = ? AND extension_name = ? AND is_deleted = 0',
+          where:
+              'folder_code = ? AND name = ? AND extension_name = ? AND is_deleted = 0',
           whereArgs: [folderCode, displayNameWithoutExt, fileExtension],
           limit: 1,
         );
@@ -343,11 +414,17 @@ class FilePickerService {
           final existing = existingByName.first;
           if (subtitlePath != null &&
               subtitlePath.isNotEmpty &&
-              (existing.subtitlePath == null || existing.subtitlePath!.isEmpty || existing.hasSubtitles == false)) {
+              (existing.subtitlePath == null ||
+                  existing.subtitlePath!.isEmpty ||
+                  existing.hasSubtitles == false)) {
             existing.subtitlePath = subtitlePath;
             existing.hasSubtitles = true;
             await DatabaseService.update(existing);
-            final stats = await _importSubtitle(subtitlePath, folderCode, existing.code ?? '');
+            final stats = await _importSubtitle(
+              subtitlePath,
+              folderCode,
+              existing.code ?? '',
+            );
             return _LocalVideoImportResult(
               video: existing,
               subtitlesInserted: stats.subtitlesInserted,
@@ -389,17 +466,29 @@ class FilePickerService {
           await controller.initialize();
           duration = controller.value.duration.inMilliseconds;
           await controller.dispose();
-          logger.info('fallback duration via video_player: ${duration}ms', tag: 'IMPORT_VIDEO');
+          logger.info(
+            'fallback duration via video_player: ${duration}ms',
+            tag: 'IMPORT_VIDEO',
+          );
         } catch (e) {
-          logger.warning('video_player fallback also failed: $e', tag: 'IMPORT_VIDEO');
+          logger.warning(
+            'video_player fallback also failed: $e',
+            tag: 'IMPORT_VIDEO',
+          );
         }
       }
 
-      logger.info('metadata extracted', tag: 'IMPORT_VIDEO', extra: {
-        'video': videoPath, 'videoCode': videoCode,
-        'durationMs': duration, 'hasSubtitles': metadata.hasSubtitles,
-        'subtitleLanguages': metadata.subtitleLanguages,
-      });
+      logger.info(
+        'metadata extracted',
+        tag: 'IMPORT_VIDEO',
+        extra: {
+          'video': videoPath,
+          'videoCode': videoCode,
+          'durationMs': duration,
+          'hasSubtitles': metadata.hasSubtitles,
+          'subtitleLanguages': metadata.subtitleLanguages,
+        },
+      );
 
       int thumbnailTime = 15;
       final folderRows = await DatabaseService.findByCondition(
@@ -420,7 +509,12 @@ class FilePickerService {
         thumbnailTime = 0;
       }
 
-      final thumbnailPath = await ThumbnailService.generateThumbnail(videoPath, folderCode, videoCode, timeSec: thumbnailTime);
+      final thumbnailPath = await ThumbnailService.generateThumbnail(
+        videoPath,
+        folderCode,
+        videoCode,
+        timeSec: thumbnailTime,
+      );
       if (thumbnailPath != null) {
         final fullPath = await ThumbnailService.getFullPath(thumbnailPath);
         final exists = await File(fullPath).exists();
@@ -442,11 +536,21 @@ class FilePickerService {
         logger.warning(
           'thumbnail null',
           tag: 'IMPORT_VIDEO',
-          extra: {'video': videoPath, 'videoCode': videoCode, 'ext': fileExtension, 'durationMs': duration, 'timeSec': thumbnailTime},
+          extra: {
+            'video': videoPath,
+            'videoCode': videoCode,
+            'ext': fileExtension,
+            'durationMs': duration,
+            'timeSec': thumbnailTime,
+          },
         );
       }
 
-      final count = await DatabaseService.count(() => VideoInfo(), where: 'folder_code = ? AND is_deleted = 0', whereArgs: [folderCode]);
+      final count = await DatabaseService.count(
+        () => VideoInfo(),
+        where: 'folder_code = ? AND is_deleted = 0',
+        whereArgs: [folderCode],
+      );
 
       final video = VideoInfo(
         name: displayNameWithoutExt,
@@ -473,7 +577,11 @@ class FilePickerService {
       int subtitlesInserted = 0;
       int participlesInserted = 0;
       if (subtitlePath != null) {
-        final stats = await _importSubtitle(subtitlePath, folderCode, videoCode);
+        final stats = await _importSubtitle(
+          subtitlePath,
+          folderCode,
+          videoCode,
+        );
         subtitlesInserted = stats.subtitlesInserted;
         participlesInserted = stats.participlesInserted;
       }
@@ -482,7 +590,11 @@ class FilePickerService {
         '[IMPORT_VIDEO][DONE] folderCode=$folderCode videoCode=$videoCode file=$videoPath '
         'subtitle=${subtitlePath ?? '-'} subtitlesInserted=$subtitlesInserted participlesInserted=$participlesInserted',
       );
-      return _LocalVideoImportResult(video: video, subtitlesInserted: subtitlesInserted, participlesInserted: participlesInserted);
+      return _LocalVideoImportResult(
+        video: video,
+        subtitlesInserted: subtitlesInserted,
+        participlesInserted: participlesInserted,
+      );
     } catch (e) {
       debugPrint('[IMPORT_VIDEO][ERROR] video=$videoPath error=$e');
       return const _LocalVideoImportResult.empty();
@@ -494,7 +606,11 @@ class FilePickerService {
   /// [subtitlePath] 字幕文件路径
   /// [folderCode] 视频集 code
   /// [videoCode] 视频 code
-  static Future<_SubtitleImportStats> _importSubtitle(String subtitlePath, String folderCode, String videoCode) async {
+  static Future<_SubtitleImportStats> _importSubtitle(
+    String subtitlePath,
+    String folderCode,
+    String videoCode,
+  ) async {
     try {
       final subtitleFile = File(subtitlePath);
       if (!await subtitleFile.exists()) {
@@ -520,16 +636,25 @@ class FilePickerService {
         subtitlesInserted++;
 
         // 分词处理
-        participlesInserted += await _processParticiple(videoCode, subtitle.code!, subtitle.content);
+        participlesInserted += await _processParticiple(
+          videoCode,
+          subtitle.code!,
+          subtitle.content,
+        );
       }
       debugPrint(
         '[IMPORT_SUBTITLE][DONE] videoCode=$videoCode subtitleFile=$subtitlePath '
         'parsed=${subtitles.length} inserted=$subtitlesInserted participles=$participlesInserted',
       );
       await ConversationService.uploadSubtitlesToCloud(videoCode);
-      return _SubtitleImportStats(subtitlesInserted: subtitlesInserted, participlesInserted: participlesInserted);
+      return _SubtitleImportStats(
+        subtitlesInserted: subtitlesInserted,
+        participlesInserted: participlesInserted,
+      );
     } catch (e) {
-      debugPrint('[IMPORT_SUBTITLE][ERROR] videoCode=$videoCode subtitleFile=$subtitlePath error=$e');
+      debugPrint(
+        '[IMPORT_SUBTITLE][ERROR] videoCode=$videoCode subtitleFile=$subtitlePath error=$e',
+      );
       return const _SubtitleImportStats.empty();
     }
   }
@@ -537,13 +662,17 @@ class FilePickerService {
   /// 导入字幕文件到数据库（公开入口）
   ///
   /// 用于 WiFi 上传字幕或手动补字幕：字幕文件先落盘，再调用该方法解析并入库。
-  static Future<({int subtitlesInserted, int participlesInserted})> importSubtitleToDb(
+  static Future<({int subtitlesInserted, int participlesInserted})>
+  importSubtitleToDb(
     String subtitlePath,
     String folderCode,
     String videoCode,
   ) async {
     final stats = await _importSubtitle(subtitlePath, folderCode, videoCode);
-    return (subtitlesInserted: stats.subtitlesInserted, participlesInserted: stats.participlesInserted);
+    return (
+      subtitlesInserted: stats.subtitlesInserted,
+      participlesInserted: stats.participlesInserted,
+    );
   }
 
   /// 处理分词
@@ -551,7 +680,11 @@ class FilePickerService {
   /// [videoCode] 视频 code
   /// [subtitlesCode] 字幕 code
   /// [content] 字幕文本内容
-  static Future<int> _processParticiple(String videoCode, String subtitlesCode, String content) async {
+  static Future<int> _processParticiple(
+    String videoCode,
+    String subtitlesCode,
+    String content,
+  ) async {
     try {
       // 简单的分词逻辑：按空格和标点符号分割
       String processedText = content;
@@ -568,7 +701,11 @@ class FilePickerService {
       // 保存分词到数据库
       int inserted = 0;
       for (final word in uniqueWords) {
-        final participle = Participle(videoCode: videoCode, subtitlesCode: subtitlesCode, content: word.toLowerCase());
+        final participle = Participle(
+          videoCode: videoCode,
+          subtitlesCode: subtitlesCode,
+          content: word.toLowerCase(),
+        );
         participle.code = const Uuid().v4().replaceAll('-', '');
         await DatabaseService.insert(participle);
         inserted++;
@@ -596,7 +733,9 @@ class FilePickerService {
         if (lines.length >= 3) {
           // 解析时间轴
           final timeLine = lines[1];
-          final timeMatch = RegExp(r'(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})').firstMatch(timeLine);
+          final timeMatch = RegExp(
+            r'(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})',
+          ).firstMatch(timeLine);
 
           if (timeMatch != null) {
             final startTime = _parseTimestamp(timeMatch.group(1)!);
@@ -639,7 +778,11 @@ class FilePickerService {
     final hasEn = RegExp(r'[A-Za-z]').hasMatch(text);
     if (!hasZh || !hasEn) return (text, null);
 
-    final lines = text.split(RegExp(r'\r?\n')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final lines = text
+        .split(RegExp(r'\r?\n'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     if (lines.length <= 1) return (text, null);
 
     final zhLines = <String>[];
@@ -696,7 +839,9 @@ class FilePickerService {
         type: FileType.custom,
         allowMultiple: true,
         withData: false,
-        allowedExtensions: supportedVideoExtensions.map((e) => e.startsWith('.') ? e.substring(1) : e).toList(),
+        allowedExtensions: supportedVideoExtensions
+            .map((e) => e.startsWith('.') ? e.substring(1) : e)
+            .toList(),
         dialogTitle: '选择视频文件',
       );
 
@@ -715,7 +860,11 @@ class FilePickerService {
   /// [files] 要导入的文件列表
   /// [folderCode] 目标文件夹 code
   /// [onProgress] 进度回调
-  static Future<int> importVideos(List<PlatformFile> files, String folderCode, {Function(int, int)? onProgress}) async {
+  static Future<int> importVideos(
+    List<PlatformFile> files,
+    String folderCode, {
+    Function(int, int)? onProgress,
+  }) async {
     int completedCount = 0;
     for (int i = 0; i < files.length; i++) {
       final file = files[i];
@@ -735,9 +884,17 @@ class FilePickerService {
   /// [videoPath] 视频文件路径
   /// [subtitlePath] 字幕文件路径（可选，传入 null 时自动检测）
   /// [folderCode] 目标文件夹 code
-  static Future<bool> importVideoWithSubtitle(String videoPath, String? subtitlePath, String folderCode) async {
+  static Future<bool> importVideoWithSubtitle(
+    String videoPath,
+    String? subtitlePath,
+    String folderCode,
+  ) async {
     if (videoPath.isEmpty) return false;
-    final result = await _importLocalVideo(videoPath, folderCode, subtitlePath: subtitlePath);
+    final result = await _importLocalVideo(
+      videoPath,
+      folderCode,
+      subtitlePath: subtitlePath,
+    );
     await FolderStatsService.refreshFolderStats(folderCode);
     return result.video != null;
   }
@@ -835,7 +992,8 @@ class FilePickerService {
     return false;
   }
 
-  static Future<({String videoPath, String? subtitlePath})> _persistIosTmpFilesIfNeeded({
+  static Future<({String videoPath, String? subtitlePath})>
+  _persistIosTmpFilesIfNeeded({
     required String videoPath,
     required String? subtitlePath,
     required String folderCode,
@@ -869,7 +1027,9 @@ class FilePickerService {
         videoPath = destVideoPath;
       }
 
-      if (subtitlePath != null && subtitlePath.isNotEmpty && _isProbablyIosTmpPath(subtitlePath)) {
+      if (subtitlePath != null &&
+          subtitlePath.isNotEmpty &&
+          _isProbablyIosTmpPath(subtitlePath)) {
         final srcSub = File(subtitlePath);
         if (await srcSub.exists()) {
           final subExt = _getFileExtension(subtitlePath);
@@ -890,33 +1050,6 @@ class FilePickerService {
     return (videoPath: videoPath, subtitlePath: subtitlePath);
   }
 
-  /// 更新文件夹封面
-  ///
-  /// [folderCode] 文件夹 code
-  ///
-  /// 将该文件夹中最近播放的视频封面设为文件夹封面
-  static Future<void> _updateFolderCover(String folderCode) async {
-    // 查询该文件夹下的视频，按最近播放时间和创建时间排序
-    final videos = await DatabaseService.findByCondition(
-      () => VideoInfo(),
-      where: 'folder_code = ? AND is_deleted = 0',
-      whereArgs: [folderCode],
-      orderBy: 'play_date DESC, created_at ASC',
-    );
-
-    if (videos.isNotEmpty) {
-      final coverVideo = videos.first;
-      if (coverVideo.cover != null) {
-        // 更新文件夹封面
-        await DatabaseService.update(
-          VideoFolder()
-            ..code = folderCode
-            ..cover = coverVideo.cover,
-        );
-      }
-    }
-  }
-
   /// 复制文件到应用目录
   ///
   /// [sourcePath] 源文件路径
@@ -924,7 +1057,11 @@ class FilePickerService {
   /// [videoCode] 视频 code（用于命名文件）
   ///
   /// 将视频文件复制到应用的文档目录，便于统一管理
-  static Future<void> copyFileToAppDirectory(String sourcePath, String folderCode, String videoCode) async {
+  static Future<void> copyFileToAppDirectory(
+    String sourcePath,
+    String folderCode,
+    String videoCode,
+  ) async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       // 按文件夹组织视频存储

@@ -147,11 +147,15 @@ class UnifiedTtsService {
 
       await _nativeTts.setLanguage('en-US');
       final audioPath = await _nativeTts.synthesizeToFile(text: text, outputPath: '');
-      if (audioPath == null || !await File(audioPath).exists()) {
-        return TtsResult.error('原生 TTS 合成失败：无法生成音频');
+      if (audioPath != null && await File(audioPath).exists() && await File(audioPath).length() > 0) {
+        return TtsResult(audioPath: audioPath, success: true, format: 'm4a');
       }
 
-      return TtsResult(audioPath: audioPath, success: true, format: 'm4a');
+      // 降级方案：synthesizeToFile 在某些 iOS 设备上不可靠，直接 speak 播放
+      _ttsLog('🔊 [TTS] synthesizeToFile 失败，降级到直接 speak 播放');
+      await _nativeTts.synthesizeToAudio(text: text);
+      // 返回一个标记成功的结果，但 audioPath 为空，表示是直接播放
+      return TtsResult(audioPath: '', success: true, format: 'direct');
     } catch (e) {
       _ttsLog('🔊 [TTS] 原生 TTS 失败: $e');
       return TtsResult.error('原生 TTS 失败: $e');

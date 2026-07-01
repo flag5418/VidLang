@@ -8,6 +8,7 @@
 /// - 随机选择一个已有字幕的视频资源
 /// - 调用 ai-test-plan Edge Function 生成题目
 /// - 详细打印请求和响应，便于调试
+library;
 
 import 'dart:convert';
 import 'dart:io';
@@ -40,7 +41,7 @@ Future<void> main() async {
   // 3. 测试出题功能
   await _testGeneratePlan(userId, videoCode);
 
-  print('\n' + '=' * 60);
+  print('\n${'=' * 60}');
   print('🎉 测试完成');
 }
 
@@ -83,7 +84,7 @@ Future<String?> _findVideoWithSubtitles(String userId) async {
     }
 
     print('📁 找到 ${files.length} 个字幕文件:');
-    for (var i =0; i < files.length.clamp(0, 10); i++) {
+    for (var i = 0; i < files.length.clamp(0, 10); i++) {
       final file = files[i] as Map<String, dynamic>;
       print('   ${i + 1}. ${file['video_code']} (${file['size']} bytes)');
     }
@@ -103,7 +104,7 @@ Future<String?> _findVideoWithSubtitles(String userId) async {
 
 /// 测试生成题目
 Future<void> _testGeneratePlan(String userId, String videoCode) async {
-  print('\n' + '=' * 60);
+  print('\n${'=' * 60}');
   print('📝 开始测试 AI 出题...');
   print('视频 Code: $videoCode');
   print('=' * 60);
@@ -172,7 +173,9 @@ Future<void> _testGeneratePlan(String userId, String videoCode) async {
     if (billing != null) {
       print('   计费规则: ${billing['rule_code']}');
       print('   价格: ¥${billing['price_cny']}');
-      print('   余额变化: ${billing['balance_before']} → ${billing['balance_after']}');
+      print(
+        '   余额变化: ${billing['balance_before']} → ${billing['balance_after']}',
+      );
     }
 
     if (plan != null) {
@@ -182,14 +185,17 @@ Future<void> _testGeneratePlan(String userId, String videoCode) async {
         for (var i = 0; i < items.length; i++) {
           final item = items[i] as Map<String, dynamic>;
           final type = item['type'] as String? ?? 'unknown';
-          final refText = item['ref_text'] as String? ??
-                         item['sentence'] as String? ??
-                         item['display_text'] as String? ??
-                         item['masked'] as String? ??
-                         'N/A';
+          final refText =
+              item['ref_text'] as String? ??
+              item['sentence'] as String? ??
+              item['display_text'] as String? ??
+              item['masked'] as String? ??
+              'N/A';
 
           print('\n   【题目 ${i + 1}】$type');
-          print('   参考文本: ${refText.length > 50 ? refText.substring(0, 50) + '...' : refText}');
+          print(
+            '   参考文本: ${refText.length > 50 ? '${refText.substring(0, 50)}...' : refText}',
+          );
 
           // 打印选项（如果有）
           final options = item['options'] as List?;
@@ -268,7 +274,9 @@ void _validateItems(dynamic items) {
     }
   }
 
-  print('\n📈 验证结果: $validCount/${items.length} 通过, $issueCount/${items.length} 有问题');
+  print(
+    '\n📈 验证结果: $validCount/${items.length} 通过, $issueCount/${items.length} 有问题',
+  );
 }
 
 /// 调用 Supabase Edge Function
@@ -278,10 +286,6 @@ Future<Map<String, dynamic>?> _invokeFunction(
 ) async {
   try {
     final functionUrl = Uri.parse('$supabaseUrl/functions/v1/$functionName');
-    final headers = {
-      'Authorization': 'Bearer $supabaseAnonKey',
-      'Content-Type': 'application/json',
-    };
 
     print('\n🌐 调用 Edge Function: $functionName');
     print('   URL: $functionUrl');

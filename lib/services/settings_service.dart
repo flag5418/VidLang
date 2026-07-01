@@ -136,7 +136,7 @@ class SettingsService {
     final userCode = await DatabaseService.getCurrentUserCode();
     final list = await DatabaseService.findByCondition(
       () => Config(),
-      where: 'category = ? AND key = ? AND is_deleted = 0' + (userCode != null ? ' AND user_code = ?' : ''),
+      where: 'category = ? AND key = ? AND is_deleted = 0${userCode != null ? ' AND user_code = ?' : ''}',
       whereArgs: userCode != null ? [category, key, userCode] : [category, key],
       limit: 1,
     );

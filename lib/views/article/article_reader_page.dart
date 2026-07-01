@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -25,7 +24,6 @@ import 'package:vidlang/services/translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/widgets/article/selectable_paragraph_text.dart';
-import 'package:vidlang/widgets/native_translation_guide_sheet.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
 
@@ -157,35 +155,30 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   ArticleTranslation? _translation;
   bool _showTranslation = false;
   bool _loadingTranslation = false;
-  bool get _isPaidMode => AppKeysService.currentUser?.authProvider == 'supabase';
+  bool get _isPaidMode =>
+      AppKeysService.currentUser?.authProvider == 'supabase';
 
   // 划词工具栏
   String? _selectionText;
   int? _selectionStartIndex;
   int? _selectionEndIndex;
   Offset? _toolbarOffset;
-  final SelectableParagraphTextController _selectionController = SelectableParagraphTextController();
+  final SelectableParagraphTextController _selectionController =
+      SelectableParagraphTextController();
 
   // TTS
-  FlutterTts? _flutterTts;
-  bool _ttsAvailable = false;
   bool _isSpeaking = false;
+  bool _isSpeakingSelection = false;
   int _ttsCurrentWordIndex = -1;
   List<String> _ttsWords = [];
-  List<int> _ttsWordOffsets = [];
   Timer? _ttsTimer;
-  bool _ttsProgressHandlerFired = false;
   ap.AudioPlayer? _audioPlayer;
   StreamSubscription? _audioPositionSub;
   StreamSubscription? _audioDurationSub;
-  int? _audioTotalDurationMs;
 
   // 全文朗读
   bool _isReadingAll = false;
   int _readingAllParagraphIndex = 0;
-
-  // 划词朗读
-  bool _isSpeakingSelection = false;
 
   @override
   void initState() {
@@ -211,7 +204,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _isSpeakingSelection = false;
     _ttsCurrentWordIndex = -1;
     _ttsWords = [];
-    _ttsWordOffsets = [];
     _translation = null;
     _showTranslation = false;
     _loadingTranslation = false;
@@ -240,7 +232,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   @override
   void dispose() {
     _saveReadingPosition();
-    _flutterTts?.stop();
+    TtsService().stop();
     _ttsTimer?.cancel();
     _audioPositionSub?.cancel();
     _audioDurationSub?.cancel();
@@ -253,46 +245,21 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   Future<void> _initFontSize() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _fontSize = prefs.getDouble('article_reader_font_size') ?? 16.0);
+    setState(
+      () => _fontSize = prefs.getDouble('article_reader_font_size') ?? 16.0,
+    );
   }
 
   Future<void> _initTts() async {
-    _flutterTts = FlutterTts();
-    try {
-      await _flutterTts!.setLanguage('en-US');
-      await _flutterTts!.setSpeechRate(0.5);
-      await _flutterTts!.setPitch(1.0);
-      _flutterTts!.setProgressHandler((String text, int start, int end, String word) {
-        _ttsProgressHandlerFired = true;
-        _ttsTimer?.cancel();
-        _ttsTimer = null;
-        // 使用字符偏移量而不是 indexOf，避免重复词跳到第一个
-        int idx = -1;
-        for (int i = 0; i < _ttsWordOffsets.length; i++) {
-          if (_ttsWordOffsets[i] <= start && (i == _ttsWordOffsets.length - 1 || _ttsWordOffsets[i + 1] > start)) {
-            idx = i;
-            break;
-          }
-        }
-        if (idx < 0) idx = _ttsWordOffsets.length - 1;
-        if (mounted) setState(() => _ttsCurrentWordIndex = idx);
-      });
-      _flutterTts!.setCompletionHandler(() {
-        _ttsTimer?.cancel();
-        _ttsTimer = null;
-        if (mounted) {
-          _finishSpeaking();
-          if (_isReadingAll) _readAllNext();
-        }
-      });
-      _ttsAvailable = true;
-    } catch (_) {
-      _ttsAvailable = false;
-    }
+    // TTS 统一由 TtsService 管理，无需在此初始化 flutter_tts
+    // 文章阅读器的单词高亮由 _startWordHighlightTimer 模拟
   }
 
   Future<void> _loadArticle() async {
-    final article = await BaseEntityExtension.findByCode<Article>(widget.articleCode, () => Article());
+    final article = await BaseEntityExtension.findByCode<Article>(
+      widget.articleCode,
+      () => Article(),
+    );
     if (article == null) {
       if (mounted) Navigator.pop(context);
       return;
@@ -319,7 +286,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     // 检测是否需要修复段落（旧数据所有句子 paragraphIndex=0）
     final uniqueParaIndices = sentences.map((s) => s.paragraphIndex).toSet();
-    if (sentences.length > 1 && uniqueParaIndices.length == 1 && paragraphs.isEmpty) {
+    if (sentences.length > 1 &&
+        uniqueParaIndices.length == 1 &&
+        paragraphs.isEmpty) {
       print('⚠️ 检测到旧数据，所有句子在同一段落，尝试修复...');
       final fixed = await _fixArticleParagraphs(article, sentences);
       if (fixed != null) {
@@ -340,7 +309,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     });
 
     // 根据 lastSentenceIndex 找到当前段落并滚动
-    final currentSentence = _sentences.where((s) => s.sentenceIndex == _readSentenceIndex).firstOrNull;
+    final currentSentence = _sentences
+        .where((s) => s.sentenceIndex == _readSentenceIndex)
+        .firstOrNull;
     if (currentSentence != null) {
       final currentParaIdx = currentSentence.paragraphIndex;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -373,18 +344,23 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     if (_paragraphs.isNotEmpty) {
       paraIndices = _paragraphs.map((p) => p.paragraphIndex).toList()..sort();
     } else {
-      paraIndices = _sentences.map((s) => s.paragraphIndex).toSet().toList()..sort();
+      paraIndices = _sentences.map((s) => s.paragraphIndex).toSet().toList()
+        ..sort();
     }
     debugPrint('═══ 文章段落调试 ═══');
     debugPrint('文章: ${article.title}');
     debugPrint('ArticleParagraph 记录数: ${_paragraphs.length}');
-    debugPrint('从句子推导的段落数: ${_sentences.map((s) => s.paragraphIndex).toSet().length}');
+    debugPrint(
+      '从句子推导的段落数: ${_sentences.map((s) => s.paragraphIndex).toSet().length}',
+    );
     debugPrint('段落索引列表: $paraIndices');
     debugPrint('总句子数: ${_sentences.length}');
     for (final pIdx in paraIndices) {
       final sents = _sentences.where((s) => s.paragraphIndex == pIdx).toList();
       final preview = sents.map((s) => s.content).join(' ');
-      final short = preview.length > 80 ? '${preview.substring(0, 80)}...' : preview;
+      final short = preview.length > 80
+          ? '${preview.substring(0, 80)}...'
+          : preview;
       debugPrint('  段落[$pIdx]: ${sents.length}句 → $short');
     }
     debugPrint('═══════════════════');
@@ -404,11 +380,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   /// 修复旧数据：从文章原文重新解析段落边界，更新句子和段落记录
-  Future<(List<ArticleSentence>, List<ArticleParagraph>)?> _fixArticleParagraphs(Article article, List<ArticleSentence> sentences) async {
+  Future<(List<ArticleSentence>, List<ArticleParagraph>)?>
+  _fixArticleParagraphs(
+    Article article,
+    List<ArticleSentence> sentences,
+  ) async {
     if (article.contentMarkdown.isEmpty) return null;
 
     // 统一换行符
-    final normalized = article.contentMarkdown.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    final normalized = article.contentMarkdown
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
     final lines = normalized.split('\n');
 
     // 提取段落文本（按空行分隔）
@@ -438,7 +420,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     for (final sentence in sentences) {
       final content = sentence.content.trim();
       // 在当前段落中查找句子内容
-      while (currentParaIdx < paragraphTexts.length && !paragraphTexts[currentParaIdx].contains(content)) {
+      while (currentParaIdx < paragraphTexts.length &&
+          !paragraphTexts[currentParaIdx].contains(content)) {
         currentParaIdx++;
       }
       if (currentParaIdx >= paragraphTexts.length) {
@@ -450,7 +433,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     // 创建 ArticleParagraph 记录
     final paragraphs = <ArticleParagraph>[];
     for (int i = 0; i < paragraphTexts.length; i++) {
-      final paraSentences = sentences.where((s) => s.paragraphIndex == i).toList();
+      final paraSentences = sentences
+          .where((s) => s.paragraphIndex == i)
+          .toList();
       if (paraSentences.isEmpty) continue;
       paragraphs.add(
         ArticleParagraph(
@@ -480,7 +465,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients || _sentences.isEmpty || _isSelecting) return;
+    if (!_scrollController.hasClients || _sentences.isEmpty || _isSelecting) {
+      return;
+    }
     final viewportHeight = _scrollController.position.viewportDimension;
     final viewportCenter = _scrollController.offset + viewportHeight * 0.3;
 
@@ -492,7 +479,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       if (key.currentContext == null) continue;
       final box = key.currentContext!.findRenderObject() as RenderBox?;
       if (box == null) continue;
-      final offset = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
+      final offset = box.localToGlobal(
+        Offset.zero,
+        ancestor: context.findRenderObject(),
+      );
       final center = offset.dy + box.size.height / 2;
       final distance = (center - viewportCenter).abs();
       if (distance < bestDistance) {
@@ -504,7 +494,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     // 更新阅读位置和激活段落
     if (bestParaIdx != null) {
       final firstSentence = _sentencesForParagraph(bestParaIdx).firstOrNull;
-      if (firstSentence != null && firstSentence.sentenceIndex != _readSentenceIndex) {
+      if (firstSentence != null &&
+          firstSentence.sentenceIndex != _readSentenceIndex) {
         _readSentenceIndex = firstSentence.sentenceIndex;
       }
       if (_activeParagraphIndex != bestParaIdx) {
@@ -546,16 +537,23 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
 
-    final needCount = TranslationInitService.countNeedTranslate(_sentences, mode);
+    final needCount = TranslationInitService.countNeedTranslate(
+      _sentences,
+      mode,
+    );
     if (needCount == 0) return;
 
     // 显示加载提示
     if (!mounted) return;
-    TDToast.showText('正在进行翻译初始化...', context: context, duration: const Duration(seconds: 2));
+    TDToast.showText(
+      '正在进行翻译初始化...',
+      context: context,
+      duration: const Duration(seconds: 2),
+    );
 
     // 执行翻译
     try {
-      final success = await TranslationInitService.translateArticleSentences(
+      await TranslationInitService.translateArticleSentences(
         sentences: _sentences,
         articleCode: widget.articleCode,
         title: _article!.title,
@@ -569,7 +567,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     } catch (e) {
       debugPrint('Article translation init failed: $e');
       if (mounted) {
-        TDToast.showText('翻译失败: $e', context: context, duration: const Duration(seconds: 3));
+        TDToast.showText(
+          '翻译失败: $e',
+          context: context,
+          duration: const Duration(seconds: 3),
+        );
       }
     }
   }
@@ -597,7 +599,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       sourceCode: widget.articleCode,
       sourceTitle: _article?.title,
       onSaveWord:
-          ({required String word, String? contextSentence, required String sourceType, required String sourceCode, String? sourceTitle}) async {
+          ({
+            required String word,
+            String? contextSentence,
+            required String sourceType,
+            required String sourceCode,
+            String? sourceTitle,
+          }) async {
             final wb = await WordBookService.saveWord(
               word: word,
               contextSentence: contextSentence,
@@ -624,13 +632,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _stopSpeaking();
 
     final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
-    _articleTtsLog('📖 [ArticleTTS] _speakText | mode=$mode | text="${text.length > 50 ? '${text.substring(0, 50)}...' : text}"');
+    _articleTtsLog(
+      '📖 [ArticleTTS] _speakText | mode=$mode | text="${text.length > 50 ? '${text.substring(0, 50)}...' : text}"',
+    );
 
     // 准备单词列表用于高亮（在播放前准备好）
     final wordRegex = RegExp(r'\b\w+\b');
     final wordMatches = wordRegex.allMatches(text).toList();
     _ttsWords = wordMatches.map((m) => m.group(0)!).toList();
-    _ttsWordOffsets = wordMatches.map((m) => m.start).toList();
 
     setState(() {
       _isSpeaking = true;
@@ -644,9 +653,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         text: text,
         mode: mode,
         onEvent: (event) {
-          _articleTtsLog('📖 [ArticleTTS] event=${event.type} ${event.message ?? ""}');
+          _articleTtsLog(
+            '📖 [ArticleTTS] event=${event.type} ${event.message ?? ""}',
+          );
           if (event.type == TtsEventType.loading && mounted) {
             // loading 状态：可以显示加载指示器（当前保持 isSpeaking=true 即可）
+          }
+          if (event.type == TtsEventType.playing && mounted) {
+            // 开始播放时启动单词高亮定时器
+            _startWordHighlightTimer(text);
           }
         },
         onComplete: () {
@@ -659,71 +674,47 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       _articleTtsLog('📖 [ArticleTTS] 异常: $e');
       if (mounted) {
         _finishSpeaking();
-        // 回退到原生 TTS
-        await _speakWithNativeTts(text);
+        // 统一使用 TtsService 回退（复用传入的 mode）
+        await TtsService().speakClarity(
+          text: text,
+          mode: mode,
+          onComplete: () {
+            _finishSpeaking();
+            if (_isReadingAll) _readAllNext();
+          },
+        );
       }
     }
   }
 
-  Future<void> _speakWithNativeTts(String text) async {
-    if (!_ttsAvailable || _flutterTts == null) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('TTS 不可用')));
-      return;
-    }
-    await _flutterTts!.stop();
+  /// 启动单词高亮定时器（用于流式 TTS 播放时模拟单词进度）
+  void _startWordHighlightTimer(String text) {
+    // 取消之前的定时器
     _ttsTimer?.cancel();
-    _isSpeaking = false;
-    _ttsCurrentWordIndex = -1;
-    _ttsWords = [];
-    _ttsWordOffsets = [];
-    _ttsProgressHandlerFired = false;
-
-    final wordRegex = RegExp(r'\b\w+\b');
-    final wordMatches = wordRegex.allMatches(text).toList();
-    _ttsWords = wordMatches.map((m) => m.group(0)!).toList();
-    _ttsWordOffsets = wordMatches.map((m) => m.start).toList();
-
-    if (_ttsWords.isEmpty) {
-      try {
-        await _flutterTts!.speak(text);
-      } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('朗读失败: $e')));
+    
+    if (_ttsWords.isEmpty) return;
+    
+    // 估算每个单词的持续时间（基于平均语速）
+    // 假设平均语速为 150 词/分钟 = 2.5 词/秒 = 400ms/词
+    const int avgWordDurationMs = 400;
+    
+    _ttsTimer = Timer.periodic(Duration(milliseconds: avgWordDurationMs), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
-      return;
-    }
-
-    _ttsCurrentWordIndex = 0;
-    setState(() => _isSpeaking = true);
-
-    _ttsTimer = Timer(const Duration(seconds: 1), () {
-      if (_ttsProgressHandlerFired || !mounted) return;
-      _ttsTimer = Timer.periodic(const Duration(milliseconds: 350), (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
-          timer.cancel();
-          _ttsTimer = null;
-          _finishSpeaking();
-          return;
-        }
-        setState(() => _ttsCurrentWordIndex++);
-      });
+      if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
+        timer.cancel();
+        _ttsTimer = null;
+        return;
+      }
+      setState(() => _ttsCurrentWordIndex++);
     });
-
-    try {
-      await _flutterTts!.speak(text);
-    } catch (e) {
-      _ttsTimer?.cancel();
-      _ttsTimer = null;
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('朗读失败: $e')));
-    }
   }
 
   void _stopSpeaking() {
     _ttsTimer?.cancel();
-    _flutterTts?.stop();
+    TtsService().stop();
     _audioPositionSub?.cancel();
     _audioDurationSub?.cancel();
     _audioPlayer?.stop();
@@ -739,7 +730,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         _isSpeakingSelection = false;
         _ttsCurrentWordIndex = -1;
         _ttsWords = [];
-        _ttsWordOffsets = [];
       });
       if (wasSelection) _clearSelection();
     }
@@ -789,7 +779,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   void _speakCurrentParagraph() {
-    final sentences = _sentences.where((s) => s.paragraphIndex == _readingAllParagraphIndex).toList();
+    final sentences = _sentences
+        .where((s) => s.paragraphIndex == _readingAllParagraphIndex)
+        .toList();
     if (sentences.isEmpty) {
       _readAllNext();
       return;
@@ -800,7 +792,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   void _scrollToParagraph(int paragraphIndex) {
     final key = _paragraphKeys[paragraphIndex];
     if (key?.currentContext != null) {
-      Scrollable.ensureVisible(key!.currentContext!, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
@@ -809,7 +805,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     if (_paragraphs.isNotEmpty) {
       return _paragraphs.map((p) => p.paragraphIndex).toList()..sort();
     }
-    final indices = _sentences.map((s) => s.paragraphIndex).toSet().toList()..sort();
+    final indices = _sentences.map((s) => s.paragraphIndex).toSet().toList()
+      ..sort();
     return indices;
   }
 
@@ -844,13 +841,18 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   String _getParagraphTranslation(int paragraphIndex) {
     // 优先使用段落译文
-    final para = _paragraphs.where((p) => p.paragraphIndex == paragraphIndex).firstOrNull;
+    final para = _paragraphs
+        .where((p) => p.paragraphIndex == paragraphIndex)
+        .firstOrNull;
     if (para != null && (para.translation ?? '').trim().isNotEmpty) {
       return para.translation!;
     }
     // 回退到句子译文拼接
     final sentences = _sentencesForParagraph(paragraphIndex);
-    final translations = sentences.map((s) => s.contentTranslate ?? '').where((t) => t.trim().isNotEmpty).toList();
+    final translations = sentences
+        .map((s) => s.contentTranslate ?? '')
+        .where((t) => t.trim().isNotEmpty)
+        .toList();
     if (translations.isEmpty) return _loadingTranslation ? '' : '';
     return translations.join('');
   }
@@ -930,8 +932,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     final entry = await DictionaryService().lookup(word);
     if (!mounted) return;
     if (entry != null) {
-      final phonetic = entry.phonetic != null && entry.phonetic!.isNotEmpty ? '[${entry.phonetic}] ' : '';
-      TDToast.showText('$word $phonetic\n${entry.shortTranslation}', context: context, duration: const Duration(seconds: 3));
+      final phonetic = entry.phonetic != null && entry.phonetic!.isNotEmpty
+          ? '[${entry.phonetic}] '
+          : '';
+      TDToast.showText(
+        '$word $phonetic\n${entry.shortTranslation}',
+        context: context,
+        duration: const Duration(seconds: 3),
+      );
     } else {
       TDToast.showText('未找到「$word」的释义', context: context);
     }
@@ -972,7 +980,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   void _onFontSizeChanged(double v) {
     setState(() => _fontSize = v);
-    SharedPreferences.getInstance().then((p) => p.setDouble('article_reader_font_size', v));
+    SharedPreferences.getInstance().then(
+      (p) => p.setDouble('article_reader_font_size', v),
+    );
   }
 
   Widget _buildFontSizePopup(ColorScheme cs) {
@@ -991,7 +1001,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               // A+ (大字号标记,顶部)
               Text(
                 'A',
-                style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: cs.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurfaceVariant,
+                ),
               ),
               // 竖直滑条
               SizedBox(
@@ -1002,10 +1016,20 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   child: SliderTheme(
                     data: SliderThemeData(
                       trackHeight: 4,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 8,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 16,
+                      ),
                     ),
-                    child: Slider(value: _fontSize, min: 10, max: 36, divisions: 26, onChanged: _onFontSizeChanged),
+                    child: Slider(
+                      value: _fontSize,
+                      min: 10,
+                      max: 36,
+                      divisions: 26,
+                      onChanged: _onFontSizeChanged,
+                    ),
                   ),
                 ),
               ),
@@ -1061,7 +1085,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         appBar: AppBar(
           backgroundColor: cs.surface,
           elevation: 0,
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
           title: Text(
             _article!.title,
             style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
@@ -1070,7 +1097,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.format_list_bulleted_rounded, color: _showArticleList ? cs.primary : cs.onSurfaceVariant),
+              icon: Icon(
+                Icons.format_list_bulleted_rounded,
+                color: _showArticleList ? cs.primary : cs.onSurfaceVariant,
+              ),
               onPressed: () => setState(() {
                 _showArticleList = !_showArticleList;
                 _showFontSizePopup = false;
@@ -1092,7 +1122,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
             // 划词工具栏
             if (_selectionText != null && _toolbarOffset != null)
-              Positioned(left: _toolbarOffset!.dx, top: _toolbarOffset!.dy, child: _buildSelectionToolbar(cs)),
+              Positioned(
+                left: _toolbarOffset!.dx,
+                top: _toolbarOffset!.dy,
+                child: _buildSelectionToolbar(cs),
+              ),
 
             // 字体大小弹窗
             if (_showFontSizePopup) ...[
@@ -1124,7 +1158,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 top: 0,
                 right: 0,
                 bottom: 0,
-                child: Container(width: 320.w, color: cs.surface, child: _buildArticleListSidebar(cs)),
+                child: Container(
+                  width: 320.w,
+                  color: cs.surface,
+                  child: _buildArticleListSidebar(cs),
+                ),
               ),
             ],
           ],
@@ -1144,7 +1182,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     return SingleChildScrollView(
       controller: _scrollController,
       physics: _isSelecting ? const NeverScrollableScrollPhysics() : null,
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md.w, vertical: AppSpacing.sm.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md.w,
+        vertical: AppSpacing.sm.h,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1161,7 +1202,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     final fullText = sentences.map((s) => s.content).join(' ');
     final isActive = paragraphIndex == _activeParagraphIndex;
-    final isSpeakingPara = _isSpeaking && _isReadingAll && _readingAllParagraphIndex == paragraphIndex;
+    final isSpeakingPara =
+        _isSpeaking &&
+        _isReadingAll &&
+        _readingAllParagraphIndex == paragraphIndex;
 
     _paragraphKeys.putIfAbsent(paragraphIndex, () => GlobalKey());
     final key = _paragraphKeys[paragraphIndex]!;
@@ -1175,9 +1219,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           duration: const Duration(milliseconds: 300),
           margin: EdgeInsets.only(bottom: 24.h),
           decoration: BoxDecoration(
-            color: isActive ? cs.primary.withValues(alpha: 0.03) : Colors.transparent,
+            color: isActive
+                ? cs.primary.withValues(alpha: 0.03)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(16.r),
-            border: isActive ? Border.all(color: cs.primary.withValues(alpha: 0.1), width: 0.5) : Border.all(color: Colors.transparent, width: 0.5),
+            border: isActive
+                ? Border.all(
+                    color: cs.primary.withValues(alpha: 0.1),
+                    width: 0.5,
+                  )
+                : Border.all(color: Colors.transparent, width: 0.5),
           ),
           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
           child: Column(
@@ -1188,18 +1239,32 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               if (_showTranslation)
                 Builder(
                   builder: (_) {
-                    final translation = _getParagraphTranslation(paragraphIndex);
-                    if (translation.isEmpty && !_loadingTranslation) return const SizedBox.shrink();
+                    final translation = _getParagraphTranslation(
+                      paragraphIndex,
+                    );
+                    if (translation.isEmpty && !_loadingTranslation) {
+                      return const SizedBox.shrink();
+                    }
                     return Padding(
                       padding: EdgeInsets.only(top: 8.h),
                       child: _loadingTranslation
                           ? Padding(
                               padding: EdgeInsets.all(4.h),
-                              child: SizedBox(width: 16.h, height: 16.h, child: CircularProgressIndicator(strokeWidth: 2)),
+                              child: SizedBox(
+                                width: 16.h,
+                                height: 16.h,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             )
                           : Text(
                               translation,
-                              style: TextStyle(fontSize: (_fontSize - 2).sp, color: cs.onSurface.withValues(alpha: 0.7), height: 1.6),
+                              style: TextStyle(
+                                fontSize: (_fontSize - 2).sp,
+                                color: cs.onSurface.withValues(alpha: 0.7),
+                                height: 1.6,
+                              ),
                             ),
                     );
                   },
@@ -1212,12 +1277,24 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (_isSpeaking)
-                        _paraBtn(Icons.stop_circle_outlined, '停止', _stopSpeaking, cs)
+                        _paraBtn(
+                          Icons.stop_circle_outlined,
+                          '停止',
+                          _stopSpeaking,
+                          cs,
+                        )
                       else
-                        _paraBtn(Icons.volume_up_outlined, '朗读', () => _speakParagraph(paragraphIndex), cs),
+                        _paraBtn(
+                          Icons.volume_up_outlined,
+                          '朗读',
+                          () => _speakParagraph(paragraphIndex),
+                          cs,
+                        ),
                       SizedBox(width: 16.w),
                       _paraBtn(
-                        _showTranslation ? Icons.translate : Icons.translate_outlined,
+                        _showTranslation
+                            ? Icons.translate
+                            : Icons.translate_outlined,
                         _showTranslation ? '隐藏翻译' : '翻译',
                         _toggleParagraphTranslation,
                         cs,
@@ -1234,12 +1311,21 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   /// 段落文本渲染：激活时用 SelectableParagraphText 支持划词，非激活时用普通 Text
-  Widget _buildParagraphText(String fullText, int paragraphIndex, ColorScheme cs, bool isSpeakingPara) {
+  Widget _buildParagraphText(
+    String fullText,
+    int paragraphIndex,
+    ColorScheme cs,
+    bool isSpeakingPara,
+  ) {
     if (_activeParagraphIndex == paragraphIndex) {
-      final isTtsHighlight = !_isSpeakingSelection && (isSpeakingPara || (_isSpeaking && !_isReadingAll));
+      final isTtsHighlight =
+          !_isSpeakingSelection &&
+          (isSpeakingPara || (_isSpeaking && !_isReadingAll));
       final ttsWordIdx = isTtsHighlight ? _ttsCurrentWordIndex : -1;
 
-      final marksForPara = _markRecords.where((m) => m.paragraphIndex == paragraphIndex).toList();
+      final marksForPara = _markRecords
+          .where((m) => m.paragraphIndex == paragraphIndex)
+          .toList();
 
       return SelectableParagraphText(
         controller: _selectionController,
@@ -1260,8 +1346,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             _selectionStartIndex = startIdx;
             _selectionEndIndex = endIdx;
             _toolbarOffset = Offset(
-              position.dx.clamp(20.w, MediaQuery.of(context).size.width - 220.w),
-              (position.dy - 60.h).clamp(40.h, MediaQuery.of(context).size.height - 100.h),
+              position.dx.clamp(
+                20.w,
+                MediaQuery.of(context).size.width - 220.w,
+              ),
+              (position.dy - 60.h).clamp(
+                40.h,
+                MediaQuery.of(context).size.height - 100.h,
+              ),
             );
           });
         },
@@ -1269,17 +1361,29 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     }
     return Text(
       fullText,
-      style: TextStyle(fontSize: _fontSize.sp, color: cs.onSurface, height: 1.8),
+      style: TextStyle(
+        fontSize: _fontSize.sp,
+        color: cs.onSurface,
+        height: 1.8,
+      ),
     );
   }
 
-  Widget _paraBtn(IconData icon, String label, VoidCallback onTap, ColorScheme cs) {
+  Widget _paraBtn(
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+    ColorScheme cs,
+  ) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-        decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(20.r)),
+        decoration: BoxDecoration(
+          color: cs.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1287,7 +1391,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             SizedBox(width: 6.w),
             Text(
               label,
-              style: TextStyle(fontSize: 12.sp, color: cs.primary, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: cs.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -1308,19 +1416,55 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             color: cs.surface,
             borderRadius: BorderRadius.circular(16.r),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 6)),
-              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
             ],
-            border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.2), width: 0.5),
+            border: Border.all(
+              color: cs.outlineVariant.withValues(alpha: 0.2),
+              width: 0.5,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _tbBtn(Icons.volume_up_rounded, '朗读', () => _onToolbarAction('speak'), cs),
-              _tbBtn(Icons.lightbulb_outline_rounded, '释义', () => _onToolbarAction('define'), cs),
-              _tbBtn(Icons.color_lens_rounded, '标注', () => _onToolbarAction('mark'), cs),
-              _tbBtn(Icons.translate_rounded, '翻译', () => _onToolbarAction('translate'), cs),
-              _tbBtn(Icons.mic_rounded, '跟读', () => _onToolbarAction('shadow'), cs),
+              _tbBtn(
+                Icons.volume_up_rounded,
+                '朗读',
+                () => _onToolbarAction('speak'),
+                cs,
+              ),
+              _tbBtn(
+                Icons.lightbulb_outline_rounded,
+                '释义',
+                () => _onToolbarAction('define'),
+                cs,
+              ),
+              _tbBtn(
+                Icons.color_lens_rounded,
+                '标注',
+                () => _onToolbarAction('mark'),
+                cs,
+              ),
+              _tbBtn(
+                Icons.translate_rounded,
+                '翻译',
+                () => _onToolbarAction('translate'),
+                cs,
+              ),
+              _tbBtn(
+                Icons.mic_rounded,
+                '跟读',
+                () => _onToolbarAction('shadow'),
+                cs,
+              ),
             ],
           ),
         ),
@@ -1328,7 +1472,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     );
   }
 
-  Widget _tbBtn(IconData icon, String label, VoidCallback onTap, ColorScheme cs) {
+  Widget _tbBtn(
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+    ColorScheme cs,
+  ) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12.r),
@@ -1341,7 +1490,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             SizedBox(height: 4.h),
             Text(
               label,
-              style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: cs.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -1353,7 +1506,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   Widget _buildBottomBar(ColorScheme cs) {
     final totalSentences = _sentences.length;
-    final progress = totalSentences > 0 ? (_readSentenceIndex + 1) / totalSentences : 0.0;
+    final progress = totalSentences > 0
+        ? (_readSentenceIndex + 1) / totalSentences
+        : 0.0;
     final percent = (progress * 100).round().clamp(0, 100);
     final paraIndices = _getParagraphIndices();
     final totalParas = paraIndices.length;
@@ -1362,7 +1517,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
       decoration: BoxDecoration(
         color: cs.surface,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, -4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         child: Column(
@@ -1384,7 +1545,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               children: [
                 IconButton(
                   icon: Icon(
-                    _isReadingAll ? Icons.stop_circle_rounded : Icons.play_circle_fill_rounded,
+                    _isReadingAll
+                        ? Icons.stop_circle_rounded
+                        : Icons.play_circle_fill_rounded,
                     color: _isReadingAll ? cs.error : cs.primary,
                     size: 36.sp,
                   ),
@@ -1397,7 +1560,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 Expanded(
                   child: Text(
                     '${_activeParagraphPosition + 1} / $totalParas 段  •  $percent%',
-                    style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 // 书签按钮 + 角标（Stack 叠加）
@@ -1410,7 +1577,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     children: [
                       // 书签图标
                       IconButton(
-                        icon: Icon(Icons.bookmark_rounded, color: _showMarkManagerPopup ? cs.primary : cs.onSurfaceVariant, size: 24.sp),
+                        icon: Icon(
+                          Icons.bookmark_rounded,
+                          color: _showMarkManagerPopup
+                              ? cs.primary
+                              : cs.onSurfaceVariant,
+                          size: 24.sp,
+                        ),
                         onPressed: () => setState(() {
                           _showMarkManagerPopup = !_showMarkManagerPopup;
                           _showFontSizePopup = false;
@@ -1430,7 +1603,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.text_fields_rounded, color: _showFontSizePopup ? cs.primary : cs.onSurfaceVariant, size: 24.sp),
+                  icon: Icon(
+                    Icons.text_fields_rounded,
+                    color: _showFontSizePopup
+                        ? cs.primary
+                        : cs.onSurfaceVariant,
+                    size: 24.sp,
+                  ),
                   onPressed: () => setState(() {
                     _showFontSizePopup = !_showFontSizePopup;
                     _showArticleList = false;
@@ -1489,7 +1668,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         Container(
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: cs.outline.withValues(alpha: 0.15))),
+            border: Border(
+              bottom: BorderSide(color: cs.outline.withValues(alpha: 0.15)),
+            ),
           ),
           child: Row(
             children: [
@@ -1497,7 +1678,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               SizedBox(width: 8.w),
               Text(
                 '文章列表',
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: cs.onSurface),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface,
+                ),
               ),
               SizedBox(width: 8.w),
               Text(
@@ -1514,11 +1699,18 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.article_outlined, size: 48.sp, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
+                      Icon(
+                        Icons.article_outlined,
+                        size: 48.sp,
+                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                      ),
                       SizedBox(height: 12.h),
                       Text(
                         '暂无文章',
-                        style: TextStyle(fontSize: 14.sp, color: cs.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -1529,21 +1721,37 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   itemBuilder: (_, i) {
                     final a = _folderArticles[i];
                     final isCurrent = a.code == _article?.code;
-                    final progressPercent = (a.progress * 100).round().clamp(0, 100);
-                    final estimatedMinutes = (a.wordCount / 200).ceil().clamp(1, 999);
+                    final progressPercent = (a.progress * 100).round().clamp(
+                      0,
+                      100,
+                    );
+                    final estimatedMinutes = (a.wordCount / 200).ceil().clamp(
+                      1,
+                      999,
+                    );
                     return Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
                       child: Material(
                         borderRadius: BorderRadius.circular(12.r),
-                        color: isCurrent ? cs.primaryContainer.withValues(alpha: 0.2) : cs.surfaceContainerHighest,
+                        color: isCurrent
+                            ? cs.primaryContainer.withValues(alpha: 0.2)
+                            : cs.surfaceContainerHighest,
                         child: InkWell(
                           onTap: isCurrent
                               ? null
                               : () {
                                   final code = a.code;
-                                  if (code != null && code != widget.articleCode) {
+                                  if (code != null &&
+                                      code != widget.articleCode) {
                                     setState(() => _showArticleList = false);
-                                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ArticleReaderPage(articleCode: code)));
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ArticleReaderPage(
+                                          articleCode: code,
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                           borderRadius: BorderRadius.circular(12.r),
@@ -1551,7 +1759,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             padding: EdgeInsets.all(14.w),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12.r),
-                              border: isCurrent ? Border.all(color: cs.primary, width: 2) : null,
+                              border: isCurrent
+                                  ? Border.all(color: cs.primary, width: 2)
+                                  : null,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1563,7 +1773,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                         a.title,
                                         style: TextStyle(
                                           fontSize: 14.sp,
-                                          fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
+                                          fontWeight: isCurrent
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
                                           color: cs.onSurface,
                                         ),
                                         maxLines: 2,
@@ -1572,11 +1784,22 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                     ),
                                     if (isCurrent)
                                       Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                                        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(6.r)),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8.w,
+                                          vertical: 4.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: cs.primary,
+                                          borderRadius: BorderRadius.circular(
+                                            6.r,
+                                          ),
+                                        ),
                                         child: Text(
                                           '当前',
-                                          style: TextStyle(fontSize: 12.sp, color: cs.onPrimary),
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            color: cs.onPrimary,
+                                          ),
                                         ),
                                       ),
                                   ],
@@ -1586,10 +1809,26 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   spacing: 8.w,
                                   runSpacing: 6.h,
                                   children: [
-                                    _statChip(Icons.layers, '${a.totalParagraphs}段', cs),
-                                    _statChip(Icons.short_text, '${a.totalSentences}句', cs),
-                                    _statChip(Icons.menu_book, '${a.wordCount}词', cs),
-                                    _statChip(Icons.access_time, '约$estimatedMinutes分钟', cs),
+                                    _statChip(
+                                      Icons.layers,
+                                      '${a.totalParagraphs}段',
+                                      cs,
+                                    ),
+                                    _statChip(
+                                      Icons.short_text,
+                                      '${a.totalSentences}句',
+                                      cs,
+                                    ),
+                                    _statChip(
+                                      Icons.menu_book,
+                                      '${a.wordCount}词',
+                                      cs,
+                                    ),
+                                    _statChip(
+                                      Icons.access_time,
+                                      '约$estimatedMinutes分钟',
+                                      cs,
+                                    ),
                                   ],
                                 ),
                                 SizedBox(height: 10.h),
@@ -1597,12 +1836,20 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   children: [
                                     Expanded(
                                       child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(4.r),
+                                        borderRadius: BorderRadius.circular(
+                                          4.r,
+                                        ),
                                         child: LinearProgressIndicator(
                                           value: a.progress.clamp(0.0, 1.0),
                                           minHeight: 6.h,
-                                          backgroundColor: cs.outline.withValues(alpha: 0.2),
-                                          valueColor: AlwaysStoppedAnimation<Color>(isCurrent ? cs.primary : cs.outline),
+                                          backgroundColor: cs.outline
+                                              .withValues(alpha: 0.2),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                isCurrent
+                                                    ? cs.primary
+                                                    : cs.outline,
+                                              ),
                                         ),
                                       ),
                                     ),
@@ -1612,7 +1859,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                       style: TextStyle(
                                         fontSize: 12.sp,
                                         fontWeight: FontWeight.w500,
-                                        color: isCurrent ? cs.primary : cs.onSurfaceVariant,
+                                        color: isCurrent
+                                            ? cs.primary
+                                            : cs.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -1633,7 +1882,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   Widget _statChip(IconData icon, String label, ColorScheme cs) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(color: cs.onSurfaceVariant.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(6.r)),
+      decoration: BoxDecoration(
+        color: cs.onSurfaceVariant.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6.r),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1641,7 +1893,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           SizedBox(width: 4.w),
           Text(
             label,
-            style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: cs.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -1651,7 +1907,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   // ── 标记词颜色选择 ──
 
   void _showMarkColorDialog(String selectedText) {
-    if (_activeParagraphIndex == null || _selectionStartIndex == null || _selectionEndIndex == null) return;
+    if (_activeParagraphIndex == null ||
+        _selectionStartIndex == null ||
+        _selectionEndIndex == null) {
+      return;
+    }
 
     final trimmedText = selectedText.trim();
     final pIdx = _activeParagraphIndex!;
@@ -1664,7 +1924,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       builder: (ctx) {
         final cs = Theme.of(ctx).colorScheme;
         return Container(
-          padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, MediaQuery.of(ctx).padding.bottom + 24.h),
+          padding: EdgeInsets.fromLTRB(
+            24.w,
+            16.h,
+            24.w,
+            MediaQuery.of(ctx).padding.bottom + 24.h,
+          ),
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -1678,31 +1943,50 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   width: 40.w,
                   height: 4.h,
                   margin: EdgeInsets.only(bottom: 24.h),
-                  decoration: BoxDecoration(color: cs.onSurfaceVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
+                  decoration: BoxDecoration(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
                 ),
               ),
               Text(
                 '标注',
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: cs.onSurface),
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface,
+                ),
               ),
               SizedBox(height: 8.h),
               Text(
                 trimmedText,
-                style: TextStyle(fontSize: 15.sp, color: cs.onSurfaceVariant, height: 1.5),
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  color: cs.onSurfaceVariant,
+                  height: 1.5,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 24.h),
               Text(
                 '选择颜色',
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
+                ),
               ),
               SizedBox(height: 16.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(_markerColors.length, (i) {
                   final isCurrent = _markRecords.any(
-                    (r) => r.paragraphIndex == pIdx && r.startIndex == sIdx && r.endIndex == eIdx && r.color == _markerColors[i],
+                    (r) =>
+                        r.paragraphIndex == pIdx &&
+                        r.startIndex == sIdx &&
+                        r.endIndex == eIdx &&
+                        r.color == _markerColors[i],
                   );
                   return GestureDetector(
                     onTap: () => Navigator.pop(ctx, i),
@@ -1712,35 +1996,69 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       decoration: BoxDecoration(
                         color: _markerColors[i],
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: _markerColors[i].withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
-                        border: isCurrent ? Border.all(color: cs.onSurface, width: 2.5) : Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _markerColors[i].withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: isCurrent
+                            ? Border.all(color: cs.onSurface, width: 2.5)
+                            : Border.all(color: Colors.white, width: 2),
                       ),
-                      child: isCurrent ? Icon(Icons.check_rounded, color: Colors.white, size: 22.sp) : null,
+                      child: isCurrent
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 22.sp,
+                            )
+                          : null,
                     ),
                   );
                 }),
               ),
               SizedBox(height: 32.h),
-              if (_markRecords.any((r) => r.paragraphIndex == pIdx && r.startIndex == sIdx && r.endIndex == eIdx))
+              if (_markRecords.any(
+                (r) =>
+                    r.paragraphIndex == pIdx &&
+                    r.startIndex == sIdx &&
+                    r.endIndex == eIdx,
+              ))
                 SizedBox(
                   width: double.infinity,
                   child: TextButton.icon(
                     onPressed: () {
                       Navigator.pop(ctx);
                       setState(() {
-                        _markRecords.removeWhere((r) => r.paragraphIndex == pIdx && r.startIndex == sIdx && r.endIndex == eIdx);
+                        _markRecords.removeWhere(
+                          (r) =>
+                              r.paragraphIndex == pIdx &&
+                              r.startIndex == sIdx &&
+                              r.endIndex == eIdx,
+                        );
                       });
                       _saveMarkRecords();
                     },
-                    icon: Icon(Icons.delete_outline_rounded, color: cs.error, size: 20.sp),
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      color: cs.error,
+                      size: 20.sp,
+                    ),
                     label: Text(
                       '删除标注',
-                      style: TextStyle(color: cs.error, fontSize: 16.sp, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: cs.error,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       backgroundColor: cs.error.withValues(alpha: 0.1),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.r),
+                      ),
                     ),
                   ),
                 ),
@@ -1752,7 +2070,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       if (colorIdx != null && mounted) {
         setState(() {
           // 先移除已有的相同位置的标记
-          _markRecords.removeWhere((r) => r.paragraphIndex == pIdx && r.startIndex == sIdx && r.endIndex == eIdx);
+          _markRecords.removeWhere(
+            (r) =>
+                r.paragraphIndex == pIdx &&
+                r.startIndex == sIdx &&
+                r.endIndex == eIdx,
+          );
           // 添加新标记
           _markRecords.add(
             MarkRecord(
@@ -1785,11 +2108,19 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.65),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.65,
+              ),
               decoration: BoxDecoration(
                 color: cs.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, -4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1799,7 +2130,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
                     width: 32.w,
                     height: 4.h,
-                    decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(2.r)),
+                    decoration: BoxDecoration(
+                      color: cs.onSurface.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
                   ),
                   // 标题栏
                   Padding(
@@ -1812,13 +2146,26 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             Container(
                               width: 32.w,
                               height: 32.w,
-                              decoration: BoxDecoration(color: cs.primaryContainer.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8.r)),
-                              child: Icon(Icons.bookmark_border, size: 18.sp, color: cs.primary),
+                              decoration: BoxDecoration(
+                                color: cs.primaryContainer.withValues(
+                                  alpha: 0.2,
+                                ),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Icon(
+                                Icons.bookmark_border,
+                                size: 18.sp,
+                                color: cs.primary,
+                              ),
                             ),
                             SizedBox(width: 10.w),
                             Text(
                               '标记管理',
-                              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
+                              style: TextStyle(
+                                fontSize: 17.sp,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onSurface,
+                              ),
                             ),
                           ],
                         ),
@@ -1835,8 +2182,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   title: const Text('确认'),
                                   content: const Text('确定要清空所有标记吗？'),
                                   actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                                    TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('确定')),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text('确定'),
+                                    ),
                                   ],
                                 ),
                               );
@@ -1849,7 +2203,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       ],
                     ),
                   ),
-                  Divider(height: 1.h, color: cs.outline.withValues(alpha: 0.1)),
+                  Divider(
+                    height: 1.h,
+                    color: cs.outline.withValues(alpha: 0.1),
+                  ),
                   // 内容区域
                   if (_markRecords.isEmpty)
                     Expanded(
@@ -1860,18 +2217,35 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             Container(
                               width: 64.w,
                               height: 64.w,
-                              decoration: BoxDecoration(color: cs.surfaceContainerHighest.withValues(alpha: 0.5), shape: BoxShape.circle),
-                              child: Icon(Icons.bookmark_border, size: 32.sp, color: cs.outline.withValues(alpha: 0.4)),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest.withValues(
+                                  alpha: 0.5,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.bookmark_border,
+                                size: 32.sp,
+                                color: cs.outline.withValues(alpha: 0.4),
+                              ),
                             ),
                             SizedBox(height: 16.h),
                             Text(
                               '暂无标记',
-                              style: TextStyle(fontSize: 15.sp, color: cs.onSurfaceVariant),
+                              style: TextStyle(
+                                fontSize: 15.sp,
+                                color: cs.onSurfaceVariant,
+                              ),
                             ),
                             SizedBox(height: 4.h),
                             Text(
                               '划词并标注开始学习吧',
-                              style: TextStyle(fontSize: 13.sp, color: cs.onSurfaceVariant.withValues(alpha: 0.6)),
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                color: cs.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -1880,8 +2254,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   else
                     Expanded(
                       child: ListView.separated(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                        separatorBuilder: (_, _) => Divider(height: 1.h, color: cs.outline.withValues(alpha: 0.08)),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 8.h,
+                        ),
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1.h,
+                          color: cs.outline.withValues(alpha: 0.08),
+                        ),
                         itemCount: _markRecords.length,
                         itemBuilder: (_, index) {
                           final record = _markRecords[index];
@@ -1894,14 +2274,20 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   decoration: BoxDecoration(
                                     color: record.color,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: cs.surface, width: 1.5),
+                                    border: Border.all(
+                                      color: cs.surface,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                                 SizedBox(width: 12.w),
                                 Expanded(
                                   child: Text(
                                     record.text,
-                                    style: TextStyle(fontSize: 14.sp, color: cs.onSurface),
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      color: cs.onSurface,
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1909,7 +2295,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                               ],
                             ),
                             rightIconWidget: IconButton(
-                              icon: Icon(Icons.close, size: 18.sp, color: cs.error),
+                              icon: Icon(
+                                Icons.close,
+                                size: 18.sp,
+                                color: cs.error,
+                              ),
                               onPressed: () async {
                                 setState(() => _markRecords.removeAt(index));
                                 await _saveMarkRecords();

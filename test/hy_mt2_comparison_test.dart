@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vidlang/services/sentencepiece_tokenizer.dart';
 
@@ -24,12 +22,12 @@ class MockHyMt2Translation {
   });
 
   Map<String, dynamic> toJson() => {
-        'text': text,
-        'translated': translated,
-        'source_lang': sourceLang,
-        'target_lang': targetLang,
-        'latency_ms': latencyMs,
-      };
+    'text': text,
+    'translated': translated,
+    'source_lang': sourceLang,
+    'target_lang': targetLang,
+    'latency_ms': latencyMs,
+  };
 }
 
 /// 模拟 Hy-MT2 翻译器
@@ -55,10 +53,8 @@ class MockHyMt2Translator {
         'SDRAM延迟以CAS延迟(CL)周期来衡量。',
 
     // 外贸商务
-    'We are pleased to confirm our order for 5000 units.':
-        '我们很高兴确认订购5000台设备。',
-    'The shipment will be delivered by FOB Shanghai.':
-        '货物将以FOB上海条款交付。',
+    'We are pleased to confirm our order for 5000 units.': '我们很高兴确认订购5000台设备。',
+    'The shipment will be delivered by FOB Shanghai.': '货物将以FOB上海条款交付。',
     'Please send us your best quotation for the above items.':
         '请把上述物品的最优报价发给我们。',
 
@@ -79,9 +75,9 @@ class MockHyMt2Translator {
     String targetLang = 'zh',
   }) async {
     // 模拟推理延迟 (0.1-0.5秒)
-    await Future.delayed(Duration(
-      milliseconds: (100 + text.length * 2).clamp(100, 500),
-    ));
+    await Future.delayed(
+      Duration(milliseconds: (100 + text.length * 2).clamp(100, 500)),
+    );
 
     final translated = _translations[text] ?? _fallbackTranslate(text);
 
@@ -108,7 +104,13 @@ class MockHyMt2Translator {
   }) async {
     final results = <MockHyMt2Translation>[];
     for (final text in texts) {
-      results.add(await translate(text: text, sourceLang: sourceLang, targetLang: targetLang));
+      results.add(
+        await translate(
+          text: text,
+          sourceLang: sourceLang,
+          targetLang: targetLang,
+        ),
+      );
     }
     return results;
   }
@@ -130,10 +132,8 @@ class MockMarianMtTranslator {
         'GPU渲染管线支持Vulkan 1.3和OpenGL ES 3.2。',
     'SDRAM latency is measured in CAS Latency (CL) cycles.':
         'SDRAM延迟以CAS延迟(CL)周期来衡量。',
-    'We are pleased to confirm our order for 5000 units.':
-        '我们很高兴确认订购5000台设备。',
-    'The shipment will be delivered by FOB Shanghai.':
-        '货物将以FOB上海条款交付。',
+    'We are pleased to confirm our order for 5000 units.': '我们很高兴确认订购5000台设备。',
+    'The shipment will be delivered by FOB Shanghai.': '货物将以FOB上海条款交付。',
     'Please send us your best quotation for the above items.':
         '请把上述物品的最优报价发给我们。',
     'Artificial intelligence is transforming the way we live and work. Machine learning algorithms can now process natural language, recognize images, and make decisions with remarkable accuracy.':
@@ -164,7 +164,7 @@ class TranslationQualityEvaluator {
     required String translation,
     required String reference,
   }) {
-    final originalLower = original.toLowerCase();
+    original.toLowerCase();
     final transLower = translation.toLowerCase();
     final refLower = reference.toLowerCase();
 
@@ -172,7 +172,8 @@ class TranslationQualityEvaluator {
     final keyTerms = _extractKeyTerms(original);
     int termMatchCount = 0;
     for (final term in keyTerms) {
-      if (transLower.contains(term.toLowerCase()) || refLower.contains(term.toLowerCase())) {
+      if (transLower.contains(term.toLowerCase()) ||
+          refLower.contains(term.toLowerCase())) {
         termMatchCount++;
       }
     }
@@ -181,7 +182,9 @@ class TranslationQualityEvaluator {
     // 检查译文与参考译文的相似度
     final commonWords = _countCommonWords(refLower, transLower);
     final refWordCount = refLower.split(' ').length;
-    final similarityScore = refWordCount == 0 ? 0.0 : commonWords / refWordCount;
+    final similarityScore = refWordCount == 0
+        ? 0.0
+        : commonWords / refWordCount;
 
     // 检查译文是否有明显的翻译失败标记
     final failureMarkers = ['translation failed', '翻译失败', '翻译模型未就绪'];
@@ -190,7 +193,10 @@ class TranslationQualityEvaluator {
 
     // 综合评分
     final rawScore = (termScore * 0.4 + similarityScore * 0.6).clamp(0.0, 1.0);
-    final finalScore = (rawScore * 10.0 - failurePenalty * 10.0).clamp(0.0, 10.0);
+    final finalScore = (rawScore * 10.0 - failurePenalty * 10.0).clamp(
+      0.0,
+      10.0,
+    );
 
     return double.parse(finalScore.toStringAsFixed(1));
   }
@@ -205,7 +211,15 @@ class TranslationQualityEvaluator {
       terms.add(match.group(0)!);
     }
     // 提取专业术语
-    final techTerms = ['processor', 'gpu', 'cpu', 'memory', 'ram', '4nm', 'lpddr'];
+    final techTerms = [
+      'processor',
+      'gpu',
+      'cpu',
+      'memory',
+      'ram',
+      '4nm',
+      'lpddr',
+    ];
     final textLower = text.toLowerCase();
     for (final term in techTerms) {
       if (textLower.contains(term)) {
@@ -294,8 +308,7 @@ void main() {
 
       // 数码专业
       const TranslationTestCase(
-        sourceText:
-            '这款处理器采用4nm工艺，CPU主频3.2GHz，GPU性能提升20%，支持LPDDR5X内存。',
+        sourceText: '这款处理器采用4nm工艺，CPU主频3.2GHz，GPU性能提升20%，支持LPDDR5X内存。',
         expectedQuality: 'high',
         category: 'tech_professional',
         expectedKeyTerms: '4nm,GPU,CPU,LPDDR5X',
@@ -349,9 +362,13 @@ void main() {
     ];
 
     test('对比测试: MarianMT vs Hy-MT2 翻译质量', () async {
-      print('\n╔══════════════════════════════════════════════════════════════╗');
+      print(
+        '\n╔══════════════════════════════════════════════════════════════╗',
+      );
       print('║     MarianMT vs Hy-MT2 翻译模型对比测试                       ║');
-      print('╚══════════════════════════════════════════════════════════════╝\n');
+      print(
+        '╚══════════════════════════════════════════════════════════════╝\n',
+      );
 
       final results = <TranslationComparisonResult>[];
 
@@ -361,7 +378,9 @@ void main() {
         print('原文: ${tc.sourceText}');
 
         // MarianMT 翻译
-        final marianMtResult = await marianMtTranslator.translate(text: tc.sourceText);
+        final marianMtResult = await marianMtTranslator.translate(
+          text: tc.sourceText,
+        );
         print('MarianMT: $marianMtResult');
 
         // Hy-MT2 翻译
@@ -390,17 +409,21 @@ void main() {
           winner = '平局';
         }
 
-        print('MarianMT 评分: $marianMtScore | Hy-MT2 评分: $hyMt2Score | 差异: ${scoreDiff.toStringAsFixed(1)} | 胜出: $winner\n');
+        print(
+          'MarianMT 评分: $marianMtScore | Hy-MT2 评分: $hyMt2Score | 差异: ${scoreDiff.toStringAsFixed(1)} | 胜出: $winner\n',
+        );
 
-        results.add(TranslationComparisonResult(
-          testCase: tc,
-          marianMtResult: marianMtResult,
-          hyMt2Result: hyMt2Trans.translated,
-          marianMtScore: marianMtScore,
-          hyMt2Score: hyMt2Score,
-          scoreDifference: scoreDiff,
-          winner: winner,
-        ));
+        results.add(
+          TranslationComparisonResult(
+            testCase: tc,
+            marianMtResult: marianMtResult,
+            hyMt2Result: hyMt2Trans.translated,
+            marianMtScore: marianMtScore,
+            hyMt2Score: hyMt2Score,
+            scoreDifference: scoreDiff,
+            winner: winner,
+          ),
+        );
       }
 
       // 汇总统计
@@ -409,25 +432,40 @@ void main() {
       final ties = results.where((r) => r.tie).length;
       final avgHyMt2Score = results.isEmpty
           ? 0.0
-          : results.map((r) => r.hyMt2Score).reduce((a, b) => a + b) / results.length;
+          : results.map((r) => r.hyMt2Score).reduce((a, b) => a + b) /
+                results.length;
       final avgMarianMtScore = results.isEmpty
           ? 0.0
-          : results.map((r) => r.marianMtScore).reduce((a, b) => a + b) / results.length;
+          : results.map((r) => r.marianMtScore).reduce((a, b) => a + b) /
+                results.length;
       final avgScoreDiff = results.isEmpty
           ? 0.0
-          : results.map((r) => r.scoreDifference).reduce((a, b) => a + b) / results.length;
+          : results.map((r) => r.scoreDifference).reduce((a, b) => a + b) /
+                results.length;
 
       print('╔══════════════════════════════════════════════════════════════╗');
       print('║                        测试汇总                              ║');
       print('╠══════════════════════════════════════════════════════════════╣');
-      print('║  总测试数: ${results.length}                                       ║');
+      print(
+        '║  总测试数: ${results.length}                                       ║',
+      );
       print('║  Hy-MT2 胜: $hyMt2Wins                                       ║');
-      print('║  MarianMT 胜: $marianMtWins                                       ║');
+      print(
+        '║  MarianMT 胜: $marianMtWins                                       ║',
+      );
       print('║  平局: $ties                                         ║');
-      print('║  Hy-MT2 平均分: ${avgHyMt2Score.toStringAsFixed(1)}                             ║');
-      print('║  MarianMT 平均分: ${avgMarianMtScore.toStringAsFixed(1)}                             ║');
-      print('║  平均分差: ${avgScoreDiff.toStringAsFixed(1)}                                ║');
-      print('╚══════════════════════════════════════════════════════════════╝\n');
+      print(
+        '║  Hy-MT2 平均分: ${avgHyMt2Score.toStringAsFixed(1)}                             ║',
+      );
+      print(
+        '║  MarianMT 平均分: ${avgMarianMtScore.toStringAsFixed(1)}                             ║',
+      );
+      print(
+        '║  平均分差: ${avgScoreDiff.toStringAsFixed(1)}                                ║',
+      );
+      print(
+        '╚══════════════════════════════════════════════════════════════╝\n',
+      );
 
       // 断言
       expect(results.length, testCases.length);
@@ -446,7 +484,9 @@ void main() {
 
       // MarianMT 批量翻译
       final startMarian = DateTime.now();
-      final marianResults = await marianMtTranslator.translateBatch(texts: batchTexts);
+      final marianResults = await marianMtTranslator.translateBatch(
+        texts: batchTexts,
+      );
       final marianDuration = DateTime.now().difference(startMarian);
 
       // Hy-MT2 批量翻译

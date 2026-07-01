@@ -48,6 +48,14 @@
 	<string>需要语音识别权限以进行英语跟读练习，实时识别您的发音</string>
 	<key>NSNetworkUsageDescription</key>
 	<string>需要网络连接以访问AI服务</string>
+	<!-- ATS 配置：允许 HTTP 和 WebSocket 连接 -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_http._tcp</string>

@@ -13,7 +13,11 @@ class _ParagraphWord {
   double height = 0;
   int row = 0;
 
-  _ParagraphWord({required this.text, required this.index, required this.isWord});
+  _ParagraphWord({
+    required this.text,
+    required this.index,
+    required this.isWord,
+  });
 }
 
 /// 可划词的段落文本控制器
@@ -44,7 +48,13 @@ class SelectableParagraphText extends StatefulWidget {
   final VoidCallback? onTap;
 
   /// 划词结束回调 (selectedWords, toolbarPosition, startIndex, endIndex)
-  final void Function(List<String> selectedWords, Offset position, int startIndex, int endIndex)? onSelectionDone;
+  final void Function(
+    List<String> selectedWords,
+    Offset position,
+    int startIndex,
+    int endIndex,
+  )?
+  onSelectionDone;
 
   /// 开始划词（父组件应禁用滚动）
   final VoidCallback? onStartSelection;
@@ -72,7 +82,8 @@ class SelectableParagraphText extends StatefulWidget {
   });
 
   @override
-  State<SelectableParagraphText> createState() => _SelectableParagraphTextState();
+  State<SelectableParagraphText> createState() =>
+      _SelectableParagraphTextState();
 }
 
 class _SelectableParagraphTextState extends State<SelectableParagraphText> {
@@ -96,7 +107,9 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
       _cachedWords = null;
       _lastText = null;
       _selectedIndices.clear();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _updateWordPositions());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _updateWordPositions(),
+      );
     }
   }
 
@@ -123,7 +136,11 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
     final regex = RegExp(r'\b\w+\b|[^\w\s]|\s+');
     _cachedWords = regex.allMatches(text).toList().asMap().entries.map((e) {
       final match = e.value.group(0)!;
-      return _ParagraphWord(text: match, index: e.key, isWord: RegExp(r'\w').hasMatch(match));
+      return _ParagraphWord(
+        text: match,
+        index: e.key,
+        isWord: RegExp(r'\w').hasMatch(match),
+      );
     }).toList();
     _lastText = text;
     return _cachedWords!;
@@ -140,10 +157,12 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
       final key = word.key;
       if (key.currentContext == null) continue;
 
-      final RenderBox? renderBox = key.currentContext!.findRenderObject() as RenderBox?;
+      final RenderBox? renderBox =
+          key.currentContext!.findRenderObject() as RenderBox?;
       if (renderBox == null) continue;
 
-      final RenderBox? wrapRenderBox = _wrapKey.currentContext?.findRenderObject() as RenderBox?;
+      final RenderBox? wrapRenderBox =
+          _wrapKey.currentContext?.findRenderObject() as RenderBox?;
       if (wrapRenderBox == null) continue;
 
       final globalPos = renderBox.localToGlobal(Offset.zero);
@@ -175,7 +194,8 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
     if (_cachedWords == null || _cachedWords!.isEmpty) return null;
 
     final RenderBox? gestureBox = context.findRenderObject() as RenderBox?;
-    final RenderBox? wrapBox = _wrapKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? wrapBox =
+        _wrapKey.currentContext?.findRenderObject() as RenderBox?;
     if (gestureBox == null || wrapBox == null) return null;
 
     final globalPos = gestureBox.localToGlobal(localPosition);
@@ -238,7 +258,10 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
     if (_selectedIndices.isNotEmpty && widget.onSelectionDone != null) {
       final words = _splitWords(widget.text);
       final sortedIndices = _selectedIndices.toList()..sort();
-      final selectedWords = sortedIndices.map((idx) => words[idx].text.trim()).where((t) => t.isNotEmpty).toList();
+      final selectedWords = sortedIndices
+          .map((idx) => words[idx].text.trim())
+          .where((t) => t.isNotEmpty)
+          .toList();
 
       // 计算工具栏位置（最后一个选中词的上方）
       final lastIdx = sortedIndices.last;
@@ -249,7 +272,12 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
           final box = key.currentContext!.findRenderObject() as RenderBox?;
           if (box != null) {
             final pos = box.localToGlobal(Offset.zero);
-            widget.onSelectionDone!(selectedWords, pos, sortedIndices.first, sortedIndices.last);
+            widget.onSelectionDone!(
+              selectedWords,
+              pos,
+              sortedIndices.first,
+              sortedIndices.last,
+            );
           }
         }
       }
@@ -314,7 +342,10 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
             ttsIdx = isWordIdx;
             isWordIdx++;
           }
-          final isTtsHighlight = widget.isSpeaking && ttsIdx == widget.ttsCurrentWordIndex && word.isWord;
+          final isTtsHighlight =
+              widget.isSpeaking &&
+              ttsIdx == widget.ttsCurrentWordIndex &&
+              word.isWord;
 
           // 标记词
           dynamic activeMark;
@@ -328,7 +359,6 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
 
           Color? bgColor;
           Color textColor = widget.textColor;
-          FontWeight fontWeight = FontWeight.normal;
           TextDecoration? decoration;
           TextDecorationStyle decorationStyle = TextDecorationStyle.solid;
           Color? underlineColor;
@@ -336,11 +366,9 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
           if (isTtsHighlight) {
             bgColor = widget.colorScheme.primary.withValues(alpha: 0.2);
             textColor = widget.colorScheme.primary;
-            fontWeight = FontWeight.w600;
           } else if (isSelected) {
             bgColor = widget.colorScheme.primary.withValues(alpha: 0.25);
             textColor = widget.colorScheme.primary;
-            fontWeight = FontWeight.w600;
           } else if (markColor != null) {
             bgColor = markColor.withValues(alpha: 0.2);
             decoration = TextDecoration.underline;
@@ -352,7 +380,10 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
           return Container(
             key: word.key,
             padding: EdgeInsets.symmetric(horizontal: 1.w, vertical: 2.h),
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(3.r)),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(3.r),
+            ),
             child: Text(
               word.text,
               style: TextStyle(

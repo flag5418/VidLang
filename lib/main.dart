@@ -44,6 +44,7 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_tag.dart';
 import 'package:vidlang/models/word_tag.dart';
+import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -51,13 +52,26 @@ import 'package:vidlang/services/global_error_handler.dart';
 import 'package:vidlang/services/local_ai_service.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/device_config.dart';
 import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
+import 'package:vidlang/views/test/audio_test_page.dart';
+import 'package:vidlang/views/test/shengtong_http_test_page.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// 在 runApp 之前检测设备类型，用于 ScreenUtil 初始化
+AppDeviceType _detectInitialDeviceType() {
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
+  if (shortestSide >= 600) {
+    return AppDeviceType.ipad;
+  }
+  return AppDeviceType.iphone;
+}
 
 /// 应用入口函数
 ///
@@ -68,7 +82,8 @@ void main() {
       WidgetsFlutterBinding.ensureInitialized();
 
       final view = WidgetsBinding.instance.platformDispatcher.views.first;
-      final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
+      final shortestSide =
+          view.physicalSize.shortestSide / view.devicePixelRatio;
       if (shortestSide >= 600) {
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
@@ -80,7 +95,11 @@ void main() {
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       }
 
-      VscodeLogger.instance.init(appName: 'VidLang', minLevel: LogLevel.debug, printToConsole: true);
+      VscodeLogger.instance.init(
+        appName: 'VidLang',
+        minLevel: LogLevel.debug,
+        printToConsole: true,
+      );
       GlobalErrorHandler.instance.install(navigatorKey: navigatorKey);
 
       // 禁用系统上下文菜单，避免 Flutter 3.46 主分支的 SystemContextMenu 断言错误
@@ -88,7 +107,7 @@ void main() {
 
       // 先执行 runApp，让 Flutter 能够立刻渲染第一帧（Splash Screen）
       // 避免因为网络请求或本地数据库初始化过慢导致长时间黑屏/白屏
-      runApp(const ProviderScope(child: VidLangApp()));
+      runApp(ProviderScope(child: VidLangApp(initialDeviceType: _detectInitialDeviceType())));
 
       // 在后台异步进行各项繁重的初始化任务
       _initializeAsyncDependencies();
@@ -101,36 +120,95 @@ void main() {
 
 Future<void> _initializeAsyncDependencies() async {
   try {
-    await Supabase.initialize(url: AppKeysService.supabaseUrl, anonKey: AppKeysService.supabaseAnonKey);
+    await Supabase.initialize(
+      url: AppKeysService.supabaseUrl,
+      anonKey: AppKeysService.supabaseAnonKey,
+    );
 
     DatabaseService.registerEntities({
-      'video_folder': EntityConfig(creator: () => VideoFolder(), description: '视频文件夹表'),
-      'video_info': EntityConfig(creator: () => VideoInfo(), description: '视频信息表'),
-      'subtitles': EntityConfig(creator: () => Subtitles(), description: '字幕表（支持全文检索）', enableFullTextSearch: true),
-      'participle': EntityConfig(creator: () => Participle(), description: '分词表（支持全文检索）', enableFullTextSearch: true),
+      'video_folder': EntityConfig(
+        creator: () => VideoFolder(),
+        description: '视频文件夹表',
+      ),
+      'video_info': EntityConfig(
+        creator: () => VideoInfo(),
+        description: '视频信息表',
+      ),
+      'subtitles': EntityConfig(
+        creator: () => Subtitles(),
+        description: '字幕表（支持全文检索）',
+        enableFullTextSearch: true,
+      ),
+      'participle': EntityConfig(
+        creator: () => Participle(),
+        description: '分词表（支持全文检索）',
+        enableFullTextSearch: true,
+      ),
       'config': EntityConfig(creator: () => Config(), description: '配置表'),
-      'study_record': EntityConfig(creator: () => StudyRecord(), description: '学习记录表'),
+      'study_record': EntityConfig(
+        creator: () => StudyRecord(),
+        description: '学习记录表',
+      ),
       'user': EntityConfig(creator: () => User(), description: '用户表'),
-      'error_log': EntityConfig(creator: () => ErrorLog(), description: '错误日志表'),
+      'error_log': EntityConfig(
+        creator: () => ErrorLog(),
+        description: '错误日志表',
+      ),
       'article': EntityConfig(creator: () => Article(), description: '文章表'),
-      'article_chapter': EntityConfig(creator: () => ArticleChapter(), description: '文章章节表（旧版，迁移中）'),
-      'article_paragraph': EntityConfig(creator: () => ArticleParagraph(), description: '文章段落表'),
-      'article_sentence': EntityConfig(creator: () => ArticleSentence(), description: '文章句子表', enableFullTextSearch: true),
-      'article_bookmark': EntityConfig(creator: () => ArticleBookmark(), description: '文章书签表'),
+      'article_chapter': EntityConfig(
+        creator: () => ArticleChapter(),
+        description: '文章章节表（旧版，迁移中）',
+      ),
+      'article_paragraph': EntityConfig(
+        creator: () => ArticleParagraph(),
+        description: '文章段落表',
+      ),
+      'article_sentence': EntityConfig(
+        creator: () => ArticleSentence(),
+        description: '文章句子表',
+        enableFullTextSearch: true,
+      ),
+      'article_bookmark': EntityConfig(
+        creator: () => ArticleBookmark(),
+        description: '文章书签表',
+      ),
       'word_book': EntityConfig(creator: () => WordBook(), description: '单词本表'),
       'word_tag': EntityConfig(creator: () => WordTag(), description: '单词标签表'),
-      'word_book_tag': EntityConfig(creator: () => WordBookTag(), description: '单词-标签关联表'),
-      'recording_record': EntityConfig(creator: () => RecordingRecord(), description: '跟读录音记录表'),
-      'test_session': EntityConfig(creator: () => TestSession(), description: '评测主记录表'),
-      'test_item': EntityConfig(creator: () => TestItem(), description: '单题记录表'),
-      'test_evaluation': EntityConfig(creator: () => TestEvaluation(), description: 'AI评价报告表'),
-      'ai_evaluation_log': EntityConfig(creator: () => AiEvaluationLog(), description: 'AI学习评价日志表'),
+      'word_book_tag': EntityConfig(
+        creator: () => WordBookTag(),
+        description: '单词-标签关联表',
+      ),
+      'recording_record': EntityConfig(
+        creator: () => RecordingRecord(),
+        description: '跟读录音记录表',
+      ),
+      'test_session': EntityConfig(
+        creator: () => TestSession(),
+        description: '评测主记录表',
+      ),
+      'test_item': EntityConfig(
+        creator: () => TestItem(),
+        description: '单题记录表',
+      ),
+      'test_evaluation': EntityConfig(
+        creator: () => TestEvaluation(),
+        description: 'AI评价报告表',
+      ),
+      'ai_evaluation_log': EntityConfig(
+        creator: () => AiEvaluationLog(),
+        description: 'AI学习评价日志表',
+      ),
     });
 
     try {
       await DatabaseService.database;
     } catch (e, st) {
-      logger.error('数据库初始化失败，将以无数据库模式运行', tag: 'INIT', error: e, stackTrace: st);
+      logger.error(
+        '数据库初始化失败，将以无数据库模式运行',
+        tag: 'INIT',
+        error: e,
+        stackTrace: st,
+      );
     }
 
     await DeviceUtils.initialize();
@@ -150,7 +228,9 @@ Future<void> _initializeAsyncDependencies() async {
 /// 配置应用的主题、语言、路由等全局设置。
 /// 同时监听排他性登录被顶号事件，弹出提示并跳转登录页。
 class VidLangApp extends StatefulWidget {
-  const VidLangApp({super.key});
+  final AppDeviceType initialDeviceType;
+
+  const VidLangApp({super.key, this.initialDeviceType = AppDeviceType.iphone});
 
   @override
   State<VidLangApp> createState() => _VidLangAppState();
@@ -187,7 +267,10 @@ class _VidLangAppState extends State<VidLangApp> {
           TextButton(
             onPressed: () {
               navigatorKey.currentState?.popUntil((r) => r.isFirst);
-              navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (r) => false);
+              navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                '/login',
+                (r) => false,
+              );
             },
             child: const Text('确定'),
           ),
@@ -198,21 +281,12 @@ class _VidLangAppState extends State<VidLangApp> {
 
   @override
   Widget build(BuildContext context) {
-    // ============================================================
-    // ScreenUtilInit: 屏幕适配初始化
-    // ============================================================
-    //
-    // 确保在应用根部初始化ScreenUtil，以支持：
-    // - 不同屏幕尺寸的自适应
-    // - iPhone和iPad的响应式布局
-    // - 字体大小根据屏幕密度调整
-    //
-    // 设计尺寸：
-    // - width: 375 (iPhone标准宽度)
-    // - height: 812 (iPhone标准高度)
-    // - allowFontScaling: true (允许字体根据系统设置缩放)
+    final designSize = DeviceConfig.getDesignSize(widget.initialDeviceType);
+
     return ScreenUtilInit(
-      designSize: const Size(393, 852), // 设计稿标准尺寸（iPhone）
+      designSize: designSize,
+      minTextAdapt: true,
+      splitScreenMode: true,
       builder: (context, child) {
         return Consumer(
           builder: (context, ref, _) {
@@ -222,7 +296,11 @@ class _VidLangAppState extends State<VidLangApp> {
               darkTheme: AppTheme.darkTheme,
               themeMode: ref.watch(themeModeProvider).themeMode,
               debugShowCheckedModeBanner: false,
-              routes: {'/login': (_) => const LoginPage()},
+              routes: {
+                '/login': (_) => const LoginPage(),
+                '/audio-test': (_) => const AudioTestPage(),
+                '/shengtong-http-test': (_) => const ShengtongHttpTestPage(),
+              },
               navigatorKey: navigatorKey,
               home: const _AppEntry(),
             );
@@ -261,7 +339,10 @@ class _AppEntryState extends State<_AppEntry> {
     // 第三步：先返回登录页或主界面，让用户看到 UI
     // 后台异步验证登录状态
     try {
-      final user = await BaseEntityExtension.findByCode<User>(userCode, () => User());
+      final user = await BaseEntityExtension.findByCode<User>(
+        userCode,
+        () => User(),
+      );
       if (user == null) {
         return const LoginPage();
       }
@@ -270,18 +351,23 @@ class _AppEntryState extends State<_AppEntry> {
 
       // 第四步：异步验证 Supabase session（不阻塞 UI）
       if (user.authProvider == 'supabase') {
-        final ok = await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: true);
+        final ok = await AuthService.instance.silentVerifySupabaseLogin(
+          setAsCurrent: true,
+        );
         if (!ok) {
           return LoginPage(initialEmail: user.email ?? user.username);
         }
       } else {
-        await AuthService.instance.silentVerifySupabaseLogin(setAsCurrent: false);
+        await AuthService.instance.silentVerifySupabaseLogin(
+          setAsCurrent: false,
+        );
       }
 
       // 第五步：登录/自动恢复成功后，加载 API Keys（TTS、评测等）
       // 不阻塞导航，后台异步加载
       AppKeysService.loadFromRemote();
 
+      // return const MainPage();
       return const MainPage();
     } catch (e) {
       // 如果验证失败，返回登录页
@@ -297,7 +383,12 @@ class _AppEntryState extends State<_AppEntry> {
       final ok = await DatabaseService.verifySchemaOnStartup();
       return ok;
     } catch (e, st) {
-      logger.error('schema verification failed before entry', tag: 'INIT', error: e, stackTrace: st);
+      logger.error(
+        'schema verification failed before entry',
+        tag: 'INIT',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -356,11 +447,19 @@ class _SchemaErrorPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 64),
+              const Icon(
+                Icons.error_outline,
+                color: Color(0xFFEF4444),
+                size: 64,
+              ),
               const SizedBox(height: 24),
               const Text(
                 '数据库初始化异常',
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               const Text(

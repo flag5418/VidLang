@@ -37,7 +37,7 @@ void main() {
 
       final map = sub.toMap();
       map.remove('id');
-      
+
       // 原实体的 id 应该保持不变
       expect(sub.id, equals(123));
     });
@@ -114,7 +114,8 @@ void main() {
 
       for (final error in errors) {
         final s = error.toLowerCase();
-        final isCorrupted = s.contains('database disk image is malformed') ||
+        final isCorrupted =
+            s.contains('database disk image is malformed') ||
             s.contains('malformed') ||
             s.contains('database is locked') ||
             s.contains('disk i/o error') ||
@@ -126,10 +127,7 @@ void main() {
     test('损坏时 batchUpdate 应返回 0 而不是尝试恢复', () {
       // 验证新策略：损坏时直接返回 0，避免数据丢失
       // 实际测试需要在集成环境中进行，这里验证逻辑正确性
-      final entities = [
-        Subtitles(content: 'test', startPosition: 0, endPosition: 1000),
-      ];
-      
+
       // 空列表应返回 0
       expect(DatabaseService.batchUpdate([]), completion(equals(0)));
     });
@@ -161,11 +159,7 @@ void main() {
       ];
 
       // 模拟翻译
-      final translations = {
-        'call': '打电话',
-        'hello': '你好',
-        'world': '世界',
-      };
+      final translations = {'call': '打电话', 'hello': '你好', 'world': '世界'};
 
       for (final sub in subtitles) {
         final translated = translations[sub.content];

@@ -1,15 +1,8 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:synchronized/synchronized.dart';
-import 'package:vidlang/models/base_entity.dart';
-import 'package:vidlang/models/subtitles.dart';
-import 'package:vidlang/models/article_sentence.dart';
 
 /// ============================================================
 /// 数据库稳定性对比测试
@@ -97,7 +90,9 @@ void main() {
       }
 
       final count2 = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM subtitles WHERE content_translate IS NOT NULL'),
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM subtitles WHERE content_translate IS NOT NULL',
+        ),
       );
       expect(count2, equals(500));
     });
@@ -172,10 +167,7 @@ void main() {
           try {
             await db.update(
               'subtitles',
-              {
-                'content_translate': '翻译 $i',
-                'translate_source': 2,
-              },
+              {'content_translate': '翻译 $i', 'translate_source': 2},
               where: 'code = ?',
               whereArgs: ['sub-$i'],
             );
@@ -186,11 +178,7 @@ void main() {
       }
 
       // 同时读写
-      await Future.wait([
-        reader(),
-        writer(0, 50),
-        writer(50, 50),
-      ]);
+      await Future.wait([reader(), writer(0, 50), writer(50, 50)]);
 
       try {
         final rows = await db.rawQuery('PRAGMA quick_check(1)');
@@ -401,9 +389,7 @@ void main() {
             try {
               await db.update(
                 'subtitles',
-                {
-                  'updated_at': DateTime.now().toIso8601String(),
-                },
+                {'updated_at': DateTime.now().toIso8601String()},
                 where: 'code = ?',
                 whereArgs: ['sub-$i'],
               );
@@ -513,7 +499,11 @@ void main() {
 
         // 检查完整性
         final check = await db.rawQuery('PRAGMA quick_check(1)');
-        expect(check.first.values.first, equals('ok'), reason: 'mode=$mode 应保持完整');
+        expect(
+          check.first.values.first,
+          equals('ok'),
+          reason: 'mode=$mode 应保持完整',
+        );
 
         await db.close();
         try {

@@ -42,7 +42,6 @@ import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:omni_player/omni_player.dart' show VideoMetadataExtractor;
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
@@ -88,14 +87,18 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
   Future<void> _onWifiChanged() async {
     if (!mounted) return;
-    await ref.read(fileProvider.notifier).refreshVideosSilently(widget.folderCode);
+    await ref
+        .read(fileProvider.notifier)
+        .refreshVideosSilently(widget.folderCode);
     if (!mounted) return;
     _loadArticlesIfNeeded();
   }
 
   Future<void> _loadArticlesIfNeeded() async {
     final folder = ref.read(fileProvider).currentFolder;
-    if (folder == null || folder.folderType != FolderContentType.article) return;
+    if (folder == null || folder.folderType != FolderContentType.article) {
+      return;
+    }
 
     setState(() => _articlesLoading = true);
     try {
@@ -105,8 +108,15 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         whereArgs: [widget.folderCode],
         orderBy: 'order_index ASC, created_at DESC',
       );
-      logger.debug('_loadArticlesIfNeeded: found ${articles.length} articles for folder ${widget.folderCode}');
-      if (mounted) setState(() { _articles = articles; _articlesLoading = false; });
+      logger.debug(
+        '_loadArticlesIfNeeded: found ${articles.length} articles for folder ${widget.folderCode}',
+      );
+      if (mounted) {
+        setState(() {
+          _articles = articles;
+          _articlesLoading = false;
+        });
+      }
     } catch (e) {
       logger.error('_loadArticlesIfNeeded failed', error: e);
       if (mounted) setState(() => _articlesLoading = false);
@@ -148,7 +158,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     : state.error != null && state.videos.isEmpty
                     ? _buildErrorState(colorScheme, state.error!)
                     : state.videos.isEmpty
-                    ? (folderType == FolderContentType.article ? _buildContent(state, folderType) : _buildEmptyState(colorScheme, folderType))
+                    ? (folderType == FolderContentType.article
+                          ? _buildContent(state, folderType)
+                          : _buildEmptyState(colorScheme, folderType))
                     : _buildContent(state, folderType),
               ),
             ],
@@ -158,7 +170,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
   }
 
-  Widget _buildHeader(String title, FolderContentType folderType, ColorScheme colorScheme) {
+  Widget _buildHeader(
+    String title,
+    FolderContentType folderType,
+    ColorScheme colorScheme,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -174,7 +190,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   child: SizedBox(
                     width: 40.r,
                     height: 40.r,
-                    child: Icon(Icons.arrow_back, size: 18.sp, color: colorScheme.onSurface),
+                    child: Icon(
+                      Icons.arrow_back,
+                      size: 18.sp,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ),
               ),
@@ -182,7 +202,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(fontSize: AppTypography.fontSizeLarge.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  style: TextStyle(
+                    fontSize: AppTypography.fontSizeLarge.sp,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -202,7 +226,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   child: SizedBox(
                     width: 40.r,
                     height: 40.r,
-                    child: Icon(Icons.settings, size: 18.sp, color: colorScheme.onSurfaceVariant),
+                    child: Icon(
+                      Icons.settings,
+                      size: 18.sp,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
@@ -212,7 +240,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               onSelected: _handleMenuAction,
               offset: const Offset(0, 44),
               color: colorScheme.surface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 8,
               child: Material(
                 color: colorScheme.primary,
@@ -220,25 +250,80 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: SizedBox(
                   width: 40.r,
                   height: 40.r,
-                  child: Icon(Icons.add, size: 18.sp, color: colorScheme.onPrimary),
+                  child: Icon(
+                    Icons.add,
+                    size: 18.sp,
+                    color: colorScheme.onPrimary,
+                  ),
                 ),
               ),
               itemBuilder: (context) {
-                final isPremium = ref.watch(subscriptionProvider).mode == SubscriptionMode.premium;
+                final isPremium =
+                    ref.watch(subscriptionProvider).mode ==
+                    SubscriptionMode.premium;
                 return [
-                PopupMenuItem(value: 'import', child: _popupMenuItem(Icons.add_circle_outline, '选择导入（可多选）', colorScheme)),
-                if (Platform.isIOS && folderType == FolderContentType.video)
-                  PopupMenuItem(value: 'importFolder', child: _popupMenuItem(Icons.folder_open, '导入文件夹（全部）', colorScheme)),
-                PopupMenuDivider(height: 1),
-                PopupMenuItem(value: 'wifi', child: _popupMenuItem(Icons.wifi_rounded, 'WiFi 导入', colorScheme)),
-                PopupMenuItem(value: 'rename', child: _popupMenuItem(Icons.edit_outlined, '重命名', colorScheme)),
-                if (isPremium)
-                  PopupMenuItem(value: 'test', child: _popupMenuItem(Icons.quiz_outlined, '综合测试', colorScheme)),
-                if (isPremium && folderType == FolderContentType.video)
-                  PopupMenuItem(value: 'aiConversation', child: _popupMenuItem(Icons.forum_outlined, 'AI 对话', colorScheme)),
-                PopupMenuDivider(height: 1),
-                PopupMenuItem(value: 'deleteAll', child: _popupMenuItem(Icons.delete_forever_rounded, '全部删除', colorScheme)),
-              ];
+                  PopupMenuItem(
+                    value: 'import',
+                    child: _popupMenuItem(
+                      Icons.add_circle_outline,
+                      '选择导入（可多选）',
+                      colorScheme,
+                    ),
+                  ),
+                  if (Platform.isIOS && folderType == FolderContentType.video)
+                    PopupMenuItem(
+                      value: 'importFolder',
+                      child: _popupMenuItem(
+                        Icons.folder_open,
+                        '导入文件夹（全部）',
+                        colorScheme,
+                      ),
+                    ),
+                  PopupMenuDivider(height: 1),
+                  PopupMenuItem(
+                    value: 'wifi',
+                    child: _popupMenuItem(
+                      Icons.wifi_rounded,
+                      'WiFi 导入',
+                      colorScheme,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'rename',
+                    child: _popupMenuItem(
+                      Icons.edit_outlined,
+                      '重命名',
+                      colorScheme,
+                    ),
+                  ),
+                  if (isPremium)
+                    PopupMenuItem(
+                      value: 'test',
+                      child: _popupMenuItem(
+                        Icons.quiz_outlined,
+                        '综合测试',
+                        colorScheme,
+                      ),
+                    ),
+                  if (isPremium && folderType == FolderContentType.video)
+                    PopupMenuItem(
+                      value: 'aiConversation',
+                      child: _popupMenuItem(
+                        Icons.forum_outlined,
+                        'AI 对话',
+                        colorScheme,
+                      ),
+                    ),
+                  PopupMenuDivider(height: 1),
+                  PopupMenuItem(
+                    value: 'deleteAll',
+                    child: _popupMenuItem(
+                      Icons.delete_forever_rounded,
+                      '全部删除',
+                      colorScheme,
+                    ),
+                  ),
+                ];
               },
             ),
           ],
@@ -247,7 +332,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
   }
 
-  Widget _buildEmptyState(ColorScheme colorScheme, FolderContentType folderType) {
+  Widget _buildEmptyState(
+    ColorScheme colorScheme,
+    FolderContentType folderType,
+  ) {
     final icon = folderType == FolderContentType.video
         ? Icons.videocam
         : folderType == FolderContentType.article
@@ -258,9 +346,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+          Icon(
+            icon,
+            size: 64,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+          ),
           SizedBox(height: AppSpacing.md),
-          Text('暂无${_typeLabel(folderType)}', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+          Text(
+            '暂无${_typeLabel(folderType)}',
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
           SizedBox(height: AppSpacing.sm),
           Text(
             '点击 + 导入资源',
@@ -276,11 +371,19 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 56, color: colorScheme.error.withValues(alpha: 0.8)),
+          Icon(
+            Icons.error_outline,
+            size: 56,
+            color: colorScheme.error.withValues(alpha: 0.8),
+          ),
           SizedBox(height: AppSpacing.md),
           Text(
             '加载失败',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
+            ),
           ),
           SizedBox(height: AppSpacing.sm),
           Padding(
@@ -288,7 +391,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: colorScheme.onSurfaceVariant,
+              ),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
@@ -296,7 +402,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 44,
-            child: OutlinedButton(onPressed: () => ref.read(fileProvider.notifier).loadVideos(widget.folderCode), child: const Text('重试')),
+            child: OutlinedButton(
+              onPressed: () =>
+                  ref.read(fileProvider.notifier).loadVideos(widget.folderCode),
+              child: const Text('重试'),
+            ),
           ),
         ],
       ),
@@ -318,17 +428,29 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       final colorScheme = Theme.of(context).colorScheme;
       return RefreshIndicator(
         onRefresh: _loadArticlesIfNeeded,
-        child: ListView(children: [SizedBox(height: MediaQuery.of(context).size.height * 0.6, child: _buildEmptyState(colorScheme, FolderContentType.article))]),
+        child: ListView(
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: _buildEmptyState(colorScheme, FolderContentType.article),
+            ),
+          ],
+        ),
       );
     }
     final crossAxisCount = 2;
     final gridSpacing = 12.0;
 
     // 选"主文章"：最后阅读的（按 lastStudyDate），没有则取第一篇
-    final readArticles = _articles.where((a) => a.lastStudyDate != null).toList()
-      ..sort((a, b) => b.lastStudyDate!.compareTo(a.lastStudyDate!));
-    final heroArticle = readArticles.isNotEmpty ? readArticles.first : _articles.first;
-    final gridArticles = _articles.where((a) => a.code != heroArticle.code).toList();
+    final readArticles =
+        _articles.where((a) => a.lastStudyDate != null).toList()
+          ..sort((a, b) => b.lastStudyDate!.compareTo(a.lastStudyDate!));
+    final heroArticle = readArticles.isNotEmpty
+        ? readArticles.first
+        : _articles.first;
+    final gridArticles = _articles
+        .where((a) => a.code != heroArticle.code)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: _loadArticlesIfNeeded,
@@ -371,15 +493,21 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     if (article.code == null || article.code!.isEmpty) return;
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ArticleReaderPage(articleCode: article.code!)),
+      MaterialPageRoute(
+        builder: (_) => ArticleReaderPage(articleCode: article.code!),
+      ),
     );
   }
 
   Widget _buildVideoList(FileState state) {
     final crossAxisCount = 2;
     final gridSpacing = 12.0;
-    final mainVideo = state.currentVideo ?? (state.videos.isNotEmpty ? state.videos.first : null);
-    final gridVideos = mainVideo == null ? state.videos : state.videos.where((v) => v.code != mainVideo.code).toList();
+    final mainVideo =
+        state.currentVideo ??
+        (state.videos.isNotEmpty ? state.videos.first : null);
+    final gridVideos = mainVideo == null
+        ? state.videos
+        : state.videos.where((v) => v.code != mainVideo.code).toList();
 
     return ListView(
       children: [
@@ -389,8 +517,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             onPlay: () => _playVideo(mainVideo),
             onRename: () => _showVideoRenameDialog(mainVideo),
             onImportSubtitle: () => _importSubtitleForVideo(mainVideo),
-            onAiConversation: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _openAiConversationForVideo(mainVideo) : null,
-            onUnitTest: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _showUnitTestForVideo(mainVideo) : null,
+            onAiConversation:
+                ref.read(subscriptionProvider).mode == SubscriptionMode.premium
+                ? () => _openAiConversationForVideo(mainVideo)
+                : null,
+            onUnitTest:
+                ref.read(subscriptionProvider).mode == SubscriptionMode.premium
+                ? () => _showUnitTestForVideo(mainVideo)
+                : null,
             onDelete: () => _confirmDeleteVideo(mainVideo),
           ),
         if (mainVideo != null) SizedBox(height: AppSpacing.md),
@@ -412,8 +546,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               onTap: () => _playVideo(video),
               onRename: () => _showVideoRenameDialog(video),
               onImportSubtitle: () => _importSubtitleForVideo(video),
-              onAiConversation: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _openAiConversationForVideo(video) : null,
-              onUnitTest: ref.read(subscriptionProvider).mode == SubscriptionMode.premium ? () => _showUnitTestForVideo(video) : null,
+              onAiConversation:
+                  ref.read(subscriptionProvider).mode ==
+                      SubscriptionMode.premium
+                  ? () => _openAiConversationForVideo(video)
+                  : null,
+              onUnitTest:
+                  ref.read(subscriptionProvider).mode ==
+                      SubscriptionMode.premium
+                  ? () => _showUnitTestForVideo(video)
+                  : null,
               onDelete: () => _confirmDeleteVideo(video),
             );
           },
@@ -435,7 +577,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       context,
       MaterialPageRoute(
         builder: (_) => isMusic
-            ? AudioPlayerPage(videoCode: code, folderVideos: state.videos, audioType: 'music')
+            ? AudioPlayerPage(
+                videoCode: code,
+                folderVideos: state.videos,
+                audioType: 'music',
+              )
             : PlayerPage(videoCode: code, folderVideos: state.videos),
       ),
     );
@@ -471,7 +617,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
 
     if (confirmed == true && mounted) {
-      final result = await ref.read(fileProvider.notifier).deleteFolder(folder.code!);
+      final result = await ref
+          .read(fileProvider.notifier)
+          .deleteFolder(folder.code!);
       if (result == null && mounted) {
         Navigator.pop(context);
       } else if (result != null) {
@@ -490,7 +638,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         break;
       case 'wifi':
         () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (_) => const WifiTransferPage()));
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WifiTransferPage()),
+          );
           if (!mounted) return;
           await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
           _loadArticlesIfNeeded();
@@ -513,7 +664,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
   void _openAiConversation() {
     final state = ref.read(fileProvider);
-    final current = state.currentVideo ?? (state.videos.isNotEmpty ? state.videos.first : null);
+    final current =
+        state.currentVideo ??
+        (state.videos.isNotEmpty ? state.videos.first : null);
     if (current == null || (current.code ?? '').isEmpty) {
       _showMessage('暂无可对话的视频', theme: MessageTheme.warning);
       return;
@@ -546,7 +699,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ConversationPage(sourceType: 'subtitle', sourceCode: videoCode, sourceTitle: video.name),
+          builder: (_) => ConversationPage(
+            sourceType: 'subtitle',
+            sourceCode: videoCode,
+            sourceTitle: video.name,
+          ),
         ),
       );
     });
@@ -603,7 +760,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       for (final videoPath in videoPaths) {
         final vp = FilePickerService.normalizePath(videoPath);
         final name = _getFileNameWithoutExtension(path.basename(vp));
-        await FilePickerService.importVideoWithSubtitle(vp, subtitleMap[name], widget.folderCode);
+        await FilePickerService.importVideoWithSubtitle(
+          vp,
+          subtitleMap[name],
+          widget.folderCode,
+        );
       }
 
       await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
@@ -616,9 +777,17 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   }
 
   /// 选择文件（兼容不同 file_picker 版本）
-  Future<FilePickerResult?> _pickFiles({required FileType type, List<String>? allowedExtensions, bool allowMultiple = true}) async {
+  Future<FilePickerResult?> _pickFiles({
+    required FileType type,
+    List<String>? allowedExtensions,
+    bool allowMultiple = true,
+  }) async {
     try {
-      return await FilePicker.pickFiles(type: type, allowedExtensions: allowedExtensions, allowMultiple: allowMultiple);
+      return await FilePicker.pickFiles(
+        type: type,
+        allowedExtensions: allowedExtensions,
+        allowMultiple: allowMultiple,
+      );
     } catch (e) {
       return null;
     }
@@ -627,7 +796,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   /// 导入视频文件（自动检测同目录下的同名字幕文件）
   Future<void> _importVideos() async {
     if (Platform.isIOS) {
-      final result = await FilePicker.pickFiles(type: FileType.any, allowMultiple: true, withData: false, dialogTitle: '选择视频与字幕（同一文件夹可多选）');
+      final result = await FilePicker.pickFiles(
+        type: FileType.any,
+        allowMultiple: true,
+        withData: false,
+        dialogTitle: '选择视频与字幕（同一文件夹可多选）',
+      );
       if (result == null || result.files.isEmpty) return;
 
       final videos = <String>[];
@@ -635,7 +809,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       for (final f in result.files) {
         if (f.path == null) continue;
         final p = FilePickerService.normalizePath(f.path!);
-        final ext = FilePickerService.normalizePath(path.extension(p)).toLowerCase();
+        final ext = FilePickerService.normalizePath(
+          path.extension(p),
+        ).toLowerCase();
         final base = _getFileNameWithoutExtension(path.basename(p));
         if (FilePickerService.supportedSubtitleExtensions.contains(ext)) {
           subtitleMap[base] = p;
@@ -646,7 +822,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
       for (final vp in videos) {
         final name = _getFileNameWithoutExtension(path.basename(vp));
-        await FilePickerService.importVideoWithSubtitle(vp, subtitleMap[name], widget.folderCode);
+        await FilePickerService.importVideoWithSubtitle(
+          vp,
+          subtitleMap[name],
+          widget.folderCode,
+        );
       }
       return;
     }
@@ -658,7 +838,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
   /// 导入文章文件
   Future<void> _importArticles() async {
-    final result = await _pickFiles(type: FileType.custom, allowedExtensions: ['txt', 'md', 'markdown'], allowMultiple: true);
+    final result = await _pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['txt', 'md', 'markdown'],
+      allowMultiple: true,
+    );
     if (result == null || result.files.isEmpty) return;
 
     for (final file in result.files) {
@@ -734,7 +918,15 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     final videoCode = const Uuid().v4().replaceAll('-', '');
     final coverCode = const Uuid().v4().replaceAll('-', '');
 
-    final audioExtensions = {'.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.wma'};
+    final audioExtensions = {
+      '.mp3',
+      '.wav',
+      '.m4a',
+      '.aac',
+      '.flac',
+      '.ogg',
+      '.wma',
+    };
     final isAudio = audioExtensions.contains(extension.toLowerCase());
 
     final destDir = Directory('${docs.path}/videos/$folderCode');
@@ -748,7 +940,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     if (isAudio) {
       try {
         final metadata = await VideoMetadataExtractor.extract(destPath);
-        durationMs = metadata.durationMs ?? 0;
+        durationMs = metadata.durationMs;
       } catch (_) {}
       if (durationMs == 0) {
         try {
@@ -783,7 +975,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         }
       } catch (_) {}
       if (coverPath == null) {
-        final generated = await InitialLetterCover.generate(fileName, folderCode);
+        final generated = await InitialLetterCover.generate(
+          fileName,
+          folderCode,
+        );
         if (generated != null) {
           coverPath = generated;
           coverSource = 'initial_letter';
@@ -795,7 +990,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         final fullCoverPath = await ThumbnailService.getFullPath(coverFile);
         final coverDir = Directory(fullCoverPath);
         if (!await coverDir.exists()) await coverDir.create(recursive: true);
-        await VideoThumbnail.thumbnailFile(video: destPath, thumbnailPath: fullCoverPath, imageFormat: ImageFormat.JPEG, maxWidth: 512, timeMs: 5000);
+        await VideoThumbnail.thumbnailFile(
+          video: destPath,
+          thumbnailPath: fullCoverPath,
+          imageFormat: ImageFormat.JPEG,
+          maxWidth: 512,
+          timeMs: 5000,
+        );
         coverPath = coverFile;
         coverSource = 'thumbnail';
       } catch (_) {}
@@ -883,8 +1084,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
           if (lastMs > 0 && buf.isNotEmpty) {
             subtitles.add(
-              Subtitles(videoCode: videoCode, startPosition: lastMs, endPosition: startMs, content: buf.toString().trim(), type: 'subtitle')
-                ..code = const Uuid().v4().replaceAll('-', ''),
+              Subtitles(
+                videoCode: videoCode,
+                startPosition: lastMs,
+                endPosition: startMs,
+                content: buf.toString().trim(),
+                type: 'subtitle',
+              )..code = const Uuid().v4().replaceAll('-', ''),
             );
           }
           buf = StringBuffer();
@@ -902,8 +1108,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     // 最后一条
     if (buf.isNotEmpty) {
       subtitles.add(
-        Subtitles(videoCode: videoCode, startPosition: lastMs, endPosition: lastMs + 3000, content: buf.toString().trim(), type: 'subtitle')
-          ..code = const Uuid().v4().replaceAll('-', ''),
+        Subtitles(
+          videoCode: videoCode,
+          startPosition: lastMs,
+          endPosition: lastMs + 3000,
+          content: buf.toString().trim(),
+          type: 'subtitle',
+        )..code = const Uuid().v4().replaceAll('-', ''),
       );
     }
 
@@ -956,13 +1167,19 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           decoration: InputDecoration(
             filled: true,
             fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+            child: Text(
+              '取消',
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -972,7 +1189,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               try {
                 folder.name = name;
                 await DatabaseService.update(folder);
-                await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
+                await ref
+                    .read(fileProvider.notifier)
+                    .loadVideos(widget.folderCode);
               } catch (e) {
                 _showMessage('重命名失败: $e', theme: MessageTheme.error);
               }
@@ -1002,13 +1221,19 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           decoration: InputDecoration(
             filled: true,
             fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+            child: Text(
+              '取消',
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -1016,7 +1241,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               if (name.isEmpty) return;
               Navigator.pop(ctx);
               try {
-                await ref.read(fileProvider.notifier).renameVideo(video.code ?? '', name);
+                await ref
+                    .read(fileProvider.notifier)
+                    .renameVideo(video.code ?? '', name);
                 _showMessage('重命名成功');
               } catch (e) {
                 _showMessage('重命名失败: $e', theme: MessageTheme.error);
@@ -1032,11 +1259,21 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
   /// 为视频导入字幕文件
   Future<void> _importSubtitleForVideo(dynamic video) async {
-    final result = await _pickFiles(type: FileType.custom, allowedExtensions: ['srt', 'ass', 'ssa', 'vtt'], allowMultiple: false);
-    if (result == null || result.files.isEmpty || result.files.first.path == null) return;
+    final result = await _pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['srt', 'ass', 'ssa', 'vtt'],
+      allowMultiple: false,
+    );
+    if (result == null ||
+        result.files.isEmpty ||
+        result.files.first.path == null) {
+      return;
+    }
     final subtitlePath = result.files.first.path!;
     try {
-      await ref.read(fileProvider.notifier).importSubtitleForVideo(video.code ?? '', subtitlePath);
+      await ref
+          .read(fileProvider.notifier)
+          .importSubtitleForVideo(video.code ?? '', subtitlePath);
       _showMessage('字幕导入成功');
     } catch (e) {
       _showMessage('导入字幕失败: $e', theme: MessageTheme.error);
@@ -1066,6 +1303,40 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
   Future<void> _showComprehensiveTest() async {
     final state = ref.read(fileProvider);
+    final folder = state.currentFolder;
+    final folderType = folder?.folderType ?? FolderContentType.video;
+
+    // 文章集：检查文章列表
+    if (folderType == FolderContentType.article) {
+      if (_articles.isEmpty) {
+        _showMessage('暂无可测试的文章', theme: MessageTheme.warning);
+        return;
+      }
+      // 优先选择最后阅读的，否则第一篇
+      final readArticles = _articles.where((a) => a.lastStudyDate != null).toList()
+        ..sort((a, b) => b.lastStudyDate!.compareTo(a.lastStudyDate!));
+      final target = readArticles.isNotEmpty ? readArticles.first : _articles.first;
+      final articleCode = target.code ?? '';
+      if (articleCode.isEmpty) {
+        _showMessage('文章标识为空，无法测试', theme: MessageTheme.warning);
+        return;
+      }
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TestPage(
+            videoCode: articleCode,
+            videoTitle: target.title,
+            testScope: TestScope.folder,
+            folderCode: widget.folderCode,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // 视频/音频集：原有逻辑
     final videos = state.videos;
     if (videos.isEmpty) {
       _showMessage('暂无可测试的视频', theme: MessageTheme.warning);
@@ -1081,7 +1352,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
     // 优先选择当前播放的视频，否则选第一个有字幕的视频
     final current = state.currentVideo;
-    final target = (current != null && current.hasSubtitles) ? current : videos.firstWhere((v) => v.hasSubtitles);
+    final target = (current != null && current.hasSubtitles)
+        ? current
+        : videos.firstWhere((v) => v.hasSubtitles);
 
     final videoCode = target.code ?? '';
     if (videoCode.isEmpty) {
@@ -1093,7 +1366,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TestPage(videoCode: videoCode, videoTitle: target.name),
+        builder: (_) => TestPage(
+          videoCode: videoCode,
+          videoTitle: target.name,
+          testScope: TestScope.folder,
+          folderCode: widget.folderCode,
+        ),
       ),
     );
   }
@@ -1106,7 +1384,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       context,
       initial: PlaybackSettings.fromFolder(folder),
       onSave: (settings) async {
-        await ref.read(fileProvider.notifier).updateFolderPlaybackSettings(folder.code!, settings);
+        await ref
+            .read(fileProvider.notifier)
+            .updateFolderPlaybackSettings(folder.code!, settings);
       },
     );
   }
@@ -1125,7 +1405,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TestPage(videoCode: videoCode, videoTitle: video.name ?? 'Video'),
+        builder: (_) =>
+            TestPage(videoCode: videoCode, videoTitle: video.name ?? 'Video'),
       ),
     );
   }
@@ -1155,13 +1436,19 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           decoration: InputDecoration(
             filled: true,
             fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('取消', style: TextStyle(color: colorScheme.onSurfaceVariant)),
+            child: Text(
+              '取消',
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -1174,7 +1461,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 if (mounted) setState(() {});
               } catch (_) {}
             },
-            child: Text('确定', style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
+            child: Text(
+              '确定',
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -1197,5 +1490,3 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     }
   }
 }
-
-

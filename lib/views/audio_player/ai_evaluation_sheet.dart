@@ -23,7 +23,8 @@ class AiEvaluationSheet extends StatefulWidget {
   @override
   State<AiEvaluationSheet> createState() => _AiEvaluationSheetState();
 
-  static void show(BuildContext context, {
+  static void show(
+    BuildContext context, {
     required String videoCode,
     required String videoTitle,
     String language = 'en',
@@ -79,9 +80,9 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
 
       if (breakdown.allRecords.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('暂无跟读记录，请先跟读后再请求AI点评')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('暂无跟读记录，请先跟读后再请求AI点评')));
         }
         return;
       }
@@ -92,7 +93,9 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
 
       final followSummary = <String>[];
       for (final r in breakdown.allRecords.take(10)) {
-        followSummary.add('${r.refText ?? ""}: ${r.overallScore?.round() ?? "?"}分');
+        followSummary.add(
+          '${r.refText ?? ""}: ${r.overallScore?.round() ?? "?"}分',
+        );
       }
 
       final result = await AiService.callAiProxy(
@@ -116,9 +119,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
 
       if (!mounted) return;
 
-      final evaluationJson = result.success ? jsonEncode(result.toJson()) : '{}';
+      final evaluationJson = result.success
+          ? jsonEncode(result.toJson())
+          : '{}';
       final summary = result.success
-          ? (result.translation ?? result.wordMeaningInContext ?? result.mnemonic ?? result.word)
+          ? (result.translation ??
+                result.wordMeaningInContext ??
+                result.mnemonic ??
+                result.word)
           : null;
 
       final level = ScoreService.determineLevel(resourceScore);
@@ -145,16 +153,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI点评请求失败')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('AI点评请求失败')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  String _determineLevel(double? score) => ScoreService.determineLevel(score);
 
   Color _scoreColor(double score) => ScoreService.scoreColor(score);
 
@@ -172,19 +178,32 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               margin: const EdgeInsets.only(top: 8),
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Text('AI 点评', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                Text(
+                  'AI 点评',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const Spacer(),
                 GestureDetector(
                   onTap: _loading ? null : _requestEvaluation,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       gradient: _loading ? null : AppColors.sunsetGradient,
                       color: _loading ? Colors.grey : null,
@@ -194,11 +213,28 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_loading)
-                          const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         else
-                          Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                          Icon(
+                            Icons.auto_awesome,
+                            size: 14,
+                            color: Colors.white,
+                          ),
                         const SizedBox(width: 6),
-                        Text(_loading ? '分析中...' : '请求点评', style: TextStyle(color: Colors.white, fontSize: 12.sp)),
+                        Text(
+                          _loading ? '分析中...' : '请求点评',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.sp,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -255,14 +291,23 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 const SizedBox(height: 4),
                 if (e.overallLevel != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: _scoreColor(e.resourceScore!).withValues(alpha: 0.2),
+                      color: _scoreColor(
+                        e.resourceScore!,
+                      ).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       e.overallLevel!,
-                      style: TextStyle(color: _scoreColor(e.resourceScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: _scoreColor(e.resourceScore!),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -281,15 +326,27 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         const SizedBox(height: 16),
         if (structured != null) ...[
           if (structured['encouragement'] != null)
-            _evaluationSection(Icons.favorite, '鼓励', structured['encouragement']!),
+            _evaluationSection(
+              Icons.favorite,
+              '鼓励',
+              structured['encouragement']!,
+            ),
           if (structured['pronunciation'] != null)
-            _evaluationSection(Icons.record_voice_over, '发音', structured['pronunciation']!),
+            _evaluationSection(
+              Icons.record_voice_over,
+              '发音',
+              structured['pronunciation']!,
+            ),
           if (structured['fluency'] != null)
             _evaluationSection(Icons.speed, '流畅度', structured['fluency']!),
           if (structured['suggestions'] != null)
             _suggestionsSection(structured['suggestions']),
           if (structured['nextStep'] != null)
-            _evaluationSection(Icons.trending_up, '下一步', structured['nextStep']!),
+            _evaluationSection(
+              Icons.trending_up,
+              '下一步',
+              structured['nextStep']!,
+            ),
         ] else if (e.summary != null && e.summary!.isNotEmpty) ...[
           Container(
             padding: const EdgeInsets.all(16),
@@ -299,13 +356,20 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
             ),
             child: Text(
               e.summary!,
-              style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.6),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13.sp,
+                height: 1.6,
+              ),
             ),
           ),
         ],
         const SizedBox(height: 24),
         if (_history.length > 1) ...[
-          Text('历史点评', style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
+          Text(
+            '历史点评',
+            style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+          ),
           const SizedBox(height: 8),
           ..._history.skip(1).map((h) => _historyItem(h)),
         ],
@@ -340,11 +404,21 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
             children: [
               Icon(icon, size: 16, color: Colors.white70),
               const SizedBox(width: 6),
-              Text(title, style: TextStyle(color: Colors.white70, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(content, style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.6)),
+          Text(
+            content,
+            style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.6),
+          ),
         ],
       ),
     );
@@ -366,20 +440,41 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
             children: [
               Icon(Icons.lightbulb, size: 16, color: Colors.white70),
               const SizedBox(width: 6),
-              Text('建议', style: TextStyle(color: Colors.white70, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+              Text(
+                '建议',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          ...suggestions.map((s) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('• ', style: TextStyle(color: Colors.white54, fontSize: 13.sp)),
-                Expanded(child: Text('$s', style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.5))),
-              ],
+          ...suggestions.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '• ',
+                    style: TextStyle(color: Colors.white54, fontSize: 13.sp),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '$s',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13.sp,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -389,11 +484,20 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
     return Column(
       children: [
         Text(
-          value != null ? (showInt ? value.round().toString() : value.round().toString()) : '-',
-          style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+          value != null
+              ? (showInt ? value.round().toString() : value.round().toString())
+              : '-',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+        ),
       ],
     );
   }
@@ -417,7 +521,11 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               ),
               child: Text(
                 '${h.resourceScore!.round()}',
-                style: TextStyle(color: _scoreColor(h.resourceScore!), fontSize: 12.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _scoreColor(h.resourceScore!),
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           const SizedBox(width: 12),

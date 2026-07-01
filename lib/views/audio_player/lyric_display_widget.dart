@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';

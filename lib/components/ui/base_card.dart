@@ -67,7 +67,7 @@ class BaseCard extends StatelessWidget {
         // Pencil Skill: 柔和阴影
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: Offset(0, 2),
           ),
@@ -80,8 +80,8 @@ class BaseCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(borderRadius ?? AppRadius.card),
-          splashColor: AppColors.primaryBrand.withOpacity(0.1),
-          highlightColor: AppColors.primaryBrand.withOpacity(0.05),
+          splashColor: AppColors.primaryBrand.withValues(alpha: 0.1),
+          highlightColor: AppColors.primaryBrand.withValues(alpha: 0.05),
           child: child,
         ),
       ),
@@ -160,8 +160,7 @@ class TitledCard extends StatelessWidget {
                 ),
               ),
               
-              if (actions != null)
-                ...actions!,
+              ...?actions,
             ],
           ),
           

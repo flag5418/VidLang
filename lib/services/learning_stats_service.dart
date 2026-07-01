@@ -27,11 +27,11 @@ class LearningStatsService {
   DateTime? _sessionStartTime;
   String? _sessionResourceCode;
   String? _sessionResourceType;
-  String? _sessionFolderCode;
   bool _sessionActive = false;
 
   /// 当前正在学习的资源 code
-  String? get currentResourceCode => _sessionActive ? _sessionResourceCode : null;
+  String? get currentResourceCode =>
+      _sessionActive ? _sessionResourceCode : null;
 
   /// 当前会话是否活跃
   bool get isSessionActive => _sessionActive;
@@ -76,15 +76,21 @@ class LearningStatsService {
       )..code = _uuid.v4().replaceAll('-', '');
 
       await DatabaseService.insert(record);
-      dev.log('[LearningStats] Session started: $resourceType/$resourceCode', name: 'LearningStats');
+      dev.log(
+        '[LearningStats] Session started: $resourceType/$resourceCode',
+        name: 'LearningStats',
+      );
     } catch (e) {
-      dev.log('[LearningStats] Failed to create StudyRecord: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to create StudyRecord: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
 
     _sessionStartTime = now;
     _sessionResourceCode = resourceCode;
     _sessionResourceType = resourceType;
-    _sessionFolderCode = folderCode;
     _sessionActive = true;
   }
 
@@ -94,7 +100,9 @@ class LearningStatsService {
   /// 写入 StudyRecord（duration / endTime）
   /// 累加 VideoInfo.totalPlayDuration
   Future<void> endSession() async {
-    if (!_sessionActive || _sessionResourceCode == null || _sessionStartTime == null) {
+    if (!_sessionActive ||
+        _sessionResourceCode == null ||
+        _sessionStartTime == null) {
       return;
     }
 
@@ -127,7 +135,11 @@ class LearningStatsService {
         );
       }
     } catch (e) {
-      dev.log('[LearningStats] Failed to end session: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to end session: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
 
     _resetSession();
@@ -154,7 +166,6 @@ class LearningStatsService {
     _sessionStartTime = null;
     _sessionResourceCode = null;
     _sessionResourceType = null;
-    _sessionFolderCode = null;
     _sessionActive = false;
   }
 
@@ -195,7 +206,7 @@ class LearningStatsService {
         if (record.bestFollowScore == null || score > record.bestFollowScore!) {
           record.bestFollowScore = score;
         }
-        record.followCount = (record.followCount ?? 0) + 1;
+        record.followCount = (record.followCount) + 1;
         await DatabaseService.update(record);
       }
 
@@ -207,7 +218,11 @@ class LearningStatsService {
         name: 'LearningStats',
       );
     } catch (e) {
-      dev.log('[LearningStats] Failed to record follow score: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to record follow score: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
   }
 
@@ -252,7 +267,9 @@ class LearningStatsService {
         // 这里仅确保记录存在且有正确的 endTime
         if (record.endTime == null) {
           record.endTime = DateTime.now();
-          record.duration = DateTime.now().difference(record.startTime).inSeconds;
+          record.duration = DateTime.now()
+              .difference(record.startTime)
+              .inSeconds;
           await DatabaseService.update(record);
         }
       }
@@ -262,7 +279,11 @@ class LearningStatsService {
         name: 'LearningStats',
       );
     } catch (e) {
-      dev.log('[LearningStats] Failed to record quiz result: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to record quiz result: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
   }
 
@@ -295,7 +316,9 @@ class LearningStatsService {
         // 确保 endTime 已设置
         if (record.endTime == null) {
           record.endTime = DateTime.now();
-          record.duration = DateTime.now().difference(record.startTime).inSeconds;
+          record.duration = DateTime.now()
+              .difference(record.startTime)
+              .inSeconds;
         }
         await DatabaseService.update(record);
       } else {
@@ -305,7 +328,9 @@ class LearningStatsService {
           resourceCode: resourceCode,
           resourceType: resourceType ?? 'video',
           folderCode: '',
-          startTime: now.subtract(Duration(seconds: totalQuestions * 10)), // 估算开始时间
+          startTime: now.subtract(
+            Duration(seconds: totalQuestions * 10),
+          ), // 估算开始时间
           date: now,
           testScore: accuracy,
           duration: totalQuestions * 10, // 估算
@@ -319,7 +344,11 @@ class LearningStatsService {
         name: 'LearningStats',
       );
     } catch (e) {
-      dev.log('[LearningStats] Failed to complete test session: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to complete test session: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
   }
 
@@ -349,7 +378,7 @@ class LearningStatsService {
       for (final r in records) {
         totalDuration += r.duration;
         sessionCount++;
-        totalFollowCount += r.followCount ?? 0;
+        totalFollowCount += r.followCount;
         if (r.bestFollowScore != null &&
             (bestFollowScore == null || r.bestFollowScore! > bestFollowScore)) {
           bestFollowScore = r.bestFollowScore;
@@ -373,7 +402,11 @@ class LearningStatsService {
         lastStudiedAt: lastStudiedAt,
       );
     } catch (e) {
-      dev.log('[LearningStats] Failed to get summary for $resourceCode: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to get summary for $resourceCode: $e',
+        name: 'LearningStats',
+        error: e,
+      );
       return null;
     }
   }
@@ -397,7 +430,11 @@ class LearningStatsService {
       }
       return total;
     } catch (e) {
-      dev.log('[LearningStats] Failed to get today duration: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to get today duration: $e',
+        name: 'LearningStats',
+        error: e,
+      );
       return 0;
     }
   }
@@ -428,7 +465,9 @@ class LearningStatsService {
 
       int startOffset = 0;
       if (sortedDates.first != todayStr) {
-        final yesterdayStr = _dateStr(DateTime.now().subtract(const Duration(days: 1)));
+        final yesterdayStr = _dateStr(
+          DateTime.now().subtract(const Duration(days: 1)),
+        );
         if (sortedDates.first != yesterdayStr) {
           return 0;
         }
@@ -447,7 +486,11 @@ class LearningStatsService {
 
       return streak;
     } catch (e) {
-      dev.log('[LearningStats] Failed to get streak days: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to get streak days: $e',
+        name: 'LearningStats',
+        error: e,
+      );
       return 0;
     }
   }
@@ -491,15 +534,24 @@ class LearningStatsService {
       final sorted = latestByResource.values.toList()
         ..sort((a, b) => b.startTime.compareTo(a.startTime));
 
-      return sorted.take(limit).map((r) => RecentResource(
-        resourceCode: r.resourceCode,
-        resourceType: r.resourceType,
-        folderCode: r.folderCode.isNotEmpty ? r.folderCode : null,
-        lastStudiedAt: r.startTime,
-        lastDurationSeconds: r.duration,
-      )).toList();
+      return sorted
+          .take(limit)
+          .map(
+            (r) => RecentResource(
+              resourceCode: r.resourceCode,
+              resourceType: r.resourceType,
+              folderCode: r.folderCode.isNotEmpty ? r.folderCode : null,
+              lastStudiedAt: r.startTime,
+              lastDurationSeconds: r.duration,
+            ),
+          )
+          .toList();
     } catch (e) {
-      dev.log('[LearningStats] Failed to get recent resources: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to get recent resources: $e',
+        name: 'LearningStats',
+        error: e,
+      );
       return [];
     }
   }
@@ -535,7 +587,11 @@ class LearningStatsService {
 
       return result;
     } catch (e) {
-      dev.log('[LearningStats] Failed to get duration by type: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to get duration by type: $e',
+        name: 'LearningStats',
+        error: e,
+      );
       return {'video': 0, 'music': 0, 'article': 0, 'other': 0};
     }
   }
@@ -545,7 +601,10 @@ class LearningStatsService {
   // ═══════════════════════════════════════════════
 
   /// 累加 VideoInfo.totalPlayDuration
-  Future<void> _accumulateTotalDuration(String videoCode, int additionalSeconds) async {
+  Future<void> _accumulateTotalDuration(
+    String videoCode,
+    int additionalSeconds,
+  ) async {
     if (additionalSeconds <= 0) return;
 
     try {
@@ -562,12 +621,19 @@ class LearningStatsService {
         await DatabaseService.update(video);
       }
     } catch (e) {
-      dev.log('[LearningStats] Failed to accumulate duration for $videoCode: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to accumulate duration for $videoCode: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
   }
 
   /// 更新 VideoInfo.lastFollowScore
-  Future<void> _updateVideoLastFollowScore(String videoCode, double score) async {
+  Future<void> _updateVideoLastFollowScore(
+    String videoCode,
+    double score,
+  ) async {
     try {
       final videos = await DatabaseService.findByCondition(
         () => VideoInfo(),
@@ -584,12 +650,19 @@ class LearningStatsService {
         }
       }
     } catch (e) {
-      dev.log('[LearningStats] Failed to update follow score for $videoCode: $e', name: 'LearningStats', error: e);
+      dev.log(
+        '[LearningStats] Failed to update follow score for $videoCode: $e',
+        name: 'LearningStats',
+        error: e,
+      );
     }
   }
 
   /// 为没有 StudyRecord 的资源创建一个测试专用记录
-  Future<void> _createQuizStudyRecord(String resourceCode, String resourceType) async {
+  Future<void> _createQuizStudyRecord(
+    String resourceCode,
+    String resourceType,
+  ) async {
     final now = DateTime.now();
     final record = StudyRecord(
       resourceCode: resourceCode,

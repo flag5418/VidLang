@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "vidlang (Flutter iPhone_wqq)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "deviceId": "00008101-00011D8A1ED8001E"
+    }
+  ]
+}

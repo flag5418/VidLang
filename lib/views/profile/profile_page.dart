@@ -17,13 +17,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/base_entity.dart';
-import 'package:vidlang/models/billing_summary.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/providers/difficulty_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
-import 'package:vidlang/services/billing_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/stats_service.dart';
@@ -48,22 +46,24 @@ class _SettingItem {
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
-  _SettingItem({required this.icon, required this.title, this.subtitle, this.onTap});
+  _SettingItem({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.onTap,
+  });
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _isSupabaseUser = false;
   User? _currentUser;
-  late Future<BillingOverview> _billingOverviewFuture;
   SummaryStats _summaryStats = const SummaryStats();
   int _wifiPort = 9999;
   String _ttsCacheLabel = '加载中...';
-  int _ttsCacheSize = 20;
 
   @override
   void initState() {
     super.initState();
-    _billingOverviewFuture = BillingService.fetchOverview();
     _checkUser();
     _loadSummaryStats();
     _loadWifiPort();
@@ -96,19 +96,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final difficulty = ref.watch(difficultyProvider);
 
     return Scaffold(
-        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
       appBar: AppBar(
         title: Text(
           '我的',
-          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
         ),
         elevation: 0,
-      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
         scrolledUnderElevation: 0.5,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding, vertical: AppSpacing.md),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.pagePadding,
+            vertical: AppSpacing.md,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -149,7 +156,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 _SettingItem(
                   icon: Icons.volume_up_rounded,
                   title: 'TTS 缓存管理',
-                  subtitle: '$_ttsCacheLabel',
+                  subtitle: _ttsCacheLabel,
                   onTap: () => _showTtsCacheDialog(),
                 ),
                 if (_isSupabaseUser)
@@ -182,7 +189,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       padding: EdgeInsets.only(bottom: AppSpacing.sm),
       child: Text(
         title,
-        style: TextStyle(fontSize: AppTypography.fontSizeSmall.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
+        style: TextStyle(
+          fontSize: AppTypography.fontSizeSmall.sp,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -190,7 +201,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   // ==================== 个人信息 ====================
 
   Widget _buildProfileCard(ColorScheme colorScheme) {
-    final displayName = _currentUser?.nickname.isNotEmpty == true ? _currentUser!.nickname : (_currentUser?.username ?? '未登录');
+    final displayName = _currentUser?.nickname.isNotEmpty == true
+        ? _currentUser!.nickname
+        : (_currentUser?.username ?? '未登录');
     final loginName = _currentUser?.username ?? '';
     final avatarPath = _currentUser?.avatar;
 
@@ -212,28 +225,45 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 children: [
                   Text(
                     displayName,
-                    style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    style: TextStyle(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                   SizedBox(height: 2.h),
                   Text(
                     loginName,
-                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: colorScheme.onSurfaceVariant, size: 24.w),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurfaceVariant,
+              size: 24.w,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAvatarWidget(ColorScheme colorScheme, String? avatarPath, String displayName) {
+  Widget _buildAvatarWidget(
+    ColorScheme colorScheme,
+    String? avatarPath,
+    String displayName,
+  ) {
     if (avatarPath != null && avatarPath.isNotEmpty) {
       final file = File(avatarPath);
       if (file.existsSync()) {
-        return ClipOval(child: Image.file(file, width: 52.w, height: 52.w, fit: BoxFit.cover));
+        return ClipOval(
+          child: Image.file(file, width: 52.w, height: 52.w, fit: BoxFit.cover),
+        );
       }
     }
     return CircleAvatar(
@@ -241,7 +271,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
       child: Text(
         displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, color: colorScheme.primary),
+        style: TextStyle(
+          fontSize: 22.sp,
+          fontWeight: FontWeight.bold,
+          color: colorScheme.primary,
+        ),
       ),
     );
   }
@@ -278,12 +312,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               children: [
                 Text(
                   isPremium ? '收费模式' : '免费模式',
-                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   '余额：¥${subState.balance.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -299,7 +340,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 child: Text(
                   '充值',
-                  style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: Colors.amber),
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.amber,
+                  ),
                 ),
               ),
             ),
@@ -308,7 +353,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           // Toggle switch
           GestureDetector(
             onTap: () async {
-              await ref.read(subscriptionProvider.notifier).setMode(isPremium ? SubscriptionMode.free : SubscriptionMode.premium);
+              await ref
+                  .read(subscriptionProvider.notifier)
+                  .setMode(
+                    isPremium
+                        ? SubscriptionMode.free
+                        : SubscriptionMode.premium,
+                  );
             },
             child: Container(
               width: 50.w,
@@ -316,15 +367,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               padding: EdgeInsets.all(2.w),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14.r),
-                color: isPremium ? Colors.amber : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: isPremium
+                    ? Colors.amber
+                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
-                alignment: isPremium ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: isPremium
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Container(
                   width: 24.w,
                   height: 24.w,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -338,7 +396,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildLearningStats(ColorScheme colorScheme) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LearningStatsPage())),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LearningStatsPage()),
+      ),
       child: Container(
         padding: EdgeInsets.all(AppSpacing.space4),
         decoration: BoxDecoration(
@@ -347,33 +408,69 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ),
         child: Row(
           children: [
-            _statItem(Icons.calendar_today_outlined, '${_summaryStats.totalDays}', '天数', colorScheme),
+            _statItem(
+              Icons.calendar_today_outlined,
+              '${_summaryStats.totalDays}',
+              '天数',
+              colorScheme,
+            ),
             _statDivider(colorScheme),
-            _statItem(Icons.movie_outlined, '${_summaryStats.videoTotal}', '视频', colorScheme),
+            _statItem(
+              Icons.movie_outlined,
+              '${_summaryStats.videoTotal}',
+              '视频',
+              colorScheme,
+            ),
             _statDivider(colorScheme),
-            _statItem(Icons.music_note_outlined, '${_summaryStats.audioTotal}', '音频', colorScheme),
+            _statItem(
+              Icons.music_note_outlined,
+              '${_summaryStats.audioTotal}',
+              '音频',
+              colorScheme,
+            ),
             _statDivider(colorScheme),
-            _statItem(Icons.menu_book_outlined, '${_summaryStats.articleTotal}', '文章', colorScheme),
+            _statItem(
+              Icons.menu_book_outlined,
+              '${_summaryStats.articleTotal}',
+              '文章',
+              colorScheme,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _statItem(IconData icon, String value, String label, ColorScheme colorScheme) {
+  Widget _statItem(
+    IconData icon,
+    String value,
+    String label,
+    ColorScheme colorScheme,
+  ) {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 20.sp, color: colorScheme.primary.withValues(alpha: 0.7)),
+          Icon(
+            icon,
+            size: 20.sp,
+            color: colorScheme.primary.withValues(alpha: 0.7),
+          ),
           SizedBox(height: 6.h),
           Text(
             value,
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
           ),
           SizedBox(height: 2.h),
           Text(
             label,
-            style: TextStyle(fontSize: AppTypography.fontSizeXSmall, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: AppTypography.fontSizeXSmall,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -404,7 +501,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             onTap: item.onTap,
             borderRadius: BorderRadius.circular(AppRadius.md),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: AppSpacing.space3),
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.space4,
+                vertical: AppSpacing.space3,
+              ),
               child: Row(
                 children: [
                   Container(
@@ -414,7 +514,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       color: colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8.r),
                     ),
-                    child: Icon(item.icon, size: 18.sp, color: colorScheme.primary),
+                    child: Icon(
+                      item.icon,
+                      size: 18.sp,
+                      color: colorScheme.primary,
+                    ),
                   ),
                   SizedBox(width: AppSpacing.space4),
                   Expanded(
@@ -423,19 +527,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       children: [
                         Text(
                           item.title,
-                          style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w500, color: colorScheme.onSurface),
+                          style: TextStyle(
+                            fontSize: AppTypography.fontSizeBase.sp,
+                            fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                         if (item.subtitle != null) ...[
                           SizedBox(height: 2.h),
                           Text(
                             item.subtitle!,
-                            style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: colorScheme.onSurfaceVariant),
+                            style: TextStyle(
+                              fontSize: AppTypography.fontSizeXSmall.sp,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded, size: 20.sp, color: colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20.sp,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ],
               ),
             ),
@@ -459,14 +574,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           _bottomActionItem('关于', 'VidLang v1.0.0', colorScheme, onTap: () {}),
           Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.3)),
-          _bottomActionItem('退出登录', null, colorScheme, isDestructive: true, onTap: () => _logout()),
+          _bottomActionItem(
+            '退出登录',
+            null,
+            colorScheme,
+            isDestructive: true,
+            onTap: () => _logout(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _bottomActionItem(String title, String? subtitle, ColorScheme colorScheme,
-      {bool isDestructive = false, VoidCallback? onTap}) {
+  Widget _bottomActionItem(
+    String title,
+    String? subtitle,
+    ColorScheme colorScheme, {
+    bool isDestructive = false,
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -482,14 +608,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     style: TextStyle(
                       fontSize: AppTypography.fontSizeBase.sp,
                       fontWeight: FontWeight.w500,
-                      color: isDestructive ? colorScheme.error : colorScheme.onSurface,
+                      color: isDestructive
+                          ? colorScheme.error
+                          : colorScheme.onSurface,
                     ),
                   ),
                   if (subtitle != null) ...[
                     SizedBox(height: 2.h),
                     Text(
                       subtitle,
-                      style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: AppTypography.fontSizeXSmall.sp,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ],
@@ -504,22 +635,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   // ==================== 导航与对话框 ====================
 
   void _navigateToEditProfile() async {
-    await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const EditProfilePage()));
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfilePage()),
+    );
     _checkUser();
   }
 
   void _navigateToUserSettings() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const UserSettingsPage()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UserSettingsPage()),
+    );
   }
 
   void _navigateToModelSettings() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const ModelSettingsPage()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ModelSettingsPage()),
+    );
   }
 
   void _navigateToBillingPage() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const BillingPage())).then((_) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BillingPage()),
+    ).then((_) {
       if (!mounted) return;
-      setState(() => _billingOverviewFuture = BillingService.fetchOverview());
     });
   }
 
@@ -530,8 +672,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return AppBottomSheetMenuItem(
         text: mode.label,
         icon: mode.icon,
-        trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary, size: 20.sp) : null,
-          onTap: () async => await ref.read(themeModeProvider.notifier).setMode(mode),
+        trailing: isSelected
+            ? Icon(
+                Icons.check,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20.sp,
+              )
+            : null,
+        onTap: () async =>
+            await ref.read(themeModeProvider.notifier).setMode(mode),
       );
     }).toList();
     await AppBottomSheetMenu.show(context, title: '外观设置', items: items);
@@ -545,8 +694,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         text: level.label,
         subtitle: level.description,
         icon: level.icon,
-        trailing: isSelected ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary, size: 20.sp) : null,
-          onTap: () async => await ref.read(difficultyProvider.notifier).setLevel(level),
+        trailing: isSelected
+            ? Icon(
+                Icons.check,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20.sp,
+              )
+            : null,
+        onTap: () async =>
+            await ref.read(difficultyProvider.notifier).setLevel(level),
       );
     }).toList();
     await AppBottomSheetMenu.show(context, title: '学习难度', items: items);
@@ -562,7 +718,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           title: 'WiFi 传输端口',
           content: '设置 WiFi 传输服务端口（1024-65535）',
           hintText: '端口号',
-          leftBtn: TDDialogButtonOptions(title: '取消', action: () => Navigator.pop(buildContext)),
+          leftBtn: TDDialogButtonOptions(
+            title: '取消',
+            action: () => Navigator.pop(buildContext),
+          ),
           rightBtn: TDDialogButtonOptions(
             title: '确定',
             action: () async {
@@ -572,7 +731,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 if (mounted) setState(() => _wifiPort = port);
                 Navigator.pop(buildContext);
               } else {
-                ScaffoldMessenger.of(buildContext).showSnackBar(const SnackBar(content: Text('端口号需在 1024-65535 之间')));
+                ScaffoldMessenger.of(buildContext).showSnackBar(
+                  const SnackBar(content: Text('端口号需在 1024-65535 之间')),
+                );
               }
             },
           ),
@@ -589,7 +750,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       final stats = await TtsService().getCacheStats();
       if (mounted) {
         setState(() {
-          _ttsCacheSize = size;
           _ttsCacheLabel = '${stats.count} 条缓存 · ${stats.sizeLabel}';
         });
       }
@@ -627,11 +787,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   // 标题
                   Row(
                     children: [
-                      Icon(Icons.volume_up_rounded, color: cs.primary, size: 22.sp),
+                      Icon(
+                        Icons.volume_up_rounded,
+                        color: cs.primary,
+                        size: 22.sp,
+                      ),
                       SizedBox(width: 8.w),
                       Text(
                         'TTS 缓存管理',
-                        style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: cs.onSurface),
+                        style: TextStyle(
+                          fontSize: 17.sp,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
                       ),
                     ],
                   ),
@@ -652,19 +820,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           children: [
                             Text(
                               '${stats.count}',
-                              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: cs.primary),
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: cs.primary,
+                              ),
                             ),
-                            Text('缓存条数', style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant)),
+                            Text(
+                              '缓存条数',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
-                        Container(width: 1, height: 30.h, color: cs.outline.withValues(alpha: 0.3)),
+                        Container(
+                          width: 1,
+                          height: 30.h,
+                          color: cs.outline.withValues(alpha: 0.3),
+                        ),
                         Column(
                           children: [
                             Text(
                               stats.sizeLabel,
-                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: cs.primary),
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: cs.primary,
+                              ),
                             ),
-                            Text('占用空间', style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant)),
+                            Text(
+                              '占用空间',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -677,7 +869,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       '最大缓存条数（5-200）',
-                      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500, color: cs.onSurface),
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: cs.onSurface,
+                      ),
                     ),
                   ),
                   SizedBox(height: 6.h),
@@ -690,8 +886,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       hintStyle: TextStyle(fontSize: 13.sp, color: cs.outline),
                       filled: true,
                       fillColor: cs.surfaceContainerHighest,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.r), borderSide: BorderSide.none),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 10.h,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                   SizedBox(height: 6.h),
@@ -699,7 +901,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       '提示：相同文本的 TTS 音频会缓存在本地，重复播放时秒开。',
-                      style: TextStyle(fontSize: 11.sp, color: cs.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ),
 
@@ -715,37 +920,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             if (!mounted) return;
                             Navigator.pop(buildContext);
                             setState(() => _ttsCacheLabel = '0 条缓存 · 0KB');
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('TTS 缓存已清除')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('TTS 缓存已清除')),
+                            );
                           },
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 12.h),
-                            side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                            side: BorderSide(
+                              color: cs.error.withValues(alpha: 0.5),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
                           ),
-                          child: Text('清除缓存', style: TextStyle(fontSize: 14.sp, color: cs.error)),
+                          child: Text(
+                            '清除缓存',
+                            style: TextStyle(fontSize: 14.sp, color: cs.error),
+                          ),
                         ),
                       ),
                       SizedBox(width: 12.w),
                       Expanded(
                         child: FilledButton(
                           onPressed: () async {
-                            final newSize = int.tryParse(sizeController.text.trim());
-                            if (newSize == null || newSize < 5 || newSize > 200) {
-                              ScaffoldMessenger.of(buildContext).showSnackBar(const SnackBar(content: Text('请输入 5-200 之间的数字')));
+                            final newSize = int.tryParse(
+                              sizeController.text.trim(),
+                            );
+                            if (newSize == null ||
+                                newSize < 5 ||
+                                newSize > 200) {
+                              ScaffoldMessenger.of(buildContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text('请输入 5-200 之间的数字'),
+                                ),
+                              );
                               return;
                             }
                             await SettingsService.setTtsCacheSize(newSize);
                             if (!mounted) return;
                             Navigator.pop(buildContext);
                             setState(() {
-                              _ttsCacheSize = newSize;
-                              _ttsCacheLabel = '${stats.count} 条缓存 · ${stats.sizeLabel}';
+                              _ttsCacheLabel =
+                                  '${stats.count} 条缓存 · ${stats.sizeLabel}';
                             });
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已设置为 $newSize 条')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('已设置为 $newSize 条')),
+                            );
                           },
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 12.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
                           ),
                           child: const Text('保存'),
                         ),
@@ -776,7 +1002,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final loginName = user?.email ?? user?.username ?? '';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_login_name', loginName);
-    await prefs.setString('last_login_tab', user?.authProvider == 'supabase' ? 'supabase' : 'local');
+    await prefs.setString(
+      'last_login_tab',
+      user?.authProvider == 'supabase' ? 'supabase' : 'local',
+    );
 
     await AuthService.instance.logoutCurrentUser();
     if (!mounted) return;

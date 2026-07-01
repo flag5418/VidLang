@@ -451,6 +451,143 @@ export async function translateConversationResponse(
 }
 
 /**
+ * AI 发音分析：基于声通评测结果提供个性化改进建议
+ *
+ * 返回 Map 结构：
+ * {
+ *   analysis: "整体评价",
+ *   suggestions: ["建议1", "建议2"],
+ *   focus_areas: [{area: "维度名", priority: "high"}],
+ *   practice_words: [{word: "单词", reason: "原因"}]
+ * }
+ */
+export async function analyzePronunciation(
+  apiKey: string,
+  baseUrl: string,
+  params: {
+    overall_score?: number
+    fluency_score?: number
+    integrity_score?: number
+    accuracy_score?: number
+    pronunciation_score?: number
+    weak_dimensions?: Array<{ name: string; score: number }>
+    error_words?: Array<{ word: string; score?: number; read_type?: string }>
+    missing_words?: string[]
+    stress_errors?: string[]
+    phoneme_errors?: Array<{ word: string; phoneme: string; expected?: string }>
+    total_words?: number
+    correct_words?: number
+    ref_text?: string
+    history_summary?: {
+      total_count: number
+      avg_overall: number
+      weak_dimensions: Array<{ name: string; avg_score: number }>
+    }
+  },
+  model?: string,
+): Promise<Record<string, any>> {
+  const prompt = buildPronunciationAnalysisPrompt(params)
+
+  const raw = await qwenChat(apiKey, baseUrl, {
+    prompt,
+    temperature: 0.5,
+    maxTokens: 1500,
+    model: model || DEFAULT_CHAT_MODEL,
+  })
+
+  const parsed = parseJsonSafe(raw)
+  if (parsed && parsed.analysis) {
+    return parsed
+  }
+
+  // 解析失败返回降级结果
+  return { analysis: raw.trim(), suggestions: [], focus_areas: [], practice_words: [] }
+}
+
+function buildPronunciationAnalysisPrompt(params: any): string {
+  const {
+    overall_score,
+    fluency_score,
+    integrity_score,
+    accuracy_score,
+    pronunciation_score,
+    weak_dimensions,
+    error_words,
+    missing_words,
+    stress_errors,
+    phoneme_errors,
+    total_words,
+    correct_words,
+    ref_text,
+    history_summary,
+  } = params
+
+  let prompt = `你是一位专业的英语发音教练。请根据以下评测数据，为用户提供个性化的发音分析和改进建议。\n\n【当前评测数据】\n`
+
+  if (ref_text) prompt += `- 参考文本: ${ref_text}\n`
+  if (overall_score != null) prompt += `- 总分: ${overall_score.toFixed(1)}/100\n`
+  if (fluency_score != null) prompt += `- 流利度: ${fluency_score.toFixed(1)}/100\n`
+  if (integrity_score != null) prompt += `- 完整度: ${integrity_score.toFixed(1)}/100\n`
+  if (accuracy_score != null) prompt += `- 准确度: ${accuracy_score.toFixed(1)}/100\n`
+  if (pronunciation_score != null) prompt += `- 发音得分: ${pronunciation_score.toFixed(1)}/100\n`
+  if (total_words != null) prompt += `- 总单词数: ${total_words}\n`
+  if (correct_words != null) prompt += `- 正确单词数: ${correct_words}\n`
+
+  if (weak_dimensions && weak_dimensions.length > 0) {
+    prompt += `\n【薄弱维度】\n`
+    for (const dim of weak_dimensions) {
+      prompt += `- ${dim.name}: ${dim.score?.toFixed(1) ?? '--'}分\n`
+    }
+  }
+
+  if (error_words && error_words.length > 0) {
+    prompt += `\n【发音错误单词】\n`
+    for (const w of error_words.slice(0, 10)) {
+      prompt += `- ${w.word}: ${w.score?.toFixed(0) ?? '--'}分`
+      if (w.read_type && w.read_type !== 'normal') {
+        prompt += ` (${w.read_type})`
+      }
+      prompt += `\n`
+    }
+  }
+
+  if (missing_words && missing_words.length > 0) {
+    prompt += `\n【漏读单词】\n`
+    prompt += missing_words.slice(0, 10).join(', ') + '\n'
+  }
+
+  if (stress_errors && stress_errors.length > 0) {
+    prompt += `\n【重音错误】\n`
+    prompt += stress_errors.slice(0, 10).join(', ') + '\n'
+  }
+
+  if (phoneme_errors && phoneme_errors.length > 0) {
+    prompt += `\n【音素错误】\n`
+    for (const e of phoneme_errors.slice(0, 10)) {
+      prompt += `- ${e.word}[${e.phoneme}]`
+      if (e.expected) prompt += ` → 应为 [${e.expected}]`
+      prompt += `\n`
+    }
+  }
+
+  if (history_summary) {
+    prompt += `\n【历史表现】\n`
+    prompt += `- 累计评测次数: ${history_summary.total_count}\n`
+    prompt += `- 历史平均分: ${history_summary.avg_overall?.toFixed(1) ?? '--'}\n`
+    if (history_summary.weak_dimensions && history_summary.weak_dimensions.length > 0) {
+      prompt += `- 长期薄弱维度:\n`
+      for (const dim of history_summary.weak_dimensions) {
+        prompt += `  * ${dim.name}: ${dim.avg_score?.toFixed(1) ?? '--'}分\n`
+      }
+    }
+  }
+
+  prompt += `\n请返回严格的 JSON 格式（不要 markdown 代码块标记）：\n{\n  "analysis": "整体评价（2-3句话，指出主要问题和亮点）",\n  "suggestions": [\n    "具体改进建议1",\n    "具体改进建议2",\n    "具体改进建议3"\n  ],\n  "focus_areas": [\n    {"area": "需要重点练习的维度", "priority": "high/medium/low"}\n  ],\n  "practice_words": [\n    {"word": "建议重点练习的单词", "reason": "为什么需要练习"}\n  ]\n}\n\n要求：\n1. 用中文回答，专业但易懂\n2. 建议具体可操作，不要泛泛而谈\n3. 如果历史数据显示某维度持续薄弱，重点提醒\n4. 优先关注音素级错误和漏读问题\n5. 总分 90 分以上以鼓励为主，60 分以下要给出具体改进路径\n`
+
+  return prompt
+}
+
+/**
  * 通用聊天：透传 prompt，返回原始文本
  * 用于评测判分、自定义 prompt 等场景
  *

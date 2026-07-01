@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
@@ -13,7 +12,7 @@ import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/evaluation_api.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
-import 'package:vidlang/services/shengtong_evaluator.dart';
+import 'package:vidlang/services/shengtong_http_evaluator.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -170,7 +169,6 @@ class _TestPageState extends State<TestPage> {
             'config': config,
           };
         case TestScope.resource:
-        default:
           requestBody = {
             'request_id': requestId,
             'video_code': widget.videoCode,
@@ -190,16 +188,21 @@ class _TestPageState extends State<TestPage> {
       final ok = data['ok'] as bool? ?? false;
       if (!ok) {
         final error = data['error'] as String? ?? 'unknown_error';
+        final message = data['message'] as String?;
         if (error == 'insufficient_balance') {
           throw Exception('余额不足，无法生成题目');
         }
         if (error == 'no_content') {
           throw Exception('云端没有该视频字幕内容，请先导入字幕并完成上传');
         }
-        throw Exception('生成失败: $error');
+        if (error == 'no_items') {
+          throw Exception(message ?? '所有生成的题目均未通过质量检查，请尝试更换测试素材或调整配置');
+        }
+        throw Exception(message ?? '生成失败: $error');
       }
 
       final plan = data['plan'];
+      if (plan == null) throw Exception('服务响应缺少 plan 数据');
       final itemsRaw = (plan is Map) ? plan['items'] : null;
       final items = (itemsRaw is List)
           ? itemsRaw.whereType<Map>().cast<Map<String, dynamic>>().toList()
@@ -229,7 +232,21 @@ class _TestPageState extends State<TestPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      String errorMsg;
+      if (e is sb.FunctionException) {
+        // Edge Function 返回非 2xx 状态码
+        final details = e.details;
+        if (details is Map && details['message'] != null) {
+          errorMsg = details['message'] as String;
+        } else if (details is String) {
+          errorMsg = details;
+        } else {
+          errorMsg = '出题服务异常 (${e.status})';
+        }
+      } else {
+        errorMsg = e.toString().replaceFirst('Exception: ', '');
+      }
+      setState(() => _error = errorMsg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -841,7 +858,6 @@ class _TestRunPageState extends State<_TestRunPage> {
         return 'video'; // 生词本默认关联视频
       case TestScope.folder:
       case TestScope.resource:
-      default:
         return 'video';
     }
   }
@@ -1171,8 +1187,9 @@ class _TestRunPageState extends State<_TestRunPage> {
                     onTap: _submitted
                         ? null
                         : () => setState(() {
-                            if (_reorderSelected.length < answer.length)
+                            if (_reorderSelected.length < answer.length) {
                               _reorderSelected.add(w);
+                            }
                           }),
                     child: Container(
                       padding: EdgeInsets.symmetric(
@@ -1813,7 +1830,6 @@ class _TestRunPageState extends State<_TestRunPage> {
         ? '跟读短语'
         : '跟读句子';
     final isRecording = _pronState == 'recording';
-    const isEvaluating = false; // 评估是异步的，不阻塞UI
     final isScored = _pronState == 'scored';
 
     return Column(
@@ -1922,27 +1938,6 @@ class _TestRunPageState extends State<_TestRunPage> {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        if (isEvaluating) ...[
-          SizedBox(height: 8.h),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 16.sp,
-                height: 16.sp,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: colorScheme.primary,
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                '正在评分...',
-                style: TextStyle(fontSize: 12.sp, color: colorScheme.primary),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
@@ -2109,45 +2104,23 @@ final stAppKey = AppKeysService.instance.shengtongAppKey;
 final stSecretKey = AppKeysService.instance.shengtongSecretKey;
       if (stAppKey == null || stAppKey.isEmpty || stSecretKey == null || stSecretKey.isEmpty) {
         debugPrint('⚠️ [TestPage] 声通密钥未就绪');
-        return null;
+        return;
       }
-      final evaluator = ShengtongEvaluator(
+      // 使用 ShengtongHttpEvaluator HTTP 方式评测
+      final evaluator = ShengtongHttpEvaluator(
         appKey: stAppKey,
         secretKey: stSecretKey,
       );
 
-      final completer = Completer<Map<String, dynamic>?>();
-      evaluator.onResult = (r) {
-        if (!completer.isCompleted) completer.complete(r);
-      };
-      evaluator.onError = (e) {
-        if (!completer.isCompleted) completer.complete(null);
-      };
-
-      await evaluator.connect(coreType);
-      evaluator.start(
+      final result = await evaluator.evaluate(
         coreType: coreType,
         refText: refText,
+        audioPath: audioPath,
         userId: 'test_user',
       );
 
-      final file = File(audioPath);
-      if (await file.exists()) {
-        final bytes = await file.readAsBytes();
-        evaluator.feed(bytes);
-      }
-      evaluator.stop();
-
-      final result = await completer.future.timeout(
-        const Duration(seconds: 15),
-      );
-      evaluator.dispose();
-
-      if (result != null) {
-        final overall = (result['overall'] as num?)?.toDouble();
-        final fluency = (result['fluency'] as num?)?.toDouble();
-        final accuracy = (result['accuracy'] as num?)?.toDouble();
-        final completeness = (result['completeness'] as num?)?.toDouble();
+        if (result.isNotEmpty) {
+          final overall = (result['overall'] as num?)?.toDouble();
 
         if (mounted) {
           setState(() {

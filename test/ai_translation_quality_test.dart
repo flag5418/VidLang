@@ -40,16 +40,26 @@ enum DifficultyLevel {
 /// 难度等级顺序值（用于比较）
 int difficultyOrder(DifficultyLevel d) {
   switch (d) {
-    case DifficultyLevel.primary: return 1;
-    case DifficultyLevel.juniorHigh: return 2;
-    case DifficultyLevel.seniorHigh: return 3;
-    case DifficultyLevel.cet4: return 4;
-    case DifficultyLevel.cet6: return 5;
-    case DifficultyLevel.postgraduate: return 6;
-    case DifficultyLevel.ielts: return 7;
-    case DifficultyLevel.toefl: return 8;
-    case DifficultyLevel.gre: return 9;
-    case DifficultyLevel.unknown: return 0;
+    case DifficultyLevel.primary:
+      return 1;
+    case DifficultyLevel.juniorHigh:
+      return 2;
+    case DifficultyLevel.seniorHigh:
+      return 3;
+    case DifficultyLevel.cet4:
+      return 4;
+    case DifficultyLevel.cet6:
+      return 5;
+    case DifficultyLevel.postgraduate:
+      return 6;
+    case DifficultyLevel.ielts:
+      return 7;
+    case DifficultyLevel.toefl:
+      return 8;
+    case DifficultyLevel.gre:
+      return 9;
+    case DifficultyLevel.unknown:
+      return 0;
   }
 }
 
@@ -57,35 +67,55 @@ DifficultyLevel parseDifficulty(String? raw) {
   if (raw == null || raw.isEmpty) return DifficultyLevel.unknown;
   final n = raw.trim().toLowerCase().replaceAll('-', '').replaceAll('_', '');
   switch (n) {
-    case 'primary': return DifficultyLevel.primary;
+    case 'primary':
+      return DifficultyLevel.primary;
     case 'juniorhigh':
-    case 'junior': return DifficultyLevel.juniorHigh;
+    case 'junior':
+      return DifficultyLevel.juniorHigh;
     case 'seniorhigh':
-    case 'senior': return DifficultyLevel.seniorHigh;
-    case 'cet4': return DifficultyLevel.cet4;
-    case 'cet6': return DifficultyLevel.cet6;
+    case 'senior':
+      return DifficultyLevel.seniorHigh;
+    case 'cet4':
+      return DifficultyLevel.cet4;
+    case 'cet6':
+      return DifficultyLevel.cet6;
     case 'postgraduate':
     case 'kaoyan':
-    case '考研': return DifficultyLevel.postgraduate;
-    case 'ielts': return DifficultyLevel.ielts;
-    case 'toefl': return DifficultyLevel.toefl;
-    case 'gre': return DifficultyLevel.gre;
-    default: return DifficultyLevel.unknown;
+    case '考研':
+      return DifficultyLevel.postgraduate;
+    case 'ielts':
+      return DifficultyLevel.ielts;
+    case 'toefl':
+      return DifficultyLevel.toefl;
+    case 'gre':
+      return DifficultyLevel.gre;
+    default:
+      return DifficultyLevel.unknown;
   }
 }
 
 String difficultyLabel(DifficultyLevel d) {
   switch (d) {
-    case DifficultyLevel.primary: return '小学';
-    case DifficultyLevel.juniorHigh: return '初中';
-    case DifficultyLevel.seniorHigh: return '高中';
-    case DifficultyLevel.cet4: return 'CET4';
-    case DifficultyLevel.cet6: return 'CET6';
-    case DifficultyLevel.postgraduate: return '考研';
-    case DifficultyLevel.ielts: return '雅思';
-    case DifficultyLevel.toefl: return '托福';
-    case DifficultyLevel.gre: return 'GRE';
-    case DifficultyLevel.unknown: return '未知';
+    case DifficultyLevel.primary:
+      return '小学';
+    case DifficultyLevel.juniorHigh:
+      return '初中';
+    case DifficultyLevel.seniorHigh:
+      return '高中';
+    case DifficultyLevel.cet4:
+      return 'CET4';
+    case DifficultyLevel.cet6:
+      return 'CET6';
+    case DifficultyLevel.postgraduate:
+      return '考研';
+    case DifficultyLevel.ielts:
+      return '雅思';
+    case DifficultyLevel.toefl:
+      return '托福';
+    case DifficultyLevel.gre:
+      return 'GRE';
+    case DifficultyLevel.unknown:
+      return '未知';
   }
 }
 
@@ -123,31 +153,41 @@ class MockAiDefinitionResult {
       partOfSpeech: json['part_of_speech'] as String?,
       definitions: (json['definitions'] as List?)?.cast<String>() ?? [],
       difficulty: json['difficulty'] as String?,
-      examples: (json['examples'] as List?)
-              ?.map((e) => MockExample.fromJson(Map<String, dynamic>.from(e as Map)))
+      examples:
+          (json['examples'] as List?)
+              ?.map(
+                (e) =>
+                    MockExample.fromJson(Map<String, dynamic>.from(e as Map)),
+              )
               .toList() ??
           <MockExample>[],
-      standaloneExamples: (json['standalone_examples'] as List?)
-              ?.map((e) => MockExample.fromJson(Map<String, dynamic>.from(e as Map)))
+      standaloneExamples:
+          (json['standalone_examples'] as List?)
+              ?.map(
+                (e) =>
+                    MockExample.fromJson(Map<String, dynamic>.from(e as Map)),
+              )
               .toList() ??
           <MockExample>[],
-      morphology: json['morphology'] != null ? Map<String, dynamic>.from(json['morphology'] as Map) : null,
+      morphology: json['morphology'] != null
+          ? Map<String, dynamic>.from(json['morphology'] as Map)
+          : null,
       mnemonic: json['mnemonic'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'word': word,
-        if (phoneticUk != null) 'phonetic_uk': phoneticUk,
-        if (phoneticUs != null) 'phonetic_us': phoneticUs,
-        if (partOfSpeech != null) 'part_of_speech': partOfSpeech,
-        'definitions': definitions,
-        if (difficulty != null) 'difficulty': difficulty,
-        'examples': examples.map((e) => e.toJson()).toList(),
-        'standalone_examples': standaloneExamples.map((e) => e.toJson()).toList(),
-        if (morphology != null) 'morphology': morphology,
-        if (mnemonic != null) 'mnemonic': mnemonic,
-      };
+    'word': word,
+    if (phoneticUk != null) 'phonetic_uk': phoneticUk,
+    if (phoneticUs != null) 'phonetic_us': phoneticUs,
+    if (partOfSpeech != null) 'part_of_speech': partOfSpeech,
+    'definitions': definitions,
+    if (difficulty != null) 'difficulty': difficulty,
+    'examples': examples.map((e) => e.toJson()).toList(),
+    'standalone_examples': standaloneExamples.map((e) => e.toJson()).toList(),
+    if (morphology != null) 'morphology': morphology,
+    if (mnemonic != null) 'mnemonic': mnemonic,
+  };
 }
 
 class MockExample {
@@ -157,9 +197,9 @@ class MockExample {
   const MockExample({required this.english, required this.chinese});
 
   factory MockExample.fromJson(Map<String, dynamic> json) => MockExample(
-        english: json['english'] as String? ?? '',
-        chinese: json['chinese'] as String? ?? '',
-      );
+    english: json['english'] as String? ?? '',
+    chinese: json['chinese'] as String? ?? '',
+  );
 
   Map<String, dynamic> toJson() => {'english': english, 'chinese': chinese};
 }
@@ -455,10 +495,16 @@ class AiTranslationQualityTester {
       'examples': [
         {'english': 'I eat an apple every day.', 'chinese': '我每天吃一个苹果。'},
         {'english': 'The apple is red and sweet.', 'chinese': '这个苹果又红又甜。'},
-        {'english': 'She picked an apple from the tree.', 'chinese': '她从树上摘了一个苹果。'},
+        {
+          'english': 'She picked an apple from the tree.',
+          'chinese': '她从树上摘了一个苹果。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'An apple a day keeps the doctor away.', 'chinese': '一天一苹果，医生远离我。'},
+        {
+          'english': 'An apple a day keeps the doctor away.',
+          'chinese': '一天一苹果，医生远离我。',
+        },
         {'english': 'This apple tastes delicious.', 'chinese': '这个苹果尝起来很美味。'},
         {'english': 'He wants to buy some apples.', 'chinese': '他想买一些苹果。'},
       ],
@@ -474,7 +520,10 @@ class AiTranslationQualityTester {
       'difficulty': 'primary',
       'examples': [
         {'english': 'She is very happy today.', 'chinese': '她今天非常开心。'},
-        {'english': 'They lived a happy life together.', 'chinese': '他们一起过着幸福的生活。'},
+        {
+          'english': 'They lived a happy life together.',
+          'chinese': '他们一起过着幸福的生活。',
+        },
         {'english': 'I am happy to help you.', 'chinese': '我很乐意帮助你。'},
       ],
       'standalone_examples': [
@@ -497,14 +546,26 @@ class AiTranslationQualityTester {
       'definitions': ['跑；奔跑', '经营；管理', '运行；运转'],
       'difficulty': 'primary',
       'examples': [
-        {'english': 'I run in the park every morning.', 'chinese': '我每天早上在公园跑步。'},
-        {'english': 'He runs faster than his brother.', 'chinese': '他比他哥哥跑得更快。'},
+        {
+          'english': 'I run in the park every morning.',
+          'chinese': '我每天早上在公园跑步。',
+        },
+        {
+          'english': 'He runs faster than his brother.',
+          'chinese': '他比他哥哥跑得更快。',
+        },
         {'english': 'Don\'t run in the hallway.', 'chinese': '不要在走廊里奔跑。'},
       ],
       'standalone_examples': [
         {'english': 'She likes to run in the morning.', 'chinese': '她喜欢早上跑步。'},
-        {'english': 'The company is run by his father.', 'chinese': '这家公司由他的父亲经营。'},
-        {'english': 'This machine runs on electricity.', 'chinese': '这台机器靠电力运行。'},
+        {
+          'english': 'The company is run by his father.',
+          'chinese': '这家公司由他的父亲经营。',
+        },
+        {
+          'english': 'This machine runs on electricity.',
+          'chinese': '这台机器靠电力运行。',
+        },
       ],
       'morphology': {
         'past_tense': 'ran',
@@ -532,7 +593,11 @@ class AiTranslationQualityTester {
         {'english': 'Can you book a table for two?', 'chinese': '你能预订一张两人桌吗？'},
         {'english': 'The library has many books.', 'chinese': '图书馆有很多书。'},
       ],
-      'morphology': {'plural': 'books', 'past_tense': 'booked', 'present_participle': 'booking'},
+      'morphology': {
+        'plural': 'books',
+        'past_tense': 'booked',
+        'present_participle': 'booking',
+      },
     },
     'cat': {
       'word': 'cat',
@@ -563,9 +628,18 @@ class AiTranslationQualityTester {
       'definitions': ['抛弃；放弃', '遗弃；舍弃', '中途停止；中止'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'They had to abandon their car in the snow.', 'chinese': '他们不得不把车抛弃在雪地里。'},
-        {'english': 'Please don\'t abandon your dream.', 'chinese': '请不要放弃你的梦想。'},
-        {'english': 'The crew abandoned the sinking ship.', 'chinese': '船员们放弃了正在下沉的船。'},
+        {
+          'english': 'They had to abandon their car in the snow.',
+          'chinese': '他们不得不把车抛弃在雪地里。',
+        },
+        {
+          'english': 'Please don\'t abandon your dream.',
+          'chinese': '请不要放弃你的梦想。',
+        },
+        {
+          'english': 'The crew abandoned the sinking ship.',
+          'chinese': '船员们放弃了正在下沉的船。',
+        },
       ],
       'standalone_examples': [
         {'english': 'Don\'t abandon hope.', 'chinese': '不要放弃希望。'},
@@ -587,13 +661,22 @@ class AiTranslationQualityTester {
       'difficulty': 'juniorHigh',
       'examples': [
         {'english': 'She has a beautiful voice.', 'chinese': '她有一副美丽的嗓音。'},
-        {'english': 'The view from here is beautiful.', 'chinese': '从这里看到的景色很美。'},
+        {
+          'english': 'The view from here is beautiful.',
+          'chinese': '从这里看到的景色很美。',
+        },
         {'english': 'What a beautiful day!', 'chinese': '多美好的一天啊！'},
       ],
       'standalone_examples': [
         {'english': 'You look beautiful tonight.', 'chinese': '你今晚看起来很美。'},
-        {'english': 'The garden is beautiful in spring.', 'chinese': '春天时花园很美丽。'},
-        {'english': 'She is a beautiful young woman.', 'chinese': '她是一位美丽的年轻女子。'},
+        {
+          'english': 'The garden is beautiful in spring.',
+          'chinese': '春天时花园很美丽。',
+        },
+        {
+          'english': 'She is a beautiful young woman.',
+          'chinese': '她是一位美丽的年轻女子。',
+        },
       ],
       'morphology': {
         'comparative': 'more beautiful',
@@ -610,14 +693,20 @@ class AiTranslationQualityTester {
       'definitions': ['决定；决心', '判断；断定', '使做出决定'],
       'difficulty': 'juniorHigh',
       'examples': [
-        {'english': 'It\'s difficult to decide between them.', 'chinese': '很难在他们之间做决定。'},
+        {
+          'english': 'It\'s difficult to decide between them.',
+          'chinese': '很难在他们之间做决定。',
+        },
         {'english': 'We decided to go home early.', 'chinese': '我们决定早点回家。'},
         {'english': 'You must decide for yourself.', 'chinese': '你必须自己做决定。'},
       ],
       'standalone_examples': [
         {'english': 'I haven\'t decided yet.', 'chinese': '我还没决定。'},
         {'english': 'They decided to get married.', 'chinese': '他们决定结婚。'},
-        {'english': 'Let me decide what to do next.', 'chinese': '让我来决定下一步做什么。'},
+        {
+          'english': 'Let me decide what to do next.',
+          'chinese': '让我来决定下一步做什么。',
+        },
       ],
       'morphology': {
         'past_tense': 'decided',
@@ -636,15 +725,33 @@ class AiTranslationQualityTester {
       'difficulty': 'juniorHigh',
       'examples': [
         {'english': 'We must protect the environment.', 'chinese': '我们必须保护环境。'},
-        {'english': 'The work environment here is great.', 'chinese': '这里的工作环境很好。'},
-        {'english': 'Pollution harms our environment.', 'chinese': '污染危害我们的环境。'},
+        {
+          'english': 'The work environment here is great.',
+          'chinese': '这里的工作环境很好。',
+        },
+        {
+          'english': 'Pollution harms our environment.',
+          'chinese': '污染危害我们的环境。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'A clean environment is important for health.', 'chinese': '清洁的环境对健康很重要。'},
-        {'english': 'The company cares about the environment.', 'chinese': '这家公司关心环境问题。'},
-        {'english': 'Children need a safe environment to grow.', 'chinese': '孩子需要安全的环境成长。'},
+        {
+          'english': 'A clean environment is important for health.',
+          'chinese': '清洁的环境对健康很重要。',
+        },
+        {
+          'english': 'The company cares about the environment.',
+          'chinese': '这家公司关心环境问题。',
+        },
+        {
+          'english': 'Children need a safe environment to grow.',
+          'chinese': '孩子需要安全的环境成长。',
+        },
       ],
-      'morphology': {'plural': 'environments', 'adjective_form': 'environmental'},
+      'morphology': {
+        'plural': 'environments',
+        'adjective_form': 'environmental',
+      },
     },
     'necessary': {
       'word': 'necessary',
@@ -660,8 +767,14 @@ class AiTranslationQualityTester {
       ],
       'standalone_examples': [
         {'english': 'It may not be necessary to go.', 'chinese': '可能没必要去。'},
-        {'english': 'All necessary preparations have been made.', 'chinese': '所有必要的准备工作都已完成。'},
-        {'english': 'If necessary, I can stay late.', 'chinese': '如果有必要，我可以晚点走。'},
+        {
+          'english': 'All necessary preparations have been made.',
+          'chinese': '所有必要的准备工作都已完成。',
+        },
+        {
+          'english': 'If necessary, I can stay late.',
+          'chinese': '如果有必要，我可以晚点走。',
+        },
       ],
       'morphology': {
         'comparative': 'more necessary',
@@ -682,12 +795,24 @@ class AiTranslationQualityTester {
       'examples': [
         {'english': 'This is a sophisticated system.', 'chinese': '这是一个精密的系统。'},
         {'english': 'She is a sophisticated woman.', 'chinese': '她是一位老练的女性。'},
-        {'english': 'The restaurant uses sophisticated cooking techniques.', 'chinese': '这家餐厅使用复杂的烹饪技巧。'},
+        {
+          'english': 'The restaurant uses sophisticated cooking techniques.',
+          'chinese': '这家餐厅使用复杂的烹饪技巧。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'He has sophisticated taste in art.', 'chinese': '他在艺术方面有高雅的品味。'},
-        {'english': 'Modern technology is becoming more sophisticated.', 'chinese': '现代技术变得越来越复杂。'},
-        {'english': 'It was a sophisticated analysis of the problem.', 'chinese': '对这个问题进行了复杂的分析。'},
+        {
+          'english': 'He has sophisticated taste in art.',
+          'chinese': '他在艺术方面有高雅的品味。',
+        },
+        {
+          'english': 'Modern technology is becoming more sophisticated.',
+          'chinese': '现代技术变得越来越复杂。',
+        },
+        {
+          'english': 'It was a sophisticated analysis of the problem.',
+          'chinese': '对这个问题进行了复杂的分析。',
+        },
       ],
       'morphology': {
         'comparative': 'more sophisticated',
@@ -703,16 +828,35 @@ class AiTranslationQualityTester {
       'definitions': ['现象', '非凡的人或事；奇迹'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'Rainbow is a natural phenomenon.', 'chinese': '彩虹是一种自然现象。'},
+        {
+          'english': 'Rainbow is a natural phenomenon.',
+          'chinese': '彩虹是一种自然现象。',
+        },
         {'english': 'He is a phenomenon in music.', 'chinese': '他是音乐界的奇才。'},
-        {'english': 'This social phenomenon needs study.', 'chinese': '这种社会现象需要研究。'},
+        {
+          'english': 'This social phenomenon needs study.',
+          'chinese': '这种社会现象需要研究。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'Global warming is a worrying phenomenon.', 'chinese': '全球变暖是一个令人担忧的现象。'},
-        {'english': 'The phenomenon occurs frequently in summer.', 'chinese': '这种现象在夏天经常发生。'},
-        {'english': 'It\'s quite a phenomenon that he succeeded.', 'chinese': '他能成功真是个奇迹。'},
+        {
+          'english': 'Global warming is a worrying phenomenon.',
+          'chinese': '全球变暖是一个令人担忧的现象。',
+        },
+        {
+          'english': 'The phenomenon occurs frequently in summer.',
+          'chinese': '这种现象在夏天经常发生。',
+        },
+        {
+          'english': 'It\'s quite a phenomenon that he succeeded.',
+          'chinese': '他能成功真是个奇迹。',
+        },
       ],
-      'morphology': {'plural': 'phenomena', 'is_irregular': true, 'note': '不规则复数：phenomenon → phenomena'},
+      'morphology': {
+        'plural': 'phenomena',
+        'is_irregular': true,
+        'note': '不规则复数：phenomenon → phenomena',
+      },
     },
     'controversial': {
       'word': 'controversial',
@@ -723,13 +867,25 @@ class AiTranslationQualityTester {
       'difficulty': 'cet4',
       'examples': [
         {'english': 'This is a controversial topic.', 'chinese': '这是一个有争议的话题。'},
-        {'english': 'He made a controversial decision.', 'chinese': '他做了一个有争议的决定。'},
-        {'english': 'The movie was controversial but popular.', 'chinese': '这部电影有争议但很受欢迎。'},
+        {
+          'english': 'He made a controversial decision.',
+          'chinese': '他做了一个有争议的决定。',
+        },
+        {
+          'english': 'The movie was controversial but popular.',
+          'chinese': '这部电影有争议但很受欢迎。',
+        },
       ],
       'standalone_examples': [
         {'english': 'Her views are controversial.', 'chinese': '她的观点有争议。'},
-        {'english': 'It remains a controversial issue.', 'chinese': '这仍然是一个有争议的问题。'},
-        {'english': 'The controversial law was passed.', 'chinese': '这项有争议的法律通过了。'},
+        {
+          'english': 'It remains a controversial issue.',
+          'chinese': '这仍然是一个有争议的问题。',
+        },
+        {
+          'english': 'The controversial law was passed.',
+          'chinese': '这项有争议的法律通过了。',
+        },
       ],
       'morphology': {
         'noun_form': 'controversy',
@@ -744,13 +900,25 @@ class AiTranslationQualityTester {
       'definitions': ['企业家；创业者', '主办者；承包人'],
       'difficulty': 'cet4',
       'examples': [
-        {'english': 'She is a successful entrepreneur.', 'chinese': '她是一位成功的企业家。'},
+        {
+          'english': 'She is a successful entrepreneur.',
+          'chinese': '她是一位成功的企业家。',
+        },
         {'english': 'Young entrepreneurs are rising.', 'chinese': '年轻创业者正在崛起。'},
-        {'english': 'He started as an entrepreneur at age 20.', 'chinese': '他20岁时就开始创业了。'},
+        {
+          'english': 'He started as an entrepreneur at age 20.',
+          'chinese': '他20岁时就开始创业了。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'Being an entrepreneur requires courage.', 'chinese': '成为一名企业家需要勇气。'},
-        {'english': 'Many entrepreneurs work long hours.', 'chinese': '许多企业家工作时间很长。'},
+        {
+          'english': 'Being an entrepreneur requires courage.',
+          'chinese': '成为一名企业家需要勇气。',
+        },
+        {
+          'english': 'Many entrepreneurs work long hours.',
+          'chinese': '许多企业家工作时间很长。',
+        },
         {'english': 'She is a tech entrepreneur.', 'chinese': '她是一位科技企业家。'},
       ],
       'morphology': {'plural': 'entrepreneurs'},
@@ -764,13 +932,28 @@ class AiTranslationQualityTester {
       'difficulty': 'cet4',
       'examples': [
         {'english': 'He has psychological problems.', 'chinese': '他有心理问题。'},
-        {'english': 'Psychological health is important.', 'chinese': '心理健康很重要。'},
-        {'english': 'The stress caused psychological damage.', 'chinese': '这种压力造成了心理伤害。'},
+        {
+          'english': 'Psychological health is important.',
+          'chinese': '心理健康很重要。',
+        },
+        {
+          'english': 'The stress caused psychological damage.',
+          'chinese': '这种压力造成了心理伤害。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'She studies psychology at university.', 'chinese': '她在大学学习心理学。'},
-        {'english': 'There may be a psychological explanation.', 'chinese': '可能有心理学上的解释。'},
-        {'english': 'The film explores psychological themes.', 'chinese': '这部电影探讨了心理主题。'},
+        {
+          'english': 'She studies psychology at university.',
+          'chinese': '她在大学学习心理学。',
+        },
+        {
+          'english': 'There may be a psychological explanation.',
+          'chinese': '可能有心理学上的解释。',
+        },
+        {
+          'english': 'The film explores psychological themes.',
+          'chinese': '这部电影探讨了心理主题。',
+        },
       ],
       'morphology': {
         'noun_form': 'psychology',
@@ -787,14 +970,32 @@ class AiTranslationQualityTester {
       'definitions': ['无处不在的；普遍存在的', '到处出现的'],
       'difficulty': 'cet6',
       'examples': [
-        {'english': 'Smartphones have become ubiquitous.', 'chinese': '智能手机已经无处不在。'},
-        {'english': 'The ubiquitous influence of social media.', 'chinese': '社交媒体的无处不在的影响。'},
-        {'english': 'Advertising is ubiquitous in modern cities.', 'chinese': '广告在现代城市中随处可见。'},
+        {
+          'english': 'Smartphones have become ubiquitous.',
+          'chinese': '智能手机已经无处不在。',
+        },
+        {
+          'english': 'The ubiquitous influence of social media.',
+          'chinese': '社交媒体的无处不在的影响。',
+        },
+        {
+          'english': 'Advertising is ubiquitous in modern cities.',
+          'chinese': '广告在现代城市中随处可见。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'Coffee shops are ubiquitous in Seattle.', 'chinese': '西雅图到处都是咖啡店。'},
-        {'english': 'Plastic has become ubiquitous in daily life.', 'chinese': '塑料在日常生活中已经无处不在。'},
-        {'english': 'His ubiquitous presence annoyed everyone.', 'chinese': '他无处不在的存在让每个人都很烦。'},
+        {
+          'english': 'Coffee shops are ubiquitous in Seattle.',
+          'chinese': '西雅图到处都是咖啡店。',
+        },
+        {
+          'english': 'Plastic has become ubiquitous in daily life.',
+          'chinese': '塑料在日常生活中已经无处不在。',
+        },
+        {
+          'english': 'His ubiquitous presence annoyed everyone.',
+          'chinese': '他无处不在的存在让每个人都很烦。',
+        },
       ],
       'morphology': {
         'noun_form': 'ubiquity',
@@ -810,13 +1011,28 @@ class AiTranslationQualityTester {
       'definitions': ['史无前例的；空前的', '前所未有的；无先例的'],
       'difficulty': 'cet6',
       'examples': [
-        {'english': 'The team faced unprecedented challenges.', 'chinese': '团队面临了史无前例的挑战。'},
-        {'english': 'This is an unprecedented opportunity.', 'chinese': '这是一个前所未有的机会。'},
-        {'english': 'The success was unprecedented in history.', 'chinese': '这次成功在历史上是史无前例的。'},
+        {
+          'english': 'The team faced unprecedented challenges.',
+          'chinese': '团队面临了史无前例的挑战。',
+        },
+        {
+          'english': 'This is an unprecedented opportunity.',
+          'chinese': '这是一个前所未有的机会。',
+        },
+        {
+          'english': 'The success was unprecedented in history.',
+          'chinese': '这次成功在历史上是史无前例的。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'The company saw unprecedented growth.', 'chinese': '该公司经历了前所未有的增长。'},
-        {'english': 'Unprecedented changes are happening.', 'chinese': '前所未有的变化正在发生。'},
+        {
+          'english': 'The company saw unprecedented growth.',
+          'chinese': '该公司经历了前所未有的增长。',
+        },
+        {
+          'english': 'Unprecedented changes are happening.',
+          'chinese': '前所未有的变化正在发生。',
+        },
         {'english': 'At an unprecedented speed.', 'chinese': '以史无前例的速度。'},
       ],
       'morphology': {
@@ -835,12 +1051,24 @@ class AiTranslationQualityTester {
       'examples': [
         {'english': 'She is meticulous in her work.', 'chinese': '她工作一丝不苟。'},
         {'english': 'Meticulous planning is required.', 'chinese': '需要细致的计划。'},
-        {'english': 'He kept meticulous records of everything.', 'chinese': '他对每件事都做了精确的记录。'},
+        {
+          'english': 'He kept meticulous records of everything.',
+          'chinese': '他对每件事都做了精确的记录。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'The scientist was meticulous about details.', 'chinese': '这位科学家对细节很严谨。'},
-        {'english': 'Meticulous attention to detail is essential.', 'chinese': '对细节的一丝不苟是必不可少的。'},
-        {'english': 'She gave a meticulous explanation.', 'chinese': '她给出了一个细致的解释。'},
+        {
+          'english': 'The scientist was meticulous about details.',
+          'chinese': '这位科学家对细节很严谨。',
+        },
+        {
+          'english': 'Meticulous attention to detail is essential.',
+          'chinese': '对细节的一丝不苟是必不可少的。',
+        },
+        {
+          'english': 'She gave a meticulous explanation.',
+          'chinese': '她给出了一个细致的解释。',
+        },
       ],
       'morphology': {
         'adverb_form': 'meticulously',
@@ -857,12 +1085,18 @@ class AiTranslationQualityTester {
       'difficulty': 'gre',
       'examples': [
         {'english': 'Fame is often ephemeral.', 'chinese': '名声往往是短暂的。'},
-        {'english': 'The ephemeral beauty of cherry blossoms.', 'chinese': '樱花短暂的美丽。'},
+        {
+          'english': 'The ephemeral beauty of cherry blossoms.',
+          'chinese': '樱花短暂的美丽。',
+        },
         {'english': 'Trends in fashion are ephemeral.', 'chinese': '时尚潮流是短暂的。'},
       ],
       'standalone_examples': [
         {'english': 'Happiness can be ephemeral.', 'chinese': '幸福可能是短暂的。'},
-        {'english': 'The ephemeral nature of social media fame.', 'chinese': '社交媒体名气的短暂性。'},
+        {
+          'english': 'The ephemeral nature of social media fame.',
+          'chinese': '社交媒体名气的短暂性。',
+        },
         {'english': 'An ephemeral pleasure.', 'chinese': '一种短暂的快乐。'},
       ],
       'morphology': {
@@ -880,16 +1114,37 @@ class AiTranslationQualityTester {
       'definitions': ['意外发现美好事物的能力；机缘凑巧', '偶然发现珍奇事物的本领'],
       'difficulty': 'gre',
       'examples': [
-        {'english': 'It was pure serendipity that we met.', 'chinese': '我们相遇纯属机缘巧合。'},
-        {'english': 'Serendipity plays a role in scientific discoveries.', 'chinese': '机缘巧合在科学发现中起着作用。'},
-        {'english': 'The discovery was a result of serendipity.', 'chinese': '这次发现是机缘巧合的结果。'},
+        {
+          'english': 'It was pure serendipity that we met.',
+          'chinese': '我们相遇纯属机缘巧合。',
+        },
+        {
+          'english': 'Serendipity plays a role in scientific discoveries.',
+          'chinese': '机缘巧合在科学发现中起着作用。',
+        },
+        {
+          'english': 'The discovery was a result of serendipity.',
+          'chinese': '这次发现是机缘巧合的结果。',
+        },
       ],
       'standalone_examples': [
-        {'english': 'I found the book by serendipity.', 'chinese': '我偶然发现了这本书。'},
-        {'english': 'Serendipity brought us together.', 'chinese': '机缘巧合让我们走到了一起。'},
-        {'english': 'A moment of serendipity changed my life.', 'chinese': '一次意外的机遇改变了我的生活。'},
+        {
+          'english': 'I found the book by serendipity.',
+          'chinese': '我偶然发现了这本书。',
+        },
+        {
+          'english': 'Serendipity brought us together.',
+          'chinese': '机缘巧合让我们走到了一起。',
+        },
+        {
+          'english': 'A moment of serendipity changed my life.',
+          'chinese': '一次意外的机遇改变了我的生活。',
+        },
       ],
-      'morphology': {'plural': 'serendipities', 'adjective_form': 'serendipitous'},
+      'morphology': {
+        'plural': 'serendipities',
+        'adjective_form': 'serendipitous',
+      },
     },
 
     // === 特殊情况 ===
@@ -968,7 +1223,11 @@ class AiTranslationQualityTester {
 
     for (var i = 0; i < testCases.length; i++) {
       final testCase = testCases[i];
-      final result = _testSingleWord(testCase, index: i + 1, total: testCases.length);
+      final result = _testSingleWord(
+        testCase,
+        index: i + 1,
+        total: testCases.length,
+      );
       results.add(result);
     }
 
@@ -978,14 +1237,20 @@ class AiTranslationQualityTester {
     final passCount = results.where((r) => r.passed).length;
     final warningCount = results.where((r) => r.hasWarnings && r.passed).length;
     final failCount = results.where((r) => !r.passed).length;
-    final totalScore = results.isEmpty ? 0.0 : results.fold<double>(0.0, (sum, r) => sum + r.totalScore) / results.length * 10; // 转换为百分制
+    final totalScore = results.isEmpty
+        ? 0.0
+        : results.fold<double>(0.0, (sum, r) => sum + r.totalScore) /
+              results.length *
+              10; // 转换为百分制
 
     // 计算各维度平均分
     final dimAvgs = <String, double>{};
     final dimensions = ['JSON完整性', '释义准确性', '难度合理性', '词形正确性', '例句质量', '音标规范'];
     for (final dim in dimensions) {
       final scores = results.map((r) => r.dimensionScores[dim] ?? 0).toList();
-      dimAvgs[dim] = scores.isEmpty ? 0.0 : scores.reduce((a, b) => a + b) / scores.length;
+      dimAvgs[dim] = scores.isEmpty
+          ? 0.0
+          : scores.reduce((a, b) => a + b) / scores.length;
     }
 
     return TestReport(
@@ -1001,7 +1266,11 @@ class AiTranslationQualityTester {
   }
 
   /// 测试单个单词
-  WordTestResult _testSingleWord(WordTestCase testCase, {required int index, required int total}) {
+  WordTestResult _testSingleWord(
+    WordTestCase testCase, {
+    required int index,
+    required int total,
+  }) {
     final issues = <String>[];
     final warnings = <String>[];
     final scores = <String, double>{};
@@ -1014,16 +1283,36 @@ class AiTranslationQualityTester {
     }
 
     // ── R1: JSON 结构完整性 (权重 20%) ──
-    scores['JSON完整性'] = _testJsonIntegrity(aiResult, testCase.word, issues, warnings);
+    scores['JSON完整性'] = _testJsonIntegrity(
+      aiResult,
+      testCase.word,
+      issues,
+      warnings,
+    );
 
     // ── R2: 释义准确性 (权重 30%) ──
-    scores['释义准确性'] = _testDefinitionAccuracy(aiResult, testCase, issues, warnings);
+    scores['释义准确性'] = _testDefinitionAccuracy(
+      aiResult,
+      testCase,
+      issues,
+      warnings,
+    );
 
     // ── R3: 难度合理性 (权重 20%) ──
-    scores['难度合理性'] = _testDifficultyReasonability(aiResult, testCase, issues, warnings);
+    scores['难度合理性'] = _testDifficultyReasonability(
+      aiResult,
+      testCase,
+      issues,
+      warnings,
+    );
 
     // ── R4: 词形变化正确性 (权重 15%) ──
-    scores['词形正确性'] = _testMorphologyCorrectness(aiResult, testCase, issues, warnings);
+    scores['词形正确性'] = _testMorphologyCorrectness(
+      aiResult,
+      testCase,
+      issues,
+      warnings,
+    );
 
     // ── R5: 例句质量 (权重 10%) ──
     scores['例句质量'] = _testExampleQuality(aiResult, testCase, issues, warnings);
@@ -1040,7 +1329,10 @@ class AiTranslationQualityTester {
       '例句质量': 0.10,
       '音标规范': 0.05,
     };
-    final totalScore = weights.entries.fold<double>(0, (sum, e) => sum + (scores[e.key] ?? 0) * e.value);
+    final totalScore = weights.entries.fold<double>(
+      0,
+      (sum, e) => sum + (scores[e.key] ?? 0) * e.value,
+    );
 
     return WordTestResult(
       word: testCase.word,
@@ -1056,7 +1348,12 @@ class AiTranslationQualityTester {
   // ─── 各维度测试方法 ─────────────────────────────
 
   /// R1: JSON 结构完整性
-  double _testJsonIntegrity(MockAiDefinitionResult? result, String word, List<String> issues, List<String> warnings) {
+  double _testJsonIntegrity(
+    MockAiDefinitionResult? result,
+    String word,
+    List<String> issues,
+    List<String> warnings,
+  ) {
     if (result == null) {
       issues.add('❌ 无法获取 AI 返回数据');
       return 0;
@@ -1066,7 +1363,8 @@ class AiTranslationQualityTester {
     final checks = <String, bool>{
       'word 字段存在': result.word.isNotEmpty,
       'definitions 非空': result.definitions.isNotEmpty,
-      'difficulty 存在': result.difficulty != null && result.difficulty!.isNotEmpty,
+      'difficulty 存在':
+          result.difficulty != null && result.difficulty!.isNotEmpty,
       'examples 是数组': true, // 已保证
     };
 
@@ -1087,7 +1385,12 @@ class AiTranslationQualityTester {
   }
 
   /// R2: 释义准确性
-  double _testDefinitionAccuracy(MockAiDefinitionResult? result, WordTestCase testCase, List<String> issues, List<String> warnings) {
+  double _testDefinitionAccuracy(
+    MockAiDefinitionResult? result,
+    WordTestCase testCase,
+    List<String> issues,
+    List<String> warnings,
+  ) {
     if (result == null || result.definitions.isEmpty) {
       issues.add('❌ definitions 为空');
       return 0;
@@ -1112,29 +1415,47 @@ class AiTranslationQualityTester {
       return 8 + matchRatio * 2;
     } else if (matchRatio >= 0.5) {
       // 中等匹配：5-8 分
-      warnings.add('⚠️ 释义部分匹配: 找到 ${matchedKeywords.join(', ')}, 缺少 ${testCase.expectedMeanings.where((k) => !matchedKeywords.contains(k)).join(', ')}');
+      warnings.add(
+        '⚠️ 释义部分匹配: 找到 ${matchedKeywords.join(', ')}, 缺少 ${testCase.expectedMeanings.where((k) => !matchedKeywords.contains(k)).join(', ')}',
+      );
       return 5 + matchRatio * 3;
     } else if (matchRatio > 0) {
       // 低匹配：检查是否语义相关（子串匹配或包含关键词）
-      final isSemanticallyRelated = testCase.expectedMeanings.any((keyword) =>
-        allDefs.contains(keyword.substring(0, (keyword.length * 0.6).ceil())) ||
-        keyword.split('').any((ch) => allDefs.contains(ch) && keyword.length > 2)
+      final isSemanticallyRelated = testCase.expectedMeanings.any(
+        (keyword) =>
+            allDefs.contains(
+              keyword.substring(0, (keyword.length * 0.6).ceil()),
+            ) ||
+            keyword
+                .split('')
+                .any((ch) => allDefs.contains(ch) && keyword.length > 2),
       );
       if (isSemanticallyRelated) {
-        warnings.add('⚠️ 释义语义相关但非精确匹配: 预期 [${testCase.expectedMeanings.join(', ')}], 实际: [${result.definitions.join(', ')}]');
+        warnings.add(
+          '⚠️ 释义语义相关但非精确匹配: 预期 [${testCase.expectedMeanings.join(', ')}], 实际: [${result.definitions.join(', ')}]',
+        );
         return 4 + matchRatio * 4;
       }
-      issues.add('❌ 释义基本不匹配: 预期 [${testCase.expectedMeanings.join(', ')}], 实际: [${result.definitions.join(', ')}]');
+      issues.add(
+        '❌ 释义基本不匹配: 预期 [${testCase.expectedMeanings.join(', ')}], 实际: [${result.definitions.join(', ')}]',
+      );
       return 2 + matchRatio * 3;
     } else {
       // 无匹配
-      issues.add('❌ 释义完全不匹配: 预期 [${testCase.expectedMeanings.join(', ')}], 实际 [${result.definitions.join(', ')}]');
+      issues.add(
+        '❌ 释义完全不匹配: 预期 [${testCase.expectedMeanings.join(', ')}], 实际 [${result.definitions.join(', ')}]',
+      );
       return 0;
     }
   }
 
   /// R3: 难度合理性
-  double _testDifficultyReasonability(MockAiDefinitionResult? result, WordTestCase testCase, List<String> issues, List<String> warnings) {
+  double _testDifficultyReasonability(
+    MockAiDefinitionResult? result,
+    WordTestCase testCase,
+    List<String> issues,
+    List<String> warnings,
+  ) {
     if (result?.difficulty == null || result!.difficulty!.isEmpty) {
       warnings.add('⚠️ 缺少 difficulty 字段');
       return 5; // 中等分数
@@ -1148,19 +1469,30 @@ class AiTranslationQualityTester {
     if (diff == 0) {
       return 10; // 完全匹配
     } else if (diff == 1) {
-      warnings.add('⚠️ 难度偏差1级: 预期 ${difficultyLabel(testCase.expectedDifficulty)}, 实际 ${difficultyLabel(aiDifficulty)}');
+      warnings.add(
+        '⚠️ 难度偏差1级: 预期 ${difficultyLabel(testCase.expectedDifficulty)}, 实际 ${difficultyLabel(aiDifficulty)}',
+      );
       return 7;
     } else if (diff == 2) {
-      issues.add('❌ 难度偏差2级: 预期 ${difficultyLabel(testCase.expectedDifficulty)}, 实际 ${difficultyLabel(aiDifficulty)}');
+      issues.add(
+        '❌ 难度偏差2级: 预期 ${difficultyLabel(testCase.expectedDifficulty)}, 实际 ${difficultyLabel(aiDifficulty)}',
+      );
       return 4;
     } else {
-      issues.add('❌ 难度偏差${diff}级: 预期 ${difficultyLabel(testCase.expectedDifficulty)}, 实际 ${difficultyLabel(aiDifficulty)}');
+      issues.add(
+        '❌ 难度偏差$diff级: 预期 ${difficultyLabel(testCase.expectedDifficulty)}, 实际 ${difficultyLabel(aiDifficulty)}',
+      );
       return 0;
     }
   }
 
   /// R4: 词形变化正确性
-  double _testMorphologyCorrectness(MockAiDefinitionResult? result, WordTestCase testCase, List<String> issues, List<String> warnings) {
+  double _testMorphologyCorrectness(
+    MockAiDefinitionResult? result,
+    WordTestCase testCase,
+    List<String> issues,
+    List<String> warnings,
+  ) {
     if (result == null) {
       return 5; // 无数据给中等分
     }
@@ -1187,7 +1519,7 @@ class AiTranslationQualityTester {
     final word = result.word.toLowerCase();
 
     // 常见错误检测
-    final morphStr = morph.toString().toLowerCase();
+    morph.toString().toLowerCase();
 
     // 检测不规则动词错误（如 run → runned）
     final irregularVerbs = {
@@ -1213,7 +1545,9 @@ class AiTranslationQualityTester {
       if (pastTense.isNotEmpty && !correctForms.contains(pastTense)) {
         // 检查是否是错误的规则变化
         if (pastTense == '${word}ed' || pastTense == '${word}d') {
-          issues.add('❌ 不规则动词规则化错误: $word → $pastTense (应为 ${correctForms[0]})');
+          issues.add(
+            '❌ 不规则动词规则化错误: $word → $pastTense (应为 ${correctForms[0]})',
+          );
           score -= 5;
         }
       }
@@ -1223,7 +1557,14 @@ class AiTranslationQualityTester {
     if (morph.containsKey('plural')) {
       final plural = morph['plural']?.toString() ?? '';
       // 基本检查：复数不应与单数相同（除非是 sheep/fish 等特殊词）
-      final unchangingPlurals = ['sheep', 'fish', 'deer', 'series', 'species', 'aircraft'];
+      final unchangingPlurals = [
+        'sheep',
+        'fish',
+        'deer',
+        'series',
+        'species',
+        'aircraft',
+      ];
       if (plural == word && !unchangingPlurals.contains(word)) {
         issues.add('❌ 复数形式与单数相同: $word → $plural');
         score -= 3;
@@ -1233,8 +1574,8 @@ class AiTranslationQualityTester {
     // 检测比较级错误（如 happy → more happy 虽然可用但不标准）
     final pos = morph['comparative']?.toString().toLowerCase() ?? '';
     if (word.endsWith('y') && word.length > 2) {
-      final expectedComparative = '${word.substring(0, word.length - 1)}ier';
-      if (pos == 'more $word' || pos == 'more${word}') {
+      '${word.substring(0, word.length - 1)}ier';
+      if (pos == 'more $word' || pos == 'more$word') {
         warnings.add('⚠️ 以-y结尾形容词建议用 -ier 形式: $word → $pos (可接受但非最优)');
         score -= 1;
       }
@@ -1244,7 +1585,12 @@ class AiTranslationQualityTester {
   }
 
   /// R5: 例句质量（优化版：要求至少3条例句）
-  double _testExampleQuality(MockAiDefinitionResult? result, WordTestCase testCase, List<String> issues, List<String> warnings) {
+  double _testExampleQuality(
+    MockAiDefinitionResult? result,
+    WordTestCase testCase,
+    List<String> issues,
+    List<String> warnings,
+  ) {
     if (result == null) {
       warnings.add('⚠️ 无 AI 返回数据');
       return 3;
@@ -1259,13 +1605,15 @@ class AiTranslationQualityTester {
     var score = 6.0; // 基础分（降低了，因为要求更严格）
     final targetWord = testCase.word.toLowerCase();
     var hasTargetWord = false;
+    // ignore: unused_local_variable
     var exampleCount = 0;
 
     for (final ex in allExamples) {
       exampleCount++;
       final enLower = ex.english.toLowerCase();
       // 检查例句是否包含目标单词
-      if (enLower.contains(targetWord) || enLower.contains(targetWord.replaceAll("'", ""))) {
+      if (enLower.contains(targetWord) ||
+          enLower.contains(targetWord.replaceAll("'", ""))) {
         hasTargetWord = true;
       }
 
@@ -1305,7 +1653,11 @@ class AiTranslationQualityTester {
   }
 
   /// R6: 音标规范性
-  double _testPhoneticStandardization(MockAiDefinitionResult? result, List<String> issues, List<String> warnings) {
+  double _testPhoneticStandardization(
+    MockAiDefinitionResult? result,
+    List<String> issues,
+    List<String> warnings,
+  ) {
     if (result == null) {
       warnings.add('⚠️ 无 AI 返回数据');
       return 3;
@@ -1350,11 +1702,17 @@ class AiTranslationQualityTester {
 
 void _printReport(TestReport report) {
   // 总览
-  print('📊 总体评分: ${report.overallScore.toStringAsFixed(1)}/100 [${report.grade}]');
+  print(
+    '📊 总体评分: ${report.overallScore.toStringAsFixed(1)}/100 [${report.grade}]',
+  );
   print('📈 测试单词数: ${report.totalWords}');
   print('✅ 通过: ${report.passCount} (${report.passRate.toStringAsFixed(0)}%)');
-  print('⚠️  警告: ${report.warningCount} (${(report.warningCount / report.totalWords * 100).toStringAsFixed(0)}%)');
-  print('❌ 失败: ${report.failCount} (${(report.failCount / report.totalWords * 100).toStringAsFixed(0)}%)');
+  print(
+    '⚠️  警告: ${report.warningCount} (${(report.warningCount / report.totalWords * 100).toStringAsFixed(0)}%)',
+  );
+  print(
+    '❌ 失败: ${report.failCount} (${(report.failCount / report.totalWords * 100).toStringAsFixed(0)}%)',
+  );
   print('⏱️  执行时间: ${report.executionTime.inMilliseconds}ms');
 
   // 各维度平均分
@@ -1374,7 +1732,9 @@ void _printReport(TestReport report) {
     final r = report.results[i];
     final statusIcon = r.passed ? (r.hasWarnings ? '⚠️' : '✅') : '❌';
 
-    print('[${i + 1}/${report.totalWords}] ${r.word} (预期: ${difficultyLabel(r.expectedDifficulty)}) $statusIcon');
+    print(
+      '[${i + 1}/${report.totalWords}] ${r.word} (预期: ${difficultyLabel(r.expectedDifficulty)}) $statusIcon',
+    );
 
     // 各维度得分
     for (final entry in r.dimensionScores.entries) {
@@ -1404,7 +1764,9 @@ void _printReport(TestReport report) {
       final ai = r.aiResult!;
       print('   📝 AI返回摘要:');
       print('      释义: ${ai.definitions.take(2).join('; ')}');
-      print('      难度: ${ai.difficulty != null ? difficultyLabel(parseDifficulty(ai.difficulty)) : "无"}');
+      print(
+        '      难度: ${ai.difficulty != null ? difficultyLabel(parseDifficulty(ai.difficulty)) : "无"}',
+      );
       print('      音标: UK=${ai.phoneticUk ?? "无"} US=${ai.phoneticUs ?? "无"}');
       if (ai.morphology != null && ai.morphology!.isNotEmpty) {
         print('      词形: ${ai.morphology}');
@@ -1472,7 +1834,9 @@ void _printPromptAnalysis(TestReport report) {
     final count = lowScoreCounts[dim] ?? 0;
     final pct = count / report.totalWords * 100;
     if (count > 0) {
-      print('   ⚠️ $dim: $count/${report.totalWords} 个单词得分低于 6 (${pct.toStringAsFixed(0)}%)');
+      print(
+        '   ⚠️ $dim: $count/${report.totalWords} 个单词得分低于 6 (${pct.toStringAsFixed(0)}%)',
+      );
     } else {
       print('   ✅ $dim: 全部达标');
     }

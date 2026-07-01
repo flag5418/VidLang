@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>声通 WebSocket 测试</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        #log { white-space: pre-wrap; background: #000; padding: 10px; border: 1px solid #333; min-height: 300px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer; }
+        .error { color: #f44; }
+        .info { color: #ff0; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h2>声通 WebSocket 测试工具</h2>
+    <div>
+        <button onclick="testWS()">测试 WS (8080)</button>
+        <button onclick="testWSS()">测试 WSS (8443)</button>
+        <button onclick="clearLog()">清空日志</button>
+    </div>
+    <div id="log"></div>
+
+<script>
+// 测试密钥
+const APP_KEY = '17618890190005e3';
+const SECRET_KEY = '5d0b32c950794688f6caf0c797980cde';
+
+function log(msg, type = '') {
+    const time = new Date().toLocaleTimeString();
+    const el = document.getElementById('log');
+    const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'info' ? 'info' : '';
+    el.innerHTML += `<span class="${className}">[${time}] ${msg}</span>\n`;
+    console.log(`[${time}] ${msg}`);
+}
+
+function clearLog() {
+    document.getElementById('log').innerHTML = '';
+}
+
+// SHA1 加密（使用 Web Crypto API）
+async function sha1(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 生成 connect sig
+async function generateConnectSig(timestamp) {
+    const raw = APP_KEY + timestamp + SECRET_KEY;
+    log(`connect raw: ${raw}`, 'info');
+    const sig = await sha1(raw);
+    log(`connect sig: ${sig}`, 'info');
+    return sig;
+}
+
+// 生成 start sig
+async function generateStartSig(timestamp, userId) {
+    const raw = APP_KEY + timestamp + userId + SECRET_KEY;
+    log(`start raw: ${raw}`, 'info');
+    const sig = await sha1(raw);
+    log(`start sig: ${sig}`, 'info');
+    return sig;
+}
+
+// 测试 WebSocket 连接
+async function testWebSocket(url, useWSS) {
+    clearLog();
+    log(`🚀 开始测试 ${useWSS ? 'WSS' : 'WS'}: ${url}`, 'info');
+    log(`   AppKey: ${APP_KEY}`);
+    log(`   SecretKey: ${SECRET_KEY.substring(0, 8)}...`);
+
+    const ws = new WebSocket(url);
+    let connected = false;
+
+    ws.onopen = async () => {
+        log('✅ WebSocket 连接已打开', 'success');
+
+        // 生成时间戳和 sig
+        const timestamp = Date.now().toString();
+        log(`   时间戳: ${timestamp} (${timestamp.length}位)`, 'info');
+        const sig = await generateConnectSig(timestamp);
+
+        // 发送 connect 命令（官网文档格式）
+        const connectParams = {
+            "cmd": "connect",
+            "param": {
+                "sdk": {
+                    "version": 16777472,
+                    "source": 4,
+                    "protocol": 1
+                },
+                "app": {
+                    "applicationId": APP_KEY,
+                    "sig": sig,
+                    "timestamp": timestamp
+                }
+            }
+        };
+
+        log('📤 发送 connect 命令...', 'info');
+        ws.send(JSON.stringify(connectParams));
+    };
+
+    ws.onmessage = (event) => {
+        log(`📥 收到消息: ${event.data}`, 'success');
+        try {
+            const data = JSON.parse(event.data);
+
+            // 检查错误
+            if (data.error) {
+                log(`❌ 服务端错误: [${data.errId}] ${data.error}`, 'error');
+                return;
+            }
+
+            // 处理 connect 响应
+            if (data.cmd === 'connect') {
+                if (data.code === 0) {
+                    log('✅ connect 成功!', 'success');
+                    connected = true;
+
+                    // 发送 start 命令
+                    sendStart(ws);
+                } else {
+                    log(`❌ connect 失败: ${data.error || '未知错误'}`, 'error');
+                }
+            }
+
+            // 处理 start 响应
+            if (data.cmd === 'start') {
+                if (data.code === 0) {
+                    log('✅ start 成功!', 'success');
+                } else {
+                    log(`❌ start 失败: ${data.error || '未知错误'}`, 'error');
+                }
+            }
+
+            // 处理评测结果
+            if (data.cmd === 'eval') {
+                log(`📊 评测结果: ${JSON.stringify(data.result, null, 2)}`, 'success');
+            }
+        } catch (e) {
+            log(`⚠️ 解析消息失败: ${e}`, 'error');
+        }
+    };
+
+    ws.onerror = (error) => {
+        log(`💥 WebSocket 错误: ${error}`, 'error');
+    };
+
+    ws.onclose = (event) => {
+        log(`🔌 WebSocket 关闭: code=${event.code}, reason=${event.reason || '无'}`, 'info');
+    };
+
+    // 10秒后自动关闭
+    setTimeout(() => {
+        if (!connected) {
+            log('⏰ 超时，关闭连接', 'error');
+        }
+        ws.close();
+    }, 10000);
+}
+
+// 发送 start 命令
+async function sendStart(ws) {
+    const timestamp = Date.now().toString();
+    const userId = 'test_user_' + timestamp;
+    const sig = await generateStartSig(timestamp, userId);
+
+    const startParams = {
+        "cmd": "start",
+        "param": {
+            "app": {
+                "applicationId": APP_KEY,
+                "sig": sig,
+                "userId": userId,
+                "timestamp": timestamp
+            },
+            "audio": {
+                "audioType": "wav",
+                "sampleRate": 16000,
+                "channel": 1,
+                "sampleBytes": 2
+            },
+            "request": {
+                "coreType": "sent.eval",
+                "refText": "Hello world",
+                "tokenId": "test_token_" + timestamp
+            }
+        }
+    };
+
+    log('📤 发送 start 命令...', 'info');
+    ws.send(JSON.stringify(startParams));
+}
+
+function testWS() {
+    testWebSocket('ws://api.stkouyu.com:8080/word.eval', false);
+}
+
+function testWSS() {
+    testWebSocket('wss://api.stkouyu.com:8443/word.eval', true);
+}
+</script>
+</body>
+</html>

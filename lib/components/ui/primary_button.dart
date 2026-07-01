@@ -73,7 +73,7 @@ class PrimaryButton extends StatelessWidget {
           // Pencil Skill: 柔和阴影
           boxShadow: isEnabled ? [
             BoxShadow(
-              color: (backgroundColor ?? AppColors.primaryBrand).withOpacity(0.3),
+              color: (backgroundColor ?? AppColors.primaryBrand).withValues(alpha: 0.3),
               blurRadius: 4,
               offset: Offset(0, 2),
             ),

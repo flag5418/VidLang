@@ -1,16 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'package:vidlang/services/app_keys_service.dart';
 
 /// 声通语音评测服务
 ///
-/// 通过 WebSocket 连接声通服务进行语音评测，支持单词/句子/段落等多种评测类型。
+/// 基于官方 skegn.dart 示例实现，使用 web_socket_channel 连接声通服务进行语音评测。
 ///
 /// 使用示例：
 /// ```dart
@@ -19,14 +19,21 @@ import 'package:vidlang/services/app_keys_service.dart';
 ///   secretKey: AppKeysService.instance.shengtongSecretKey!,
 /// );
 ///
-/// // 连接并开始评测
-/// evaluator.connect('word.eval');
-  /// evaluator.onResult = (result) {
-  ///   print('评测结果: $result');
-  /// };
-  ///
-  /// // 开始评测
-  /// evaluator.start(coreType: 'word.eval', refText: 'hello', userId: 'user123');
+/// // 设置回调
+/// evaluator.onResult = (result) {
+///   print('评测结果: $result');
+/// };
+///
+/// // 开始评测（参考官方示例的 request 格式）
+/// final request = jsonEncode({
+///   'audio': {'audioType': 'wav', 'sampleRate': 16000},
+///   'params': {
+///     'userId': 'user123',
+///     'coreType': 'sent.eval',
+///     'refText': 'Hello world',
+///   },
+/// });
+/// evaluator.start(request, controller);
 ///
 /// // 发送音频数据
 /// evaluator.feed(audioData);
@@ -35,14 +42,15 @@ import 'package:vidlang/services/app_keys_service.dart';
 /// evaluator.stop();
 ///
 /// // 释放资源
-/// evaluator.dispose();
+/// evaluator.cancel();
 /// ```
 class ShengtongEvaluator {
   WebSocketChannel? _channel;
-  bool _isConnected = false;
-  bool _isEvaluating = false;
-  String? _currentCoreType;
-  String? _timestamp;
+  String? _coreType;
+  String? _request;
+  String? _audioType;
+  int? _sampleRate;
+  String? _userId;
 
   // 回调
   void Function(Map<String, dynamic>)? onResult;
@@ -54,15 +62,18 @@ class ShengtongEvaluator {
   final String baseUrl;
   final bool useSSL;
 
+  bool _isEvaluating = false;
+
   ShengtongEvaluator({
     required this.appKey,
     required this.secretKey,
     String? baseUrl,
     this.useSSL = false,
-  }) : baseUrl = baseUrl ??
-            (useSSL
-                ? AppKeysService.shengtongWssUrl
-                : AppKeysService.shengtongWsUrl) {
+  }) : baseUrl =
+           baseUrl ??
+           (useSSL
+               ? AppKeysService.shengtongWssUrl
+               : AppKeysService.shengtongWsUrl) {
     if (appKey.isEmpty) {
       throw ArgumentError('appKey 不能为空，请通过 AppKeysService 加载声通配置');
     }
@@ -71,136 +82,159 @@ class ShengtongEvaluator {
     }
   }
 
-  /// 生成 connect sig
-  /// 算法：appKey + timestamp + secretKey，SHA1 加密后 HEX 编码
-  /// 文档参考：https://doc-api.stkouyu.com/docs/index?id=2
-  String _generateConnectSig(String timestamp) {
-    final input = '$appKey$timestamp$secretKey';
-    final sig = sha1.convert(utf8.encode(input)).toString();
-    debugPrint('🎤 [Shengtong] 🔑 connect sig 计算: appKey=$appKey, timestamp=$timestamp(${timestamp.length}位), secretKey=***');
-    debugPrint('🎤 [Shengtong] 🔑 connect raw="$input" → sig=$sig');
-    return sig;
-  }
+  /// 构建参数
+  /// type: 0 = connect, 1 = start
+  /// 参考官方 skegn.dart 实现
+  String _buildParam(int type) {
+    final ts = DateTime.now().millisecondsSinceEpoch;
 
-  /// 生成 start sig
-  /// 算法：appKey + timestamp + userId + secretKey，SHA1 加密后 HEX 编码
-  String _generateStartSig(String timestamp, String userId) {
-    final input = '$appKey$timestamp$userId$secretKey';
-    final sig = sha1.convert(utf8.encode(input)).toString();
-    debugPrint('🎤 [Shengtong] 🔑 start sig 计算: appKey=$appKey, timestamp=$timestamp, userId=$userId, secretKey=***');
-    debugPrint('🎤 [Shengtong] 🔑 start raw="$input" → sig=$sig');
-    return sig;
-  }
+    // connect
+    if (type == 0) {
+      final connectStr = utf8.encode('$appKey$ts$secretKey');
+      final connectSig = sha1.convert(connectStr).toString();
 
-  /// 获取当前时间戳
-  /// 声通文档说明支持 10 位（秒级）或 13 位（毫秒级）。
-  /// 此处使用 10 位秒级时间戳以确保兼容性。
-  String _getTimestamp() {
-    if (_timestamp != null && _timestamp!.isNotEmpty) {
-      return _timestamp!;
+      // 使用官方示例格式：protocol: 2, source: 9
+      final connect =
+          '{'
+          '"cmd":"connect",'
+          '"param":{'
+          '"sdk":{'
+          '"protocol":1,'
+          '"version":16777472,'
+          '"source":4'
+          '},'
+          '"app":{'
+          '"applicationId":"$appKey",'
+          '"sig":"$connectSig",'
+          '"timestamp":"$ts"'
+          '}'
+          '}'
+          '}';
+
+      debugPrint('🎤 [Shengtong] 📤 connect 参数: $connect');
+      return connect;
+    } else {
+      // start
+      final startStr = utf8.encode('$appKey$ts$_userId$secretKey');
+      final startSig = sha1.convert(startStr).toString();
+
+      var start =
+          '{'
+          '"cmd":"start",'
+          '"param":{'
+          '"app":{'
+          '"applicationId":"$appKey",'
+          '"timestamp":"$ts",'
+          '"sig":"$startSig",'
+          '"userId":"$_userId"'
+          '},'
+          '"audio":{'
+          '"sampleBytes":2,'
+          '"channel":1,'
+          '"sampleRate":$_sampleRate,'
+          '"audioType":"$_audioType"'
+          '},'
+          '"request":{'
+          '}'
+          '}'
+          '}';
+
+      final startObj = json.decode(start) as Map<String, dynamic>;
+      final requestObj = json.decode(_request!) as Map<String, dynamic>;
+      startObj['param']['request'] = requestObj['params'];
+      startObj['param']['request']['tokenId'] = 'abcd';
+
+      final result = json.encode(startObj);
+      debugPrint('🎤 [Shengtong] 📤 start 参数: $result');
+      return result;
     }
-    // 使用 10 位 Unix 秒级时间戳（与标准 unix 时间相差不超过 30 分钟）
-    _timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString();
-    debugPrint('🎤 [Shengtong] ⏰ 生成时间戳: $_timestamp (${_timestamp!.length}位, 秒级)');
-    return _timestamp!;
   }
 
-  /// 构建 connect 参数
-  String _buildConnectParam() {
-    final timestamp = _getTimestamp();
-    final sig = _generateConnectSig(timestamp);
+  /// 连接 WebSocket
+  /// 参考官方 skegn.dart 的 connectWebsocket 方法
+  void _connectWebSocket(String coreType, StreamController? controller) {
+    final wsUrl = baseUrl.endsWith('/')
+        ? '$baseUrl$coreType'
+        : '$baseUrl/$coreType';
 
-    final param = {
-      'cmd': 'connect',
-      'param': {
-        'sdk': {'protocol': 1, 'version': 16777472, 'source': 4},
-        'app': {
-          'applicationId': appKey,
-          'sig': sig,
-          'timestamp': timestamp,
-        },
+    debugPrint('🎤 [Shengtong] 🔗 连接 WebSocket: $wsUrl');
+
+    _channel = IOWebSocketChannel.connect(wsUrl);
+
+    _channel!.stream.listen(
+      (msg) {
+        debugPrint('🎤 [Shengtong] 📥 收到消息: $msg');
+        _handleMessage(msg, controller);
       },
-    };
-
-    debugPrint('🎤 [Shengtong] 📤 发送 connect 参数: ${JsonEncoder.withIndent("  ").convert(param)}');
-    return jsonEncode(param);
-  }
-
-  /// 构建 start 参数
-  String _buildStartParam({
-    required String coreType,
-    required String refText,
-    required String userId,
-    String audioType = 'wav',
-    int sampleRate = 16000,
-    String? tokenId,
-    Map<String, dynamic>? extraParams,
-  }) {
-    final timestamp = _getTimestamp();
-    final sig = _generateStartSig(timestamp, userId);
-
-    final requestParams = <String, dynamic>{
-      'coreType': coreType,
-      'refText': refText,
-      if (tokenId != null) 'tokenId': tokenId,
-      ...?extraParams,
-    };
-
-    final param = {
-      'cmd': 'start',
-      'param': {
-        'app': {
-          'applicationId': appKey,
-          'timestamp': timestamp,
-          'sig': sig,
-          'userId': userId,
-        },
-        'audio': {
-          'sampleBytes': 2,
-          'channel': 1,
-          'sampleRate': sampleRate,
-          'audioType': audioType,
-        },
-        'request': requestParams,
+      onError: (err) {
+        debugPrint('🎤 [Shengtong] 💥 WebSocket 错误: $err');
+        onError?.call(err.toString());
+        _isEvaluating = false;
+        onConnectionStateChanged?.call(false);
       },
-    };
+      onDone: () {
+        debugPrint('🎤 [Shengtong] 🔌 WebSocket 连接关闭');
+        _isEvaluating = false;
+        onConnectionStateChanged?.call(false);
+      },
+      cancelOnError: false,
+    );
 
-    debugPrint('🎤 [Shengtong] 📤 发送 start 参数: ${JsonEncoder.withIndent("  ").convert(param)}');
-    return jsonEncode(param);
+    if (_channel != null) {
+      final connectParam = _buildParam(0);
+      _channel!.sink.add(connectParam);
+      debugPrint('🎤 [Shengtong] ✅ connect 命令已发送');
+    }
   }
 
   /// 处理收到的消息
-  @visibleForTesting
-  void handleMessage(dynamic message) {
-    _handleMessage(message);
-  }
-
-  /// 处理收到的消息 (internal)
-  void _handleMessage(dynamic message) {
+  void _handleMessage(dynamic message, StreamController? controller) {
     try {
-      final msgStr = message is String ? message : utf8.decode(message as List<int>);
+      final msgStr = message is String
+          ? message
+          : utf8.decode(message as List<int>);
+
       final data = jsonDecode(msgStr) as Map<String, dynamic>;
 
-      // ═══ 完整打印声通原始返回 JSON（用于了解返回结构、设计评分 UI）═══
-      debugPrint('🎤 [Shengtong] 收到原始消息: ${JsonEncoder.withIndent('  ').convert(data)}');
+      // 如果有 StreamController，将消息转发出去
+      if (controller != null && !controller.isClosed) {
+        controller.sink.add(msgStr);
+      }
+
+      // 检查是否有错误字段
+      if (data['error'] != null) {
+        final errorMsg = data['error'].toString();
+        final errId = data['errId'];
+        debugPrint('🎤 [Shengtong] ❌ 服务端返回错误: errId=$errId, error=$errorMsg');
+        onError?.call('[$errId] $errorMsg');
+        return;
+      }
 
       final cmd = data['cmd'] as String?;
 
+      if (cmd == null) {
+        debugPrint('🎤 [Shengtong] ⚠️ 消息没有 cmd 字段: ${data.keys.toList()}');
+        return;
+      }
+
       if (cmd == 'connect') {
         final code = data['code'] as int?;
+        debugPrint('🎤 [Shengtong] 📡 connect 响应: code=$code');
         if (code == 0) {
-          _isConnected = true;
           onConnectionStateChanged?.call(true);
         } else {
           final errorMsg = data['error'] ?? '连接失败';
+          debugPrint('🎤 [Shengtong] ❌ connect 失败: $errorMsg');
           onError?.call(errorMsg.toString());
         }
       } else if (cmd == 'start') {
         final code = data['code'] as int?;
         if (code == 0) {
           _isEvaluating = true;
+          debugPrint('🎤 [Shengtong] ✅ start 成功');
         } else {
           final errorMsg = data['error'] ?? '开始评测失败';
+          debugPrint('🎤 [Shengtong] ❌ start 失败: $errorMsg');
           onError?.call(errorMsg.toString());
         }
       } else if (cmd == 'eval') {
@@ -213,113 +247,76 @@ class ShengtongEvaluator {
         }
       } else if (cmd == 'stop') {
         _isEvaluating = false;
+        debugPrint('🎤 [Shengtong] 🏁 评测已停止');
+      } else {
+        debugPrint('🎤 [Shengtong] ⚠️ 未知 cmd: $cmd');
       }
     } catch (e) {
-      print('ShengtongEvaluator 消息解析错误: $e');
+      debugPrint('🎤 [Shengtong] 💥 消息解析错误: $e');
     }
   }
 
-  /// 连接声通 WebSocket 服务
-  ///
-  /// 声通文档要求 URL 格式：ws://api.stkouyu.com:8080/{{coreType}}
-  /// 例如：ws://api.stkouyu.com:8080/word.eval 或 ws://api.stkouyu.com:8080/sent.eval
-  ///
-  /// ⚠️ coreType 不带语言前缀（文档参考：https://doc-api.stkouyu.com/docs/index?id=2）：
-  ///   - 单词评测：word.eval（⚠️ 不是 en.word.eval）
-  ///   - 句子评测：sent.eval（⚠️ 不是 en.sent.eval）
-  Future<void> connect(String coreType) async {
-    if (_isConnected && _currentCoreType == coreType) return;
+  /// 公开的消息处理方法（用于测试）
+  @visibleForTesting
+  void handleMessage(dynamic message) {
+    _handleMessage(message, null);
+  }
 
-    dispose();
-
-    _currentCoreType = coreType;
-    _timestamp = null;
-
-    try {
-      // 声通要求 WebSocket URL 必须包含 coreType 路径段
-      final wsUrlStr = baseUrl.endsWith('/')
-          ? '${baseUrl}$coreType'
-          : '$baseUrl/$coreType';
-      debugPrint('🎤 [Shengtong] 连接WebSocket: $wsUrlStr (coreType=$coreType)');
-      final wsUrl = Uri.parse(wsUrlStr);
-      _channel = IOWebSocketChannel.connect(wsUrl);
-
-      await _channel!.ready;
-
-      _channel!.stream.listen(
-        (message) => _handleMessage(message),
-        onError: (error) {
-          print('ShengtongEvaluator WebSocket 错误: $error');
-          onError?.call(error.toString());
-          _isConnected = false;
-          _isEvaluating = false;
-          onConnectionStateChanged?.call(false);
-        },
-        onDone: () {
-          _isConnected = false;
-          _isEvaluating = false;
-          onConnectionStateChanged?.call(false);
-        },
-        cancelOnError: false,
-      );
-
-      // 发送 connect 命令
-      final connectParam = _buildConnectParam();
-      _channel!.sink.add(connectParam);
-
-      // 等待连接确认（增加等待时间，确保连接完全建立）
-      await Future.delayed(const Duration(milliseconds: 800));
-    } catch (e) {
-      print('ShengtongEvaluator 连接失败: $e');
-      onError?.call(e.toString());
-      _isConnected = false;
-      onConnectionStateChanged?.call(false);
+  /// 关闭 WebSocket
+  /// 参考官方 skegn.dart 的 closeWebSocket 方法
+  void closeWebSocket() {
+    if (_channel != null) {
+      _channel!.sink.close();
+      _channel = null;
+      _isEvaluating = false;
     }
   }
 
   /// 开始评测
-  Future<void> start({
-    required String coreType,
-    required String refText,
-    required String userId,
-    String audioType = 'wav',
-    int sampleRate = 16000,
-    String? tokenId,
-  }) async {
-    if (!_isConnected || _currentCoreType != coreType) {
-      // 未连接或 coreType 变更，先连接
-      await connect(coreType);
+  /// 参考官方 skegn.dart 的 start 方法
+  ///
+  /// [request] 格式：
+  /// ```json
+  /// {
+  ///   "audio": {"audioType": "wav", "sampleRate": 16000},
+  ///   "params": {"userId": "xxx", "coreType": "sent.eval", "refText": "Hello world"}
+  /// }
+  /// ```
+  void start(String request, {StreamController? controller}) {
+    _request = request;
+
+    final requestsObj = json.decode(request) as Map<String, dynamic>;
+    final audioObj = requestsObj['audio'] as Map<String, dynamic>?;
+    final paramsObj = requestsObj['params'] as Map<String, dynamic>?;
+
+    if (audioObj == null || paramsObj == null) {
+      throw ArgumentError('request 格式错误，必须包含 audio 和 params 字段');
     }
 
-    // 确保连接已建立
-    if (!_isConnected) {
-      onError?.call('WebSocket 连接未建立');
-      return;
+    _audioType = audioObj['audioType'] as String?;
+    _sampleRate = audioObj['sampleRate'] as int?;
+    _userId = paramsObj['userId'] as String?;
+
+    final coreType = paramsObj['coreType'] as String?;
+
+    if (coreType == null) {
+      throw ArgumentError('params 中必须包含 coreType');
     }
 
-    _sendStart(coreType, refText, userId, audioType, sampleRate, tokenId);
+    if (_coreType == null) {
+      _connectWebSocket(coreType, controller);
+      _coreType = coreType;
+    } else if (_coreType != coreType) {
+      closeWebSocket();
+      _connectWebSocket(coreType, controller);
+      _coreType = coreType;
+    }
 
-    // 等待 start 命令被确认（短暂延迟确保服务端处理）
-    await Future.delayed(const Duration(milliseconds: 200));
-  }
-
-  void _sendStart(
-    String coreType,
-    String refText,
-    String userId,
-    String audioType,
-    int sampleRate,
-    String? tokenId,
-  ) {
-    final startParam = _buildStartParam(
-      coreType: coreType,
-      refText: refText,
-      userId: userId,
-      audioType: audioType,
-      sampleRate: sampleRate,
-      tokenId: tokenId,
-    );
-    _channel?.sink.add(startParam);
+    if (_channel != null) {
+      final startParam = _buildParam(1);
+      _channel!.sink.add(startParam);
+      debugPrint('🎤 [Shengtong] ✅ start 命令已发送');
+    }
   }
 
   /// 发送音频数据
@@ -331,38 +328,32 @@ class ShengtongEvaluator {
         _channel!.sink.add(audioData);
       } else if (audioData is List<int>) {
         _channel!.sink.add(Uint8List.fromList(audioData));
+      } else if (audioData is String) {
+        _channel!.sink.add(audioData);
       }
     } catch (e) {
-      print('ShengtongEvaluator 发送音频失败: $e');
+      debugPrint('🎤 [Shengtong] 发送音频失败: $e');
       onError?.call(e.toString());
     }
   }
 
   /// 停止评测
   void stop() {
-    if (!_isEvaluating) return;
-
-    try {
-      _channel?.sink.add('{"cmd":"stop"}');
+    if (_channel != null) {
+      _channel!.sink.add('{"cmd":"stop"}');
       _isEvaluating = false;
-    } catch (e) {
-      print('ShengtongEvaluator 停止评测失败: $e');
+      debugPrint('🎤 [Shengtong] 📤 stop 命令已发送');
     }
   }
 
-  /// 关闭连接并释放资源
+  /// 取消并关闭连接
+  void cancel() {
+    closeWebSocket();
+    onConnectionStateChanged?.call(false);
+  }
+
+  /// 释放资源（兼容旧接口）
   void dispose() {
-    try {
-      if (_isEvaluating) stop();
-      _channel?.sink.close();
-      _channel = null;
-      _isConnected = false;
-      _isEvaluating = false;
-      _currentCoreType = null;
-      _timestamp = null;
-      onConnectionStateChanged?.call(false);
-    } catch (e) {
-      print('ShengtongEvaluator 释放失败: $e');
-    }
+    cancel();
   }
 }

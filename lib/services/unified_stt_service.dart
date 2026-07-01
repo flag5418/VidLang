@@ -5,12 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/services/local_ai_service.dart';
 
 /// STT 统一结果
 class SttResult {
-  final String text;           // 识别文本
-  final double? score;         // 发音评分（仅收费模式）
+  final String text; // 识别文本
+  final double? score; // 发音评分（仅收费模式）
   final String? error;
   final bool success;
 
@@ -21,7 +20,8 @@ class SttResult {
     required this.success,
   });
 
-  factory SttResult.error(String error) => SttResult(text: '', success: false, error: error);
+  factory SttResult.error(String error) =>
+      SttResult(text: '', success: false, error: error);
 }
 
 /// 统一 STT 服务
@@ -31,8 +31,6 @@ class UnifiedSttService {
   static UnifiedSttService? _instance;
   static UnifiedSttService get instance => _instance ??= UnifiedSttService._();
   UnifiedSttService._();
-
-  final LocalAiService _localAi = LocalAiService.instance;
 
   /// 识别音频文件
   Future<SttResult> recognize({
@@ -72,9 +70,7 @@ class UnifiedSttService {
           'scene': 'shadow_reading',
           'entry': 'recording',
           'request_id': requestId,
-          'params': {
-            'audio_base64': base64Audio,
-          },
+          'params': {'audio_base64': base64Audio},
         },
       );
 
@@ -87,7 +83,8 @@ class UnifiedSttService {
         return SttResult(text: text, score: score, success: true);
       }
 
-      final error = data['error'] as String? ?? data['message'] as String? ?? '声通评分失败';
+      final error =
+          data['error'] as String? ?? data['message'] as String? ?? '声通评分失败';
       return SttResult.error(error);
     } catch (e) {
       debugPrint('云端 STT 失败: $e');

@@ -2,7 +2,6 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' show Brightness, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';

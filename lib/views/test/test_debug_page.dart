@@ -21,7 +21,6 @@ class _TestDebugPageState extends State<TestDebugPage> {
   final _uuid = const Uuid();
   bool _loading = false;
   String _log = '';
-  Map<String, dynamic>? _lastResponse;
   List<Map<String, dynamic>>? _videoList;
 
   // 题型配置
@@ -61,11 +60,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
       if (videos.isNotEmpty) {
         setState(() {
           _videoList = videos.map((v) {
-            return {
-              'code': v.code,
-              'name': v.name,
-              'type': 'video',
-            };
+            return {'code': v.code, 'name': v.name, 'type': 'video'};
           }).toList();
           _selectedVideoCode = _videoList!.first['code'] as String?;
         });
@@ -137,7 +132,6 @@ class _TestDebugPageState extends State<TestDebugPage> {
       final duration = DateTime.now().difference(startTime);
 
       final data = res.data;
-      _lastResponse = data is Map<String, dynamic> ? data : null;
 
       _addLog('📥 响应 (耗时 ${duration.inMilliseconds}ms):');
       if (data != null) {
@@ -202,7 +196,9 @@ class _TestDebugPageState extends State<TestDebugPage> {
         _addLog('   计费规则: ${billing['rule_code']}');
         _addLog('   价格: ¥${billing['price_cny']}');
         if (billing['balance_before'] != null) {
-          _addLog('   余额变化: ${billing['balance_before']} → ${billing['balance_after']}');
+          _addLog(
+            '   余额变化: ${billing['balance_before']} → ${billing['balance_after']}',
+          );
         }
       }
 
@@ -214,7 +210,8 @@ class _TestDebugPageState extends State<TestDebugPage> {
           for (var i = 0; i < items.length; i++) {
             final item = items[i] as Map<String, dynamic>;
             final type = item['type'] as String? ?? 'unknown';
-            final refText = item['ref_text'] as String? ??
+            final refText =
+                item['ref_text'] as String? ??
                 item['sentence'] as String? ??
                 item['display_text'] as String? ??
                 item['masked'] as String? ??
@@ -230,8 +227,15 @@ class _TestDebugPageState extends State<TestDebugPage> {
             // 打印选项（如果有）
             final options = item['options'] as List?;
             if (options != null && options.isNotEmpty) {
-              final optsStr =
-                  options.take(4).map((o) => o.toString().substring(0, o.toString().length > 15 ? 15 : o.toString().length)).join(', ');
+              final optsStr = options
+                  .take(4)
+                  .map(
+                    (o) => o.toString().substring(
+                      0,
+                      o.toString().length > 15 ? 15 : o.toString().length,
+                    ),
+                  )
+                  .join(', ');
               _addLog('   选项: $optsStr');
             }
 
@@ -266,6 +270,47 @@ class _TestDebugPageState extends State<TestDebugPage> {
 
       // 检查必要字段
       if (item['type'] == null) issues.add('缺少 type 字段');
+      if (item['id'] == null) issues.add('缺少 id 字段');
+
+      // 检查选项类题目的通用规则
+      final options = item['options'] as List?;
+      if (options != null) {
+        // R1: 选项数量检查
+        if (options.length != 4) {
+          issues.add('选项数量应为4，实际为${options.length}');
+        }
+
+        // R3: 检查重复选项
+        final uniqueOptions = options.toSet();
+        if (uniqueOptions.length < options.length) {
+          issues.add('选项有重复');
+        }
+
+        // R2: 答案有效性检查
+        final answer = item['answer'];
+        if (answer != null) {
+          final answerStr = answer.toString();
+          if (!options.contains(answerStr) &&
+              !options.contains(int.tryParse(answerStr))) {
+            issues.add('答案不在选项中');
+          }
+        }
+
+        // R8: 检查答案泄露（选项中不应包含正确答案的文本）
+        final answerText = item['answer_text'] as String? ??
+            item['correct_text'] as String? ??
+            item['word'] as String?;
+        if (answerText != null && answerText.isNotEmpty) {
+          for (final opt in options) {
+            final optStr = opt.toString().toLowerCase();
+            if (optStr.contains(answerText.toLowerCase()) &&
+                optStr != answerText.toLowerCase()) {
+              issues.add('选项可能泄露答案: $opt');
+              break;
+            }
+          }
+        }
+      }
 
       // 根据题型检查特定字段
       switch (type) {
@@ -273,6 +318,9 @@ class _TestDebugPageState extends State<TestDebugPage> {
         case 'listen_meaning':
           if (item['ref_text'] == null && item['sentence'] == null) {
             issues.add('缺少参考文本');
+          }
+          if (options == null || options.isEmpty) {
+            issues.add('缺少选项');
           }
           break;
         case 'spelling':
@@ -284,7 +332,22 @@ class _TestDebugPageState extends State<TestDebugPage> {
           if (item['answer'] == null) issues.add('缺少正确顺序');
           break;
         case 'definition_choice':
-          if (item['options'] == null) issues.add('缺少选项');
+        case 'translate_meaning':
+        case 'context_mcq':
+        case 'word_relation':
+          if (options == null || options.isEmpty) issues.add('缺少选项');
+          if (item['answer'] == null) issues.add('缺少答案');
+          break;
+        case 'listen_reply':
+          if (item['sentence'] == null && item['ref_text'] == null) {
+            issues.add('缺少问句');
+          }
+          if (item['answer'] == null) issues.add('缺少答案');
+          break;
+        case 'word_pron':
+        case 'phrase_pron':
+        case 'sentence_pron':
+          if (item['ref_text'] == null) issues.add('缺少参考文本');
           break;
         default:
           break;
@@ -299,13 +362,19 @@ class _TestDebugPageState extends State<TestDebugPage> {
       }
     }
 
-    _addLog('\n📈 验证结果: $validCount/${items.length} 通过, $issueCount/${items.length} 有问题');
+    _addLog(
+      '\n📈 验证结果: $validCount/${items.length} 通过, $issueCount/${items.length} 有问题',
+    );
+
+    // 如果问题率超过 50%，给出警告
+    if (items.isNotEmpty && issueCount / items.length > 0.5) {
+      _addLog('⚠️ 警告: 问题率超过50%，建议检查 Edge Function 逻辑或更换测试素材');
+    }
   }
 
   void _clearLog() {
     setState(() {
       _log = '';
-      _lastResponse = null;
     });
     _addLog('📝 日志已清空');
   }
@@ -335,15 +404,21 @@ class _TestDebugPageState extends State<TestDebugPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('📹 选择视频资源', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '📹 选择视频资源',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     if (_videoList == null)
                       const Center(child: CircularProgressIndicator())
                     else if (_videoList!.isEmpty)
-                      const Text('没有可用的视频资源', style: TextStyle(color: Colors.grey))
+                      const Text(
+                        '没有可用的视频资源',
+                        style: TextStyle(color: Colors.grey),
+                      )
                     else
                       DropdownButtonFormField<String>(
-                        value: _selectedVideoCode,
+                        initialValue: _selectedVideoCode,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(horizontal: 12),
@@ -372,7 +447,10 @@ class _TestDebugPageState extends State<TestDebugPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('🎯 难度级别', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '🎯 难度级别',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     SegmentedButton<String>(
                       segments: const [
@@ -401,38 +479,89 @@ class _TestDebugPageState extends State<TestDebugPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('📝 题型配置', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '📝 题型配置',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
 
                     // 听力
                     _buildSectionHeader('👂 听力'),
-                    _buildCountSlider('听音选词', _listenChooseCount, (v) => _listenChooseCount = v),
-                    _buildCountSlider('听音选义', _listenMeaningCount, (v) => _listenMeaningCount = v),
-                    _buildCountSlider('听音回复', _listenReplyCount, (v) => _listenReplyCount = v),
+                    _buildCountSlider(
+                      '听音选词',
+                      _listenChooseCount,
+                      (v) => _listenChooseCount = v,
+                    ),
+                    _buildCountSlider(
+                      '听音选义',
+                      _listenMeaningCount,
+                      (v) => _listenMeaningCount = v,
+                    ),
+                    _buildCountSlider(
+                      '听音回复',
+                      _listenReplyCount,
+                      (v) => _listenReplyCount = v,
+                    ),
 
                     const Divider(),
 
                     // 阅读
                     _buildSectionHeader('📖 阅读'),
-                    _buildCountSlider('释义选择', _definitionChoiceCount, (v) => _definitionChoiceCount = v),
-                    _buildCountSlider('拼写填空', _spellingCount, (v) => _spellingCount = v),
-                    _buildCountSlider('组句排序', _reorderCount, (v) => _reorderCount = v),
-                    _buildCountSlider('翻译配对', _translateMeaningCount, (v) => _translateMeaningCount = v),
-                    _buildCountSlider('词汇关系', _wordRelationCount, (v) => _wordRelationCount = v),
+                    _buildCountSlider(
+                      '释义选择',
+                      _definitionChoiceCount,
+                      (v) => _definitionChoiceCount = v,
+                    ),
+                    _buildCountSlider(
+                      '拼写填空',
+                      _spellingCount,
+                      (v) => _spellingCount = v,
+                    ),
+                    _buildCountSlider(
+                      '组句排序',
+                      _reorderCount,
+                      (v) => _reorderCount = v,
+                    ),
+                    _buildCountSlider(
+                      '翻译配对',
+                      _translateMeaningCount,
+                      (v) => _translateMeaningCount = v,
+                    ),
+                    _buildCountSlider(
+                      '词汇关系',
+                      _wordRelationCount,
+                      (v) => _wordRelationCount = v,
+                    ),
 
                     const Divider(),
 
                     // 口语
                     _buildSectionHeader('🗣️ 口语'),
-                    _buildCountSlider('单词跟读', _wordPronCount, (v) => _wordPronCount = v),
-                    _buildCountSlider('短语跟读', _phrasePronCount, (v) => _phrasePronCount = v),
-                    _buildCountSlider('句子跟读', _sentencePronCount, (v) => _sentencePronCount = v),
+                    _buildCountSlider(
+                      '单词跟读',
+                      _wordPronCount,
+                      (v) => _wordPronCount = v,
+                    ),
+                    _buildCountSlider(
+                      '短语跟读',
+                      _phrasePronCount,
+                      (v) => _phrasePronCount = v,
+                    ),
+                    _buildCountSlider(
+                      '句子跟读',
+                      _sentencePronCount,
+                      (v) => _sentencePronCount = v,
+                    ),
 
                     const Divider(),
 
                     // MCQ（旧版兼容）
                     _buildSectionHeader('📚 MCQ（旧版）'),
-                    _buildCountSlider('MCQ 选择题', _mcqCount, (v) => _mcqCount = v),
+                    _buildCountSlider(
+                      'MCQ 选择题',
+                      _mcqCount,
+                      (v) => _mcqCount = v,
+                    ),
                   ],
                 ),
               ),
@@ -453,7 +582,10 @@ class _TestDebugPageState extends State<TestDebugPage> {
               label: Text(_loading ? '正在测试...' : '🚀 开始测试出题'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
@@ -470,7 +602,10 @@ class _TestDebugPageState extends State<TestDebugPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('📋 日志输出', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text(
+                          '📋 日志输出',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         TextButton(
                           onPressed: _clearLog,
                           child: const Text('清空'),
@@ -479,7 +614,10 @@ class _TestDebugPageState extends State<TestDebugPage> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      constraints: const BoxConstraints(minHeight: 200, maxHeight: 400),
+                      constraints: const BoxConstraints(
+                        minHeight: 200,
+                        maxHeight: 400,
+                      ),
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.black87,
@@ -514,7 +652,11 @@ class _TestDebugPageState extends State<TestDebugPage> {
     );
   }
 
-  Widget _buildCountSlider(String label, int value, ValueChanged<int> onChanged) {
+  Widget _buildCountSlider(
+    String label,
+    int value,
+    ValueChanged<int> onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(

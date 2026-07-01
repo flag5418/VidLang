@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 
 /// AI 出题数据验证测试
@@ -175,7 +174,11 @@ void main() {
           'She walks slow to school',
           'He feels happy today',
         ];
-        final item = _generateTranslateMeaningWithDistractors(sentences[0], sentences, wordMeanings);
+        final item = _generateTranslateMeaningWithDistractors(
+          sentences[0],
+          sentences,
+          wordMeanings,
+        );
 
         final options = List<String>.from(item['options'] as List);
         final answer = item['answer'] as String;
@@ -196,23 +199,32 @@ void main() {
 
     group('词性测试 (word_relation)', () {
       test('同义词类型：答案应为预定义的同义词', () {
-        final wordPool = ['happy', 'sad', 'big', 'small', 'fast', 'slow'];
-        final item = _generateWordRelationSynonym('happy', wordPool, wordRelations);
+        final wordPool = ['happy', 'sad', 'big', 'small', 'fast', 'slow', 'glad', 'joyful', 'cheerful'];
+        final item = _generateWordRelationSynonym(
+          'happy',
+          wordPool,
+          wordRelations,
+        );
 
         expect(item, isNotNull);
         expect(item!['type'], equals('word_relation'));
-        expect(item!['relation_type'], equals('synonym'));
-        expect(item!['display_text'], equals('happy'));
+        expect(item['relation_type'], equals('synonym'));
+        expect(item['display_text'], equals('happy'));
 
         // 验证答案
-        final answerIndices = List<int>.from(item!['answer_indices'] as List);
-        final answers = List<String>.from(item!['answers'] as List);
-        final options = List<String>.from(item!['options'] as List);
+        final answerIndices = List<int>.from(item['answer_indices'] as List);
+        final answers = List<String>.from(item['answers'] as List);
+        final options = List<String>.from(item['options'] as List);
 
         // 答案应在预定义同义词中
-        final expectedSynonyms = wordRelations['happy']?['synonyms'] ?? <String>[];
+        final expectedSynonyms =
+            wordRelations['happy']?['synonyms'] ?? <String>[];
         for (final ans in answers) {
-          expect(expectedSynonyms, contains(ans), reason: '"$ans" 应是 happy 的同义词');
+          expect(
+            expectedSynonyms,
+            contains(ans),
+            reason: '"$ans" 应是 happy 的同义词',
+          );
         }
 
         // 验证答案索引指向正确的选项
@@ -222,23 +234,36 @@ void main() {
       });
 
       test('反义词类型：答案应为预定义的反义词', () {
-        final wordPool = ['happy', 'sad', 'big', 'small', 'fast', 'slow'];
-        final item = _generateWordRelationAntonym('happy', wordPool, wordRelations);
+        final wordPool = ['happy', 'sad', 'big', 'small', 'fast', 'slow', 'unhappy'];
+        final item = _generateWordRelationAntonym(
+          'happy',
+          wordPool,
+          wordRelations,
+        );
 
         expect(item, isNotNull);
         expect(item!['relation_type'], equals('antonym'));
 
-        final answers = List<String>.from(item!['answers'] as List);
-        final expectedAntonyms = wordRelations['happy']?['antonyms'] ?? <String>[];
+        final answers = List<String>.from(item['answers'] as List);
+        final expectedAntonyms =
+            wordRelations['happy']?['antonyms'] ?? <String>[];
 
         for (final ans in answers) {
-          expect(expectedAntonyms, contains(ans), reason: '"$ans" 应是 happy 的反义词');
+          expect(
+            expectedAntonyms,
+            contains(ans),
+            reason: '"$ans" 应是 happy 的反义词',
+          );
         }
       });
 
       test('无预定义数据时应标记低置信度或跳过', () {
         final wordPool = ['restaurant', 'delicious', 'computer', 'project'];
-        final item = _generateWordRelationSynonym('restaurant', wordPool, wordRelations);
+        final item = _generateWordRelationSynonym(
+          'restaurant',
+          wordPool,
+          wordRelations,
+        );
 
         // restaurant 没有预定义的同义词
         if (item != null) {
@@ -251,7 +276,11 @@ void main() {
 
       test('干扰项不应包含正确答案', () {
         final wordPool = ['happy', 'sad', 'big', 'small', 'fast', 'slow'];
-        final item = _generateWordRelationSynonym('happy', wordPool, wordRelations);
+        final item = _generateWordRelationSynonym(
+          'happy',
+          wordPool,
+          wordRelations,
+        );
 
         if (item == null) return;
 
@@ -352,7 +381,11 @@ void main() {
           expect(item.containsKey('type'), isTrue, reason: '缺少 type');
           expect(item.containsKey('options'), isTrue, reason: '缺少 options');
           expect(item.containsKey('answer'), isTrue, reason: '缺少 answer');
-          expect(item.containsKey('answer_index'), isTrue, reason: '缺少 answer_index');
+          expect(
+            item.containsKey('answer_index'),
+            isTrue,
+            reason: '缺少 answer_index',
+          );
 
           // 验证 id 格式（UUID）
           final id = item['id'] as String;
@@ -370,10 +403,13 @@ void main() {
       });
 
       test('同一组题目的 id 应互不相同', () {
-        final items = List.generate(10, (i) => _generateDefinitionChoiceEnToCn(
-          wordMeanings.keys.elementAt(i % wordMeanings.length),
-          wordMeanings,
-        ));
+        final items = List.generate(
+          10,
+          (i) => _generateDefinitionChoiceEnToCn(
+            wordMeanings.keys.elementAt(i % wordMeanings.length),
+            wordMeanings,
+          ),
+        );
 
         final ids = items.map((item) => item['id'] as String).toSet();
         expect(ids.length, equals(items.length));
@@ -386,7 +422,8 @@ void main() {
 // 辅助函数：模拟 Edge Function 的题目生成逻辑
 // ════════════════════════════════════════════════════════════════════
 
-String _uuid() => DateTime.now().microsecondsSinceEpoch.toRadixString(16).padLeft(32, '0');
+String _uuid() =>
+    DateTime.now().microsecondsSinceEpoch.toRadixString(16).padLeft(32, '0');
 
 List<T> _shuffle<T>(List<T> list) {
   final shuffled = List<T>.from(list);
@@ -400,9 +437,16 @@ List<T> _shuffle<T>(List<T> list) {
 }
 
 /// 生成 en_to_cn 类型的释义选择题
-Map<String, dynamic> _generateDefinitionChoiceEnToCn(String word, Map<String, String> meanings) {
+Map<String, dynamic> _generateDefinitionChoiceEnToCn(
+  String word,
+  Map<String, String> meanings,
+) {
   final wordMeaning = meanings[word] ?? '「$word」的释义';
-  final otherWords = meanings.entries.where((e) => e.key != word).map((e) => e.value).take(3).toList();
+  final otherWords = meanings.entries
+      .where((e) => e.key != word)
+      .map((e) => e.value)
+      .take(3)
+      .toList();
   final options = _shuffle([wordMeaning, ...otherWords]);
 
   return {
@@ -420,9 +464,16 @@ Map<String, dynamic> _generateDefinitionChoiceEnToCn(String word, Map<String, St
 }
 
 /// 生成 cn_to_en 类型的释义选择题
-Map<String, dynamic> _generateDefinitionChoiceCnToEn(String word, Map<String, String> meanings) {
+Map<String, dynamic> _generateDefinitionChoiceCnToEn(
+  String word,
+  Map<String, String> meanings,
+) {
   final wordMeaning = meanings[word] ?? '「$word」的释义';
-  final otherWords = meanings.entries.where((e) => e.key != word).map((e) => e.key).take(3).toList();
+  final otherWords = meanings.entries
+      .where((e) => e.key != word)
+      .map((e) => e.key)
+      .take(3)
+      .toList();
   final allOptions = _shuffle([word, ...otherWords]);
 
   return {
@@ -440,15 +491,30 @@ Map<String, dynamic> _generateDefinitionChoiceCnToEn(String word, Map<String, St
 }
 
 /// 生成英义互译题
-Map<String, dynamic> _generateTranslateMeaning(String sentence, Map<String, String> meanings) {
-  final words = sentence.split(RegExp(r'\s+')).where((w) => RegExp(r'[A-Za-z]+').hasMatch(w)).toList();
-  final translatedParts = words.map((w) {
-    final lower = w.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
-    return meanings[lower] ?? w;
-  }).join('');
-  
+Map<String, dynamic> _generateTranslateMeaning(
+  String sentence,
+  Map<String, String> meanings,
+) {
+  final words = sentence
+      .split(RegExp(r'\s+'))
+      .where((w) => RegExp(r'[A-Za-z]+').hasMatch(w))
+      .toList();
+  final translatedParts = words
+      .map((w) {
+        final lower = w.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+        return meanings[lower] ?? w;
+      })
+      .join(' ');
+
   // 如果翻译为空，返回原句
   final mainTranslation = translatedParts.isEmpty ? sentence : translatedParts;
+
+  final options = _shuffle([
+    mainTranslation,
+    '这是一个测试干扰项1',
+    '这是另一个干扰选项2',
+    '第三个干扰项在这里',
+  ]);
 
   return {
     'id': _uuid(),
@@ -456,31 +522,49 @@ Map<String, dynamic> _generateTranslateMeaning(String sentence, Map<String, Stri
     'prompt': 'Read and select the closest meaning',
     'prompt_cn': '阅读以下英文句子，选择与原文含义最接近的中文选项',
     'display_text': sentence,
-    'options': _shuffle([mainTranslation, '这是一个测试干扰项1', '这是另一个干扰选项2', '第三个干扰项在这里']),
+    'options': options,
     'answer': mainTranslation,
-    'answer_index': 0, // 简化处理
+    'answer_index': options.indexOf(mainTranslation),
     'original_sentence': sentence,
   };
 }
 
 /// 生成带干扰项的英义互译题
-Map<String, dynamic> _generateTranslateMeaningWithDistractors(String sentence, List<String> allSentences, Map<String, String> meanings) {
+Map<String, dynamic> _generateTranslateMeaningWithDistractors(
+  String sentence,
+  List<String> allSentences,
+  Map<String, String> meanings,
+) {
   final mainItem = _generateTranslateMeaning(sentence, meanings);
-  final otherTranslations = allSentences.where((s) => s != sentence).take(3).map((s) {
-    final item = _generateTranslateMeaning(s, meanings);
-    return item['answer'] as String;
-  }).toList();
+  final otherTranslations = allSentences
+      .where((s) => s != sentence)
+      .take(3)
+      .map((s) {
+        final item = _generateTranslateMeaning(s, meanings);
+        return item['answer'] as String;
+      })
+      .toList();
 
-  final options = _shuffle([mainItem['answer'] as String, ...otherTranslations]);
+  final options = _shuffle([
+    mainItem['answer'] as String,
+    ...otherTranslations,
+  ]);
   mainItem['options'] = options;
   mainItem['answer_index'] = options.indexOf(mainItem['answer']);
   return mainItem;
 }
 
 /// 生成听音辩义题
-Map<String, dynamic> _generateListenMeaning(String word, Map<String, String> meanings) {
+Map<String, dynamic> _generateListenMeaning(
+  String word,
+  Map<String, String> meanings,
+) {
   final correctMeaning = meanings[word] ?? '「$word」的释义';
-  final otherMeanings = meanings.entries.where((e) => e.key != word).map((e) => e.value).take(3).toList();
+  final otherMeanings = meanings.entries
+      .where((e) => e.key != word)
+      .map((e) => e.value)
+      .take(3)
+      .toList();
   final options = _shuffle([correctMeaning, ...otherMeanings]);
 
   return {
@@ -497,12 +581,24 @@ Map<String, dynamic> _generateListenMeaning(String word, Map<String, String> mea
 }
 
 /// 生成听音回复题
-Map<String, dynamic> _generateListenReply(String sentence, Map<String, String> meanings) {
+Map<String, dynamic> _generateListenReply(
+  String sentence,
+  Map<String, String> meanings,
+) {
   // 简化版：取最后一个有意义的词作为关键
-  final words = sentence.split(RegExp(r'\s+')).where((w) => RegExp(r'[A-Za-z]+').hasMatch(w)).toList();
-  final keyWord = words.isNotEmpty ? words.last.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '') : 'unknown';
+  final words = sentence
+      .split(RegExp(r'\s+'))
+      .where((w) => RegExp(r'[A-Za-z]+').hasMatch(w))
+      .toList();
+  final keyWord = words.isNotEmpty
+      ? words.last.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')
+      : 'unknown';
   final correctAnswer = meanings[keyWord] ?? '「$keyWord」的释义';
-  final otherAnswers = meanings.entries.where((e) => e.key != keyWord).map((e) => e.value).take(3).toList();
+  final otherAnswers = meanings.entries
+      .where((e) => e.key != keyWord)
+      .map((e) => e.value)
+      .take(3)
+      .toList();
   final options = _shuffle([correctAnswer, ...otherAnswers]);
 
   return {
@@ -519,17 +615,30 @@ Map<String, dynamic> _generateListenReply(String sentence, Map<String, String> m
 }
 
 /// 生成词性测试-同义词题
-Map<String, dynamic>? _generateWordRelationSynonym(String word, List<String> wordPool, Map<String, Map<String, List<String>>> relations) {
+Map<String, dynamic>? _generateWordRelationSynonym(
+  String word,
+  List<String> wordPool,
+  Map<String, Map<String, List<String>>> relations,
+) {
   final relation = relations[word];
   if (relation == null || (relation['synonyms']?.isEmpty ?? true)) {
     return null; // 无预定义数据，跳过
   }
 
   final correctAnswers = relation['synonyms']!;
-  final validCorrect = correctAnswers.where((a) => wordPool.any((w) => w.toLowerCase() == a.toLowerCase())).toList();
+  final validCorrect = correctAnswers
+      .where((a) => wordPool.any((w) => w.toLowerCase() == a.toLowerCase()))
+      .toList();
   if (validCorrect.isEmpty) return null;
 
-  final distractors = wordPool.where((w) => w != w && !validCorrect.any((a) => a.toLowerCase() == w.toLowerCase())).take(4).toList();
+  final distractors = wordPool
+      .where(
+        (w) =>
+            w.toLowerCase() != word.toLowerCase() &&
+            !validCorrect.any((a) => a.toLowerCase() == w.toLowerCase()),
+      )
+      .take(4)
+      .toList();
   if (distractors.length + validCorrect.length < 4) return null;
 
   final options = _shuffle([...validCorrect, ...distractors]);
@@ -550,17 +659,30 @@ Map<String, dynamic>? _generateWordRelationSynonym(String word, List<String> wor
 }
 
 /// 生成词性测试-反义词题
-Map<String, dynamic>? _generateWordRelationAntonym(String word, List<String> wordPool, Map<String, Map<String, List<String>>> relations) {
+Map<String, dynamic>? _generateWordRelationAntonym(
+  String word,
+  List<String> wordPool,
+  Map<String, Map<String, List<String>>> relations,
+) {
   final relation = relations[word];
   if (relation == null || (relation['antonyms']?.isEmpty ?? true)) {
     return null;
   }
 
   final correctAnswers = relation['antonyms']!;
-  final validCorrect = correctAnswers.where((a) => wordPool.any((w) => w.toLowerCase() == a.toLowerCase())).toList();
+  final validCorrect = correctAnswers
+      .where((a) => wordPool.any((w) => w.toLowerCase() == a.toLowerCase()))
+      .toList();
   if (validCorrect.isEmpty) return null;
 
-  final distractors = wordPool.where((w) => w != w && !validCorrect.any((a) => a.toLowerCase() == w.toLowerCase())).take(4).toList();
+  final distractors = wordPool
+      .where(
+        (w) =>
+            w.toLowerCase() != word.toLowerCase() &&
+            !validCorrect.any((a) => a.toLowerCase() == w.toLowerCase()),
+      )
+      .take(4)
+      .toList();
   if (distractors.length + validCorrect.length < 4) return null;
 
   final options = _shuffle([...validCorrect, ...distractors]);

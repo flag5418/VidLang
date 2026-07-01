@@ -1,35 +1,46 @@
+/// 登录页面
+///
+/// 支持两种设备类型的独立 UI 设计：
+/// - iPhone: 单列居中布局
+/// - iPad: 左右分屏布局（左侧品牌区 + 右侧表单区）
+library;
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vidlang/models/device_type.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/app_keys_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/views/main/main_page.dart';
 
 enum _AuthMode { login, register, verifyOtp }
 
 enum _LoginTab { supabase, local }
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   final bool requireSupabaseReauth;
   final String? initialEmail;
 
   const LoginPage({super.key, this.requireSupabaseReauth = false, this.initialEmail});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   _AuthMode _mode = _AuthMode.login;
   _LoginTab _tab = _LoginTab.supabase;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
-  // 本地用户登录
   final _localUsernameController = TextEditingController();
   final _localPasswordController = TextEditingController();
   final _emailFocus = FocusNode();
@@ -60,7 +71,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// 从本地缓存加载上次登录名
   Future<void> _loadLastLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString('last_login_name') ?? '';
@@ -111,9 +121,25 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
+  AppDeviceType get _deviceType => ref.read(deviceTypeProvider);
+
+  bool get _isIpad => _deviceType.isTablet;
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    if (_isIpad) {
+      return _buildIpadLayout(colorScheme);
+    }
+    return _buildIphoneLayout(colorScheme);
+  }
+
+  // ============================================================
+  // iPhone 布局 - 单列居中
+  // ============================================================
+
+  Widget _buildIphoneLayout(ColorScheme colorScheme) {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       resizeToAvoidBottomInset: true,
@@ -126,10 +152,6 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               _buildLogo(),
               const SizedBox(height: 40),
-              // _buildTitle(),
-              // const SizedBox(height: 8),
-              // _buildSubtitle(),
-              // const SizedBox(height: 24),
               if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
               const SizedBox(height: 16),
               if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else if (_tab == _LoginTab.local) _buildLocalForm() else _buildAuthForm(),
@@ -143,6 +165,110 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // ============================================================
+  // iPad 布局 - 左右分屏
+  // ============================================================
+
+  Widget _buildIpadLayout(ColorScheme colorScheme) {
+    return Scaffold(
+      body: SafeArea(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 左侧品牌区
+            Expanded(
+              flex: 4,
+              child: _buildBrandPanel(colorScheme),
+            ),
+            // 右侧表单区
+            Expanded(
+              flex: 6,
+              child: _buildIpadFormPanel(colorScheme),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandPanel(ColorScheme colorScheme) {
+    final brightness = Theme.of(context).brightness;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: brightness == Brightness.dark ? 0.25 : 0.15),
+            AppColors.primary.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.08),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.all(40.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(28.w),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.school_rounded, color: colorScheme.primary, size: 72.w),
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                'VidLang',
+                style: TextStyle(
+                  fontSize: 42.sp,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                '看视频、听英语、读文章、轻松学英语',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w400,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIpadFormPanel(ColorScheme colorScheme) {
+    return Container(
+      color: colorScheme.surface,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 60.w, vertical: 80.h),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
+            const SizedBox(height: 16),
+            if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else if (_tab == _LoginTab.local) _buildLocalForm() else _buildAuthForm(),
+            const SizedBox(height: 24),
+            if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // 通用组件 - iPhone/iPad 共享
+  // ============================================================
+
   Widget _buildLogo() {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
@@ -151,18 +277,30 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           Container(
             padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(color: colorScheme.primaryContainer.withValues(alpha: 0.3), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
             child: Icon(Icons.school_rounded, color: colorScheme.primary, size: 48.w),
           ),
           SizedBox(height: 16.h),
           Text(
             'VidLang',
-            style: TextStyle(fontSize: 28.sp, fontWeight: FontWeight.w800, color: colorScheme.onSurface, letterSpacing: 0.5),
+            style: TextStyle(
+              fontSize: 28.sp,
+              fontWeight: FontWeight.w800,
+              color: colorScheme.onSurface,
+              letterSpacing: 0.5,
+            ),
           ),
           SizedBox(height: 8.h),
           Text(
             '看视频、听英语、读文章、轻松学英语',
-            style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w400, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w400,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -297,14 +435,14 @@ class _LoginPageState extends State<LoginPage> {
       prefixIcon: icon != null ? Icon(icon, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8), size: 22.sp) : null,
       filled: true,
       fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: BorderSide(color: colorScheme.error, width: 1),
       ),
       contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
@@ -322,7 +460,7 @@ class _LoginPageState extends State<LoginPage> {
           foregroundColor: colorScheme.onPrimary,
           disabledBackgroundColor: colorScheme.primary.withAlpha(100),
           disabledForegroundColor: colorScheme.onPrimary.withAlpha(150),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
           elevation: 0,
         ),
         child: _loading
@@ -345,7 +483,7 @@ class _LoginPageState extends State<LoginPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: colorScheme.error.withAlpha(25),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.xs),
         border: Border.all(color: colorScheme.error.withAlpha(60)),
       ),
       child: Row(
@@ -366,7 +504,6 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildToggleMode() {
     final colorScheme = Theme.of(context).colorScheme;
     final isLogin = _mode == _AuthMode.login;
-    // 本地用户模式下不显示注册/登录切换
     if (_tab == _LoginTab.local) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -396,9 +533,17 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildTabSwitcher() {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      decoration: BoxDecoration(color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
       padding: const EdgeInsets.all(4),
-      child: Row(children: [_tabButton('账号登录', _LoginTab.supabase), _tabButton('本地登录', _LoginTab.local)]),
+      child: Row(
+        children: [
+          _tabButton('账号登录', _LoginTab.supabase),
+          _tabButton('本地登录', _LoginTab.local),
+        ],
+      ),
     );
   }
 
@@ -418,7 +563,7 @@ class _LoginPageState extends State<LoginPage> {
           padding: EdgeInsets.symmetric(vertical: 10.h),
           decoration: BoxDecoration(
             color: isActive ? colorScheme.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
             boxShadow: isActive ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
           ),
           child: Text(
@@ -656,8 +801,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _navigateToMain() {
-    // 登录成功后，立即从服务端加载所有 API Key（TTS、评测等）
-    // 不阻塞导航，后台异步加载
     AppKeysService.loadFromRemote();
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainPage()), (route) => false);
   }
