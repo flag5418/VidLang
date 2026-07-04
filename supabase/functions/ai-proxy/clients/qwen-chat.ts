@@ -236,7 +236,7 @@ export async function definition(
   "definitions": [
     {
       "part_of_speech": "词性缩写（n./v./adj./adv./pron./art./prep./conj.），多义词按词性分组，每个词性一个元素",
-      "chinese_meaning": "该词性下的核心中文释义（简洁准确，多个义项用分号；分隔）",
+      "chinese_meaning": "该词性下的核心中文释义（必须全部为中文，简洁准确但不要太短，多个义项用分号；分隔，每个义项建议2-6个字）",
       "english_meaning": "用英语解释该单词在该词性下的含义（2-10个英文单词，适合英语学习者理解）",
       "examples": [
         {"english": "例句英文，必须包含原词${word}（忽略大小写），自然地道", "chinese": "对应的中文翻译"},
@@ -273,15 +273,16 @@ export async function definition(
 ⚠️ 极其重要的输出规则：
 1. definitions 必须是对象数组（不是字符串数组！），每个元素必须包含 part_of_speech + chinese_meaning + english_meaning + examples 四个字段
 2. 多义词按不同词性分成多个 definition 元素（如 apple 作名词"苹果"一个元素，作动词"试探"另一个元素）
-3. english_meaning 是必填字段！用简单易懂的英文解释该词含义，帮助学习者建立英英思维
-4. 每个 definition 内的 examples 至少 3 条；standalone_examples 也至少 3 条
-5. 所有例句的 english 字段必须包含原词 ${word}
-6. morphology 根据实际词性填写，无关字段设为 null
-7. difficulty 值严格在 9 个枚举值中选择
-8. synonyms 提供 2-4 个常见同义词（同词性优先）
-9. antonyms 提供 1-3 个常见反义词（如有）
-10. category 必须在指定的语义类别枚举值中选择
-11. 输出纯 JSON，不要包裹在 markdown 代码块中
+3. chinese_meaning 必须全部为中文，禁止出现英文释义！每个义项建议2-6个字，准确传达含义
+4. english_meaning 是必填字段！用简单易懂的英文解释该词含义，帮助学习者建立英英思维
+5. 每个 definition 内的 examples 至少 3 条；standalone_examples 也至少 3 条
+6. 所有例句的 english 字段必须包含原词 ${word}
+7. morphology 根据实际词性填写，无关字段设为 null
+8. difficulty 值严格在 9 个枚举值中选择
+9. synonyms 提供 2-4 个常见同义词（同词性优先）
+10. antonyms 提供 1-3 个常见反义词（如有）
+11. category 必须在指定的语义类别枚举值中选择
+12. 输出纯 JSON，不要包裹在 markdown 代码块中
 
 ${difficultyReference}`
 

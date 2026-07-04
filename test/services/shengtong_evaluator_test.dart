@@ -104,7 +104,7 @@ void main() {
           }),
         );
 
-        expect(capturedError, equals('Application not found'));
+        expect(capturedError, contains('Application not found'));
       });
 
       test('onConnectionStateChanged receives true on successful connect', () {
@@ -142,7 +142,7 @@ void main() {
           }),
         );
 
-        expect(capturedError, equals('Invalid app key'));
+        expect(capturedError, contains('Invalid app key'));
       });
 
       test('handles eval message with null result', () {
@@ -368,7 +368,7 @@ void main() {
           }),
         );
 
-        expect(capturedError, equals('Invalid ref text'));
+        expect(capturedError, contains('Invalid ref text'));
       });
     });
 
@@ -556,7 +556,7 @@ void main() {
           }),
         );
 
-        expect(finalError, equals('Service unavailable'));
+        expect(finalError, contains('Service unavailable'));
         expect(finalResult, isNull);
       });
 

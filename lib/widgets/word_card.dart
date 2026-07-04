@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
@@ -185,27 +187,41 @@ class _WordCardState extends ConsumerState<WordCard> {
   }
 
   Future<void> _fetchDefinition() async {
+    // 显示 tdesign_flutter 加载提示
+    TDLoadingController.show(
+      context,
+      text: '正在翻译...',
+      icon: TDLoadingIcon.circle,
+      size: TDLoadingSize.small,
+    );
+    
     try {
       WordDetail detail;
       final isPremium = widget.isPaidMode;
+      final mode = isPremium ? SubscriptionMode.premium : SubscriptionMode.free;
 
       if (_isSingleWord) {
-        detail = await UnifiedTranslationService.instance.translate(
-          text: widget.word,
-          mode: isPremium ? SubscriptionMode.premium : SubscriptionMode.free,
+        // 单词释义：走 AiService.getDefinition（带三级缓存，返回结构化中文释义）
+        detail = await AiService.getDefinition(
+          word: widget.word,
           contextSentence: widget.contextSentence,
           sourceType: widget.sourceType,
           sourceCode: widget.sourceCode,
+          billing: isPremium ? {'mode': 'premium'} : null,
         );
       } else {
+        // 句子/短语翻译：走 UnifiedTranslationService
         detail = await UnifiedTranslationService.instance.translate(
           text: widget.word,
-          mode: isPremium ? SubscriptionMode.premium : SubscriptionMode.free,
+          mode: mode,
           contextSentence: widget.contextSentence,
           sourceType: widget.sourceType,
           sourceCode: widget.sourceCode,
         );
       }
+
+      // 隐藏加载提示
+      TDLoadingController.dismiss();
 
       if (!mounted) return;
 
@@ -227,6 +243,9 @@ class _WordCardState extends ConsumerState<WordCard> {
         _state = _LoadState.loaded;
       });
     } catch (e) {
+      // 隐藏加载提示
+      TDLoadingController.dismiss();
+      
       if (!mounted) return;
       setState(() {
         _detail = WordDetail.error(widget.word, '查询失败: $e');
@@ -326,6 +345,7 @@ class _WordCardState extends ConsumerState<WordCard> {
           standaloneExamples: [],
           success: true,
           source: 'loading',
+          isSentenceMode: !_isSingleWord,
         ),
         config: config,
         onSpeak:
@@ -340,6 +360,7 @@ class _WordCardState extends ConsumerState<WordCard> {
         onSaveWord: _isSingleWord
             ? (widget.onSaveWord != null ? _handleToggleSave : null)
             : _handleToggleSave,
+        isSentenceMode: !_isSingleWord,
       );
     }
 
@@ -359,6 +380,7 @@ class _WordCardState extends ConsumerState<WordCard> {
       onSaveWord: _isSingleWord
           ? (widget.onSaveWord != null ? _handleToggleSave : null)
           : _handleToggleSave,
+      isSentenceMode: !_isSingleWord,
     );
   }
 }

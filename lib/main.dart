@@ -323,6 +323,9 @@ class _AppEntryState extends State<_AppEntry> {
   bool _resolved = false;
 
   Future<Widget> _resolveTarget() async {
+    // TODO: 测试完毕后改回 const LoginPage()
+    return const AudioTestPage();
+
     // 第一步：强制检测数据库结构一致性（在进入主界面前必须完成）
     final schemaOk = await _verifyDatabaseSchema();
     if (!schemaOk) {

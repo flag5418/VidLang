@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
+import 'package:vidlang/services/tts_service.dart';
 
 /// 统一词条详情弹窗组件
 ///
@@ -23,6 +24,9 @@ class WordDetailPanel extends StatefulWidget {
   /// 是否处于加载中（data 可传入占位 WordDetail）
   final bool isLoading;
 
+  /// 是否为短句翻译模式（仅显示翻译内容）
+  final bool isSentenceMode;
+
   const WordDetailPanel({
     super.key,
     required this.data,
@@ -33,6 +37,7 @@ class WordDetailPanel extends StatefulWidget {
     this.saving = false,
     this.onSaveWord,
     this.isLoading = false,
+    this.isSentenceMode = false,
   });
 
   @override
@@ -539,7 +544,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     double size = 16,
   }) {
     return InkWell(
-      onTap: () => widget.onSpeak?.call(),
+      onTap: () {
+        if (text.isNotEmpty) {
+          TtsService().speakClarity(text: text);
+        }
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -597,15 +606,77 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   // ─── Section: 中文释义 ─────────────────────────────────
 
+  /// 检查字符串是否包含中文字符
+  bool _containsChinese(String text) {
+    return RegExp(r'[\u4e00-\u9fff]').hasMatch(text);
+  }
+
   Widget _buildChineseMeaning() {
     final definitions = widget.data.definitions;
-    if (definitions.isEmpty) return const SizedBox.shrink();
+    final hasDefinitions = definitions.any((d) => d.chineseMeaning.trim().isNotEmpty);
+    final hasTranslation = widget.data.translation != null && widget.data.translation!.trim().isNotEmpty;
+    
+    if (!hasDefinitions && !hasTranslation) return const SizedBox.shrink();
+    
     final cs = Theme.of(context).colorScheme;
-
     final List<Widget> items = [];
+    
+    // 优先显示 definitions（结构化释义）
     for (final d in definitions) {
-      final meaning = d.chineseMeaning.trim();
+      var meaning = d.chineseMeaning.trim();
       if (meaning.isEmpty) continue;
+
+      // 如果 chineseMeaning 没有中文字符（AI 返回了英文），尝试兜底
+      if (!_containsChinese(meaning)) {
+        // 优先使用 translation 作为兜底
+        if (hasTranslation) {
+          meaning = widget.data.translation!;
+        } else if (d.englishMeaning != null && d.englishMeaning!.isNotEmpty) {
+          // 标记为英文释义（灰色斜体显示）
+          items.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (d.partOfSpeech != null)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8, top: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        d.partOfSpeech!,
+                        style: TextStyle(
+                          color: cs.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  Expanded(
+                    child: Text(
+                      d.englishMeaning!,
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: 14,
+                        height: 1.5,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          continue;
+        }
+      }
 
       items.add(
         Padding(
@@ -648,6 +719,22 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         ),
       );
     }
+    
+    // 如果没有 definitions 但有 translation，显示 translation 作为兜底
+    if (items.isEmpty && hasTranslation) {
+      items.add(
+        Text(
+          widget.data.translation!,
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: 15,
+            height: 1.5,
+          ),
+        ),
+      );
+    }
+
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return _buildSectionContainer(
       title: WordDetailSection.chineseMeaning.label,
@@ -661,6 +748,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Section: 当前句释义 ─────────────────────────────────
 
   Widget _buildSentenceTranslation() {
+    if (widget.data.isSentenceMode) {
+      return _buildSentenceTranslationForSentenceMode();
+    }
+    
     if (widget.data.contextSentence == null &&
         widget.data.sentenceTranslation == null &&
         widget.data.translation == null) {
@@ -701,6 +792,43 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// 短句模式下的当前句释义（仅显示中文翻译）
+  Widget _buildSentenceTranslationForSentenceMode() {
+    final translation = widget.data.sentenceTranslation ?? widget.data.translation;
+    if (translation == null || translation.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    final cs = Theme.of(context).colorScheme;
+    return _buildSectionContainer(
+      title: WordDetailSection.sentenceTranslation.label,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 中文翻译（高亮当前单词的中文释义）
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  translation,
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 播放按钮
+              _buildPronounceButton(text: translation, size: 14),
+            ],
+          ),
         ],
       ),
     );
@@ -910,14 +1038,38 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   // ─── Section: 例句 ─────────────────────────────────
 
   Widget _buildExamples() {
-    if (widget.data.standaloneExamples.isEmpty) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
     final targetWord = widget.data.word;
+    
+    // 收集所有例句：standalone_examples + definitions 中的 examples
+    final List<WordExample> allExamples = [];
+    
+    // 1. standalone_examples（独立例句区块）
+    allExamples.addAll(widget.data.standaloneExamples);
+    
+    // 2. definitions 中的 examples（每个词性下的例句）
+    for (final d in widget.data.definitions) {
+      allExamples.addAll(d.examples);
+    }
+    
+    if (allExamples.isEmpty) return const SizedBox.shrink();
+    
+    // 去重：基于英文内容
+    final seen = <String>{};
+    final uniqueExamples = <WordExample>[];
+    for (final ex in allExamples) {
+      final key = ex.english.trim().toLowerCase();
+      if (key.isNotEmpty && !seen.contains(key)) {
+        seen.add(key);
+        uniqueExamples.add(ex);
+      }
+    }
+
     return _buildSectionContainer(
       title: WordDetailSection.examples.label,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: widget.data.standaloneExamples.map((ex) {
+        children: uniqueExamples.map((ex) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
@@ -1253,6 +1405,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   }
 
   List<WordDetailSection> _buildEffectiveSections() {
+    if (widget.data.isSentenceMode) {
+      return [WordDetailSection.sentenceTranslation];
+    }
+    
     final raw = widget.config.sections;
     final out = <WordDetailSection>[];
     for (final section in raw) {

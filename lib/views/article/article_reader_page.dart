@@ -18,7 +18,7 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/dictionary_service.dart';
+import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
@@ -929,14 +929,21 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   Future<void> _showWordTranslation(String word) async {
-    final entry = await DictionaryService().lookup(word);
+    final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+    final detail = await UnifiedTranslationService.instance.translate(
+      text: word,
+      mode: mode,
+      sourceType: 'article',
+      sourceCode: widget.articleCode,
+    );
     if (!mounted) return;
-    if (entry != null) {
-      final phonetic = entry.phonetic != null && entry.phonetic!.isNotEmpty
-          ? '[${entry.phonetic}] '
+    if (detail.success) {
+      final phonetic = detail.displayPhonetic != null && detail.displayPhonetic!.isNotEmpty
+          ? '[${detail.displayPhonetic}] '
           : '';
+      final translation = detail.translation ?? detail.definitions.firstOrNull?.chineseMeaning ?? '';
       TDToast.showText(
-        '$word $phonetic\n${entry.shortTranslation}',
+        '$word $phonetic\n$translation',
         context: context,
         duration: const Duration(seconds: 3),
       );

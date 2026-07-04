@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vidlang/services/dictionary_service.dart';
+import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/word_card.dart';
@@ -18,7 +19,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   bool _loading = true;
   String _recognizedText = '';
   List<_RecognizedWord> _words = [];
-  final Map<String, DictEntry?> _dictCache = {};
+  final Map<String, String?> _dictCache = {};
   String? _selectedWord;
   String? _fullTranslation;
 
@@ -69,8 +70,12 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
     final uniqueWords = _words.map((w) => w.word.toLowerCase()).toSet().toList();
     for (final w in uniqueWords) {
       if (_dictCache.containsKey(w)) continue;
-      final entry = await DictionaryService().lookup(w);
-      _dictCache[w] = entry;
+      // 拍照翻译页面默认使用免费模式（本地翻译）
+      final detail = await UnifiedTranslationService.instance.translate(
+        text: w,
+        mode: SubscriptionMode.free,
+      );
+      _dictCache[w] = detail.success ? detail.translation ?? '' : null;
     }
   }
 
@@ -242,8 +247,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                         runSpacing: 6,
                         alignment: WrapAlignment.center,
                         children: _words.map((w) {
-                          final entry = _dictCache[w.word.toLowerCase()];
-                          final trans = entry?.shortTranslation ?? '';
+                          final trans = _dictCache[w.word.toLowerCase()] ?? '';
                           if (trans.isEmpty) return const SizedBox.shrink();
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -284,7 +288,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
 
   Widget _buildWordQuickBar(ColorScheme cs) {
     final word = _selectedWord!;
-    final entry = _dictCache[word];
+    final translation = _dictCache[word];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -302,15 +306,11 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                 Row(
                   children: [
                     Text(word, style: TextStyle(color: cs.primary, fontSize: 16, fontWeight: FontWeight.bold)),
-                    if (entry?.phonetic != null && entry!.phonetic!.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Text('/${entry.phonetic}/', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                    ],
                   ],
                 ),
-                if (entry?.shortTranslation != null && entry!.shortTranslation.isNotEmpty)
+                if (translation != null && translation.isNotEmpty)
                   Text(
-                    entry.shortTranslation,
+                    translation,
                     style: TextStyle(color: cs.onSurface, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

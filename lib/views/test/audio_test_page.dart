@@ -243,8 +243,14 @@ class _AudioTestPageState extends State<AudioTestPage> {
         },
       });
 
-      _shengtongEvaluator!.start(request);
-      _addShengtongLog('📤 start 命令已发送');
+      final started = await _shengtongEvaluator!.start(request);
+      _addShengtongLog('📤 start 命令已发送, 结果: $started');
+
+      if (!started) {
+        _addShengtongLog('❌ start 命令发送失败');
+        setState(() => _isShengtongConnecting = false);
+        return;
+      }
 
       // 等待连接确认（最多 10 秒）
       _addShengtongLog('⏳ 等待服务端响应...');

@@ -25,6 +25,9 @@ class AiService {
   static const _functionName = 'ai-proxy';
   static const _uuid = Uuid();
 
+  /// 缓存版本号 — 当 Edge Function prompt 更新时，递增此版本使旧缓存失效
+  static const _cacheVersion = 2;
+
   /// 本地 AI 服务实例
   static final LocalAiService _localAi = LocalAiService.instance;
 
@@ -483,7 +486,7 @@ class AiService {
 
   // ─── Word Cache 辅助方法 ─────────────────────────────
 
-  /// 从 word_cache 表读取缓存，返回 WordDetail；未命中返回 null
+  /// 从 word_cache 表读取缓存，返回 WordDetail；未命中或版本过期返回 null
   static Future<WordDetail?> _readWordCache(String key) async {
     final client = sb.Supabase.instance.client;
     final rows = await client
@@ -496,16 +499,26 @@ class AiService {
     final result = rows.first['result'];
     if (result is! Map<String, dynamic> || result.isEmpty) return null;
 
+    // 检查缓存版本 — 如果版本不匹配，说明 prompt 已更新，缓存失效
+    final cachedVersion = result['cache_version'] as int? ?? 1;
+    if (cachedVersion < _cacheVersion) {
+      dev.log('word cache VERSION_MISMATCH: $key (cached=$cachedVersion, current=$_cacheVersion)', name: 'AiService');
+      return null;
+    }
+
     return WordDetail.fromJson(result);
   }
 
   /// 将 WordDetail 写入 word_cache 表（UPSERT，重复单词更新 result）
   static Future<void> _writeWordCache(String key, WordDetail detail) async {
     final client = sb.Supabase.instance.client;
+    final json = detail.toJson();
+    // 写入缓存版本号
+    json['cache_version'] = _cacheVersion;
     await client.from('word_cache').upsert(
       {
         'word': key,
-        'result': detail.toJson(),
+        'result': json,
       },
       onConflict: 'word',
     );

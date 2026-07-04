@@ -232,6 +232,9 @@ class WordDetail {
   final double? costCny;
   final double? balanceAfter;
   final String source;
+  
+  /// 是否为短句翻译模式（仅显示翻译内容）
+  final bool isSentenceMode;
 
   const WordDetail({
     required this.word,
@@ -250,6 +253,7 @@ class WordDetail {
     this.costCny,
     this.balanceAfter,
     this.source = 'native',
+    this.isSentenceMode = false,
   });
 
   /// 快速获取首选音标
@@ -261,7 +265,7 @@ class WordDetail {
   // ─── 工厂方法 ─────────────────────────────────
 
   /// 从 AI Edge Function 响应构造
-  factory WordDetail.fromAiResult(Map<String, dynamic> result, {double? costCny, double? balanceAfter}) {
+  factory WordDetail.fromAiResult(Map<String, dynamic> result, {double? costCny, double? balanceAfter, bool isSentenceMode = false}) {
     // pronounce
     final pronounce = result['pronounce'] is Map
         ? PronounceInfo.fromJson(result['pronounce'] as Map<String, dynamic>)
@@ -339,6 +343,7 @@ class WordDetail {
       costCny: costCny,
       balanceAfter: balanceAfter,
       source: 'ai',
+      isSentenceMode: isSentenceMode,
     );
   }
 
@@ -420,6 +425,7 @@ class WordDetail {
     if (costCny != null) 'cost_cny': costCny,
     if (balanceAfter != null) 'balance_after': balanceAfter,
     'source': source,
+    'is_sentence_mode': isSentenceMode,
   };
 
   factory WordDetail.fromJson(Map<String, dynamic> json) => WordDetail(
@@ -447,6 +453,7 @@ class WordDetail {
     costCny: _toDouble(json['cost_cny']),
     balanceAfter: _toDouble(json['balance_after']),
     source: json['source'] as String? ?? 'native',
+    isSentenceMode: json['is_sentence_mode'] as bool? ?? false,
   );
 
   static double? _toDouble(dynamic value) {

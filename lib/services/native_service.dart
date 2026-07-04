@@ -1,70 +1,146 @@
 import 'dart:async';
 
 import 'package:vidlang/models/word_card_data.dart';
-import 'package:vidlang/services/dictionary_service.dart';
+import 'package:vidlang/models/word_detail.dart' as wd;
+import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
+import 'package:vidlang/services/local_translation_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 
 /// 原生翻译/TTS/词典封装（免费模式用）
-/// 聚合 IosNativeFeatures + DictionaryService + TtsService
+/// 聚合 IosNativeFeatures + LocalTranslationService + TtsService + AiService
+/// 
+/// 免费模式：使用 iOS 原生翻译 + 本地 MarianMT 模型
+/// 收费模式：使用 ai-proxy Edge Function（阿里 Qwen）
 class NativeService {
-  /// 查单词释义（原生翻译 + 本地词典并行）
-  static Future<WordCardData> lookupWord(String word) async {
+  static final LocalTranslationService _localTranslation = LocalTranslationService.instance;
+
+  /// 查单词释义（按免费/收费模式走统一服务）
+  /// 
+  /// 免费模式：iOS 原生翻译 + 本地 MarianMT 并行
+  /// 收费模式：AiService.getDefinition（ai-proxy Edge Function）
+  static Future<WordCardData> lookupWord(
+    String word, {
+    required SubscriptionMode mode,
+    String? contextSentence,
+    String? sourceType,
+    String? sourceCode,
+  }) async {
     try {
-      final results = await Future.wait([
-        IosNativeFeatures.translate(text: word),
-        DictionaryService().lookup(word),
-        IosNativeFeatures.lookUp(word: word),
-      ]);
-
-      final translationResult = results[0] as TranslationResult;
-      final dictEntry = results[1] as DictEntry?;
-
-      String? translation;
-      if (translationResult.success && translationResult.translatedText.isNotEmpty && translationResult.translatedText != word) {
-        translation = translationResult.translatedText;
-      }
-
-      // 从 DictEntry.translation 解析多行释义
-      final definitions = <WordDefinition>[];
-      String? partOfSpeech;
-      if (dictEntry != null && dictEntry.translation != null && dictEntry.translation!.isNotEmpty) {
-        for (final line in dictEntry.translation!.split('\n')) {
-          final trimmed = line.trim();
-          if (trimmed.isEmpty) continue;
-          // 格式如 "n. 释义" 或 "v. 释义"
-          final match = RegExp(r'^([a-z]+\\.)\\s*(.+)\\$').firstMatch(trimmed);
-          if (match != null) {
-            final pos = match.group(1);
-            final meaning = match.group(2)!;
-            definitions.add(WordDefinition(partOfSpeech: pos, meaning: meaning));
-            partOfSpeech ??= pos;
-          } else {
-            definitions.add(WordDefinition(meaning: trimmed));
-          }
+      if (mode == SubscriptionMode.premium) {
+        // 收费模式：走 AI 释义
+        final detail = await AiService.getDefinition(
+          word: word,
+          contextSentence: contextSentence,
+          sourceType: sourceType,
+          sourceCode: sourceCode,
+        );
+        if (!detail.success) {
+          return WordCardData.error(
+            word,
+            detail.error ?? 'AI 释义失败',
+            isInsufficientBalance: detail.isInsufficientBalance,
+            requiredCny: detail.costCny,
+            balanceCny: detail.balanceAfter,
+          );
         }
-      }
+        return _wordDetailToWordCardData(detail);
+      } else {
+        // 免费模式：iOS 原生翻译 + 本地 MarianMT 并行
+        final results = await Future.wait([
+          IosNativeFeatures.translate(text: word),
+          _localTranslation.translate(text: word),
+          IosNativeFeatures.lookUp(word: word),
+        ]);
 
-      return WordCardData.fromNative(
-        word: word,
-        phonetic: dictEntry?.phonetic,
-        partOfSpeech: partOfSpeech,
-        definitions: definitions,
-        translation: translation,
-      );
+        final translationResult = results[0] as TranslationResult;
+        final localTranslation = results[1] as String;
+
+        String? translation;
+        if (translationResult.success &&
+            translationResult.translatedText.isNotEmpty &&
+            translationResult.translatedText != word) {
+          translation = translationResult.translatedText;
+        }
+        // 本地翻译作为 fallback
+        if ((translation == null || translation.isEmpty) &&
+            localTranslation != '翻译失败' &&
+            localTranslation != '本地翻译模型未就绪，请使用云端翻译' &&
+            localTranslation != '翻译模型加载失败' &&
+            localTranslation != word) {
+          translation = localTranslation;
+        }
+
+        return WordCardData.fromNative(
+          word: word,
+          translation: translation,
+        );
+      }
     } catch (e) {
       return WordCardData.error(word, '查询失败: $e');
     }
   }
 
-  /// 翻译句子
-  static Future<String?> translateSentence(String text) async {
+  /// 将 WordDetail 转换为 WordCardData（用于统一 UI 展示）
+  static WordCardData _wordDetailToWordCardData(wd.WordDetail detail) {
+    return WordCardData(
+      word: detail.word,
+      phonetic: detail.displayPhonetic,
+      partOfSpeech: detail.definitions.isNotEmpty ? detail.definitions.first.partOfSpeech : null,
+      definitions: detail.definitions.map((d) {
+        return WordDefinition(
+          partOfSpeech: d.partOfSpeech,
+          meaning: d.chineseMeaning,
+          example: d.examples.isNotEmpty ? d.examples.first.english : null,
+        );
+      }).toList(),
+      examples: detail.standaloneExamples.map((e) {
+        return WordExample(
+          english: e.english,
+          chinese: e.chinese,
+        );
+      }).toList(),
+      translation: detail.translation,
+      success: true,
+      costCny: detail.costCny,
+      balanceAfter: detail.balanceAfter,
+      source: 'ai',
+    );
+  }
+
+  /// 翻译句子（按免费/收费模式走统一服务）
+  /// 
+  /// 免费模式：iOS 原生系统翻译
+  /// 收费模式：AiService.translateText（ai-proxy Edge Function）
+  static Future<String?> translateSentence(
+    String text, {
+    required SubscriptionMode mode,
+    String? sourceType,
+    String? sourceCode,
+  }) async {
     try {
-      final result = await IosNativeFeatures.translate(text: text, sourceLanguage: 'en', targetLanguage: 'zh-Hans');
-      if (result.success && result.translatedText.isNotEmpty && result.translatedText != text) {
-        return result.translatedText;
+      if (mode == SubscriptionMode.premium) {
+        final result = await AiService.translateText(
+          text: text,
+          sourceType: sourceType,
+          sourceCode: sourceCode,
+        );
+        if (result.success) {
+          return result.translation ?? '';
+        }
+        return null;
+      } else {
+        final result = await IosNativeFeatures.translate(
+          text: text,
+          sourceLanguage: 'en',
+          targetLanguage: 'zh-Hans',
+        );
+        if (result.success && result.translatedText.isNotEmpty && result.translatedText != text) {
+          return result.translatedText;
+        }
+        return null;
       }
-      return null;
     } catch (_) {
       return null;
     }
