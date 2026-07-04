@@ -18,15 +18,15 @@ import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/ai_evaluation_service.dart';
 import 'package:vidlang/services/evaluation_storage_service.dart';
-import 'package:vidlang/services/shengtong_http_evaluator.dart';
+import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/models/shengtong_evaluation_result.dart';
 import 'package:vidlang/services/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/widgets/selectable_english_line.dart';
 
 // ─── 回调类型 ───────────────────────────────────────────
 typedef ScoreCallback = Future<void> Function({
@@ -141,12 +141,17 @@ class ShadowReaderComponent extends ConsumerStatefulWidget {
     : _isInline = true;
 
   static void show(BuildContext context, {required ShadowReaderConfig config}) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black26,
-      builder: (_) => ShadowReaderComponent(config: config),
+      barrierColor: Colors.black54,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ShadowReaderComponent(config: config),
+        ),
+      ),
     );
   }
 
@@ -188,20 +193,21 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     with SingleTickerProviderStateMixin {
   late final AudioRecorder _recorder = AudioRecorder();
   dynamic _evaluator;
-  final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
+  late final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
   Timer? _autoStopTimer;
   Timer? _recognitionTimer;
   Timer? _recordingTimer;
   DateTime? _recordingStartTime;
   String? _recordingPath;
   bool _isEvaluating = false;
+  String? _evaluationType; // word / sentence / paragraph
   int _recordingSeconds = 0;
 
   String _state = 'idle'; // idle | listening | evaluating | scored
   String _currentPage = 'recording'; // recording | evaluation
   bool _isMuted = false;
   double _savedVolume = 0.6;
-  bool _isComparing = false;
+
   String _liveTranscription = '';
 
   double? _overallScore;
@@ -214,6 +220,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   // AI 分析结果（手动触发）
   AiAnalysisResult? _aiAnalysisResult;
   bool _isAiAnalyzing = false;
+  bool _showAiAnalysis = false; // 控制 AI 分析结果的显示/隐藏
   
   // TTS 单词高亮状态
   int _ttsCurrentWordIndex = -1;
@@ -240,25 +247,27 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           ? _buildEvaluationPage(context, cfg)
           : _buildRecordingPage(context, cfg);
     }
-    return DraggableScrollableSheet(
-      initialChildSize: 0.55,
-      minChildSize: 0.4,
-      maxChildSize: 0.85,
-      expand: false,
-      builder: (context, sc) {
-        return _currentPage == 'evaluation'
-            ? _buildEvaluationPage(context, cfg)
-            : _buildRecordingPage(context, cfg);
-      },
+    // 弹窗模式：从底部弹出，固定高度
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.6,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: _currentPage == 'evaluation'
+          ? _buildEvaluationPage(context, cfg)
+          : _buildRecordingPage(context, cfg),
     );
   }
 
   // ━━━ 跟读页 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 统一使用逻辑像素（非 ScreenUtil）确保跨设备一致性
-  // 按钮: 36px, 图标: 18px, 间距: 8px, 内边距: 12px
+  // 根据设计规范重新实现
 
   Widget _buildRecordingPage(BuildContext context, ShadowReaderConfig cfg) {
     final isListening = _state == 'listening';
+    final isScored = _state == 'scored';
+    final isEvaluating = _state == 'evaluating';
+    
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -266,86 +275,465 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       ),
       child: Column(
         children: [
-          // ── 拖拽手柄 / 关闭按钮（内联模式）──
-          if (widget._isInline) ...[
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 6),
-                width: 32,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-          ],
-          // ── 字幕区（可滚动，避免溢出）──
+          // ── 顶部标题栏 ──
+          _buildTitleBar(context, cfg),
+          Divider(height: 1, thickness: 0.5, color: AppColors.outline),
+          
+          // ── 主内容区 ──
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Row 1: 原文字幕（可点击选择单词）
-                  Center(
-                    child: SelectableEnglishLine(
-                      text: cfg.subtitle.content,
-                      fontSize: 18,
-                      fontColor: Colors.white,
-                      selectedBgColor: AppColors.primary.withValues(alpha: 0.3),
-                      onSelectionChanged: (words) {
-                        if (cfg.speakSubtitle != null && words.isNotEmpty) {
-                          cfg.speakSubtitle!(words.join(' '));
-                        }
-                      },
-                    ),
+                  // ── 得分 + 描述区域 ──
+                  _buildScoreHeader(isScored, isEvaluating, isListening),
+                  const SizedBox(height: 12),
+                  
+                  // ── 第一块字幕（原文）──
+                  _buildSubtitleBlock(
+                    text: cfg.subtitle.content,
+                    isOriginal: true,
                   ),
-                  const SizedBox(height: 16),
-                  // 录音声波图（仅在录音时显示）
-                  if (isListening) ...[
-                    _buildAudioWaveform(),
-                    const SizedBox(height: 12),
-                  ],
-                  // 录音计时器（仅在录音时显示）
-                  if (isListening) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _formatRecordingTime(_recordingSeconds),
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 8),
+                  
+                  // ── 第二块字幕（识别结果）──
+                  // 录音时显示实时转写（黄色=进行中），结束后显示最终结果（绿/红）
+                  if (isScored || _recognizedWords.isNotEmpty)
+                    _buildSubtitleBlock(
+                      text: _buildRecognizedText(),
+                      isOriginal: false,
+                      recognizedWords: _recognizedWords,
+                    )
+                  else if (isListening && _liveTranscription.isNotEmpty)
+                    _buildSubtitleBlock(
+                      text: _liveTranscription,
+                      isOriginal: false,
+                      liveTranscribing: true,
                     ),
+                  
+                  // ── 录音声波图（付费模式单词评测时显示）──
+                  if (isListening && cfg.subscriptionMode == SubscriptionMode.premium) ...[
+                    const SizedBox(height: 12),
+                    _buildAudioWaveform(),
+                  ],
+                  
+                  // ── 录音计时器 ──
+                  if (isListening) ...[
+                    const SizedBox(height: 8),
+                    _buildRecordingTimer(),
                   ],
                 ],
               ),
             ),
           ),
-          const Divider(height: 1, thickness: 0.5, color: Colors.white12),
+          
+          Divider(height: 1, thickness: 0.5, color: AppColors.outline),
           // ── 音量行 ──
           _buildVolumeRow(cfg),
-          const Divider(height: 1, thickness: 0.5, color: Colors.white12),
+          Divider(height: 1, thickness: 0.5, color: AppColors.outline),
           // ── 底部控制栏 ──
           _buildBottomControlBar(context, cfg),
         ],
       ),
+    );
+  }
+
+  /// 顶部标题栏
+  Widget _buildTitleBar(BuildContext context, ShadowReaderConfig cfg) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '跟读评测',
+              style: TextStyle(
+                color: AppColors.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ),
+          // 关闭按钮：inline 模式使用 onClose 回调，dialog 模式使用 Navigator.pop
+          GestureDetector(
+            onTap: widget._isInline ? widget._onClose : () => Navigator.of(context).pop(),
+            child: Icon(Icons.close, color: AppColors.onSurfaceVariant, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 得分 + 描述区域
+  Widget _buildScoreHeader(bool isScored, bool isEvaluating, bool isListening) {
+    String scoreText;
+    String descText;
+    Color scoreColor = AppColors.onSurface;
+    
+    if (isScored && _overallScore != null) {
+      scoreText = '${_overallScore!.round()}';
+      descText = _getScoreDescription();
+      scoreColor = EvaluationDisplayHelper.getScoreColor(_overallScore!);
+    } else if (isEvaluating) {
+      scoreText = '...';
+      descText = '正在分析您的发音...';
+    } else if (isListening) {
+      scoreText = '录音';
+      descText = '正在录音，请大声朗读';
+    } else {
+      scoreText = '就绪';
+      descText = '点击录音开始跟读';
+    }
+    
+    return Row(
+      children: [
+        // 左侧：得分
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: scoreColor.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+            border: Border.all(color: scoreColor.withValues(alpha: 0.5), width: 2),
+          ),
+          child: Center(
+            child: isEvaluating
+                ? SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                    ),
+                  )
+                : Text(
+                    scoreText,
+                    style: TextStyle(
+                      color: scoreColor,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // 右侧：描述
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                descText,
+                style: TextStyle(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 13,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              if (isScored && _lastEvaluationResult != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '流利度 ${_fluencyScore?.round() ?? '-'} · 准确度 ${_accuracyScore?.round() ?? '-'} · 完整度 ${_completenessScore?.round() ?? '-'}',
+                  style: TextStyle(
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                    fontSize: 11,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 获取分数描述
+  String _getScoreDescription() {
+    if (_overallScore == null) return '';
+    if (_overallScore! >= 90) return '发音优秀，继续保持！';
+    if (_overallScore! >= 80) return '发音良好，流利度不错';
+    if (_overallScore! >= 70) return '发音及格，还有提升空间';
+    if (_overallScore! >= 60) return '需要多加练习';
+    return '建议重点练习发音';
+  }
+
+  /// 字幕区域
+  Widget _buildSubtitleBlock({
+    required String text,
+    required bool isOriginal,
+    String? label,
+    List<RecognizedWord>? recognizedWords,
+    bool liveTranscribing = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (label != null) ...[
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isOriginal 
+                        ? AppColors.primary.withValues(alpha: 0.2)
+                        : AppColors.success.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: isOriginal ? AppColors.primary : AppColors.success,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          Flexible(
+            child: recognizedWords != null && recognizedWords.isNotEmpty
+                ? _buildColoredRecognizedText(recognizedWords)
+                : SingleChildScrollView(
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        color: liveTranscribing ? Colors.amber : AppColors.onSurface,
+                        fontSize: 16,
+                        height: 1.5,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建带颜色的识别文本
+  Widget _buildColoredRecognizedText(List<RecognizedWord> words) {
+    return SingleChildScrollView(
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: words.map((word) {
+          final color = word.correct ? AppColors.success : AppColors.error;
+          return GestureDetector(
+            onTap: () => _showWordDetail(word),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                word.word,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 16,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// 构建识别文本
+  String _buildRecognizedText() {
+    if (_recognizedWords.isEmpty) return '';
+    return _recognizedWords.map((w) => w.word).join(' ');
+  }
+
+  /// 显示单词详情弹窗（统一显示逻辑）
+  void _showWordDetail(RecognizedWord word) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  word.word,
+                  style: TextStyle(
+                    color: AppColors.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+                const Spacer(),
+                // 得分标签
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: EvaluationDisplayHelper.getScoreColor(word.score).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${word.score.toStringAsFixed(0)}分',
+                    style: TextStyle(
+                      color: EvaluationDisplayHelper.getScoreColor(word.score),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 朗读类型标签
+                if (word.readType != null && word.readType != 'normal')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: word.readTypeColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      word.readTypeLabel,
+                      style: TextStyle(
+                        color: word.readTypeColor,
+                        fontSize: 12,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 音素得分
+            if (word.phonemes != null && word.phonemes!.isNotEmpty) ...[
+              Text(
+                '音素评分',
+                style: TextStyle(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: word.phonemes!.map((p) {
+                  final phonemeColor = EvaluationDisplayHelper.getScoreColor(p.score ?? 0);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: phonemeColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          p.phoneme,
+                          style: TextStyle(
+                            color: AppColors.onSurface,
+                            fontSize: 16,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${(p.score ?? 0).round()}',
+                          style: TextStyle(
+                            color: phonemeColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+            // 重音
+            if (word.wordStress != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    '重音: ',
+                    style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, decoration: TextDecoration.none),
+                  ),
+                  Icon(
+                    word.wordStress! ? Icons.check_circle : Icons.cancel,
+                    color: word.wordStress! ? AppColors.success : AppColors.error,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    word.wordStress! ? '正确' : '错误',
+                    style: TextStyle(
+                      color: word.wordStress! ? AppColors.success : AppColors.error,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 录音计时器
+  Widget _buildRecordingTimer() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: AppColors.error,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          _formatRecordingTime(_recordingSeconds),
+          style: TextStyle(
+            color: AppColors.error,
+            fontSize: 12,
+            fontFamily: 'monospace',
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ],
     );
   }
 
@@ -364,29 +752,32 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               child: Icon(
                 _isMuted ? Icons.volume_off_rounded : Icons.volume_down_rounded,
                 size: 18,
-                color: _isMuted ? Colors.white38 : Colors.white54,
+                color: _isMuted ? AppColors.onSurfaceVariant.withValues(alpha: 0.3) : AppColors.onSurfaceVariant,
               ),
             ),
           ),
           const SizedBox(width: 4),
           Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 2,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-              ),
-              child: Slider(
-                value: state.originalVolume,
-                min: 0.0,
-                max: 1.0,
-                divisions: 10,
-                activeColor: AppColors.primary,
-                inactiveColor: Colors.white24,
-                onChanged: (v) {
-                  cfg.setOriginalVolume?.call(v);
-                  if (v > 0 && _isMuted) setState(() => _isMuted = false);
-                },
+            child: Material(
+              color: Colors.transparent,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                ),
+                child: Slider(
+                  value: state.originalVolume,
+                  min: 0.0,
+                  max: 1.0,
+                  divisions: 10,
+                  activeColor: AppColors.primary,
+                  inactiveColor: AppColors.outline,
+                  onChanged: (v) {
+                    cfg.setOriginalVolume?.call(v);
+                    if (v > 0 && _isMuted) setState(() => _isMuted = false);
+                  },
+                ),
               ),
             ),
           ),
@@ -395,9 +786,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             '$vol%',
             textAlign: TextAlign.right,
             style: TextStyle(
-              color: Colors.white54,
+              color: AppColors.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.w500,
+              decoration: TextDecoration.none,
             ),
           ),
         ],
@@ -410,129 +802,122 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final hasRecording =
         _recordingPath != null && File(_recordingPath!).existsSync();
     final isScored = _state == 'scored';
-
-    // 获取屏幕方向以决定是否采用更加紧凑的布局
-    final isLandscape =
-        MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    
+    // 判断是否为视频/音频类型，显示上一句/下一句按钮
+    final showNavigation = cfg.resourceType == 'video' || cfg.resourceType == 'audio';
 
     return SafeArea(
       top: false,
       bottom: true,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(12, 6, 12, isLandscape ? 4 : 10),
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
         child: Row(
           children: [
             // ── 关闭按钮（内联模式）──
             if (widget._isInline && widget._onClose != null) ...[
               _circleBtn(
                 Icons.close_rounded,
-                Colors.white54,
+                AppColors.onSurfaceVariant,
                 32,
                 18,
                 onTap: widget._onClose,
-                bg: Colors.white10,
+                bg: AppColors.surfaceElevated,
               ),
               const SizedBox(width: 6),
             ],
-            // ── 左组：导航 ──
-            _circleBtn(
-              Icons.skip_previous_rounded,
-              Colors.white70,
-              36,
-              18,
-              onTap: cfg.previousSentence != null
-                  ? () {
-                      _resetRecordingState();
-                      cfg.previousSentence!();
-                    }
-                  : (cfg.playAtSubtitleIndex != null &&
-                            cfg.currentSubtitleIndex != null
-                        ? () {
-                            _resetRecordingState();
-                            cfg.playAtSubtitleIndex!(
-                              cfg.currentSubtitleIndex! - 1,
-                            );
-                          }
-                        : null),
-              bg: Colors.white10,
-            ),
-            const SizedBox(width: 6),
-            _circleBtn(
-              Icons.play_arrow_rounded,
-              Colors.white70,
-              36,
-              20,
-              onTap: () => _replayOriginal(cfg),
-              bg: Colors.white10,
-            ),
-            const SizedBox(width: 6),
-            _circleBtn(
-              Icons.skip_next_rounded,
-              Colors.white70,
-              36,
-              18,
-              onTap: cfg.nextSentence != null
-                  ? () {
-                      _resetRecordingState();
-                      cfg.nextSentence!();
-                    }
-                  : (cfg.playAtSubtitleIndex != null &&
-                            cfg.currentSubtitleIndex != null
-                        ? () {
-                            _resetRecordingState();
-                            cfg.playAtSubtitleIndex!(
-                              cfg.currentSubtitleIndex! + 1,
-                            );
-                          }
-                        : null),
-              bg: Colors.white10,
-            ),
+            
+            // ── 左组：导航（仅视频/音频显示）──
+            if (showNavigation) ...[
+              _circleBtn(
+                Icons.skip_previous_rounded,
+                AppColors.onSurfaceVariant,
+                36,
+                18,
+                onTap: cfg.previousSentence != null
+                    ? () {
+                        _resetRecordingState();
+                        cfg.previousSentence!();
+                      }
+                    : null,
+                bg: AppColors.surfaceElevated,
+              ),
+              const SizedBox(width: 6),
+              _circleBtn(
+                Icons.play_arrow_rounded,
+                AppColors.onSurfaceVariant,
+                36,
+                20,
+                onTap: () => _replayOriginal(cfg),
+                bg: AppColors.surfaceElevated,
+              ),
+              const SizedBox(width: 6),
+              _circleBtn(
+                Icons.skip_next_rounded,
+                AppColors.onSurfaceVariant,
+                36,
+                18,
+                onTap: cfg.nextSentence != null
+                    ? () {
+                        _resetRecordingState();
+                        cfg.nextSentence!();
+                      }
+                    : null,
+                bg: AppColors.surfaceElevated,
+              ),
+            ] else ...[
+              // 非视频/音频类型，显示播放按钮
+              _circleBtn(
+                Icons.play_arrow_rounded,
+                AppColors.onSurfaceVariant,
+                36,
+                20,
+                onTap: () => _replayOriginal(cfg),
+                bg: AppColors.surfaceElevated,
+              ),
+            ],
+            
             const Spacer(),
-            // ── 右组：操作 ──
+            
+            // ── 中间：录音/停止按钮 ──
             _circleBtn(
               isListening ? Icons.stop_rounded : Icons.mic_rounded,
-              isListening ? Colors.white : AppColors.primary,
-              40,
-              20,
+              isListening ? AppColors.onPrimary : AppColors.primary,
+              44,
+              22,
               onTap: isListening
                   ? () => _stopRecording(context, cfg)
                   : () => _startRecording(context, cfg),
               bg: isListening
-                  ? Colors.red
-                  : AppColors.primary.withValues(alpha: 0.2),
+                  ? AppColors.error
+                  : AppColors.primary.withValues(alpha: 0.15),
             ),
+            
             const SizedBox(width: 6),
+            
+            // ── 右组：操作按钮 ──
             _circleBtn(
               Icons.replay_rounded,
-              Colors.white54,
+              AppColors.onSurfaceVariant,
               36,
               18,
               onTap: (!isListening && hasRecording)
                   ? () => _playRecording()
                   : null,
-              bg: Colors.white10,
+              bg: AppColors.surfaceElevated,
             ),
             const SizedBox(width: 6),
+            // 详情按钮（图标）
             _circleBtn(
-              Icons.compare_arrows_rounded,
-              Colors.white54,
-              36,
-              18,
-              onTap: (!isListening && hasRecording)
-                  ? () => _compareAudio(cfg)
-                  : null,
-              bg: Colors.white10,
-            ),
-            const SizedBox(width: 6),
-            _circleBtn(
-              Icons.auto_awesome_rounded,
-              Colors.white54,
+              Icons.analytics_rounded,
+              (!isListening && isScored) ? AppColors.primary : AppColors.onSurfaceVariant.withValues(alpha: 0.3),
               36,
               18,
               onTap: (!isListening && isScored)
-                  ? () => _navigateToEvaluation()
+                  ? () => _navigateToEvaluation(cfg)
                   : null,
-              bg: Colors.white10,
+              bg: (!isListening && isScored)
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.surfaceElevated,
             ),
           ],
         ),
@@ -552,9 +937,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }) {
     final enabled = onTap != null;
     final bgColor = !enabled
-        ? Colors.white.withValues(alpha: 0.04)
-        : (bg ?? Colors.white10);
-    final icColor = !enabled ? Colors.white24 : iconColor;
+        ? AppColors.surfaceElevated.withValues(alpha: 0.5)
+        : (bg ?? AppColors.surfaceElevated);
+    final icColor = !enabled ? AppColors.onSurfaceVariant.withValues(alpha: 0.3) : iconColor;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -588,7 +973,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     try {
       final tmpDir = Directory.systemTemp;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'shengtong_eval_${cfg.resourceCode}_${timestamp}.json';
+      final fileName = 'shengtong_eval_$cfg.resourceCode_$timestamp.json';
       final filePath = '${tmpDir.path}/$fileName';
       
       final saveData = {
@@ -641,8 +1026,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
   // ━━━ 评价页 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Widget _buildEvaluationPage(BuildContext context, ShadowReaderConfig cfg) {
-    final size = MediaQuery.of(context).size;
-    final isLandscape = size.width > size.height && size.width >= 600;
+    // 根据评测类型显示不同的 UI
+    if (_evaluationType == 'word' && _recognizedWords.isNotEmpty) {
+      return _buildWordEvaluationPage(context, cfg);
+    }
+    
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -652,324 +1040,346 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
           children: [
-            // 顶部：返回
-            if (!isLandscape) ...[
-              GestureDetector(
-                onTap: () => _navigateBack(),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.arrow_back_ios_rounded,
-                      size: 16,
-                      color: Colors.white70,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '返回',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            // 评分区 - 总分 + 维度
+            // ── 主内容区 ──
             Expanded(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.only(top: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 总分环形图 + 等级
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 64,
-                          height: 64,
-                          child: CustomPaint(
-                            painter: _ScoreRingPainter(
-                              score: _overallScore ?? 0,
-                              color: _scoreColor(_overallScore ?? 0),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getScoreLevel(_overallScore),
-                                style: TextStyle(
-                                  color: _scoreColor(_overallScore ?? 0),
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '总分 ${_overallScore?.toStringAsFixed(1) ?? '--'}',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    // ── 总分 + 维度评分 一行 ──
+                    _buildCompactScoreRow(),
                     const SizedBox(height: 12),
-                    // 维度评分条
-                    _buildDimensionBar('准确度', _accuracyScore, Icons.gps_fixed),
-                    const SizedBox(height: 8),
-                    _buildDimensionBar('流利度', _fluencyScore, Icons.speed),
-                    const SizedBox(height: 8),
-                    _buildDimensionBar('完整度', _completenessScore, Icons.check_circle),
-                    const SizedBox(height: 8),
-                    _buildDimensionBar('发音', _lastEvaluationResult?.pronunciation, Icons.record_voice_over),
-                    const SizedBox(height: 16),
-                    // 单词级详情
-                    if (_recognizedWords.isNotEmpty) ...[
-                      Text(
-                        '单词详情',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildWordDetailsList(),
-                      const SizedBox(height: 16),
+                    
+                    // ── 语速信息 ──
+                    if (_recordingSeconds > 0) ...[
+                      _buildSpeechRateInfo(cfg),
+                      const SizedBox(height: 12),
                     ],
-                    // 薄弱维度提示
+                    
+                    // ── 单词详情（含音素）──
+                    if (_recognizedWords.isNotEmpty) ...[
+                      _buildWordDetailsList(),
+                      const SizedBox(height: 12),
+                    ],
+                    
+                    // ── 薄弱维度提示 ──
                     if (_lastEvaluationResult != null) ...[
                       _buildWeakDimensionsTip(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
+                    ],
+                    
+                    // ── AI 分析结果（内联显示，点击底部按钮切换）──
+                    if (_showAiAnalysis && _aiAnalysisResult != null) ...[
+                      _buildAiAnalysisResultInline(),
+                      const SizedBox(height: 12),
+                    ],
+                    if (_showAiAnalysis && _isAiAnalyzing) ...[
+                      _buildAiAnalysisLoadingInline(),
+                      const SizedBox(height: 12),
                     ],
                   ],
                 ),
               ),
             ),
-            // AI 分析（手动触发）
-            if (_aiAnalysisResult != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.auto_awesome_rounded,
-                          size: 14,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'AI 发音分析',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _aiAnalysisResult!.analysis,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
-                    ),
-                    if (_aiAnalysisResult!.suggestions.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '改进建议：',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ..._aiAnalysisResult!.suggestions.map((s) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(
-                          '• $s',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            height: 1.3,
-                          ),
-                        ),
-                      )),
-                    ],
-                    if (_aiAnalysisResult!.focusAreas.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        '重点练习：',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ..._aiAnalysisResult!.focusAreas.map((a) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(
-                          '• ${a.area} (${_priorityLabel(a.priority)})',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                            height: 1.3,
-                          ),
-                        ),
-                      )),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ] else if (_isAiAnalyzing) ...[
-              // AI 分析加载中
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      'AI 分析中...',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ] else ...[
-              // 手动触发 AI 分析按钮
-              GestureDetector(
-                onTap: () => _triggerAiAnalysis(cfg),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'AI 发音分析',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            // 底部操作栏
-            Row(
-              children: [
-                if (isLandscape)
-                  GestureDetector(
-                    onTap: () => _navigateBack(),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.arrow_back_ios_rounded,
-                          size: 14,
-                          color: Colors.white70,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '返回',
-                          style: TextStyle(color: Colors.white70, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-                const Spacer(),
-                _evalBtn(
-                  '重新录音',
-                  Icons.refresh_rounded,
-                  () => _restartFromEvaluation(context, cfg),
-                ),
-                const SizedBox(width: 8),
-                _evalBtn('下一句', Icons.skip_next_rounded, () {
-                  _navigateBack();
-                  cfg.nextSentence?.call();
-                }),
-              ],
-            ),
+            
+            // ── 底部操作栏（返回 + AI分析 + 重新录音）──
+            _buildEvaluationBottomBar(context, cfg),
           ],
         ),
       ),
     );
   }
 
-  /// 构建维度评分条
-  Widget _buildDimensionBar(String label, double? score, IconData icon) {
+  // ━━━ 单词评测页（专用 UI）━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Widget _buildWordEvaluationPage(BuildContext context, ShadowReaderConfig cfg) {
+    final word = _recognizedWords.first;
+    final score = _overallScore ?? 0;
+    final color = _scoreColor(score);
+    
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          children: [
+            // ── 主内容区 ──
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // ── 总分 + 播放录音按钮 ──
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '总分',
+                              style: TextStyle(
+                                color: AppColors.onSurfaceVariant,
+                                fontSize: 12,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${score.round()}',
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6, left: 4),
+                                  child: Text(
+                                    '分',
+                                    style: TextStyle(
+                                      color: AppColors.onSurfaceVariant,
+                                      fontSize: 14,
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        // 播放录音按钮
+                        OutlinedButton.icon(
+                          onPressed: _playRecording,
+                          icon: Icon(Icons.play_arrow, color: AppColors.success),
+                          label: Text(
+                            '播放录音',
+                            style: TextStyle(color: AppColors.success),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: AppColors.success.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // ── 单词 + 音标 ──
+                    Text(
+                      word.word,
+                      style: TextStyle(
+                        color: AppColors.error,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    if (word.phonemes != null && word.phonemes!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '/${word.phonemes!.map((p) => p.phoneme).join('')}/',
+                        style: TextStyle(
+                          color: AppColors.onSurfaceVariant,
+                          fontSize: 18,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    
+                    // ── 音素评分表格 ──
+                    if (word.phonemes != null && word.phonemes!.isNotEmpty) ...[
+                      // 表头
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '音标',
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '拼写',
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '评分结果',
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // 音素行
+                      ...word.phonemes!.map((p) {
+                        final phonemeColor = _scoreColor(p.score ?? 0);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: AppColors.outline.withValues(alpha: 0.2),
+                                width: 0.5,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '/${p.phoneme}/',
+                                  style: TextStyle(
+                                    color: AppColors.onSurface,
+                                    fontSize: 16,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  p.spelling ?? p.expectedPhoneme ?? '',
+                                  style: TextStyle(
+                                    color: AppColors.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  '${(p.score ?? 0).round()}',
+                                  style: TextStyle(
+                                    color: phonemeColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            
+            // ── 底部操作栏 ──
+            _buildEvaluationBottomBar(context, cfg),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 紧凑的总分+维度评分一行
+  Widget _buildCompactScoreRow() {
+    final score = _overallScore ?? 0;
+    final color = _scoreColor(score);
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          // 左侧：总分圆环
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: CustomPaint(
+              painter: _ScoreRingPainter(score: score, color: color),
+              child: Center(
+                child: Text(
+                  '${score.round()}',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // 右侧：维度评分
+          Expanded(
+            child: Column(
+              children: [
+                _buildCompactDimension('准确', _accuracyScore),
+                const SizedBox(height: 4),
+                _buildCompactDimension('流利', _fluencyScore),
+                const SizedBox(height: 4),
+                _buildCompactDimension('完整', _completenessScore),
+                if (_lastEvaluationResult?.pronunciation != null) ...[
+                  const SizedBox(height: 4),
+                  _buildCompactDimension('发音', _lastEvaluationResult!.pronunciation),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 紧凑的维度评分项
+  Widget _buildCompactDimension(String label, double? score) {
     final s = score ?? 0;
     final color = EvaluationDisplayHelper.getScoreColor(s);
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.white54),
-        const SizedBox(width: 6),
         SizedBox(
-          width: 48,
+          width: 32,
           child: Text(
             label,
-            style: TextStyle(color: Colors.white54, fontSize: 11),
+            style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, decoration: TextDecoration.none),
           ),
         ),
         Expanded(
@@ -977,171 +1387,486 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: s > 0 ? s / 100 : 0,
-              backgroundColor: Colors.white10,
+              backgroundColor: AppColors.outline,
               valueColor: AlwaysStoppedAnimation(color),
-              minHeight: 4,
+              minHeight: 3,
             ),
           ),
         ),
-        const SizedBox(width: 8),
-        Text(
-          s > 0 ? s.toStringAsFixed(1) : '--',
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 28,
+          child: Text(
+            s > 0 ? '${s.round()}' : '--',
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.none,
+            ),
+            textAlign: TextAlign.right,
           ),
         ),
       ],
     );
   }
 
-  /// 构建单词详情列表
-  Widget _buildWordDetailsList() {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: _recognizedWords.map((word) {
-        final bool hasError = !word.correct || word.hasPhonemeErrors;
-        final Color bgColor = hasError 
-            ? const Color(0x33F44336) 
-            : const Color(0x334CAF50);
-        final Color textColor = hasError 
-            ? const Color(0xFFF44336) 
-            : const Color(0xFF4CAF50);
-        
-        return GestureDetector(
-          onTap: () => _showWordDetailDialog(word),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: textColor.withValues(alpha: 0.3),
+  /// 语速信息
+  Widget _buildSpeechRateInfo(ShadowReaderConfig cfg) {
+    // 计算语速：单词数 / 时间（秒）× 60 = 词/分钟
+    final wordCount = _recognizedWords.length;
+    final timeSeconds = _recordingSeconds > 0 ? _recordingSeconds.toDouble() : 1.0;
+    final wpm = (wordCount / timeSeconds * 60).round();
+    
+    // 获取参考文本的词数
+    final refWordCount = cfg.subtitle.content.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildInfoItem('语速', '$wpm 词/分'),
+          Container(width: 1, height: 16, color: AppColors.outline),
+          _buildInfoItem('用时', _formatRecordingTime(_recordingSeconds)),
+          Container(width: 1, height: 16, color: AppColors.outline),
+          _buildInfoItem('识别', '$wordCount/$refWordCount 词'),
+        ],
+      ),
+    );
+  }
+
+  /// 信息项
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: AppColors.onSurface,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 10,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// AI 分析结果（内联显示）
+  Widget _buildAiAnalysisResultInline() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
+              Text(
+                'AI 发音分析',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _aiAnalysisResult!.analysis,
+            style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, height: 1.4),
+          ),
+          if (_aiAnalysisResult!.suggestions.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              '改进建议：',
+              style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            ..._aiAnalysisResult!.suggestions.map((s) => Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text('• $s', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, height: 1.3)),
+            )),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// AI 分析加载中（内联显示）
+  Widget _buildAiAnalysisLoadingInline() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          ),
+          const SizedBox(width: 8),
+          Text('AI 分析中...', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  /// 底部操作栏：返回 + AI分析 + 重新录音
+  Widget _buildEvaluationBottomBar(BuildContext context, ShadowReaderConfig cfg) {
+    final bool hasAiResult = _aiAnalysisResult != null;
+    final bool isAiActive = _showAiAnalysis;
+    
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          children: [
+            // 返回按钮（最左边）
+            GestureDetector(
+              onTap: () => _navigateBack(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.arrow_back_ios_rounded, size: 14, color: AppColors.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text('返回', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            const Spacer(),
+            // AI 分析按钮（中间，点击切换显示/隐藏）
+            GestureDetector(
+              onTap: hasAiResult
+                  ? () => setState(() => _showAiAnalysis = !_showAiAnalysis)
+                  : () => _triggerAiAnalysis(cfg),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isAiActive
+                      ? AppColors.primary.withValues(alpha: 0.2)
+                      : AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isAiActive
+                        ? AppColors.primary.withValues(alpha: 0.5)
+                        : AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isAiAnalyzing)
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      )
+                    else
+                      Icon(
+                        hasAiResult
+                            ? (isAiActive ? Icons.visibility : Icons.visibility_off)
+                            : Icons.auto_awesome_rounded,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isAiAnalyzing
+                          ? '分析中...'
+                          : hasAiResult
+                              ? (isAiActive ? '收起分析' : '查看分析')
+                              : 'AI 分析',
+                      style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(),
+            // 重新录音
+            _evalBtn('重新录音', Icons.refresh_rounded, () => _restartFromEvaluation(context, cfg)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建单词详情列表（含音素信息）
+  Widget _buildWordDetailsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '单词详情',
+          style: TextStyle(
+            color: AppColors.onSurfaceVariant,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _recognizedWords.map((word) {
+            final bool isMiss = word.readType == 'miss';
+            final bool isInsert = word.readType == 'insert';
+            final bool hasError = !word.correct || word.hasPhonemeErrors;
+            final Color color = isMiss
+                ? AppColors.warning
+                : isInsert
+                    ? AppColors.primary
+                    : hasError
+                        ? AppColors.error
+                        : AppColors.success;
+            
+            // 构建音素显示文本
+            String phonemeText = '';
+            if (word.phonemes != null && word.phonemes!.isNotEmpty) {
+              phonemeText = word.phonemes!
+                  .map((p) => p.phoneme)
+                  .join(' ');
+            }
+            
+            return GestureDetector(
+              onTap: () => _showWordDetailDialog(word),
+              child: Container(
+                width: 72,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 单词（上）
+                    Text(
+                      word.word,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // 音素（中，如果有）
+                    if (phonemeText.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        phonemeText,
+                        style: TextStyle(
+                          color: color.withValues(alpha: 0.7),
+                          fontSize: 9,
+                          decoration: TextDecoration.none,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 2),
+                    // 得分（下）
+                    Text(
+                      isMiss
+                          ? '漏读'
+                          : isInsert
+                              ? '多读'
+                              : '${word.score.round()}',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  /// 显示单词详情弹窗
+  /// 显示单词详情弹窗（统一显示逻辑）
+  void _showWordDetailDialog(RecognizedWord word) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
                 Text(
                   word.word,
                   style: TextStyle(
-                    color: textColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    color: AppColors.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.none,
                   ),
                 ),
-                if (word.readType != null && word.readType != 'normal') ...[
-                  const SizedBox(width: 4),
+                const Spacer(),
+                // 得分标签
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: EvaluationDisplayHelper.getScoreColor(word.score).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${word.score.toStringAsFixed(0)}分',
+                    style: TextStyle(
+                      color: EvaluationDisplayHelper.getScoreColor(word.score),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 朗读类型标签
+                if (word.readType != null && word.readType != 'normal')
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: word.readTypeColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       word.readTypeLabel,
                       style: TextStyle(
                         color: word.readTypeColor,
-                        fontSize: 9,
+                        fontSize: 12,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ),
-                ],
-                if (word.score > 0) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    word.score.toStringAsFixed(0),
-                    style: TextStyle(
-                      color: textColor.withValues(alpha: 0.7),
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
               ],
             ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  /// 显示单词详情弹窗
-  void _showWordDetailDialog(RecognizedWord word) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          word.word,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '得分: ${word.score.toStringAsFixed(1)}',
-              style: TextStyle(color: Colors.white70),
-            ),
-            if (word.readType != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '朗读类型: ${word.readTypeLabel}',
-                style: TextStyle(color: word.readTypeColor),
-              ),
-            ],
-            if (word.wordStress != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '重音: ${word.wordStress! ? '正确' : '错误'}',
-                style: TextStyle(
-                  color: word.wordStress! ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
+            const SizedBox(height: 16),
+            // 音素得分
             if (word.phonemes != null && word.phonemes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
               Text(
-                '音素详情:',
+                '音素评分',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.none,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
-                children: word.phonemes!.map((phoneme) {
-                  final bool isError = (phoneme.score ?? 100) < 70;
+                runSpacing: 8,
+                children: word.phonemes!.map((p) {
+                  final phonemeColor = EvaluationDisplayHelper.getScoreColor(p.score ?? 0);
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isError 
-                          ? const Color(0x33F44336) 
-                          : const Color(0x334CAF50),
-                      borderRadius: BorderRadius.circular(4),
+                      color: phonemeColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      '${phoneme.phoneme} ${phoneme.score?.toStringAsFixed(0) ?? ''}',
-                      style: TextStyle(
-                        color: isError ? Colors.red : Colors.green,
-                        fontSize: 12,
-                      ),
+                    child: Column(
+                      children: [
+                        Text(
+                          p.phoneme,
+                          style: TextStyle(
+                            color: AppColors.onSurface,
+                            fontSize: 16,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${(p.score ?? 0).round()}',
+                          style: TextStyle(
+                            color: phonemeColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }).toList(),
               ),
             ],
+            // 重音
+            if (word.wordStress != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    '重音: ',
+                    style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, decoration: TextDecoration.none),
+                  ),
+                  Icon(
+                    word.wordStress! ? Icons.check_circle : Icons.cancel,
+                    color: word.wordStress! ? AppColors.success : AppColors.error,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    word.wordStress! ? '正确' : '错误',
+                    style: TextStyle(
+                      color: word.wordStress! ? AppColors.success : AppColors.error,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('关闭', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
       ),
     );
   }
@@ -1154,23 +1879,24 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0x33FF9800),
+        color: AppColors.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x33FF9800)),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.tips_and_updates, size: 14, color: Colors.orange),
+              Icon(Icons.tips_and_updates, size: 14, color: AppColors.warning),
               const SizedBox(width: 6),
               Text(
                 '提升建议',
                 style: TextStyle(
-                  color: Colors.orange,
+                  color: AppColors.warning,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ],
@@ -1182,7 +1908,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
                 '• ${dim.key}: ${dim.value?.toStringAsFixed(1)}分 - $description',
-                style: TextStyle(color: Colors.white70, fontSize: 11),
+                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, decoration: TextDecoration.none),
               ),
             );
           }),
@@ -1221,8 +1947,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }
 
   // ━━━ 导航 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  void _navigateToEvaluation() {
+  void _navigateToEvaluation([ShadowReaderConfig? cfg]) {
     if (_state != 'scored') return;
+    // 暂停音频播放 + 停止 TTS + 停止高亮
+    cfg?.pause?.call();
+    _stopTtsHighlight();
+    TtsService().stop();
     setState(() => _currentPage = 'evaluation');
   }
 
@@ -1251,23 +1981,23 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     }
   }
 
+  bool _isPlayingRecording = false;
+
   Future<void> _playRecording() async {
     if (_recordingPath == null) return;
+    if (_isPlayingRecording) return; // 防止连续点击
+    _isPlayingRecording = true;
     try {
+      // 停止当前播放，复用同一个 AudioPlayer 实例
+      if (_audioPlayer.state == ap.PlayerState.playing) {
+        await _audioPlayer.stop();
+      }
       await _audioPlayer.setSource(ap.DeviceFileSource(_recordingPath!));
       await _audioPlayer.resume();
-    } catch (_) {}
-  }
-
-  Future<void> _compareAudio(ShadowReaderConfig cfg) async {
-    if (_isComparing) return;
-    _isComparing = true;
-    try {
-      await _replayOriginal(cfg);
-      await Future.delayed(const Duration(seconds: 2));
-      await _playRecording();
+    } catch (e) {
+      debugPrint('播放录音失败: $e');
     } finally {
-      _isComparing = false;
+      _isPlayingRecording = false;
     }
   }
 
@@ -1296,14 +2026,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       if (_audioPlayer.state == ap.PlayerState.playing) {
         await _audioPlayer.stop();
       }
-    } catch (_) {}
+    } catch (_) {
+      // 忽略停止错误
+    }
     
-    final hasPermission = await _recorder.hasPermission();
+      final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          const SnackBar(content: Text('需要麦克风权限才能跟读')),
+        );
       }
       return;
     }
@@ -1455,14 +2187,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }
 
   void _startLiveRecognition(ShadowReaderConfig cfg) {
-    final isPremium = cfg.subscriptionMode == SubscriptionMode.premium;
-    if (isPremium) {
-      // 付费模式：使用声通流式评测（由 _evaluateRecording 处理）
-      // 这里不做任何操作，因为付费模式不需要实时识别
-      return;
-    }
-
-    // 免费模式：使用系统 speech_to_text 进行实时识别
+    // 两种模式都需要实时识别用于显示
+    // 付费模式：显示实时文本，评测完成后替换为带分数的结果
+    // 免费模式：显示实时文本，结束后直接评分
     _initLiveSpeechToText(cfg);
   }
 
@@ -1499,15 +2226,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     if (_isEvaluating) return;
     _isEvaluating = true;
     
-    debugPrint('🎤 [ShadowReader] ========== 开始声通评测 ==========');
+    debugPrint('🎤 [ShadowReader] ========== 开始声通 WebSocket 评测 ==========');
     debugPrint('🎤 [ShadowReader] 音频路径: $audioPath');
     debugPrint('🎤 [ShadowReader] 参考文本: ${cfg.subtitle.content}');
     
     try {
-      // 使用 ShengtongHttpEvaluator HTTP 方式评测
+      // 使用 ShengtongEvaluator WebSocket 方式评测
       // 密钥从 AppKeysService 动态加载
       final stAppKey = AppKeysService.instance.shengtongAppKey;
-      final stSecretKey = AppKeysService.instance.shengtongSecretKey;
+      // 注意：声通 WebSocket 签名使用 shengtongApiKey 作为 secretKey（与 Python demo 一致）
+      final stSecretKey = AppKeysService.instance.shengtongApiKey;
 
       debugPrint('🎤 [ShadowReader] AppKey: ${stAppKey != null && stAppKey.isNotEmpty ? "已配置(${stAppKey.substring(0, math.min(4, stAppKey.length))}...)" : "未配置"}');
       debugPrint('🎤 [ShadowReader] SecretKey: ${stSecretKey != null && stSecretKey.isNotEmpty ? "已配置(${stSecretKey.substring(0, math.min(4, stSecretKey.length))}...)" : "未配置"}');
@@ -1527,9 +2255,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       }
 
       // 检查音频文件
-      final audioFile = File(audioPath);
+      final audioFile = File(_recordingPath!);
       if (!await audioFile.exists()) {
-        debugPrint('❌ [ShadowReader] 音频文件不存在: $audioPath');
+        debugPrint('❌ [ShadowReader] 音频文件不存在: $_recordingPath');
         _isEvaluating = false;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1544,31 +2272,121 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         debugPrint('⚠️ [ShadowReader] 音频文件太小，可能录音失败');
       }
 
-      final evaluator = ShengtongHttpEvaluator(
+      // 创建 WebSocket 评测器
+      final evaluator = ShengtongEvaluator(
         appKey: stAppKey,
         secretKey: stSecretKey,
       );
+      _evaluator = evaluator;
 
-      final coreType = 'sent.eval';
-      debugPrint('🎤 [ShadowReader] 评测类型: $coreType');
-      debugPrint('🎤 [ShadowReader] 开始调用声通 API...');
+      // 用于等待评测结果
+      final resultCompleter = Completer<Map<String, dynamic>>();
+
+      evaluator.onResult = (result) {
+        debugPrint('🎤 [ShadowReader] 收到 WebSocket 评测结果');
+        if (!resultCompleter.isCompleted) {
+          resultCompleter.complete(result);
+        }
+      };
+
+      evaluator.onError = (error) {
+        debugPrint('❌ [ShadowReader] WebSocket 评测错误: $error');
+        if (!resultCompleter.isCompleted) {
+          resultCompleter.completeError(Exception(error));
+        }
+      };
+
+      // 根据文本内容自动选择评测类型（与设计文档一致）
+      // 单词：无空格且≤50字符 → word.eval（音素级反馈）
+      // 短句：≤100字符 → sent.eval
+      // 段落：>100字符 → para.eval
+      final refText = cfg.subtitle.content;
+      final trimmed = refText.trim();
+      final coreType = (!trimmed.contains(' ') && trimmed.length <= 50)
+          ? 'word.eval'
+          : (trimmed.length <= 100 ? 'sent.eval' : 'para.eval');
       
-      final result = await evaluator.evaluate(
-        coreType: coreType,
-        refText: cfg.subtitle.content,
-        audioPath: audioPath,
-        userId: 'user_${DateTime.now().millisecondsSinceEpoch}',
+      // 存储评测类型用于 UI 显示
+      _evaluationType = coreType == 'word.eval' ? 'word' : (coreType == 'sent.eval' ? 'sentence' : 'paragraph');
+      
+      final userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
+      debugPrint('🎤 [ShadowReader] 评测类型: $coreType (文本: "${refText.substring(0, refText.length > 20 ? 20 : refText.length)}...")');
+      debugPrint('🎤 [ShadowReader] 开始调用声通 WebSocket API...');
+      
+      // 根据录音文件扩展名确定音频格式
+      final audioType = _recordingPath!.endsWith('.m4a') ? 'm4a' : (_recordingPath!.endsWith('.mp3') ? 'mp3' : 'wav');
+      debugPrint('🎤 [ShadowReader] 音频格式: $audioType');
+      
+      // 发送 start 命令（内部会自动发送 connect）
+      final request = jsonEncode({
+        'audio': {'audioType': audioType, 'sampleRate': 16000},
+        'params': {
+          'userId': userId,
+          'coreType': coreType,
+          'refText': refText,
+        },
+      });
+
+      final started = await evaluator.start(request);
+      if (!started) {
+        throw Exception('WebSocket start 命令发送失败');
+      }
+
+      // 发送音频数据
+      final audioBytes = await audioFile.readAsBytes();
+      debugPrint('🎤 [ShadowReader] 发送音频数据: ${audioBytes.length} bytes');
+      evaluator.feed(audioBytes);
+
+      // 发送 stop 命令
+      debugPrint('🎤 [ShadowReader] 发送 stop 命令');
+      evaluator.stop();
+
+      // 等待评测结果（最多 30 秒）
+      final result = await resultCompleter.future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('WebSocket 评测超时');
+        },
       );
 
       // 使用结构化解析器解析声通评测结果
       final evaluationResult = ShengtongEvaluationResult.fromJson(result);
       
+      // 从单词得分计算各维度分数（声通 WebSocket 响应可能不包含顶层维度）
+      double? pronunciationScore = evaluationResult.pronunciation;
+      double? overallScore = evaluationResult.overall;
+      double? fluencyScore = evaluationResult.fluency;
+      double? integrityScore = evaluationResult.integrity;
+      double? accuracyScore = evaluationResult.accuracy;
+      
+      if (evaluationResult.words.isNotEmpty) {
+        final validWords = evaluationResult.words.where((w) => (w.score ?? 0) > 0).toList();
+        if (validWords.isNotEmpty) {
+          // 计算发音得分（单词平均分）
+          final totalScore = validWords.fold<double>(0, (a, b) => a + (b.score ?? 0));
+          pronunciationScore = totalScore / validWords.length;
+          
+          // 如果总分为空，使用发音得分作为总分
+          overallScore ??= pronunciationScore;
+          
+          // 如果流利度为空，从单词得分估算（正常朗读比例）
+          fluencyScore ??= validWords.where((w) => w.readType == 'normal' || w.readType == null).length / validWords.length * 100;
+          
+          // 如果完整度为空，从单词数量估算（识别单词数/预期单词数）
+          final expectedWordCount = cfg.subtitle.content.split(RegExp(r'\s+')).length;
+          integrityScore ??= (validWords.length / expectedWordCount * 100).clamp(0, 100);
+          
+          // 如果准确度为空，使用发音得分
+          accuracyScore ??= pronunciationScore;
+        }
+      }
+      
       debugPrint('🎤 [ShadowReader] ========== 声通评测结构化结果 ==========');
-      debugPrint('🎤 [ShadowReader] 总分: ${evaluationResult.overall}');
-      debugPrint('🎤 [ShadowReader] 流利度: ${evaluationResult.fluency}');
-      debugPrint('🎤 [ShadowReader] 完整度: ${evaluationResult.integrity}');
-      debugPrint('🎤 [ShadowReader] 准确度: ${evaluationResult.accuracy}');
-      debugPrint('🎤 [ShadowReader] 发音: ${evaluationResult.pronunciation}');
+      debugPrint('🎤 [ShadowReader] 总分: $overallScore');
+      debugPrint('🎤 [ShadowReader] 流利度: $fluencyScore');
+      debugPrint('🎤 [ShadowReader] 完整度: $integrityScore');
+      debugPrint('🎤 [ShadowReader] 准确度: $accuracyScore');
+      debugPrint('🎤 [ShadowReader] 发音: $pronunciationScore');
       debugPrint('🎤 [ShadowReader] 单词数: ${evaluationResult.words.length}');
       debugPrint('🎤 [ShadowReader] 错误单词: ${evaluationResult.getErrorWords().map((w) => '${w.word}(${w.score})').join(', ')}');
       debugPrint('🎤 [ShadowReader] 漏读单词: ${evaluationResult.getMissingWords().map((w) => w.word).join(', ')}');
@@ -1576,10 +2394,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       debugPrint('🎤 [ShadowReader] 薄弱维度: ${evaluationResult.weakDimensions.take(2).map((d) => '${d.key}(${d.value})').join(', ')}');
       debugPrint('🎤 [ShadowReader] ===========================================');
 
-      final overall = evaluationResult.overall;
-      final fluency = evaluationResult.fluency;
-      final accuracy = evaluationResult.accuracy;
-      final completeness = evaluationResult.integrity;
+      final overall = overallScore;
+      final fluency = fluencyScore;
+      final accuracy = accuracyScore;
+      final completeness = integrityScore;
       
       // 保存评测结果 JSON 到文件（供分析使用）
       await _saveEvaluationResult(result, cfg);
@@ -1628,6 +2446,32 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         await cfg.setLastFollowScore!(overall);
       }
       _setRecognitionResult(cfg, result);
+      
+      // 修正发音得分（如果API未返回，从单词得分计算）
+      if (_lastEvaluationResult != null && _lastEvaluationResult!.pronunciation == null) {
+        final words = _lastEvaluationResult!.words;
+        if (words.isNotEmpty) {
+          final validWords = words.where((w) => (w.score ?? 0) > 0).toList();
+          if (validWords.isNotEmpty) {
+            final totalScore = validWords.fold<double>(0, (a, b) => a + (b.score ?? 0));
+            final avgPronunciation = totalScore / validWords.length;
+            _lastEvaluationResult = ShengtongEvaluationResult(
+              rawResult: _lastEvaluationResult!.rawResult,
+              recordId: _lastEvaluationResult!.recordId,
+              overall: _lastEvaluationResult!.overall,
+              fluency: _lastEvaluationResult!.fluency,
+              integrity: _lastEvaluationResult!.integrity,
+              accuracy: _lastEvaluationResult!.accuracy,
+              pronunciation: avgPronunciation,
+              words: words,
+              sentences: _lastEvaluationResult!.sentences,
+              refText: _lastEvaluationResult!.refText,
+              recognizedText: _lastEvaluationResult!.recognizedText,
+            );
+          }
+        }
+      }
+      
       if (mounted) {
         setState(() {
           _state = 'scored';
@@ -1660,6 +2504,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     } finally {
       debugPrint('🎤 [ShadowReader] 声通评测流程结束，重置 _isEvaluating = false');
       _isEvaluating = false;
+      // 释放 WebSocket 评测器资源
+      _evaluator?.dispose();
+      _evaluator = null;
     }
   }
 
@@ -1765,6 +2612,26 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       }
 
       _setFreeModeRecognitionResult(wordScores);
+      
+      // 免费模式也创建 ShengtongEvaluationResult 供 AI 分析使用
+      _lastEvaluationResult = ShengtongEvaluationResult(
+        rawResult: {
+          'recognized_text': _liveTranscription,
+          'ref_text': cfg.subtitle.content,
+        },
+        overall: overall,
+        fluency: fluency,
+        accuracy: accuracy,
+        integrity: completeness,
+        refText: cfg.subtitle.content,
+        recognizedText: _liveTranscription,
+        words: _recognizedWords.map((w) => WordEvaluation(
+          word: w.word,
+          score: w.score,
+          readType: w.readType,
+        )).toList(),
+      );
+      
       if (mounted) {
         setState(() {
           _state = 'scored';
@@ -1820,9 +2687,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
   /// 手动触发 AI 发音分析
   Future<void> _triggerAiAnalysis(ShadowReaderConfig cfg) async {
-    if (_lastEvaluationResult == null || _isAiAnalyzing) return;
+    debugPrint('🎤 [ShadowReader] 🤖 AI 分析触发: _lastEvaluationResult=${_lastEvaluationResult != null}, _isAiAnalyzing=$_isAiAnalyzing');
+    if (_lastEvaluationResult == null || _isAiAnalyzing) {
+      debugPrint('🎤 [ShadowReader] 🤖 AI 分析跳过: evaluationResult=${_lastEvaluationResult == null ? "null" : "exists"}, isAnalyzing=$_isAiAnalyzing');
+      return;
+    }
     
-    setState(() => _isAiAnalyzing = true);
+    setState(() {
+      _isAiAnalyzing = true;
+      _showAiAnalysis = true; // 触发分析时自动显示区域
+    });
     
     try {
       debugPrint('🎤 [ShadowReader] 🤖 用户触发 AI 发音分析...');
@@ -1835,7 +2709,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       );
       
       if (result != null && mounted) {
-        setState(() => _aiAnalysisResult = result);
+        setState(() {
+          _aiAnalysisResult = result;
+          _showAiAnalysis = true; // 分析完成，自动显示结果
+        });
         debugPrint('🎤 [ShadowReader] 🤖 AI 分析完成');
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1851,20 +2728,6 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       }
     } finally {
       if (mounted) setState(() => _isAiAnalyzing = false);
-    }
-  }
-  
-  /// 优先级标签转换
-  String _priorityLabel(String priority) {
-    switch (priority) {
-      case 'high':
-        return '高优先级';
-      case 'medium':
-        return '中优先级';
-      case 'low':
-        return '低优先级';
-      default:
-        return priority;
     }
   }
 
@@ -1911,16 +2774,6 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         score: score.toDouble(),
       );
     }).toList();
-  }
-
-  /// 根据分数获取等级
-  String _getScoreLevel(double? score) {
-    if (score == null) return '未知';
-    if (score >= 90) return '优秀';
-    if (score >= 80) return '良好';
-    if (score >= 70) return '及格';
-    if (score >= 60) return '待改进';
-    return '需加强';
   }
 
   Future<void> _replayOriginal(ShadowReaderConfig cfg) async {
@@ -1994,7 +2847,7 @@ class _ScoreRingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.1)
+      ..color = AppColors.outline
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
     canvas.drawCircle(center, radius - 4, bgPaint);

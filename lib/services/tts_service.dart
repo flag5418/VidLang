@@ -69,6 +69,9 @@ class TtsService {
 
   bool _isSpeaking = false;
 
+  /// 复用同一个 AudioPlayer 实例，避免 flutter_pcm_player 索引越界
+  final ap.AudioPlayer _player = ap.AudioPlayer();
+
   /// 是否正在朗读
   bool get isSpeaking => _isSpeaking;
 
@@ -202,21 +205,24 @@ class TtsService {
       // 通知 UI：开始播放
       onEvent?.call(const TtsEvent.playing());
 
-      // 使用 audioplayers 播放文件
-      final player = ap.AudioPlayer();
-
+      // 复用同一个 AudioPlayer 实例，避免 flutter_pcm_player 索引越界
       try {
+        // 先停止当前播放
+        if (_player.state == ap.PlayerState.playing) {
+          await _player.stop();
+        }
+        
         final playSw = Stopwatch()..start();
-        await player.play(ap.DeviceFileSource(result.audioPath));
+        await _player.play(ap.DeviceFileSource(result.audioPath));
         playSw.stop();
 
         _ttsLog('🔊 [TtsPlayer] ▶️ 开始播放 (${playSw.elapsedMilliseconds}ms) | fromCache=${result.fromCache} | path=${result.audioPath.split('/').last}');
 
-        await player.onPlayerComplete.first;
+        await _player.onPlayerComplete.first;
 
         _ttsLog('🔊 [TtsPlayer] ✅ 播放完成');
-      } finally {
-        await player.dispose();
+      } catch (e) {
+        _ttsLog('🔊 [TtsPlayer] ❌ 播放异常: $e');
       }
 
       _isSpeaking = false;
@@ -281,6 +287,10 @@ class TtsService {
   /// 停止朗读
   Future<void> stop() async {
     _isSpeaking = false;
+    // 停止 AudioPlayer 播放
+    if (_player.state == ap.PlayerState.playing) {
+      await _player.stop();
+    }
     // 停止 PCM 播放器（通过释放资源）
     await DashScopeTtsService.instance.stopPcmPlayback();
   }

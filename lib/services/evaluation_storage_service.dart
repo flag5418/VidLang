@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer' as dev;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -111,6 +110,7 @@ class EvaluationStorageService {
   /// 获取用户评测摘要（用于 AI 分析时提供历史上下文）
   ///
   /// [evaluationType] 可选，指定类型
+  /// 注意：如果 Edge Function 不存在，静默返回空结果（不影响 AI 分析）
   static Future<Map<String, dynamic>> getSummary({
     String? evaluationType,
   }) async {
@@ -127,6 +127,11 @@ class EvaluationStorageService {
       return response.data as Map<String, dynamic>? ??
           {'ok': false, 'error': 'empty_response'};
     } catch (e, stack) {
+      // 静默处理 404 错误（Edge Function 不存在时不影响 AI 分析）
+      final errorStr = e.toString();
+      if (errorStr.contains('404') || errorStr.contains('NOT_FOUND')) {
+        return {'ok': false, 'error': 'function_not_found'};
+      }
       dev.log('❌ 获取评测摘要失败: $e\n$stack',
           name: 'EvaluationStorageService');
       return {'ok': false, 'error': e.toString()};
