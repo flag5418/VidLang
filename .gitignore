@@ -55,5 +55,13 @@ pods-cache/
 models/
 assets/models/
 
+# 声通文档（二进制大文件）
+docs/声通/*.pptx
+docs/声通/*.pdf
+
+# Gradle（二进制文件）
+plugs/flutter_pcm_player/android/.gradle/
+plugs/flutter_pcm_player/android/gradle/wrapper/gradle-wrapper.jar
+
 # Xcode user data
 **/xcuserdata/
