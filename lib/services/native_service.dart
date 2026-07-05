@@ -5,16 +5,17 @@ import 'package:vidlang/models/word_detail.dart' as wd;
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
-import 'package:vidlang/services/local_translation_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 
 /// 原生翻译/TTS/词典封装（免费模式用）
-/// 聚合 IosNativeFeatures + LocalTranslationService + TtsService + AiService
+/// 聚合 IosNativeFeatures + TtsService + AiService
 /// 
-/// 免费模式：使用 iOS 原生翻译 + 本地 MarianMT 模型
+/// 免费模式：使用 iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
 /// 收费模式：使用 ai-proxy Edge Function（阿里 Qwen）
 class NativeService {
-  static final LocalTranslationService _localTranslation = LocalTranslationService.instance;
+  static NativeService? _instance;
+  static NativeService get instance => _instance ??= NativeService._();
+  NativeService._();
 
   /// 查单词释义（按免费/收费模式走统一服务）
   /// 
@@ -47,29 +48,19 @@ class NativeService {
         }
         return _wordDetailToWordCardData(detail);
       } else {
-        // 免费模式：iOS 原生翻译 + 本地 MarianMT 并行
+        // 免费模式：iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
         final results = await Future.wait([
           IosNativeFeatures.translate(text: word),
-          _localTranslation.translate(text: word),
           IosNativeFeatures.lookUp(word: word),
         ]);
 
         final translationResult = results[0] as TranslationResult;
-        final localTranslation = results[1] as String;
 
         String? translation;
         if (translationResult.success &&
             translationResult.translatedText.isNotEmpty &&
             translationResult.translatedText != word) {
           translation = translationResult.translatedText;
-        }
-        // 本地翻译作为 fallback
-        if ((translation == null || translation.isEmpty) &&
-            localTranslation != '翻译失败' &&
-            localTranslation != '本地翻译模型未就绪，请使用云端翻译' &&
-            localTranslation != '翻译模型加载失败' &&
-            localTranslation != word) {
-          translation = localTranslation;
         }
 
         return WordCardData.fromNative(

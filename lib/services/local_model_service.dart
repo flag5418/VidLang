@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:vidlang/services/model_copy_service.dart';
 
 /// 本地模型状态管理服务
-/// 只检查 MarianMT 翻译模型是否存在于沙盒中
+/// 
+/// 现在使用 iOS 系统翻译（MLTranslation，需 iOS 17.4+）
+/// 不再需要本地 MarianMT 模型
 class LocalModelService {
   static LocalModelService? _instance;
   static LocalModelService get instance => _instance ??= LocalModelService._();
@@ -14,8 +13,6 @@ class LocalModelService {
 
   // 模型状态
   bool _isInitialized = false;
-  bool _hasAllModels = false;
-  bool _isChecking = false;
 
   // 状态流
   final _statusController = StreamController<LocalModelStatus>.broadcast();
@@ -25,73 +22,39 @@ class LocalModelService {
   LocalModelStatus _currentStatus = LocalModelStatus.unknown;
   LocalModelStatus get currentStatus => _currentStatus;
 
+  /// 是否可以使用 AI 功能
+  /// 现在使用 iOS 系统翻译，始终返回 true
+  bool get canUseAiFeatures => true;
+
+  /// 所有模型是否就绪
+  /// 现在使用 iOS 系统翻译，始终返回 true
+  bool get hasAllModels => true;
+
   /// 初始化
   Future<void> initialize() async {
     if (_isInitialized) return;
-    await checkModelsStatus();
+    
+    _currentStatus = LocalModelStatus.ready;
     _isInitialized = true;
+    _statusController.add(_currentStatus);
+    debugPrint('LocalModelService: 使用 iOS 系统翻译（MLTranslation）');
   }
 
-  /// 检查 MarianMT 模型是否存在
+  /// 检查模型状态
   Future<LocalModelStatus> checkModelsStatus() async {
-    if (_isChecking) return _currentStatus;
-    _isChecking = true;
-
-    try {
-      // 检查沙盒中的 MarianMT 模型
-      final appDir = await getApplicationDocumentsDirectory();
-      final marianmtPath = '${appDir.path}/models/marianmt-onnx/encoder_model.onnx';
-      var marianmtExists = await File(marianmtPath).exists();
-
-      // 如果模型不存在，尝试从 assets 复制
-      if (!marianmtExists) {
-        debugPrint('沙盒中未找到模型，尝试从 assets 复制...');
-        final copied = await ModelCopyService.instance.copyModelsIfNeeded();
-        if (copied) {
-          marianmtExists = await File(marianmtPath).exists();
-        }
-      }
-
-      debugPrint('=== 模型检测详情 ===');
-      debugPrint('MarianMT 存在: $marianmtExists');
-
-      if (marianmtExists) {
-        _currentStatus = LocalModelStatus.ready;
-        _hasAllModels = true;
-        debugPrint('状态设置为 LocalModelStatus.ready');
-      } else {
-        _currentStatus = LocalModelStatus.missing;
-        _hasAllModels = false;
-        debugPrint('状态设置为 LocalModelStatus.missing');
-      }
-
-      _statusController.add(_currentStatus);
-      return _currentStatus;
-    } catch (e) {
-      debugPrint('检查模型状态失败: $e');
-      _currentStatus = LocalModelStatus.error;
-      _statusController.add(_currentStatus);
-      return _currentStatus;
-    } finally {
-      _isChecking = false;
-    }
+    _currentStatus = LocalModelStatus.ready;
+    _statusController.add(_currentStatus);
+    return _currentStatus;
   }
 
-  /// 是否有所有必需模型
-  bool get hasAllModels => _hasAllModels;
-
-  /// 是否可以使用 AI 功能
-  bool get canUseAiFeatures => _hasAllModels && _currentStatus == LocalModelStatus.ready;
-
-  /// 重置状态（强制重新检查）
+  /// 重置状态
   Future<void> reset() async {
     _isInitialized = false;
     _currentStatus = LocalModelStatus.unknown;
-    _hasAllModels = false;
-    await initialize();
+    _statusController.add(_currentStatus);
   }
 
-  /// 销毁
+  /// 释放资源
   void dispose() {
     _statusController.close();
   }
@@ -99,45 +62,44 @@ class LocalModelService {
 
 /// 本地模型状态
 enum LocalModelStatus {
-  unknown,
-  missing,
-  ready,
-  error,
+  unknown,    // 未知
+  ready,      // 就绪（iOS 系统翻译可用）
+  downloading, // 下载中
+  missing,    // 缺失
+  error,      // 错误
 }
 
-/// 模型状态扩展
+/// 本地模型状态扩展
 extension LocalModelStatusExtension on LocalModelStatus {
+  /// 显示名称
   String get displayName {
     switch (this) {
       case LocalModelStatus.unknown:
-        return '检查中...';
-      case LocalModelStatus.missing:
-        return '需要下载模型';
+        return '未知';
       case LocalModelStatus.ready:
-        return '模型已就绪';
+        return '就绪';
+      case LocalModelStatus.downloading:
+        return '下载中';
+      case LocalModelStatus.missing:
+        return '缺失';
       case LocalModelStatus.error:
-        return '检查失败';
+        return '错误';
     }
   }
 
+  /// 描述
   String get description {
     switch (this) {
       case LocalModelStatus.unknown:
-        return '正在检查模型状态...';
-      case LocalModelStatus.missing:
-        return '本地缺少翻译模型，请检查 assets 中的 MarianMT 模型是否正确打包';
+        return '模型状态未知';
       case LocalModelStatus.ready:
-        return '翻译模型已就绪';
+        return 'iOS 系统翻译已就绪';
+      case LocalModelStatus.downloading:
+        return '模型正在下载中';
+      case LocalModelStatus.missing:
+        return '模型文件缺失';
       case LocalModelStatus.error:
-        return '检查模型状态时出错';
+        return '模型加载错误';
     }
-  }
-
-  bool get shouldShowDownloadDialog {
-    return this == LocalModelStatus.missing;
-  }
-
-  bool get canUseAiFeatures {
-    return this == LocalModelStatus.ready;
   }
 }

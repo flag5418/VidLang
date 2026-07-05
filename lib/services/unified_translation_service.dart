@@ -3,17 +3,15 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/services/local_translation_service.dart';
+import 'package:vidlang/services/ios_native_features.dart';
 
 /// 统一翻译服务
-/// 免费模式 → 本地 MarianMT ONNX
+/// 免费模式 → iOS 系统翻译（MLTranslation，需 iOS 17.4+）
 /// 收费模式 → 云端 ai-proxy Edge Function
 class UnifiedTranslationService {
   static UnifiedTranslationService? _instance;
   static UnifiedTranslationService get instance => _instance ??= UnifiedTranslationService._();
   UnifiedTranslationService._();
-
-  final LocalTranslationService _localTranslation = LocalTranslationService.instance;
 
   /// 翻译文本（单词/句子/文章片段）
   Future<WordDetail> translate({
@@ -25,7 +23,7 @@ class UnifiedTranslationService {
     Map<String, dynamic>? billing,
   }) async {
     if (mode == SubscriptionMode.free) {
-      return await _translateLocal(text: text, contextSentence: contextSentence);
+      return await _translateLocal(text: text);
     } else {
       return await _translateCloud(text: text, contextSentence: contextSentence, sourceType: sourceType, sourceCode: sourceCode, billing: billing);
     }
@@ -53,19 +51,37 @@ class UnifiedTranslationService {
     }
   }
 
-  /// 本地翻译（MarianMT）
+  /// 本地翻译（iOS 系统翻译，MLTranslation）
   Future<WordDetail> _translateLocal({
     required String text,
     String? contextSentence,
   }) async {
     try {
-      final translation = await _localTranslation.translate(text: text);
-      return WordDetail(
-        word: text,
-        translation: translation,
-        source: 'local',
-        success: translation != '翻译失败' && translation != '本地翻译模型未就绪，请使用云端翻译' && translation != '翻译模型加载失败',
-        error: translation == '翻译失败' || translation == '本地翻译模型未就绪，请使用云端翻译' || translation == '翻译模型加载失败' ? translation : null,
+      final result = await IosNativeFeatures.translate(text: text);
+
+      if (result.success && result.translatedText.isNotEmpty && result.translatedText != text) {
+        return WordDetail(
+          word: text,
+          translation: result.translatedText,
+          source: 'ios_translate',
+          success: true,
+        );
+      }
+
+      // 翻译失败或翻译结果与原文相同
+      final errorMsg = result.error ?? '翻译失败';
+      debugPrint('iOS 系统翻译失败: $errorMsg');
+      
+      // 检查是否需要下载语言包
+      final needsLanguagePack = errorMsg.contains('not available') || 
+                                 errorMsg.contains('language') ||
+                                 errorMsg.contains('未找到') ||
+                                 errorMsg.contains('下载');
+      
+      return WordDetail.error(
+        text, 
+        errorMsg, 
+        languagePackRequired: needsLanguagePack,
       );
     } catch (e) {
       debugPrint('本地翻译失败: $e');

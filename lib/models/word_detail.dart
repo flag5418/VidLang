@@ -236,6 +236,9 @@ class WordDetail {
   /// 是否为短句翻译模式（仅显示翻译内容）
   final bool isSentenceMode;
 
+  /// 是否需要下载语言包（iOS 系统翻译需要）
+  final bool languagePackRequired;
+
   const WordDetail({
     required this.word,
     this.pronounce = const PronounceInfo(),
@@ -254,6 +257,7 @@ class WordDetail {
     this.balanceAfter,
     this.source = 'native',
     this.isSentenceMode = false,
+    this.languagePackRequired = false,
   });
 
   /// 快速获取首选音标
@@ -395,7 +399,7 @@ class WordDetail {
   }
 
   /// 错误构造
-  factory WordDetail.error(String word, String error, {bool isInsufficientBalance = false, double? requiredCny, double? balanceCny}) {
+  factory WordDetail.error(String word, String error, {bool isInsufficientBalance = false, double? requiredCny, double? balanceCny, bool languagePackRequired = false}) {
     return WordDetail(
       word: word,
       success: false,
@@ -403,6 +407,7 @@ class WordDetail {
       costCny: requiredCny,
       balanceAfter: balanceCny,
       source: isInsufficientBalance ? 'ai' : 'native',
+      languagePackRequired: languagePackRequired,
     );
   }
 

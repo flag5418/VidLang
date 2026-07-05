@@ -79,9 +79,6 @@ dependencies:
   # 网络请求 - 用于模型下载
   dio: ^5.7.0
 
-  # ONNX Runtime - 用于本地 MarianMT 翻译
-  onnxruntime: ^1.4.1
-
   # 本地语音合成 - 原生 TTS
   flutter_tts: ^4.1.0
 
@@ -133,7 +130,6 @@ flutter:
     - assets/app/
     - assets/video_plays/
     - assets/Logo/
-    - assets/models/marianmt-onnx/
 
 # App 图标配置 - 运行 flutter pub run flutter_launcher_icons 生成
 flutter_launcher_icons:

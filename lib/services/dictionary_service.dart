@@ -2,12 +2,11 @@ import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
-import 'package:vidlang/services/local_translation_service.dart';
 
 /// 统一词典查询服务
 ///
 /// 按免费/收费模式分流：
-/// - 免费模式：iOS 原生翻译 + 本地 MarianMT 模型
+/// - 免费模式：iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
 /// - 收费模式：AiService.getDefinition（ai-proxy Edge Function → 阿里 Qwen）
 ///
 /// 废弃了旧的 stardict.db 离线词典，统一走翻译/释义服务体系。
@@ -15,8 +14,6 @@ class DictionaryService {
   DictionaryService._();
   static final DictionaryService _instance = DictionaryService._();
   factory DictionaryService() => _instance;
-
-  final LocalTranslationService _localTranslation = LocalTranslationService.instance;
 
   /// 查询单词释义（按免费/收费模式走统一服务）
   ///
@@ -46,38 +43,23 @@ class DictionaryService {
     }
   }
 
-  /// 免费模式查词：iOS 原生翻译 + 本地 MarianMT
+  /// 免费模式查词：iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
   Future<WordDetail> _lookupFree({required String word}) async {
     try {
-      final results = await Future.wait([
-        IosNativeFeatures.translate(text: word),
-        _localTranslation.translate(text: word),
-      ]);
-
-      final translationResult = results[0] as TranslationResult;
-      final localTranslation = results[1] as String;
+      final result = await IosNativeFeatures.translate(text: word);
 
       String? translation;
-      if (translationResult.success &&
-          translationResult.translatedText.isNotEmpty &&
-          translationResult.translatedText != word) {
-        translation = translationResult.translatedText;
-      }
-
-      // 本地翻译作为 fallback
-      if ((translation == null || translation.isEmpty) &&
-          localTranslation != '翻译失败' &&
-          localTranslation != '本地翻译模型未就绪，请使用云端翻译' &&
-          localTranslation != '翻译模型加载失败' &&
-          localTranslation != word) {
-        translation = localTranslation;
+      if (result.success &&
+          result.translatedText.isNotEmpty &&
+          result.translatedText != word) {
+        translation = result.translatedText;
       }
 
       return WordDetail(
         word: word,
         translation: translation,
         success: translation != null && translation.isNotEmpty,
-        source: 'native',
+        source: 'ios_translate',
       );
     } catch (e) {
       return WordDetail.error(word, '查询失败: $e');

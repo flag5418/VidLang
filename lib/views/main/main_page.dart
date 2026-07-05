@@ -66,10 +66,10 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
       
       debugPrint('=== 模型状态检查 ===');
       debugPrint('状态: $status');
-      debugPrint('canUseAiFeatures: ${status.canUseAiFeatures}');
+      debugPrint('canUseAiFeatures: ${localModelService.canUseAiFeatures}');
       
       if (status == LocalModelStatus.missing) {
-        debugPrint('MarianMT 翻译模型未找到，请检查 assets 打包');
+        debugPrint('翻译模型未找到，请检查 iOS 系统翻译设置');
       }
     } catch (e) {
       debugPrint('检查模型状态失败: $e');

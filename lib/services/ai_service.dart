@@ -6,9 +6,9 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/services/auth_service.dart';
+import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/local_ai_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
-import 'package:vidlang/services/local_translation_service.dart';
 
 /// 统一调用 ai-proxy Edge Function
 ///
@@ -36,7 +36,8 @@ class AiService {
   static final LocalModelService _modelService = LocalModelService.instance;
 
   /// 是否可以使用本地模型
-  static bool get canUseLocalModels => _modelService.canUseAiFeatures;
+  /// 现在使用 iOS 系统翻译（MLTranslation，需 iOS 17.4+）
+  static bool get canUseLocalModels => true;
 
   // ─── 核心调用 ─────────────────────────────────
 
@@ -165,11 +166,15 @@ class AiService {
           break;
 
         case 'ai_definition':
-          // 本地单词释义：只翻译选中的单词，不用整段句子（本地模型 token 限制 128）
-          final localTranslation = LocalTranslationService.instance;
-          if (localTranslation.isInitialized) {
-            result = await localTranslation.translate(text: word);
-          } else {
+          // 本地单词释义：使用 iOS 系统翻译
+          try {
+            final translateResult = await IosNativeFeatures.translate(text: word);
+            if (translateResult.success && translateResult.translatedText.isNotEmpty) {
+              result = translateResult.translatedText;
+            } else {
+              result = await _localAi.translate(text: word);
+            }
+          } catch (e) {
             result = await _localAi.translate(text: word);
           }
           break;
@@ -298,13 +303,17 @@ class AiService {
           break;
 
         case 'ai_definition':
-          // 本地单词释义：只翻译选中的单词，不用整段句子（本地模型 token 限制 128）
-          final word = params['word'] as String? ?? '';
-          final localTranslation = LocalTranslationService.instance;
-          if (localTranslation.isInitialized) {
-            result = await localTranslation.translate(text: word);
-          } else {
-            result = await _localAi.translate(text: word);
+          // 本地单词释义：使用 iOS 系统翻译
+          final defWord = params['word'] as String? ?? '';
+          try {
+            final translateResult = await IosNativeFeatures.translate(text: defWord);
+            if (translateResult.success && translateResult.translatedText.isNotEmpty) {
+              result = translateResult.translatedText;
+            } else {
+              result = await _localAi.translate(text: defWord);
+            }
+          } catch (e) {
+            result = await _localAi.translate(text: defWord);
           }
           break;
           
@@ -405,26 +414,24 @@ class AiService {
     }
 
     // ════════════════════════════════════════════
-    // ③ 免费模式优先尝试本地翻译（不依赖 canUseLocalModels 检查）
+    // ③ 免费模式优先尝试 iOS 系统翻译
     // ════════════════════════════════════════════
     if (preferLocal) {
       try {
-        final localTranslation = LocalTranslationService.instance;
-        if (localTranslation.isInitialized) {
-          // 本地模型只翻译单词，不用整段句子（token 限制 128）
-          final translated = await localTranslation.translate(text: word);
-          if (translated.isNotEmpty && !_isLocalModelError(translated)) {
-            dev.log('word local HIT: $cacheKey → $translated', name: 'AiService');
-            return WordDetail(
-              word: word,
-              translation: translated,
-              source: 'local',
-              success: true,
-            );
-          }
+        final translateResult = await IosNativeFeatures.translate(text: word);
+        if (translateResult.success &&
+            translateResult.translatedText.isNotEmpty &&
+            translateResult.translatedText != word) {
+          dev.log('word ios_translate HIT: $cacheKey → ${translateResult.translatedText}', name: 'AiService');
+          return WordDetail(
+            word: word,
+            translation: translateResult.translatedText,
+            source: 'ios_translate',
+            success: true,
+          );
         }
       } catch (e) {
-        dev.log('word local translate error: $e', name: 'AiService');
+        dev.log('word ios_translate error: $e', name: 'AiService');
       }
     }
 

@@ -10,6 +10,7 @@ import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
+import 'package:vidlang/widgets/native_translation_guide_sheet.dart';
 import 'package:vidlang/widgets/recharge_dialog.dart';
 import 'package:vidlang/widgets/word_detail_panel.dart';
 
@@ -219,8 +220,14 @@ class _WordCardState extends ConsumerState<WordCard> {
       if (!detail.success) {
         final isLocalError = detail.source == 'local' || detail.source == 'local_ai' || detail.source == 'native';
         if (isLocalError) {
-          dev.log('📱 Local model failed, closing dialog silently: ${detail.error}', name: 'WordCard');
-          if (mounted) Navigator.of(context).pop();
+          // 如果需要下载语言包，显示引导弹窗
+          if (detail.languagePackRequired && mounted) {
+            dev.log('📱 Language pack required, showing guide', name: 'WordCard');
+            NativeTranslationGuideSheet.show(context);
+          } else {
+            dev.log('📱 Local model failed, closing dialog silently: ${detail.error}', name: 'WordCard');
+            if (mounted) Navigator.of(context).pop();
+          }
           return;
         }
       }

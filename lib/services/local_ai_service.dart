@@ -2,13 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/local_stt_service.dart';
 import 'package:vidlang/services/local_tts_service.dart';
-import 'package:vidlang/services/local_translation_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
 
 /// 统一本地 AI 服务
 /// 封装 TTS、STT、翻译服务，提供统一的接口
+/// 
+/// 翻译使用 iOS 系统翻译（MLTranslation，需 iOS 17.4+）
 class LocalAiService {
   static LocalAiService? _instance;
   static LocalAiService get instance => _instance ??= LocalAiService._();
@@ -16,7 +18,6 @@ class LocalAiService {
 
   final LocalTtsService _tts = LocalTtsService.instance;
   final LocalSttService _stt = LocalSttService.instance;
-  final LocalTranslationService _translation = LocalTranslationService.instance;
   final LocalModelService _modelService = LocalModelService.instance;
 
   bool _isInitialized = false;
@@ -78,8 +79,7 @@ class LocalAiService {
       }
       
       try {
-        await _translation.initialize();
-        debugPrint('翻译初始化完成: ${_translation.isInitialized}');
+        debugPrint('翻译使用 iOS 系统翻译（MLTranslation）');
       } catch (e) {
         debugPrint('翻译初始化失败: $e');
       }
@@ -97,17 +97,19 @@ class LocalAiService {
   }
 
   /// 翻译文本（英→中）
+  /// 使用 iOS 系统翻译（MLTranslation，需 iOS 17.4+）
   Future<String> translate({
     required String text,
   }) async {
-    // 优先使用本地翻译
-    if (_translation.isInitialized) {
-      return _translation.translate(
-        text: text,
-      );
+    try {
+      final result = await IosNativeFeatures.translate(text: text);
+      if (result.success && result.translatedText.isNotEmpty && result.translatedText != text) {
+        return result.translatedText;
+      }
+      return '翻译失败';
+    } catch (e) {
+      return '翻译失败: $e';
     }
-
-    return '本地翻译模型未就绪，请使用云端翻译';
   }
 
   /// TTS 合成语音并保存为文件
@@ -172,7 +174,6 @@ class LocalAiService {
   void dispose() {
     _tts.dispose();
     _stt.dispose();
-    _translation.dispose();
     _initController.close();
   }
 }
