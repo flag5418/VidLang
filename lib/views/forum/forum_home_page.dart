@@ -1,0 +1,690 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../models/forum/forum_post.dart';
+import '../../services/forum/forum_service.dart';
+import '../../providers/forum_providers.dart';
+import '../../widgets/common/loading_widget.dart';
+import '../../widgets/common/error_widget.dart';
+import 'forum_create_post_page.dart';
+
+class ForumHomePage extends ConsumerStatefulWidget {
+  const ForumHomePage({Key? key}) : super(key: key);
+
+  @override
+  ConsumerState<ForumHomePage> createState() => _ForumHomePageState();
+}
+
+class _ForumHomePageState extends ConsumerState<ForumHomePage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  String _selectedCategory = 'all';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text('学习论坛'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(120.h),
+          child: Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                _buildSearchBar(),
+                _buildCategoryTabs(),
+              ],
+            ),
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildQuickActions(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildPostList('all'),
+                _buildPostList('resources'),
+                _buildPostList('discussion'),
+                _buildPostList('feedback'),
+                _buildPostList('help'),
+              ],
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _navigateToCreatePost(),
+        backgroundColor: Theme.of(context).primaryColor,
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      margin: EdgeInsets.all(16.w),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索帖子、用户或标签...',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          filled: true,
+          fillColor: Colors.grey[100],
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              setState(() {
+                _searchQuery = '';
+                _searchController.clear();
+              });
+            },
+          ),
+        ),
+        onSubmitted: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildCategoryTabs() {
+    final tabs = ['全部', '资源分享', '学习讨论', '反馈建议', '学习互助'];
+    
+    return TabBar(
+      controller: _tabController,
+      isScrollable: true,
+      labelColor: Theme.of(context).primaryColor,
+      unselectedLabelColor: Colors.grey,
+      indicatorColor: Theme.of(context).primaryColor,
+      indicatorSize: TabBarIndicatorSize.tab,
+      labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+      tabs: tabs.map((tab) => Tab(text: tab)).toList(),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Container(
+      height: 60.h,
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildQuickActionButton(
+              icon: Icons.video_library,
+              label: '分享视频',
+              onTap: () => _navigateToCreatePost('resource', 'video'),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: _buildQuickActionButton(
+              icon: Icons.audio_file,
+              label: '分享音频',
+              onTap: () => _navigateToCreatePost('resource', 'audio'),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: _buildQuickActionButton(
+              icon: Icons.chat,
+              label: '学习讨论',
+              onTap: () => _navigateToCreatePost('discussion'),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: _buildQuickActionButton(
+              icon: Icons.help_outline,
+              label: '求助问答',
+              onTap: () => _navigateToCreatePost('help'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 8.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20.sp,
+              color: Theme.of(context).primaryColor,
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostList(String category) {
+    final postsAsync = ref.watch(forumPostsProvider(ForumPostsParams(
+      category: category == 'all' ? null : category,
+      search: _searchQuery.isEmpty ? null : _searchQuery,
+    )));
+
+    return postsAsync.when(
+      data: (postsResponse) {
+        final posts = postsResponse.data;
+        if (posts.isEmpty) {
+          return _buildEmptyState(category);
+        }
+        
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(forumPostsProvider(ForumPostsParams(
+              category: category == 'all' ? null : category,
+              search: _searchQuery.isEmpty ? null : _searchQuery,
+            )));
+          },
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            itemCount: posts.length,
+            separatorBuilder: (context, index) => SizedBox(height: 8.h),
+            itemBuilder: (context, index) {
+              return _buildPostCard(posts[index]);
+            },
+          ),
+        );
+      },
+      loading: () => const LoadingWidget(),
+      error: (error, stack) => ErrorDisplayWidget(
+        error: error.toString(),
+        onRetry: () {
+          ref.invalidate(forumPostsProvider(ForumPostsParams(
+            category: category == 'all' ? null : category,
+            search: _searchQuery.isEmpty ? null : _searchQuery,
+          )));
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String category) {
+    String message;
+    IconData icon;
+    
+    switch (category) {
+      case 'resources':
+        message = '暂无资源分享';
+        icon = Icons.video_library;
+        break;
+      case 'discussion':
+        message = '暂无学习讨论';
+        icon = Icons.chat;
+        break;
+      case 'feedback':
+        message = '暂无反馈建议';
+        icon = Icons.feedback;
+        break;
+      case 'help':
+        message = '暂无求助内容';
+        icon = Icons.help_outline;
+        break;
+      default:
+        message = '暂无帖子内容';
+        icon = Icons.forum;
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 80.sp,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[400],
+            ),
+          ),
+          SizedBox(height: 24.h),
+          ElevatedButton(
+            onPressed: () => _navigateToCreatePost(category),
+            child: const Text('发布第一个帖子'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostCard(ForumPost post) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToPostDetail(post),
+          borderRadius: BorderRadius.circular(12.r),
+          child: Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPostHeader(post),
+                SizedBox(height: 12.h),
+                _buildPostContent(post),
+                if (post.resourceType != null) ...[
+                  SizedBox(height: 12.h),
+                  _buildResourceInfo(post),
+                ],
+                SizedBox(height: 12.h),
+                _buildPostFooter(post),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostHeader(ForumPost post) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 16.r,
+          backgroundColor: Theme.of(context).primaryColor,
+          child: Text(
+            post.authorName?.substring(0, 1) ?? 'U',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    post.authorName ?? '未知用户',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (post.isPinned) ...[
+                    SizedBox(width: 8.w),
+                    Icon(
+                      Icons.push_pin,
+                      size: 14.sp,
+                      color: Colors.orange,
+                    ),
+                  ],
+                  if (post.isFeatured) ...[
+                    SizedBox(width: 4.w),
+                    Icon(
+                      Icons.star,
+                      size: 14.sp,
+                      color: Colors.orange,
+                    ),
+                  ],
+                ],
+              ),
+              Text(
+                _formatTime(post.createdAt),
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildCategoryTag(post),
+      ],
+    );
+  }
+
+  Widget _buildCategoryTag(ForumPost post) {
+    Color tagColor;
+    String tagText;
+    
+    switch (post.postType) {
+      case 'resource':
+        tagColor = Theme.of(context).primaryColor;
+        tagText = '资源';
+        break;
+      case 'discussion':
+        tagColor = Colors.green;
+        tagText = '讨论';
+        break;
+      case 'feedback':
+        tagColor = Colors.orange;
+        tagText = '反馈';
+        break;
+      case 'help':
+        tagColor = Colors.red;
+        tagText = '求助';
+        break;
+      default:
+        tagColor = Colors.grey;
+        tagText = '其他';
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: tagColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: Text(
+        tagText,
+        style: TextStyle(
+          fontSize: 10.sp,
+          color: tagColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostContent(ForumPost post) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          post.title,
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          post.summary ?? post.content,
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (post.tags.isNotEmpty) ...[
+          SizedBox(height: 8.h),
+          Wrap(
+            spacing: 6.w,
+            runSpacing: 4.h,
+            children: post.tags.take(3).map((tag) {
+              return Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(3.r),
+                ),
+                child: Text(
+                  '#$tag',
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildResourceInfo(ForumPost post) {
+    IconData resourceIcon;
+    String resourceLabel;
+    
+    switch (post.resourceType) {
+      case 'video':
+        resourceIcon = Icons.video_library;
+        resourceLabel = '视频资源';
+        break;
+      case 'audio':
+        resourceIcon = Icons.audio_file;
+        resourceLabel = '音频资源';
+        break;
+      case 'article':
+        resourceIcon = Icons.article;
+        resourceLabel = '文章资源';
+        break;
+      default:
+        resourceIcon = Icons.link;
+        resourceLabel = '其他资源';
+    }
+
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            resourceIcon,
+            size: 16.sp,
+            color: Theme.of(context).primaryColor,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  resourceLabel,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                if (post.resourceDescription != null)
+                  Text(
+                    post.resourceDescription!,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: Colors.grey[500],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostFooter(ForumPost post) {
+    return Row(
+      children: [
+        _buildFooterButton(
+          icon: Icons.visibility,
+          count: post.viewCount,
+          label: '浏览',
+          onTap: null,
+        ),
+        SizedBox(width: 16.w),
+        _buildFooterButton(
+          icon: Icons.favorite,
+          count: post.likeCount,
+          label: '点赞',
+          onTap: () => _handleLike(post),
+          isActive: post.isLikedByCurrentUser,
+        ),
+        SizedBox(width: 16.w),
+        _buildFooterButton(
+          icon: Icons.comment,
+          count: post.commentCount,
+          label: '评论',
+          onTap: () => _navigateToPostDetail(post, focusComment: true),
+        ),
+        const Spacer(),
+        _buildFooterButton(
+          icon: Icons.bookmark,
+          count: 0,
+          label: '收藏',
+          onTap: () => _handleFavorite(post),
+          isActive: post.isFavoritedByCurrentUser,
+          showCount: false,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFooterButton({
+    required IconData icon,
+    required int count,
+    required String label,
+    VoidCallback? onTap,
+    bool isActive = false,
+    bool showCount = true,
+  }) {
+    final color = isActive
+        ? Theme.of(context).primaryColor
+        : Colors.grey[500];
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16.sp,
+            color: color,
+          ),
+          if (showCount) ...[
+            SizedBox(width: 4.w),
+            Text(
+              count > 0 ? count.toString() : label,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: color,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+void _navigateToCreatePost([String? postType, String? resourceType]) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ForumCreatePostPage(
+        initialPostType: postType,
+        initialResourceType: resourceType,
+      ),
+    ),
+  );
+}
+
+  void _navigateToPostDetail(ForumPost post, {bool focusComment = false}) {
+    // TODO: 导航到帖子详情页面
+    print('导航到帖子详情: ${post.id}, 聚焦评论: $focusComment');
+  }
+
+  void _handleLike(ForumPost post) {
+    // TODO: 处理点赞操作
+    ref.read(forumServiceProvider).toggleLike(post.id);
+  }
+
+  void _handleFavorite(ForumPost post) {
+    // TODO: 处理收藏操作
+    ref.read(forumServiceProvider).toggleFavorite(post.id);
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}天前';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}小时前';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}分钟前';
+    } else {
+      return '刚刚';
+    }
+  }
+}

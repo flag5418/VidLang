@@ -8,6 +8,7 @@ import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/local_ai_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
+import 'package:vidlang/services/local_translation_service.dart';
 
 /// 统一调用 ai-proxy Edge Function
 ///
@@ -162,6 +163,16 @@ class AiService {
             text: word,
           );
           break;
+
+        case 'ai_definition':
+          // 本地单词释义：只翻译选中的单词，不用整段句子（本地模型 token 限制 128）
+          final localTranslation = LocalTranslationService.instance;
+          if (localTranslation.isInitialized) {
+            result = await localTranslation.translate(text: word);
+          } else {
+            result = await _localAi.translate(text: word);
+          }
+          break;
           
         default:
           return WordDetail.error(word, '不支持的本地模型功能: $ruleCode');
@@ -195,7 +206,11 @@ class AiService {
         return detail;
       }
     } catch (_) {}
-    // JSON 解析失败，返回纯文本结果
+    // JSON 解析失败，检查是否为错误信息
+    if (_isLocalModelError(result)) {
+      return WordDetail.error(word, result);
+    }
+    // 返回纯文本翻译结果
     return WordDetail.fromJson({
       'word': word,
       'translation': result,
@@ -281,6 +296,17 @@ class AiService {
             text: text,
           );
           break;
+
+        case 'ai_definition':
+          // 本地单词释义：只翻译选中的单词，不用整段句子（本地模型 token 限制 128）
+          final word = params['word'] as String? ?? '';
+          final localTranslation = LocalTranslationService.instance;
+          if (localTranslation.isInitialized) {
+            result = await localTranslation.translate(text: word);
+          } else {
+            result = await _localAi.translate(text: word);
+          }
+          break;
           
         default:
           return {'ok': false, 'error': 'unsupported_local_rule', 'message': '不支持的本地模型功能: $ruleCode'};
@@ -323,6 +349,7 @@ class AiService {
     String? sourceType,
     String? sourceCode,
     Map<String, dynamic>? billing,
+    bool preferLocal = false,
   }) async {
     final cacheKey = word.toLowerCase().trim();
     final hasContext = contextSentence?.isNotEmpty ?? false;
@@ -378,7 +405,31 @@ class AiService {
     }
 
     // ════════════════════════════════════════════
-    // ③ 完全未命中：调用 AI
+    // ③ 免费模式优先尝试本地翻译（不依赖 canUseLocalModels 检查）
+    // ════════════════════════════════════════════
+    if (preferLocal) {
+      try {
+        final localTranslation = LocalTranslationService.instance;
+        if (localTranslation.isInitialized) {
+          // 本地模型只翻译单词，不用整段句子（token 限制 128）
+          final translated = await localTranslation.translate(text: word);
+          if (translated.isNotEmpty && !_isLocalModelError(translated)) {
+            dev.log('word local HIT: $cacheKey → $translated', name: 'AiService');
+            return WordDetail(
+              word: word,
+              translation: translated,
+              source: 'local',
+              success: true,
+            );
+          }
+        }
+      } catch (e) {
+        dev.log('word local translate error: $e', name: 'AiService');
+      }
+    }
+
+    // ════════════════════════════════════════════
+    // ④ 完全未命中：调用 AI
     // ════════════════════════════════════════════
     dev.log('word cache MISS: $cacheKey, calling AI', name: 'AiService');
     // 根据 sourceType 动态设置 scene（符合 billing-redesign §4.3.1）
@@ -396,6 +447,7 @@ class AiService {
         if (hasContext) 'sentence': contextSentence,
       },
       billing: billing,
+      preferLocal: preferLocal,
     );
 
     // ④ 成功时写入缓存
@@ -695,6 +747,27 @@ class AiService {
     } catch (_) {
       return null;
     }
+  }
+
+  // ─── 本地模型错误检测 ─────────────────────────────
+
+  /// 检查本地翻译结果是否为错误信息
+  static bool _isLocalModelError(String text) {
+    if (text.isEmpty) return true;
+    const errorPatterns = [
+      '翻译失败',
+      '翻译模型未就绪',
+      '翻译模型加载失败',
+      'Tokenization 失败',
+      '本地翻译模型未就绪',
+      '本地翻译失败',
+      '翻译模型',
+    ];
+    for (final pattern in errorPatterns) {
+      if (text.contains(pattern)) return true;
+    }
+    // 纯英文且很短（可能是错误而非翻译结果）- 不过滤，因为有些单词本身就是英文
+    return false;
   }
 
   // ─── Scene 动态化辅助方法 ─────────────────────────────

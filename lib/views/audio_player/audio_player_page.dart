@@ -707,11 +707,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                     notifier.player.pause();
                     final selectedText = words.join(' ');
                     final canSave = WordBookService.isSingleWord(selectedText);
+                    final subState = ref.read(subscriptionProvider);
+                    final isPremium = subState.mode == SubscriptionMode.premium;
                     WordCard.show(
                       context,
                       word: selectedText,
                       contextSentence: sub.content,
-                      isPaidMode: false,
+                      isPaidMode: isPremium,
                       onSpeak: () => TtsService().speakWord(selectedText),
                       onSaveWord: canSave ? _handleSaveWord : null,
                       sourceType: 'music',

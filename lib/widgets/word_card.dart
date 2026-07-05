@@ -1,6 +1,6 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
@@ -187,14 +187,6 @@ class _WordCardState extends ConsumerState<WordCard> {
   }
 
   Future<void> _fetchDefinition() async {
-    // 显示 tdesign_flutter 加载提示
-    TDLoadingController.show(
-      context,
-      text: '正在翻译...',
-      icon: TDLoadingIcon.circle,
-      size: TDLoadingSize.small,
-    );
-    
     try {
       WordDetail detail;
       final isPremium = widget.isPaidMode;
@@ -208,6 +200,7 @@ class _WordCardState extends ConsumerState<WordCard> {
           sourceType: widget.sourceType,
           sourceCode: widget.sourceCode,
           billing: isPremium ? {'mode': 'premium'} : null,
+          preferLocal: !isPremium,
         );
       } else {
         // 句子/短语翻译：走 UnifiedTranslationService
@@ -220,10 +213,26 @@ class _WordCardState extends ConsumerState<WordCard> {
         );
       }
 
-      // 隐藏加载提示
-      TDLoadingController.dismiss();
-
       if (!mounted) return;
+
+      // 本地模型失败时静默关闭弹窗
+      if (!detail.success) {
+        final isLocalError = detail.source == 'local' || detail.source == 'local_ai' || detail.source == 'native';
+        if (isLocalError) {
+          dev.log('📱 Local model failed, closing dialog silently: ${detail.error}', name: 'WordCard');
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
+      }
+      // 本地模型返回错误翻译内容时也关闭
+      if (detail.source == 'local' || detail.source == 'local_ai') {
+        final translation = detail.translation ?? '';
+        if (translation.contains('失败') || translation.contains('未就绪') || translation.contains('Tokenization')) {
+          dev.log('📱 Local model returned error translation, closing dialog', name: 'WordCard');
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
+      }
 
       // 余额不足时弹出充值弹窗
       if (detail.isInsufficientBalance && !_rechargeShown) {
@@ -243,9 +252,6 @@ class _WordCardState extends ConsumerState<WordCard> {
         _state = _LoadState.loaded;
       });
     } catch (e) {
-      // 隐藏加载提示
-      TDLoadingController.dismiss();
-      
       if (!mounted) return;
       setState(() {
         _detail = WordDetail.error(widget.word, '查询失败: $e');

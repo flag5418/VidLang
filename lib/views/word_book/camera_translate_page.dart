@@ -103,10 +103,15 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
     final clean = word.toLowerCase().replaceAll(RegExp(r"[^a-zA-Z']"), '');
     if (clean.isEmpty) return;
     final canSave = WordBookService.isSingleWord(clean);
+    bool isPaidMode = false;
+    try {
+      final container = ProviderScope.containerOf(context, listen: false);
+      isPaidMode = container.read(subscriptionProvider).mode == SubscriptionMode.premium;
+    } catch (_) {}
     WordCard.show(
       context,
       word: clean,
-      isPaidMode: false,
+      isPaidMode: isPaidMode,
       onSpeak: () => TtsService().speakWord(clean),
       onSaveWord: canSave
           ? ({

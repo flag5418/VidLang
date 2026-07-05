@@ -555,14 +555,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
           }).toList();
         },
       ),
-      // 字体大小按钮（点击弹出 Slider 进度条）
-      _plainTextBtn("字号 ${s.subtitleFontSize.toInt()}", true, () {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (ctx) => _buildFontSlider(),
-        );
-      }),
+      // 字体大小按钮（仿照倍速按钮，使用 PopupMenuButton + 竖向 Slider）
+      _buildFontSizePopupButton(s, n),
       // 倍数按钮
       PopupMenuButton<double>(
         initialValue: s.speed,
@@ -1009,70 +1003,128 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
   }
 
-  Widget _buildFontSlider() {
-    return Builder(
+  final GlobalKey _fontSizeBtnKey = GlobalKey();
+
+  /// 字体大小调整按钮（使用 OverlayEntry 弹窗）
+  Widget _buildFontSizePopupButton(
+    PlayerEngineState s,
+    PlayerEngineNotifier n,
+  ) {
+    return GestureDetector(
+      key: _fontSizeBtnKey,
+      onTap: () => _showFontSizePicker(s, n),
+      child: _plainTextBtn("字号", s.subtitleFontSize != 18.0, null),
+    );
+  }
+
+  OverlayEntry? _fontSizeOverlayEntry;
+
+  void _showFontSizePicker(PlayerEngineState s, PlayerEngineNotifier n) {
+    _hideFontSizePicker();
+
+    final renderBox = _fontSizeBtnKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+    final left = offset.dx + size.width / 2 - 24;
+    final bottom = MediaQuery.of(context).size.height - offset.dy + 8;
+
+    _fontSizeOverlayEntry = OverlayEntry(
       builder: (context) {
-        final state = ref.watch(playerEngineProvider);
-        return Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '小',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: AppTypography.fontSizeXSmall,
-                    ),
-                  ),
-                  Text(
-                    '${state.subtitleFontSize.toInt()}',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '大',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: AppTypography.fontSizeXSmall,
-                    ),
-                  ),
-                ],
-              ),
-              SliderTheme(
-                data: SliderThemeData(
-                  trackHeight: 3,
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: Colors.white12,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 8,
-                  ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 12,
-                  ),
-                  thumbColor: AppColors.primary,
+        return GestureDetector(
+          onTap: _hideFontSizePicker,
+          behavior: HitTestBehavior.translucent,
+          child: Material(
+            color: Colors.transparent,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(color: Colors.transparent),
                 ),
-                child: Slider(
-                  value: state.subtitleFontSize,
-                  min: 12,
-                  max: 40,
-                  onChanged: (v) => ref
-                      .read(playerEngineProvider.notifier)
-                      .setSubtitleFontSize(v),
+                // 弹窗内容
+                Positioned(
+                  left: left,
+                  bottom: bottom,
+                  child: GestureDetector(
+                    onTap: () {},
+                      child: Container(
+                      width: 48,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _buildVerticalFontSlider(s, n),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
+    );
+
+    Overlay.of(context).insert(_fontSizeOverlayEntry!);
+  }
+
+  void _hideFontSizePicker() {
+    _fontSizeOverlayEntry?.remove();
+    _fontSizeOverlayEntry = null;
+  }
+
+  /// 竖向字体大小滑条（使用 TDSlider）
+  Widget _buildVerticalFontSlider(PlayerEngineState s, PlayerEngineNotifier n) {
+    return SizedBox(
+      height: 180,
+      width: 48,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 大 A
+          Text(
+            'A',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          // 竖向 TDSlider
+          Expanded(
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: TDSlider(
+                value: s.subtitleFontSize,
+                onChanged: (v) => n.setSubtitleFontSize(v),
+                boxDecoration: const BoxDecoration(color: Colors.transparent),
+                sliderThemeData: TDSliderThemeData(
+                  context: context,
+                  min: 12,
+                  max: 40,
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: AppColors.surfaceElevated,
+                  showThumbValue: false,
+                  sliderThemeData: SliderThemeData(
+                    thumbColor: AppColors.primary,
+                    inactiveTrackColor: AppColors.surfaceElevated,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          // 小 A
+          Text(
+            'A',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1166,12 +1218,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       ),
     );
   }
-}
-
-class _WordItem {
-  final String text;
-  final GlobalKey key;
-  const _WordItem({required this.text, required this.key});
 }
 
 class _VideoListItem extends ConsumerStatefulWidget {

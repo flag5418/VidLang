@@ -70,7 +70,8 @@ class ShadowReaderConfig {
   final dynamic Function()? getCurrentVideo;
   final Future<void> Function(String)? speakSubtitle;
   final bool? isTtsSpeaking;
-  final void Function(int currentWordIndex)? onTtsWordIndexChanged; // TTS 单词索引变化回调
+  final void Function(int currentWordIndex)?
+  onTtsWordIndexChanged; // TTS 单词索引变化回调
   final void Function(bool isPlaying)? onTtsPlayingStateChanged; // TTS 播放状态变化回调
   final ScoreCallback? onScore;
   final AiEvaluationCallback? onAiEvaluation;
@@ -216,12 +217,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   double? _completenessScore;
   List<RecognizedWord> _recognizedWords = [];
   ShengtongEvaluationResult? _lastEvaluationResult;
-  
+
   // AI 分析结果（手动触发）
   AiAnalysisResult? _aiAnalysisResult;
   bool _isAiAnalyzing = false;
   bool _showAiAnalysis = false; // 控制 AI 分析结果的显示/隐藏
-  
+
   // TTS 单词高亮状态
   int _ttsCurrentWordIndex = -1;
   List<String> _ttsWords = [];
@@ -267,7 +268,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final isListening = _state == 'listening';
     final isScored = _state == 'scored';
     final isEvaluating = _state == 'evaluating';
-    
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -278,7 +279,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           // ── 顶部标题栏 ──
           _buildTitleBar(context, cfg),
           Divider(height: 1, thickness: 0.5, color: AppColors.outline),
-          
+
           // ── 主内容区 ──
           Expanded(
             child: SingleChildScrollView(
@@ -289,14 +290,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   // ── 得分 + 描述区域 ──
                   _buildScoreHeader(isScored, isEvaluating, isListening),
                   const SizedBox(height: 12),
-                  
+
                   // ── 第一块字幕（原文）──
                   _buildSubtitleBlock(
                     text: cfg.subtitle.content,
                     isOriginal: true,
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // ── 第二块字幕（识别结果）──
                   // 录音时显示实时转写（黄色=进行中），结束后显示最终结果（绿/红）
                   if (isScored || _recognizedWords.isNotEmpty)
@@ -311,13 +312,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       isOriginal: false,
                       liveTranscribing: true,
                     ),
-                  
+
                   // ── 录音声波图（付费模式单词评测时显示）──
-                  if (isListening && cfg.subscriptionMode == SubscriptionMode.premium) ...[
+                  if (isListening &&
+                      cfg.subscriptionMode == SubscriptionMode.premium) ...[
                     const SizedBox(height: 12),
                     _buildAudioWaveform(),
                   ],
-                  
+
                   // ── 录音计时器 ──
                   if (isListening) ...[
                     const SizedBox(height: 8),
@@ -327,7 +329,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               ),
             ),
           ),
-          
+
           Divider(height: 1, thickness: 0.5, color: AppColors.outline),
           // ── 音量行 ──
           _buildVolumeRow(cfg),
@@ -358,8 +360,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           ),
           // 关闭按钮：inline 模式使用 onClose 回调，dialog 模式使用 Navigator.pop
           GestureDetector(
-            onTap: widget._isInline ? widget._onClose : () => Navigator.of(context).pop(),
-            child: Icon(Icons.close, color: AppColors.onSurfaceVariant, size: 20),
+            onTap: widget._isInline
+                ? widget._onClose
+                : () => Navigator.of(context).pop(),
+            child: Icon(
+              Icons.close,
+              color: AppColors.onSurfaceVariant,
+              size: 20,
+            ),
           ),
         ],
       ),
@@ -371,7 +379,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     String scoreText;
     String descText;
     Color scoreColor = AppColors.onSurface;
-    
+
     if (isScored && _overallScore != null) {
       scoreText = '${_overallScore!.round()}';
       descText = _getScoreDescription();
@@ -386,7 +394,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       scoreText = '就绪';
       descText = '点击录音开始跟读';
     }
-    
+
     return Row(
       children: [
         // 左侧：得分
@@ -396,7 +404,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           decoration: BoxDecoration(
             color: scoreColor.withValues(alpha: 0.2),
             shape: BoxShape.circle,
-            border: Border.all(color: scoreColor.withValues(alpha: 0.5), width: 2),
+            border: Border.all(
+              color: scoreColor.withValues(alpha: 0.5),
+              width: 2,
+            ),
           ),
           child: Center(
             child: isEvaluating
@@ -412,7 +423,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     scoreText,
                     style: TextStyle(
                       color: scoreColor,
-                      fontSize: 24,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
@@ -478,16 +489,19 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         border: Border.all(color: AppColors.outline),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           if (label != null) ...[
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: isOriginal 
+                    color: isOriginal
                         ? AppColors.primary.withValues(alpha: 0.2)
                         : AppColors.success.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
@@ -512,8 +526,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 : SingleChildScrollView(
                     child: Text(
                       text,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: liveTranscribing ? Colors.amber : AppColors.onSurface,
+                        color: liveTranscribing
+                            ? Colors.amber
+                            : AppColors.onSurface,
                         fontSize: 16,
                         height: 1.5,
                         decoration: TextDecoration.none,
@@ -532,6 +549,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       child: Wrap(
         spacing: 4,
         runSpacing: 4,
+        alignment: WrapAlignment.center,
         children: words.map((word) {
           final color = word.correct ? AppColors.success : AppColors.error;
           return GestureDetector(
@@ -592,9 +610,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 const Spacer(),
                 // 得分标签
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: EvaluationDisplayHelper.getScoreColor(word.score).withValues(alpha: 0.2),
+                    color: EvaluationDisplayHelper.getScoreColor(
+                      word.score,
+                    ).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -611,7 +634,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 // 朗读类型标签
                 if (word.readType != null && word.readType != 'normal')
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: word.readTypeColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -644,9 +670,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 spacing: 8,
                 runSpacing: 8,
                 children: word.phonemes!.map((p) {
-                  final phonemeColor = EvaluationDisplayHelper.getScoreColor(p.score ?? 0);
+                  final phonemeColor = EvaluationDisplayHelper.getScoreColor(
+                    p.score ?? 0,
+                  );
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: phonemeColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -684,18 +715,26 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 children: [
                   Text(
                     '重音: ',
-                    style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, decoration: TextDecoration.none),
+                    style: TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
                   Icon(
                     word.wordStress! ? Icons.check_circle : Icons.cancel,
-                    color: word.wordStress! ? AppColors.success : AppColors.error,
+                    color: word.wordStress!
+                        ? AppColors.success
+                        : AppColors.error,
                     size: 16,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     word.wordStress! ? '正确' : '错误',
                     style: TextStyle(
-                      color: word.wordStress! ? AppColors.success : AppColors.error,
+                      color: word.wordStress!
+                          ? AppColors.success
+                          : AppColors.error,
                       fontSize: 13,
                       decoration: TextDecoration.none,
                     ),
@@ -752,7 +791,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               child: Icon(
                 _isMuted ? Icons.volume_off_rounded : Icons.volume_down_rounded,
                 size: 18,
-                color: _isMuted ? AppColors.onSurfaceVariant.withValues(alpha: 0.3) : AppColors.onSurfaceVariant,
+                color: _isMuted
+                    ? AppColors.onSurfaceVariant.withValues(alpha: 0.3)
+                    : AppColors.onSurfaceVariant,
               ),
             ),
           ),
@@ -763,8 +804,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 2,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12,
+                  ),
                 ),
                 child: Slider(
                   value: state.originalVolume,
@@ -802,9 +847,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final hasRecording =
         _recordingPath != null && File(_recordingPath!).existsSync();
     final isScored = _state == 'scored';
-    
+
     // 判断是否为视频/音频类型，显示上一句/下一句按钮
-    final showNavigation = cfg.resourceType == 'video' || cfg.resourceType == 'audio';
+    final showNavigation =
+        cfg.resourceType == 'video' || cfg.resourceType == 'audio';
 
     return SafeArea(
       top: false,
@@ -818,20 +864,20 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               _circleBtn(
                 Icons.close_rounded,
                 AppColors.onSurfaceVariant,
-                32,
+                36,
                 18,
                 onTap: widget._onClose,
                 bg: AppColors.surfaceElevated,
               ),
               const SizedBox(width: 6),
             ],
-            
+
             // ── 左组：导航（仅视频/音频显示）──
             if (showNavigation) ...[
               _circleBtn(
                 Icons.skip_previous_rounded,
                 AppColors.onSurfaceVariant,
-                36,
+                40,
                 18,
                 onTap: cfg.previousSentence != null
                     ? () {
@@ -845,7 +891,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               _circleBtn(
                 Icons.play_arrow_rounded,
                 AppColors.onSurfaceVariant,
-                36,
+                40,
                 20,
                 onTap: () => _replayOriginal(cfg),
                 bg: AppColors.surfaceElevated,
@@ -854,7 +900,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               _circleBtn(
                 Icons.skip_next_rounded,
                 AppColors.onSurfaceVariant,
-                36,
+                40,
                 18,
                 onTap: cfg.nextSentence != null
                     ? () {
@@ -869,20 +915,20 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               _circleBtn(
                 Icons.play_arrow_rounded,
                 AppColors.onSurfaceVariant,
-                36,
+                40,
                 20,
                 onTap: () => _replayOriginal(cfg),
                 bg: AppColors.surfaceElevated,
               ),
             ],
-            
+
             const Spacer(),
-            
+
             // ── 中间：录音/停止按钮 ──
             _circleBtn(
               isListening ? Icons.stop_rounded : Icons.mic_rounded,
               isListening ? AppColors.onPrimary : AppColors.primary,
-              44,
+              48,
               22,
               onTap: isListening
                   ? () => _stopRecording(context, cfg)
@@ -891,14 +937,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   ? AppColors.error
                   : AppColors.primary.withValues(alpha: 0.15),
             ),
-            
+
             const SizedBox(width: 6),
-            
+
             // ── 右组：操作按钮 ──
             _circleBtn(
               Icons.replay_rounded,
               AppColors.onSurfaceVariant,
-              36,
+              40,
               18,
               onTap: (!isListening && hasRecording)
                   ? () => _playRecording()
@@ -906,19 +952,22 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               bg: AppColors.surfaceElevated,
             ),
             const SizedBox(width: 6),
-            // 详情按钮（图标）
-            _circleBtn(
-              Icons.analytics_rounded,
-              (!isListening && isScored) ? AppColors.primary : AppColors.onSurfaceVariant.withValues(alpha: 0.3),
-              36,
-              18,
-              onTap: (!isListening && isScored)
-                  ? () => _navigateToEvaluation(cfg)
-                  : null,
-              bg: (!isListening && isScored)
-                  ? AppColors.primary.withValues(alpha: 0.15)
-                  : AppColors.surfaceElevated,
-            ),
+            // 详情按钮（图标）- 仅付费模式显示评价页入口
+            if (cfg.subscriptionMode == SubscriptionMode.premium)
+              _circleBtn(
+                Icons.analytics_rounded,
+                (!isListening && isScored)
+                    ? AppColors.primary
+                    : AppColors.onSurfaceVariant.withValues(alpha: 0.3),
+                40,
+                18,
+                onTap: (!isListening && isScored)
+                    ? () => _navigateToEvaluation(cfg)
+                    : null,
+                bg: (!isListening && isScored)
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : AppColors.surfaceElevated,
+              ),
           ],
         ),
       ),
@@ -939,7 +988,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final bgColor = !enabled
         ? AppColors.surfaceElevated.withValues(alpha: 0.5)
         : (bg ?? AppColors.surfaceElevated);
-    final icColor = !enabled ? AppColors.onSurfaceVariant.withValues(alpha: 0.3) : iconColor;
+    final icColor = !enabled
+        ? AppColors.onSurfaceVariant.withValues(alpha: 0.3)
+        : iconColor;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -953,7 +1004,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }
 
   // ━━━ 声波图可视化 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  
+
   Widget _buildAudioWaveform() {
     return Container(
       height: 60,
@@ -975,7 +1026,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'shengtong_eval_$cfg.resourceCode_$timestamp.json';
       final filePath = '${tmpDir.path}/$fileName';
-      
+
       final saveData = {
         'timestamp': DateTime.now().toIso8601String(),
         'resourceCode': cfg.resourceCode,
@@ -983,7 +1034,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         'refText': cfg.subtitle.content,
         'result': result,
       };
-      
+
       final file = File(filePath);
       await file.writeAsString(jsonEncode(saveData));
       debugPrint('🎤 [ShadowReader] 评测结果已保存: $filePath');
@@ -999,9 +1050,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     int durationMs,
   ) async {
     try {
-      final evalType = EvaluationStorageService.detectEvaluationType(cfg.subtitle.content);
+      final evalType = EvaluationStorageService.detectEvaluationType(
+        cfg.subtitle.content,
+      );
       debugPrint('🎤 [ShadowReader] 保存评测到云端，类型: $evalType');
-      
+
       final response = await EvaluationStorageService.saveEvaluation(
         evaluationType: evalType,
         result: result,
@@ -1012,10 +1065,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         durationMs: durationMs,
         language: cfg.language,
       );
-      
+
       if (response['ok'] == true) {
         debugPrint('🎤 [ShadowReader] 云端保存成功: ${response['record_id']}');
-        debugPrint('🎤 [ShadowReader] 该类型总记录数: ${response['summary']?['total_count']}');
+        debugPrint(
+          '🎤 [ShadowReader] 该类型总记录数: ${response['summary']?['total_count']}',
+        );
       } else {
         debugPrint('⚠️ [ShadowReader] 云端保存失败: ${response['error']}');
       }
@@ -1030,7 +1085,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     if (_evaluationType == 'word' && _recognizedWords.isNotEmpty) {
       return _buildWordEvaluationPage(context, cfg);
     }
-    
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -1050,39 +1105,41 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     // ── 总分 + 维度评分 一行 ──
                     _buildCompactScoreRow(),
                     const SizedBox(height: 12),
-                    
+
                     // ── 语速信息 ──
                     if (_recordingSeconds > 0) ...[
                       _buildSpeechRateInfo(cfg),
                       const SizedBox(height: 12),
                     ],
-                    
+
                     // ── 单词详情（含音素）──
                     if (_recognizedWords.isNotEmpty) ...[
                       _buildWordDetailsList(),
                       const SizedBox(height: 12),
                     ],
-                    
+
                     // ── 薄弱维度提示 ──
                     if (_lastEvaluationResult != null) ...[
                       _buildWeakDimensionsTip(),
                       const SizedBox(height: 12),
                     ],
-                    
-                    // ── AI 分析结果（内联显示，点击底部按钮切换）──
-                    if (_showAiAnalysis && _aiAnalysisResult != null) ...[
-                      _buildAiAnalysisResultInline(),
-                      const SizedBox(height: 12),
-                    ],
-                    if (_showAiAnalysis && _isAiAnalyzing) ...[
-                      _buildAiAnalysisLoadingInline(),
-                      const SizedBox(height: 12),
+
+                    // ── AI 分析结果（仅付费模式，内联显示，点击底部按钮切换）──
+                    if (cfg.subscriptionMode == SubscriptionMode.premium) ...[
+                      if (_showAiAnalysis && _aiAnalysisResult != null) ...[
+                        _buildAiAnalysisResultInline(),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_showAiAnalysis && _isAiAnalyzing) ...[
+                        _buildAiAnalysisLoadingInline(),
+                        const SizedBox(height: 12),
+                      ],
                     ],
                   ],
                 ),
               ),
             ),
-            
+
             // ── 底部操作栏（返回 + AI分析 + 重新录音）──
             _buildEvaluationBottomBar(context, cfg),
           ],
@@ -1092,11 +1149,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }
 
   // ━━━ 单词评测页（专用 UI）━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Widget _buildWordEvaluationPage(BuildContext context, ShadowReaderConfig cfg) {
+  Widget _buildWordEvaluationPage(
+    BuildContext context,
+    ShadowReaderConfig cfg,
+  ) {
     final word = _recognizedWords.first;
     final score = _overallScore ?? 0;
     final color = _scoreColor(score);
-    
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -1140,7 +1200,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 6, left: 4),
+                                  padding: const EdgeInsets.only(
+                                    bottom: 6,
+                                    left: 4,
+                                  ),
                                   child: Text(
                                     '分',
                                     style: TextStyle(
@@ -1157,13 +1220,18 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         // 播放录音按钮
                         OutlinedButton.icon(
                           onPressed: _playRecording,
-                          icon: Icon(Icons.play_arrow, color: AppColors.success),
+                          icon: Icon(
+                            Icons.play_arrow,
+                            color: AppColors.success,
+                          ),
                           label: Text(
                             '播放录音',
                             style: TextStyle(color: AppColors.success),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.success.withValues(alpha: 0.5)),
+                            side: BorderSide(
+                              color: AppColors.success.withValues(alpha: 0.5),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -1172,7 +1240,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // ── 单词 + 音标 ──
                     Text(
                       word.word,
@@ -1195,12 +1263,15 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       ),
                     ],
                     const SizedBox(height: 24),
-                    
+
                     // ── 音素评分表格 ──
                     if (word.phonemes != null && word.phonemes!.isNotEmpty) ...[
                       // 表头
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceElevated,
                           borderRadius: BorderRadius.circular(8),
@@ -1251,7 +1322,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       ...word.phonemes!.map((p) {
                         final phonemeColor = _scoreColor(p.score ?? 0);
                         return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 12,
+                          ),
                           decoration: BoxDecoration(
                             border: Border(
                               bottom: BorderSide(
@@ -1306,7 +1380,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 ),
               ),
             ),
-            
+
             // ── 底部操作栏 ──
             _buildEvaluationBottomBar(context, cfg),
           ],
@@ -1319,7 +1393,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   Widget _buildCompactScoreRow() {
     final score = _overallScore ?? 0;
     final color = _scoreColor(score);
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1359,7 +1433,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 _buildCompactDimension('完整', _completenessScore),
                 if (_lastEvaluationResult?.pronunciation != null) ...[
                   const SizedBox(height: 4),
-                  _buildCompactDimension('发音', _lastEvaluationResult!.pronunciation),
+                  _buildCompactDimension(
+                    '发音',
+                    _lastEvaluationResult!.pronunciation,
+                  ),
                 ],
               ],
             ),
@@ -1379,7 +1456,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           width: 32,
           child: Text(
             label,
-            style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, decoration: TextDecoration.none),
+            style: TextStyle(
+              color: AppColors.onSurfaceVariant,
+              fontSize: 11,
+              decoration: TextDecoration.none,
+            ),
           ),
         ),
         Expanded(
@@ -1415,12 +1496,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   Widget _buildSpeechRateInfo(ShadowReaderConfig cfg) {
     // 计算语速：单词数 / 时间（秒）× 60 = 词/分钟
     final wordCount = _recognizedWords.length;
-    final timeSeconds = _recordingSeconds > 0 ? _recordingSeconds.toDouble() : 1.0;
+    final timeSeconds = _recordingSeconds > 0
+        ? _recordingSeconds.toDouble()
+        : 1.0;
     final wpm = (wordCount / timeSeconds * 60).round();
-    
+
     // 获取参考文本的词数
-    final refWordCount = cfg.subtitle.content.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-    
+    final refWordCount = cfg.subtitle.content
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .length;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -1482,7 +1568,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.primary),
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 14,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 6),
               Text(
                 'AI 发音分析',
@@ -1497,19 +1587,36 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           const SizedBox(height: 8),
           Text(
             _aiAnalysisResult!.analysis,
-            style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12, height: 1.4),
+            style: TextStyle(
+              color: AppColors.onSurfaceVariant,
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
           if (_aiAnalysisResult!.suggestions.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               '改进建议：',
-              style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: AppColors.onSurfaceVariant,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 4),
-            ..._aiAnalysisResult!.suggestions.map((s) => Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Text('• $s', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, height: 1.3)),
-            )),
+            ..._aiAnalysisResult!.suggestions.map(
+              (s) => Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  '• $s',
+                  style: TextStyle(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 11,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ),
           ],
         ],
       ),
@@ -1531,20 +1638,30 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           SizedBox(
             width: 14,
             height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(width: 8),
-          Text('AI 分析中...', style: TextStyle(color: AppColors.primary, fontSize: 13)),
+          Text(
+            'AI 分析中...',
+            style: TextStyle(color: AppColors.primary, fontSize: 13),
+          ),
         ],
       ),
     );
   }
 
-  /// 底部操作栏：返回 + AI分析 + 重新录音
-  Widget _buildEvaluationBottomBar(BuildContext context, ShadowReaderConfig cfg) {
+  /// 底部操作栏：返回 + AI分析（仅付费模式） + 重新录音
+  Widget _buildEvaluationBottomBar(
+    BuildContext context,
+    ShadowReaderConfig cfg,
+  ) {
+    final bool isPremium = cfg.subscriptionMode == SubscriptionMode.premium;
     final bool hasAiResult = _aiAnalysisResult != null;
     final bool isAiActive = _showAiAnalysis;
-    
+
     return SafeArea(
       top: false,
       child: Padding(
@@ -1557,64 +1674,94 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.arrow_back_ios_rounded, size: 14, color: AppColors.onSurfaceVariant),
+                  Icon(
+                    Icons.arrow_back_ios_rounded,
+                    size: 14,
+                    color: AppColors.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
-                  Text('返回', style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 12)),
+                  Text(
+                    '返回',
+                    style: TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Spacer(),
-            // AI 分析按钮（中间，点击切换显示/隐藏）
-            GestureDetector(
-              onTap: hasAiResult
-                  ? () => setState(() => _showAiAnalysis = !_showAiAnalysis)
-                  : () => _triggerAiAnalysis(cfg),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isAiActive
-                      ? AppColors.primary.withValues(alpha: 0.2)
-                      : AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
+            if (isPremium) ...[
+              const Spacer(),
+              // AI 分析按钮（仅付费模式显示）
+              GestureDetector(
+                onTap: hasAiResult
+                    ? () => setState(() => _showAiAnalysis = !_showAiAnalysis)
+                    : () => _triggerAiAnalysis(cfg),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
                     color: isAiActive
-                        ? AppColors.primary.withValues(alpha: 0.5)
-                        : AppColors.primary.withValues(alpha: 0.3),
+                        ? AppColors.primary.withValues(alpha: 0.2)
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isAiActive
+                          ? AppColors.primary.withValues(alpha: 0.5)
+                          : AppColors.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isAiAnalyzing)
+                        SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      else
+                        Icon(
+                          hasAiResult
+                              ? (isAiActive
+                                    ? Icons.visibility
+                                    : Icons.visibility_off)
+                              : Icons.auto_awesome_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _isAiAnalyzing
+                            ? '分析中...'
+                            : hasAiResult
+                            ? (isAiActive ? '收起分析' : '查看分析')
+                            : 'AI 分析',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isAiAnalyzing)
-                      SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                      )
-                    else
-                      Icon(
-                        hasAiResult
-                            ? (isAiActive ? Icons.visibility : Icons.visibility_off)
-                            : Icons.auto_awesome_rounded,
-                        size: 14,
-                        color: AppColors.primary,
-                      ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _isAiAnalyzing
-                          ? '分析中...'
-                          : hasAiResult
-                              ? (isAiActive ? '收起分析' : '查看分析')
-                              : 'AI 分析',
-                      style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
               ),
-            ),
-            const Spacer(),
+              const Spacer(),
+            ] else ...[
+              const Spacer(),
+            ],
             // 重新录音
-            _evalBtn('重新录音', Icons.refresh_rounded, () => _restartFromEvaluation(context, cfg)),
+            _evalBtn(
+              '重新录音',
+              Icons.refresh_rounded,
+              () => _restartFromEvaluation(context, cfg),
+            ),
           ],
         ),
       ),
@@ -1646,19 +1793,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             final Color color = isMiss
                 ? AppColors.warning
                 : isInsert
-                    ? AppColors.primary
-                    : hasError
-                        ? AppColors.error
-                        : AppColors.success;
-            
+                ? AppColors.primary
+                : hasError
+                ? AppColors.error
+                : AppColors.success;
+
             // 构建音素显示文本
             String phonemeText = '';
             if (word.phonemes != null && word.phonemes!.isNotEmpty) {
-              phonemeText = word.phonemes!
-                  .map((p) => p.phoneme)
-                  .join(' ');
+              phonemeText = word.phonemes!.map((p) => p.phoneme).join(' ');
             }
-            
+
             return GestureDetector(
               onTap: () => _showWordDetailDialog(word),
               child: Container(
@@ -1704,8 +1849,8 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       isMiss
                           ? '漏读'
                           : isInsert
-                              ? '多读'
-                              : '${word.score.round()}',
+                          ? '多读'
+                          : '${word.score.round()}',
                       style: TextStyle(
                         color: color,
                         fontSize: 11,
@@ -1753,9 +1898,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 const Spacer(),
                 // 得分标签
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: EvaluationDisplayHelper.getScoreColor(word.score).withValues(alpha: 0.2),
+                    color: EvaluationDisplayHelper.getScoreColor(
+                      word.score,
+                    ).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -1772,7 +1922,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 // 朗读类型标签
                 if (word.readType != null && word.readType != 'normal')
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: word.readTypeColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
@@ -1805,9 +1958,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 spacing: 8,
                 runSpacing: 8,
                 children: word.phonemes!.map((p) {
-                  final phonemeColor = EvaluationDisplayHelper.getScoreColor(p.score ?? 0);
+                  final phonemeColor = EvaluationDisplayHelper.getScoreColor(
+                    p.score ?? 0,
+                  );
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: phonemeColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
@@ -1845,18 +2003,26 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 children: [
                   Text(
                     '重音: ',
-                    style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 13, decoration: TextDecoration.none),
+                    style: TextStyle(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 13,
+                      decoration: TextDecoration.none,
+                    ),
                   ),
                   Icon(
                     word.wordStress! ? Icons.check_circle : Icons.cancel,
-                    color: word.wordStress! ? AppColors.success : AppColors.error,
+                    color: word.wordStress!
+                        ? AppColors.success
+                        : AppColors.error,
                     size: 16,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     word.wordStress! ? '正确' : '错误',
                     style: TextStyle(
-                      color: word.wordStress! ? AppColors.success : AppColors.error,
+                      color: word.wordStress!
+                          ? AppColors.success
+                          : AppColors.error,
                       fontSize: 13,
                       decoration: TextDecoration.none,
                     ),
@@ -1875,7 +2041,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   Widget _buildWeakDimensionsTip() {
     final weakDims = _lastEvaluationResult!.weakDimensions.take(2);
     if (weakDims.isEmpty) return const SizedBox.shrink();
-    
+
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -1903,12 +2069,18 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           ),
           const SizedBox(height: 6),
           ...weakDims.map((dim) {
-            final description = EvaluationDisplayHelper.getDimensionDescription(dim.key);
+            final description = EvaluationDisplayHelper.getDimensionDescription(
+              dim.key,
+            );
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
                 '• ${dim.key}: ${dim.value?.toStringAsFixed(1)}分 - $description',
-                style: TextStyle(color: AppColors.onSurfaceVariant, fontSize: 11, decoration: TextDecoration.none),
+                style: TextStyle(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 11,
+                  decoration: TextDecoration.none,
+                ),
               ),
             );
           }),
@@ -2020,7 +2192,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     ShadowReaderConfig cfg,
   ) async {
     if (_isEvaluating) return;
-    
+
     // 如果正在播放录音，先停止
     try {
       if (_audioPlayer.state == ap.PlayerState.playing) {
@@ -2029,29 +2201,36 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     } catch (_) {
       // 忽略停止错误
     }
-    
-      final hasPermission = await _recorder.hasPermission();
+
+    final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) {
       if (mounted) {
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(content: Text('需要麦克风权限才能跟读')),
-        );
+        ScaffoldMessenger.of(
+          this.context,
+        ).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
       }
       return;
     }
     setState(() {
       _state = 'listening';
-      _recognizedWords.clear();
+      _recognizedWords.clear(); // 录音开始时清空比对字幕
       _recordingSeconds = 0;
+      _liveTranscription = ''; // 清空实时转写
+      _overallScore = null; // 清空上次的分数
+      _fluencyScore = null;
+      _accuracyScore = null;
+      _completenessScore = null;
+      _aiAnalysisResult = null; // 清空AI分析结果
+      _showAiAnalysis = false;
     });
     cfg.setRecording?.call(true);
     _recordingStartTime = DateTime.now();
-    
+
     debugPrint('🎤 [ShadowReader] ========== 开始录音 ==========');
     debugPrint('🎤 [ShadowReader] 录音状态: 已开始');
     debugPrint('🎤 [ShadowReader] 参考文本: ${cfg.subtitle.content}');
     debugPrint('🎤 [ShadowReader] 订阅模式: ${cfg.subscriptionMode}');
-    
+
     _recordingTimer?.cancel();
     _recordingTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (mounted) setState(() => _recordingSeconds++);
@@ -2060,13 +2239,13 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       final tmpDir = Directory.systemTemp;
       _recordingPath =
           '${tmpDir.path}/shadow_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      
+
       debugPrint('🎤 [ShadowReader] 录音文件路径: $_recordingPath');
-      
+
       await _recorder.start(const RecordConfig(), path: _recordingPath!);
-      
+
       debugPrint('🎤 [ShadowReader] 录音器启动成功');
-      
+
       final defaultVol = cfg.isMusic ? 0.8 : 0.6;
       await cfg.setOriginalVolume?.call(defaultVol);
       if (cfg.getSingleSentencePause != true) {
@@ -2090,7 +2269,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     ShadowReaderConfig cfg,
   ) async {
     debugPrint('🎤 [ShadowReader] ========== 停止录音 ==========');
-    
+
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
     if (_recordingPath == null) {
@@ -2124,7 +2303,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final isPremium = cfg.subscriptionMode == SubscriptionMode.premium;
     debugPrint('🎤 [ShadowReader] 订阅模式: ${cfg.subscriptionMode}');
     debugPrint('🎤 [ShadowReader] 是否付费模式: $isPremium');
-    
+
     if (isPremium) {
       debugPrint('🎤 [ShadowReader] 进入付费模式评测流程');
       setState(() => _state = 'evaluating');
@@ -2225,11 +2404,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   ) async {
     if (_isEvaluating) return;
     _isEvaluating = true;
-    
+
     debugPrint('🎤 [ShadowReader] ========== 开始声通 WebSocket 评测 ==========');
     debugPrint('🎤 [ShadowReader] 音频路径: $audioPath');
     debugPrint('🎤 [ShadowReader] 参考文本: ${cfg.subtitle.content}');
-    
+
     try {
       // 使用 ShengtongEvaluator WebSocket 方式评测
       // 密钥从 AppKeysService 动态加载
@@ -2237,8 +2416,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       // 注意：声通 WebSocket 签名使用 shengtongApiKey 作为 secretKey（与 Python demo 一致）
       final stSecretKey = AppKeysService.instance.shengtongApiKey;
 
-      debugPrint('🎤 [ShadowReader] AppKey: ${stAppKey != null && stAppKey.isNotEmpty ? "已配置(${stAppKey.substring(0, math.min(4, stAppKey.length))}...)" : "未配置"}');
-      debugPrint('🎤 [ShadowReader] SecretKey: ${stSecretKey != null && stSecretKey.isNotEmpty ? "已配置(${stSecretKey.substring(0, math.min(4, stSecretKey.length))}...)" : "未配置"}');
+      debugPrint(
+        '🎤 [ShadowReader] AppKey: ${stAppKey != null && stAppKey.isNotEmpty ? "已配置(${stAppKey.substring(0, math.min(4, stAppKey.length))}...)" : "未配置"}',
+      );
+      debugPrint(
+        '🎤 [ShadowReader] SecretKey: ${stSecretKey != null && stSecretKey.isNotEmpty ? "已配置(${stSecretKey.substring(0, math.min(4, stSecretKey.length))}...)" : "未配置"}',
+      );
 
       if (stAppKey == null ||
           stAppKey.isEmpty ||
@@ -2260,12 +2443,13 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         debugPrint('❌ [ShadowReader] 音频文件不存在: $_recordingPath');
         _isEvaluating = false;
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('录音文件不存在，请重新录音')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('录音文件不存在，请重新录音')));
         }
         return;
       }
-      
+
       final audioSize = await audioFile.length();
       debugPrint('🎤 [ShadowReader] 音频文件大小: $audioSize bytes');
       if (audioSize < 1000) {
@@ -2305,26 +2489,28 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       final coreType = (!trimmed.contains(' ') && trimmed.length <= 50)
           ? 'word.eval'
           : (trimmed.length <= 100 ? 'sent.eval' : 'para.eval');
-      
+
       // 存储评测类型用于 UI 显示
-      _evaluationType = coreType == 'word.eval' ? 'word' : (coreType == 'sent.eval' ? 'sentence' : 'paragraph');
-      
+      _evaluationType = coreType == 'word.eval'
+          ? 'word'
+          : (coreType == 'sent.eval' ? 'sentence' : 'paragraph');
+
       final userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
-      debugPrint('🎤 [ShadowReader] 评测类型: $coreType (文本: "${refText.substring(0, refText.length > 20 ? 20 : refText.length)}...")');
+      debugPrint(
+        '🎤 [ShadowReader] 评测类型: $coreType (文本: "${refText.substring(0, refText.length > 20 ? 20 : refText.length)}...")',
+      );
       debugPrint('🎤 [ShadowReader] 开始调用声通 WebSocket API...');
-      
+
       // 根据录音文件扩展名确定音频格式
-      final audioType = _recordingPath!.endsWith('.m4a') ? 'm4a' : (_recordingPath!.endsWith('.mp3') ? 'mp3' : 'wav');
+      final audioType = _recordingPath!.endsWith('.m4a')
+          ? 'm4a'
+          : (_recordingPath!.endsWith('.mp3') ? 'mp3' : 'wav');
       debugPrint('🎤 [ShadowReader] 音频格式: $audioType');
-      
+
       // 发送 start 命令（内部会自动发送 connect）
       final request = jsonEncode({
         'audio': {'audioType': audioType, 'sampleRate': 16000},
-        'params': {
-          'userId': userId,
-          'coreType': coreType,
-          'refText': refText,
-        },
+        'params': {'userId': userId, 'coreType': coreType, 'refText': refText},
       });
 
       final started = await evaluator.start(request);
@@ -2351,36 +2537,49 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
       // 使用结构化解析器解析声通评测结果
       final evaluationResult = ShengtongEvaluationResult.fromJson(result);
-      
+
       // 从单词得分计算各维度分数（声通 WebSocket 响应可能不包含顶层维度）
       double? pronunciationScore = evaluationResult.pronunciation;
       double? overallScore = evaluationResult.overall;
       double? fluencyScore = evaluationResult.fluency;
       double? integrityScore = evaluationResult.integrity;
       double? accuracyScore = evaluationResult.accuracy;
-      
+
       if (evaluationResult.words.isNotEmpty) {
-        final validWords = evaluationResult.words.where((w) => (w.score ?? 0) > 0).toList();
+        final validWords = evaluationResult.words
+            .where((w) => (w.score ?? 0) > 0)
+            .toList();
         if (validWords.isNotEmpty) {
           // 计算发音得分（单词平均分）
-          final totalScore = validWords.fold<double>(0, (a, b) => a + (b.score ?? 0));
+          final totalScore = validWords.fold<double>(
+            0,
+            (a, b) => a + (b.score ?? 0),
+          );
           pronunciationScore = totalScore / validWords.length;
-          
+
           // 如果总分为空，使用发音得分作为总分
           overallScore ??= pronunciationScore;
-          
+
           // 如果流利度为空，从单词得分估算（正常朗读比例）
-          fluencyScore ??= validWords.where((w) => w.readType == 'normal' || w.readType == null).length / validWords.length * 100;
-          
+          fluencyScore ??=
+              validWords
+                  .where((w) => w.readType == 'normal' || w.readType == null)
+                  .length /
+              validWords.length *
+              100;
+
           // 如果完整度为空，从单词数量估算（识别单词数/预期单词数）
-          final expectedWordCount = cfg.subtitle.content.split(RegExp(r'\s+')).length;
-          integrityScore ??= (validWords.length / expectedWordCount * 100).clamp(0, 100);
-          
+          final expectedWordCount = cfg.subtitle.content
+              .split(RegExp(r'\s+'))
+              .length;
+          integrityScore ??= (validWords.length / expectedWordCount * 100)
+              .clamp(0, 100);
+
           // 如果准确度为空，使用发音得分
           accuracyScore ??= pronunciationScore;
         }
       }
-      
+
       debugPrint('🎤 [ShadowReader] ========== 声通评测结构化结果 ==========');
       debugPrint('🎤 [ShadowReader] 总分: $overallScore');
       debugPrint('🎤 [ShadowReader] 流利度: $fluencyScore');
@@ -2388,17 +2587,27 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       debugPrint('🎤 [ShadowReader] 准确度: $accuracyScore');
       debugPrint('🎤 [ShadowReader] 发音: $pronunciationScore');
       debugPrint('🎤 [ShadowReader] 单词数: ${evaluationResult.words.length}');
-      debugPrint('🎤 [ShadowReader] 错误单词: ${evaluationResult.getErrorWords().map((w) => '${w.word}(${w.score})').join(', ')}');
-      debugPrint('🎤 [ShadowReader] 漏读单词: ${evaluationResult.getMissingWords().map((w) => w.word).join(', ')}');
-      debugPrint('🎤 [ShadowReader] 音素错误: ${evaluationResult.getPhonemeErrors().map((e) => '${e.word}[${e.phoneme}]').join(', ')}');
-      debugPrint('🎤 [ShadowReader] 薄弱维度: ${evaluationResult.weakDimensions.take(2).map((d) => '${d.key}(${d.value})').join(', ')}');
-      debugPrint('🎤 [ShadowReader] ===========================================');
+      debugPrint(
+        '🎤 [ShadowReader] 错误单词: ${evaluationResult.getErrorWords().map((w) => '${w.word}(${w.score})').join(', ')}',
+      );
+      debugPrint(
+        '🎤 [ShadowReader] 漏读单词: ${evaluationResult.getMissingWords().map((w) => w.word).join(', ')}',
+      );
+      debugPrint(
+        '🎤 [ShadowReader] 音素错误: ${evaluationResult.getPhonemeErrors().map((e) => '${e.word}[${e.phoneme}]').join(', ')}',
+      );
+      debugPrint(
+        '🎤 [ShadowReader] 薄弱维度: ${evaluationResult.weakDimensions.take(2).map((d) => '${d.key}(${d.value})').join(', ')}',
+      );
+      debugPrint(
+        '🎤 [ShadowReader] ===========================================',
+      );
 
       final overall = overallScore;
       final fluency = fluencyScore;
       final accuracy = accuracyScore;
       final completeness = integrityScore;
-      
+
       // 保存评测结果 JSON 到文件（供分析使用）
       await _saveEvaluationResult(result, cfg);
       final recordingDurationMs = _recordingStartTime != null
@@ -2424,12 +2633,18 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         headphoneMode: await cfg.getHeadphoneMode?.call(),
       );
       await DatabaseService.insert(record);
-      
+
       // 保存到云端（按类型存储 50 条）
       if (_lastEvaluationResult != null) {
-        unawaited(_saveEvaluationToCloud(cfg, _lastEvaluationResult!, recordingDurationMs));
+        unawaited(
+          _saveEvaluationToCloud(
+            cfg,
+            _lastEvaluationResult!,
+            recordingDurationMs,
+          ),
+        );
       }
-      
+
       // 通过 LearningStatsService 统一记录跟读评分
       if (overall != null) {
         unawaited(
@@ -2446,14 +2661,18 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         await cfg.setLastFollowScore!(overall);
       }
       _setRecognitionResult(cfg, result);
-      
+
       // 修正发音得分（如果API未返回，从单词得分计算）
-      if (_lastEvaluationResult != null && _lastEvaluationResult!.pronunciation == null) {
+      if (_lastEvaluationResult != null &&
+          _lastEvaluationResult!.pronunciation == null) {
         final words = _lastEvaluationResult!.words;
         if (words.isNotEmpty) {
           final validWords = words.where((w) => (w.score ?? 0) > 0).toList();
           if (validWords.isNotEmpty) {
-            final totalScore = validWords.fold<double>(0, (a, b) => a + (b.score ?? 0));
+            final totalScore = validWords.fold<double>(
+              0,
+              (a, b) => a + (b.score ?? 0),
+            );
             final avgPronunciation = totalScore / validWords.length;
             _lastEvaluationResult = ShengtongEvaluationResult(
               rawResult: _lastEvaluationResult!.rawResult,
@@ -2471,8 +2690,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           }
         }
       }
-      
+
       if (mounted) {
+        // 停止计时器，因为评测已完成
+        _recordingTimer?.cancel();
         setState(() {
           _state = 'scored';
           _overallScore = overall;
@@ -2518,15 +2739,28 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     if (_isEvaluating) return;
     _isEvaluating = true;
     try {
+      // 等待语音识别完成（系统 speech_to_text 可能需要一点时间完成最终识别）
       String recognizedText = _liveTranscription;
+      if (recognizedText.isEmpty) {
+        debugPrint('🎤 [ShadowReader] 首次检查识别结果为空，等待 500ms 后重试...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        recognizedText = _liveTranscription;
+      }
+      // 如果还是为空，再等待一次
+      if (recognizedText.isEmpty) {
+        debugPrint('🎤 [ShadowReader] 第二次检查仍为空，再等待 500ms...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        recognizedText = _liveTranscription;
+      }
 
       if (recognizedText.isEmpty) {
         if (mounted) {
           setState(() => _state = 'idle');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('语音识别不可用，请确保已授予麦克风权限并在录音时允许识别')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('未能识别到语音，请尝试大声清晰地朗读')));
         }
+        _isEvaluating = false;
         return;
       }
 
@@ -2612,7 +2846,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       }
 
       _setFreeModeRecognitionResult(wordScores);
-      
+
       // 免费模式也创建 ShengtongEvaluationResult 供 AI 分析使用
       _lastEvaluationResult = ShengtongEvaluationResult(
         rawResult: {
@@ -2625,14 +2859,20 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         integrity: completeness,
         refText: cfg.subtitle.content,
         recognizedText: _liveTranscription,
-        words: _recognizedWords.map((w) => WordEvaluation(
-          word: w.word,
-          score: w.score,
-          readType: w.readType,
-        )).toList(),
+        words: _recognizedWords
+            .map(
+              (w) => WordEvaluation(
+                word: w.word,
+                score: w.score,
+                readType: w.readType,
+              ),
+            )
+            .toList(),
       );
-      
+
       if (mounted) {
+        // 停止计时器，因为评测已完成
+        _recordingTimer?.cancel();
         setState(() {
           _state = 'scored';
           _overallScore = overall;
@@ -2687,27 +2927,31 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
   /// 手动触发 AI 发音分析
   Future<void> _triggerAiAnalysis(ShadowReaderConfig cfg) async {
-    debugPrint('🎤 [ShadowReader] 🤖 AI 分析触发: _lastEvaluationResult=${_lastEvaluationResult != null}, _isAiAnalyzing=$_isAiAnalyzing');
+    debugPrint(
+      '🎤 [ShadowReader] 🤖 AI 分析触发: _lastEvaluationResult=${_lastEvaluationResult != null}, _isAiAnalyzing=$_isAiAnalyzing',
+    );
     if (_lastEvaluationResult == null || _isAiAnalyzing) {
-      debugPrint('🎤 [ShadowReader] 🤖 AI 分析跳过: evaluationResult=${_lastEvaluationResult == null ? "null" : "exists"}, isAnalyzing=$_isAiAnalyzing');
+      debugPrint(
+        '🎤 [ShadowReader] 🤖 AI 分析跳过: evaluationResult=${_lastEvaluationResult == null ? "null" : "exists"}, isAnalyzing=$_isAiAnalyzing',
+      );
       return;
     }
-    
+
     setState(() {
       _isAiAnalyzing = true;
       _showAiAnalysis = true; // 触发分析时自动显示区域
     });
-    
+
     try {
       debugPrint('🎤 [ShadowReader] 🤖 用户触发 AI 发音分析...');
-      
+
       final result = await AiEvaluationService.analyzePronunciation(
         evaluationResult: _lastEvaluationResult!,
         resourceTitle: cfg.resourceTitle,
         refText: cfg.subtitle.content,
         language: cfg.language,
       );
-      
+
       if (result != null && mounted) {
         setState(() {
           _aiAnalysisResult = result;
@@ -2715,16 +2959,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         });
         debugPrint('🎤 [ShadowReader] 🤖 AI 分析完成');
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI 分析失败，请稍后重试')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('AI 分析失败，请稍后重试')));
       }
     } catch (e) {
       debugPrint('❌ [ShadowReader] AI 分析触发失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('AI 分析失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('AI 分析失败: $e')));
       }
     } finally {
       if (mounted) setState(() => _isAiAnalyzing = false);
@@ -2737,7 +2981,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   ) {
     // 使用结构化解析器解析声通评测结果
     final evaluationResult = ShengtongEvaluationResult.fromJson(result);
-    
+
     // 构建 RecognizedWord 列表，包含详细评分信息
     _recognizedWords = evaluationResult.words.map((wordEval) {
       // 根据朗读类型和得分判断是否正确
@@ -2749,7 +2993,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       } else {
         isCorrect = (wordEval.score ?? 0) >= 70;
       }
-      
+
       return RecognizedWord(
         word: wordEval.word,
         correct: isCorrect,
@@ -2759,7 +3003,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         wordStress: wordEval.wordStress,
       );
     }).toList();
-    
+
     // 保存结构化结果供后续使用
     _lastEvaluationResult = evaluationResult;
   }
@@ -2779,7 +3023,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   Future<void> _replayOriginal(ShadowReaderConfig cfg) async {
     // 先停止之前的 TTS 高亮
     _stopTtsHighlight();
-    
+
     if (cfg.resourceType == 'article') {
       if (cfg.speakSubtitle != null) {
         // 解析单词列表用于高亮
@@ -2787,10 +3031,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         final wordRegex = RegExp(r'\b\w+\b');
         _ttsWords = wordRegex.allMatches(text).map((m) => m.group(0)!).toList();
         _ttsCurrentWordIndex = _ttsWords.isNotEmpty ? 0 : -1;
-        
+
         // 启动单词高亮定时器
         _startTtsHighlightTimer(text);
-        
+
         await cfg.speakSubtitle!(text);
       }
     } else {
@@ -2799,42 +3043,44 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       }
     }
   }
-  
-    /// 启动 TTS 单词高亮定时器
-    void _startTtsHighlightTimer(String text) {
-      _ttsTimer?.cancel();
-      
-      if (_ttsWords.isEmpty) return;
-      
-      // 估算每个单词的持续时间（基于平均语速）
-      // 假设平均语速为 150 词/分钟 = 2.5 词/秒 = 400ms/词
-      const int avgWordDurationMs = 400;
-      
-      widget.config.onTtsPlayingStateChanged?.call(true);
-      
-      _ttsTimer = Timer.periodic(Duration(milliseconds: avgWordDurationMs), (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
-          timer.cancel();
-          _ttsTimer = null;
-          widget.config.onTtsPlayingStateChanged?.call(false);
-          return;
-        }
-        setState(() => _ttsCurrentWordIndex++);
-        widget.config.onTtsWordIndexChanged?.call(_ttsCurrentWordIndex);
-      });
-    }
-   
-   /// 停止 TTS 高亮
-   void _stopTtsHighlight() {
-     _ttsTimer?.cancel();
-     _ttsTimer = null;
-     _ttsCurrentWordIndex = -1;
-     _ttsWords = [];
-   }
+
+  /// 启动 TTS 单词高亮定时器
+  void _startTtsHighlightTimer(String text) {
+    _ttsTimer?.cancel();
+
+    if (_ttsWords.isEmpty) return;
+
+    // 估算每个单词的持续时间（基于平均语速）
+    // 假设平均语速为 150 词/分钟 = 2.5 词/秒 = 400ms/词
+    const int avgWordDurationMs = 400;
+
+    widget.config.onTtsPlayingStateChanged?.call(true);
+
+    _ttsTimer = Timer.periodic(Duration(milliseconds: avgWordDurationMs), (
+      timer,
+    ) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
+        timer.cancel();
+        _ttsTimer = null;
+        widget.config.onTtsPlayingStateChanged?.call(false);
+        return;
+      }
+      setState(() => _ttsCurrentWordIndex++);
+      widget.config.onTtsWordIndexChanged?.call(_ttsCurrentWordIndex);
+    });
+  }
+
+  /// 停止 TTS 高亮
+  void _stopTtsHighlight() {
+    _ttsTimer?.cancel();
+    _ttsTimer = null;
+    _ttsCurrentWordIndex = -1;
+    _ttsWords = [];
+  }
 }
 
 // ━━━ 辅助类 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -3058,9 +3304,7 @@ class _AudioWaveformAnimatorState extends State<_AudioWaveformAnimator>
             width: 3,
             height: 8 + height * 44, // 最小 8，最大 52
             decoration: BoxDecoration(
-              color: widget.color.withValues(
-                alpha: 0.3 + height * 0.7,
-              ),
+              color: widget.color.withValues(alpha: 0.3 + height * 0.7),
               borderRadius: BorderRadius.circular(1.5),
             ),
           );

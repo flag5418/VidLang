@@ -7,10 +7,7 @@ import '../../theme/td_spacers.dart';
 import '../../theme/td_theme.dart';
 import 'td_slider_theme.dart';
 
-enum Position {
-  start,
-  end,
-}
+enum Position { start, end }
 
 /// 单滑动选择器
 class TDSlider extends StatefulWidget {
@@ -83,10 +80,11 @@ class TDSliderState extends State<TDSlider> {
   bool get _enabled => widget.onChanged != null;
 
   TextStyle get labelTextStyle => TextStyle(
-      fontSize: 16,
-      color: _enabled
-          ? TDTheme.of(context).textColorPrimary
-          : TDTheme.of(context).textDisabledColor);
+    fontSize: 16,
+    color: _enabled
+        ? TDTheme.of(context).textColorPrimary
+        : TDTheme.of(context).textDisabledColor,
+  );
 
   Widget get leftLabel => widget.leftLabel?.isNotEmpty == true
       ? Padding(
@@ -110,78 +108,78 @@ class TDSliderState extends State<TDSlider> {
         tdSliderThemeData.showScaleValue || tdSliderThemeData.showThumbValue;
 
     return Listener(
-        onPointerDown: (event) {
-          final sliderBox =
-              _sliderKey.currentContext?.findRenderObject() as RenderBox?;
-          if (sliderBox == null ||
-              widget.onThumbTextTap == null ||
-              !tdSliderThemeData.showThumbValue) {
-            return;
-          }
+      onPointerDown: (event) {
+        final sliderBox =
+            _sliderKey.currentContext?.findRenderObject() as RenderBox?;
+        if (sliderBox == null ||
+            widget.onThumbTextTap == null ||
+            !tdSliderThemeData.showThumbValue) {
+          return;
+        }
 
-          final localOffset = sliderBox.globalToLocal(event.position);
-          final themeData = widget.sliderThemeData ?? TDSliderThemeData();
-          final textRect = themeData.sliderMeasureData.thumbTextRect;
+        final localOffset = sliderBox.globalToLocal(event.position);
+        final themeData = widget.sliderThemeData ?? TDSliderThemeData();
+        final textRect = themeData.sliderMeasureData.thumbTextRect;
 
-          if (textRect != null && textRect.contains(localOffset)) {
-            widget.onThumbTextTap?.call(localOffset, value);
-          }
-        },
-        child: Container(
-          padding: EdgeInsets.only(
-            top: (showValue ? 16 : 0) + 8,
-            bottom: 8,
-          ),
-          decoration: widget.boxDecoration ??
-              BoxDecoration(color: TDTheme.of(context).bgColorContainer),
-          child: Row(
-            // spacing: TDTheme.of(context).spacer8,
-            children: [
-              leftLabel,
-              const SizedBox(width: 8),
-              Expanded(
-                child: Listener(
-                  onPointerDown: (event) {
-                    if (!_enabled || widget.onTap == null) {
-                      return;
-                    }
+        if (textRect != null && textRect.contains(localOffset)) {
+          widget.onThumbTextTap?.call(localOffset, value);
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.only(top: (showValue ? 16 : 0) + 8, bottom: 8),
+        decoration:
+            widget.boxDecoration ??
+            BoxDecoration(color: TDTheme.of(context).bgColorContainer),
+        child: Row(
+          // spacing: TDTheme.of(context).spacer8,
+          children: [
+            leftLabel,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Listener(
+                onPointerDown: (event) {
+                  if (!_enabled || widget.onTap == null) {
+                    return;
+                  }
 
-                    final sliderBox = _sliderKey.currentContext
-                        ?.findRenderObject() as RenderBox?;
-                    if (sliderBox == null) {
-                      return;
-                    }
+                  final sliderBox =
+                      _sliderKey.currentContext?.findRenderObject()
+                          as RenderBox?;
+                  if (sliderBox == null) {
+                    return;
+                  }
 
-                    final tapOffset = sliderBox.globalToLocal(event.position);
-                    widget.onTap?.call(tapOffset, value);
-                  },
-                  child: SliderTheme(
-                    data: tdSliderThemeData.sliderThemeData,
-                    child: Slider(
-                      key: _sliderKey,
-                      value: value,
-                      min: tdSliderThemeData.min,
-                      max: tdSliderThemeData.max,
-                      divisions: tdSliderThemeData.divisions,
-                      onChangeStart: widget.onChangeStart,
-                      onChangeEnd: widget.onChangeEnd,
-                      onChanged: _enabled
-                          ? (slideValue) {
-                              setState(() {
-                                value = slideValue;
-                                widget.onChanged?.call(slideValue);
-                              });
-                            }
-                          : null,
-                    ),
+                  final tapOffset = sliderBox.globalToLocal(event.position);
+                  widget.onTap?.call(tapOffset, value);
+                },
+                child: SliderTheme(
+                  data: tdSliderThemeData.sliderThemeData,
+                  child: Slider(
+                    key: _sliderKey,
+                    value: value,
+                    min: tdSliderThemeData.min,
+                    max: tdSliderThemeData.max,
+                    divisions: tdSliderThemeData.divisions,
+                    onChangeStart: widget.onChangeStart,
+                    onChangeEnd: widget.onChangeEnd,
+                    onChanged: _enabled
+                        ? (slideValue) {
+                            setState(() {
+                              value = slideValue;
+                              widget.onChanged?.call(slideValue);
+                            });
+                          }
+                        : null,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              rightLabel
-            ],
-          ),
-        ));
+            ),
+            const SizedBox(width: 8),
+            rightLabel,
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -214,18 +212,11 @@ class TDRangeSlider extends StatefulWidget {
   final TDSliderThemeData? sliderThemeData;
 
   /// Thumb 点击事件 位置、坐标、当前值
-  final Function(
-    Position position,
-    Offset offset,
-    double value,
-  )? onTap;
+  final Function(Position position, Offset offset, double value)? onTap;
 
   /// Thumb 点击浮标文字 位置、坐标、当前值
-  final Function(
-    Position position,
-    Offset offset,
-    double value,
-  )? onThumbTextTap;
+  final Function(Position position, Offset offset, double value)?
+  onThumbTextTap;
 
   const TDRangeSlider({
     Key? key,
@@ -266,10 +257,11 @@ class _TDRangeSliderState extends State<TDRangeSlider> {
   bool get _enabled => widget.onChanged != null;
 
   TextStyle get labelTextStyle => TextStyle(
-      fontSize: 16,
-      color: _enabled
-          ? TDTheme.of(context).textColorPrimary
-          : TDTheme.of(context).textDisabledColor);
+    fontSize: 16,
+    color: _enabled
+        ? TDTheme.of(context).textColorPrimary
+        : TDTheme.of(context).textDisabledColor,
+  );
 
   Widget get leftLabel => widget.leftLabel?.isNotEmpty == true
       ? Padding(
@@ -310,23 +302,25 @@ class _TDRangeSliderState extends State<TDRangeSlider> {
         final endTextRect = themeData.sliderMeasureData.endRangeThumbTextRect;
 
         if (startTextRect?.contains(localOffset) ?? false) {
-          widget.onThumbTextTap
-              ?.call(Position.start, localOffset, rangeValues.start);
+          widget.onThumbTextTap?.call(
+            Position.start,
+            localOffset,
+            rangeValues.start,
+          );
         }
         if (endTextRect?.contains(localOffset) ?? false) {
-          widget.onThumbTextTap
-              ?.call(Position.end, localOffset, rangeValues.end);
+          widget.onThumbTextTap?.call(
+            Position.end,
+            localOffset,
+            rangeValues.end,
+          );
         }
       },
       child: Container(
-        padding: EdgeInsets.only(
-          top: (showValue ? 16 : 0) + 8,
-          bottom: 8,
-        ),
-        decoration: widget.boxDecoration ??
-            BoxDecoration(
-              color: TDTheme.of(context).bgColorContainer,
-            ),
+        padding: EdgeInsets.only(top: (showValue ? 16 : 0) + 8, bottom: 8),
+        decoration:
+            widget.boxDecoration ??
+            BoxDecoration(color: TDTheme.of(context).bgColorContainer),
         child: Row(
           // spacing: 8,
           children: [
@@ -339,8 +333,9 @@ class _TDRangeSliderState extends State<TDRangeSlider> {
                     return;
                   }
 
-                  final sliderBox = _sliderRangeKey.currentContext
-                      ?.findRenderObject() as RenderBox?;
+                  final sliderBox =
+                      _sliderRangeKey.currentContext?.findRenderObject()
+                          as RenderBox?;
                   if (sliderBox == null) {
                     return;
                   }
@@ -350,7 +345,8 @@ class _TDRangeSliderState extends State<TDRangeSlider> {
 
                   final sliderTheme = SliderTheme.of(context);
                   final thumbShape = sliderTheme.rangeThumbShape;
-                  final thumbSize = thumbShape?.getPreferredSize(
+                  final thumbSize =
+                      thumbShape?.getPreferredSize(
                         _enabled,
                         widget.sliderThemeData?.divisions != null,
                       ) ??
@@ -372,10 +368,10 @@ class _TDRangeSliderState extends State<TDRangeSlider> {
                   // 检测点击区域
                   final isStartTap =
                       (tapOffset.dx - startCenterX).abs() <= thumbRadius &&
-                          (tapOffset.dy - verticalCenter).abs() <= thumbRadius;
+                      (tapOffset.dy - verticalCenter).abs() <= thumbRadius;
                   final isEndTap =
                       (tapOffset.dx - endCenterX).abs() <= thumbRadius &&
-                          (tapOffset.dy - verticalCenter).abs() <= thumbRadius;
+                      (tapOffset.dy - verticalCenter).abs() <= thumbRadius;
 
                   Position position;
                   double tappedValue;
@@ -389,8 +385,8 @@ class _TDRangeSliderState extends State<TDRangeSlider> {
                   } else {
                     tappedValue =
                         (tapOffset.dx / sliderWidth) * (max - min) + min;
-                    final startDistance =
-                        (tappedValue - rangeValues.start).abs();
+                    final startDistance = (tappedValue - rangeValues.start)
+                        .abs();
                     final endDistance = (tappedValue - rangeValues.end).abs();
                     position = startDistance < endDistance
                         ? Position.start

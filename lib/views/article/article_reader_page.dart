@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/models/article_chapter.dart';
@@ -155,8 +155,18 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   ArticleTranslation? _translation;
   bool _showTranslation = false;
   bool _loadingTranslation = false;
-  bool get _isPaidMode =>
-      AppKeysService.currentUser?.authProvider == 'supabase';
+  bool get _isPaidMode {
+    try {
+      final container = ProviderScope.containerOf(context, listen: false);
+      return container.read(subscriptionProvider).mode == SubscriptionMode.premium;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // 单词释义加载状态
+  bool _loadingWord = false;
+  String? _loadingWordText;
 
   // 划词工具栏
   String? _selectionText;
@@ -902,6 +912,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     setState(() {
       _selectionText = null;
       _toolbarOffset = null;
+      _loadingWord = false;
+      _loadingWordText = null;
     });
   }
 
@@ -916,10 +928,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       _speakText(text);
     } else if (action == 'define') {
       _showWordTranslation(text);
-      _clearSelection();
+      // 释义 toast 显示后延迟取消高亮
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted) _clearSelection();
+      });
     } else if (action == 'translate') {
       _openWordCard(text, contextSentence: contextSentence);
-      _clearSelection();
+      // 翻译弹窗关闭后取消高亮（弹窗关闭时 WordCard.dispose 会触发）
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _clearSelection();
+      });
     } else if (action == 'mark') {
       _showMarkColorDialog(text);
       _clearSelection();
@@ -928,27 +946,47 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     }
   }
 
-  Future<void> _showWordTranslation(String word) async {
-    final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
-    final detail = await UnifiedTranslationService.instance.translate(
-      text: word,
-      mode: mode,
-      sourceType: 'article',
-      sourceCode: widget.articleCode,
-    );
+  /// 检查字符串是否包含中文字符
+  bool _containsChinese(String text) {
+    return RegExp('[\u4e00-\u9fff]').hasMatch(text);
+  }
+
+  Future<void> _showWordTranslation(String text) async {
     if (!mounted) return;
-    if (detail.success) {
-      final phonetic = detail.displayPhonetic != null && detail.displayPhonetic!.isNotEmpty
-          ? '[${detail.displayPhonetic}] '
-          : '';
+    setState(() {
+      _loadingWord = true;
+      _loadingWordText = text;
+    });
+    try {
+      final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+      final detail = await UnifiedTranslationService.instance.translate(
+        text: text,
+        mode: mode,
+        sourceType: 'article',
+        sourceCode: widget.articleCode,
+      );
+      if (!mounted) return;
+
       final translation = detail.translation ?? detail.definitions.firstOrNull?.chineseMeaning ?? '';
+      String displayText;
+      if (translation.isNotEmpty && _containsChinese(translation)) {
+        displayText = '$text\n$translation';
+      } else {
+        displayText = '未找到「$text」的中文释义';
+      }
+
       TDToast.showText(
-        '$word $phonetic\n$translation',
+        displayText,
         context: context,
         duration: const Duration(seconds: 3),
       );
-    } else {
-      TDToast.showText('未找到「$word」的释义', context: context);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingWord = false;
+          _loadingWordText = null;
+        });
+      }
     }
   }
 
@@ -1133,6 +1171,48 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 left: _toolbarOffset!.dx,
                 top: _toolbarOffset!.dy,
                 child: _buildSelectionToolbar(cs),
+              ),
+
+            // 单词释义加载提示
+            if (_loadingWord)
+              Positioned(
+                left: _toolbarOffset?.dx ?? MediaQuery.of(context).size.width / 2 - 60,
+                top: (_toolbarOffset?.dy ?? MediaQuery.of(context).size.height / 2) - 50,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cs.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '正在查询「${_loadingWordText ?? ''}」...',
+                        style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
 
             // 字体大小弹窗

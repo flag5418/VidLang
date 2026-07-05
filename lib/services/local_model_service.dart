@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:vidlang/services/model_copy_service.dart';
 
 /// 本地模型状态管理服务
 /// 只检查 MarianMT 翻译模型是否存在于沙盒中
@@ -40,7 +41,16 @@ class LocalModelService {
       // 检查沙盒中的 MarianMT 模型
       final appDir = await getApplicationDocumentsDirectory();
       final marianmtPath = '${appDir.path}/models/marianmt-onnx/encoder_model.onnx';
-      final marianmtExists = await File(marianmtPath).exists();
+      var marianmtExists = await File(marianmtPath).exists();
+
+      // 如果模型不存在，尝试从 assets 复制
+      if (!marianmtExists) {
+        debugPrint('沙盒中未找到模型，尝试从 assets 复制...');
+        final copied = await ModelCopyService.instance.copyModelsIfNeeded();
+        if (copied) {
+          marianmtExists = await File(marianmtPath).exists();
+        }
+      }
 
       debugPrint('=== 模型检测详情 ===');
       debugPrint('MarianMT 存在: $marianmtExists');

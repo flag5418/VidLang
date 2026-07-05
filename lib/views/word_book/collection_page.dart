@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
@@ -403,7 +402,11 @@ class _CollectionPageState extends ConsumerState<CollectionPage> with TickerProv
     if (!wordPattern.hasMatch(keyword)) return;
 
     // 弹出翻译弹窗（复用 WordCard 组件）
-    final isPaid = AppKeysService.currentUser?.authProvider == 'supabase';
+    bool isPaid = false;
+    try {
+      final container = ProviderScope.containerOf(context, listen: false);
+      isPaid = container.read(subscriptionProvider).mode == SubscriptionMode.premium;
+    } catch (_) {}
     if (!mounted) return;
     await WordCard.show(
       context,

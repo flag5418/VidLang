@@ -146,18 +146,20 @@ class UnifiedTtsService {
       }
 
       await _nativeTts.setLanguage('en-US');
+
+      // 优先 synthesizeToFile → 文件播放（可控、可缓存）
       final audioPath = await _nativeTts.synthesizeToFile(text: text, outputPath: '');
       if (audioPath != null && await File(audioPath).exists() && await File(audioPath).length() > 0) {
+        _ttsLog('🔊 [TTS] ✅ 本地合成成功: ${File(audioPath).length()} bytes');
         return TtsResult(audioPath: audioPath, success: true, format: 'm4a');
       }
 
-      // 降级方案：synthesizeToFile 在某些 iOS 设备上不可靠，直接 speak 播放
-      _ttsLog('🔊 [TTS] synthesizeToFile 失败，降级到直接 speak 播放');
+      // 文件合成失败 → 直接 speak 播放（iOS AVSpeechSynthesizer 不可靠时的兜底）
+      _ttsLog('🔊 [TTS] synthesizeToFile 未生成文件，使用 speak 直接播放');
       await _nativeTts.synthesizeToAudio(text: text);
-      // 返回一个标记成功的结果，但 audioPath 为空，表示是直接播放
       return TtsResult(audioPath: '', success: true, format: 'direct');
     } catch (e) {
-      _ttsLog('🔊 [TTS] 原生 TTS 失败: $e');
+      _ttsLog('🔊 [TTS] 原生 TTS 异常: $e');
       return TtsResult.error('原生 TTS 失败: $e');
     }
   }

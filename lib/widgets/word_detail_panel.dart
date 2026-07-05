@@ -148,6 +148,28 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     );
   }
 
+  /// 检查文本是否为错误/无效内容（不显示给用户）
+  bool _isErrorContent(String text) {
+    if (text.isEmpty) return true;
+    const errorPatterns = [
+      '翻译失败',
+      '翻译模型未就绪',
+      '翻译模型加载失败',
+      'Tokenization 失败',
+      '本地翻译模型未就绪',
+      '本地翻译失败',
+      '查询失败',
+      '未知',
+      '失败',
+      'Error',
+      'error',
+    ];
+    for (final pattern in errorPatterns) {
+      if (text.contains(pattern)) return true;
+    }
+    return false;
+  }
+
   Widget _buildContent() {
     if (widget.isLoading) {
       return _buildLoadingState();
@@ -156,6 +178,14 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         widget.data.error != null &&
         !widget.data.isInsufficientBalance) {
       return _buildErrorState();
+    }
+    // 本地模型返回错误信息时，也显示错误状态
+    if (widget.data.source == 'local' || widget.data.source == 'local_ai') {
+      final translation = widget.data.translation ?? '';
+      final error = widget.data.error ?? '';
+      if (_isErrorContent(translation) || _isErrorContent(error)) {
+        return _buildErrorState();
+      }
     }
     return _buildContentLayout();
   }
@@ -614,7 +644,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   Widget _buildChineseMeaning() {
     final definitions = widget.data.definitions;
     final hasDefinitions = definitions.any((d) => d.chineseMeaning.trim().isNotEmpty);
-    final hasTranslation = widget.data.translation != null && widget.data.translation!.trim().isNotEmpty;
+    final rawTranslation = widget.data.translation?.trim() ?? '';
+    final hasTranslation = rawTranslation.isNotEmpty && !_isErrorContent(rawTranslation);
     
     if (!hasDefinitions && !hasTranslation) return const SizedBox.shrink();
     

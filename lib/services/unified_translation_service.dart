@@ -88,13 +88,13 @@ class UnifiedTranslationService {
       final response = await client.functions.invoke(
         'ai-proxy',
         body: {
-          'rule_code': 'ai_definition',
+          'rule_code': 'ai_translate',
           'scene': 'player',
           'entry': 'subtitle_tap',
           'request_id': requestId,
           'params': {
-            'word': text,
-            if (contextSentence?.isNotEmpty ?? false) 'context_sentence': contextSentence,
+            'text': text,
+            'target_language': '中文',
           },
           if (billing?.isNotEmpty ?? false) 'billing': billing,
         },
