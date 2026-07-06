@@ -6,18 +6,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
 import 'package:vidlang/views/home/home_page.dart';
 import 'package:vidlang/views/profile/profile_page.dart';
 import 'package:vidlang/views/word_book/collection_page.dart';
 
-/// 主页面 - 基于 Pencil UI Design Skill 重构
-/// 
-/// 改进点：
-/// - 底部导航栏使用统一的颜色和间距规范
-/// - 添加页面切换动画
-/// - 导航项组件化，便于维护
-/// - 支持安全区域适配
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
 
@@ -35,14 +29,10 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    
-    // Pencil Skill: 页面切换动画控制器
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 300), // Pencil Skill: 正常动画时长
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
-    // 延迟检查模型状态，避免阻塞UI
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkModelStatus();
     });
@@ -55,19 +45,15 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
     super.dispose();
   }
 
-  /// 检查模型状态（MarianMT 翻译模型）
   Future<void> _checkModelStatus() async {
     if (_hasCheckedModels) return;
     _hasCheckedModels = true;
-    
     try {
       final localModelService = LocalModelService.instance;
       final status = await localModelService.checkModelsStatus();
-      
       debugPrint('=== 模型状态检查 ===');
       debugPrint('状态: $status');
       debugPrint('canUseAiFeatures: ${localModelService.canUseAiFeatures}');
-      
       if (status == LocalModelStatus.missing) {
         debugPrint('翻译模型未找到，请检查 iOS 系统翻译设置');
       }
@@ -76,15 +62,11 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
     }
   }
 
-
-  /// 切换Tab（带动画）
   void _onTabTapped(int index) {
     if (_currentPage == index) return;
-    
-    // Pencil Skill: 使用 easeInOutCubic 缓动曲线
     _pageController.animateToPage(
-      index, 
-      duration: Duration(milliseconds: 300), // Pencil Skill: 正常动画时长
+      index,
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOutCubic,
     );
     ref.read(navigationIndexProvider.notifier).setIndex(index);
@@ -93,9 +75,29 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
-    final theme = Theme.of(context);
+    final ipad = isIPad(context);
 
-    final pages = [const HomePage(), const FileListPage(), const CollectionPage(), const ProfilePage()];
+    final pages = [
+      HomePage(
+        onNavigateToTab: () => _onTabTapped(1),
+      ),
+      const FileListPage(),
+      const CollectionPage(),
+      const ProfilePage(),
+    ];
+
+    if (ipad) {
+      return _buildIpadLayout(currentIndex, pages);
+    }
+    return _buildIphoneLayout(currentIndex, pages);
+  }
+
+  // ═══════════════════════════════════════════════
+  // iPhone 布局
+  // ═══════════════════════════════════════════════
+
+  Widget _buildIphoneLayout(int currentIndex, List<Widget> pages) {
+    final colors = context.colors;
 
     return Scaffold(
       body: PageView(
@@ -109,51 +111,124 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
         physics: const ClampingScrollPhysics(),
         children: pages,
       ),
-      // Pencil Skill: 使用自定义底部导航栏，统一设计规范
-      bottomNavigationBar: _buildBottomNavBar(currentIndex, theme),
+      bottomNavigationBar: Container(
+        height: 60.0 + MediaQuery.of(context).padding.bottom,
+        decoration: BoxDecoration(
+          color: colors.surface,
+          border: Border(
+            top: BorderSide(
+              color: colors.border.withValues(alpha: 0.5),
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 60.0,
+              child: Row(
+                children: List.generate(navigationItems.length, (index) {
+                  final item = navigationItems[index];
+                  final isActive = currentIndex == index;
+                  return Expanded(
+                    child: _IphoneNavItem(
+                      item: item,
+                      isActive: isActive,
+                      onTap: () => _onTabTapped(index),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  /// 构建底部导航栏（Pencil Skill 规范）
-  Widget _buildBottomNavBar(int currentIndex, ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        // Pencil Skill: 顶部边框分隔线
-        border: Border(
-          top: BorderSide(
-            color: theme.colorScheme.outlineVariant,
-            width: 1,
+  // ═══════════════════════════════════════════════
+  // iPad 布局
+  // ═══════════════════════════════════════════════
+
+  Widget _buildIpadLayout(int currentIndex, List<Widget> pages) {
+    final colors = context.colors;
+
+    return Scaffold(
+      body: Row(
+        children: [
+          // 左侧边栏
+          Container(
+            width: 220.0.w,
+            color: colors.surface,
+            child: Column(
+              children: [
+                SizedBox(height: MediaQuery.of(context).padding.top + 20.0.h),
+                // 品牌区
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+                  child: Row(
+                    children: [
+                      Icon(Icons.school_rounded,
+                          size: 28.0.sp, color: colors.primary),
+                      SizedBox(width: 10.0.w),
+                      Text(
+                        'VidLang',
+                        style: TextStyle(
+                          fontSize: 22.0.sp,
+                          fontWeight: FontWeight.w800,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 32.0.h),
+                // 导航项
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: List.generate(navigationItems.length, (index) {
+                      final item = navigationItems[index];
+                      final isActive = currentIndex == index;
+                      return _IpadNavItem(
+                        item: item,
+                        isActive: isActive,
+                        onTap: () => _onTabTapped(index),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: List.generate(navigationItems.length, (index) {
-            final item = navigationItems[index];
-            final isActive = currentIndex == index;
-            
-            return Expanded(
-              child: _NavItem(
-                item: item,
-                isActive: isActive,
-                onTap: () => _onTabTapped(index),
-              ),
-            );
-          }),
-        ),
+          // 分割线
+          Container(
+            width: 0.5,
+            color: colors.border,
+          ),
+          // 右侧内容区
+          Expanded(
+            child: IndexedStack(
+              index: currentIndex,
+              children: pages,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// 导航项组件（Pencil Skill 规范）
-class _NavItem extends StatelessWidget {
+// ═══════════════════════════════════════════════
+// iPhone 导航项
+// ═══════════════════════════════════════════════
+
+class _IphoneNavItem extends StatelessWidget {
   final NavigationItem item;
   final bool isActive;
   final VoidCallback onTap;
 
-  const _NavItem({
+  const _IphoneNavItem({
     required this.item,
     required this.isActive,
     required this.onTap,
@@ -161,32 +236,112 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final activeColor = colors.primary;
+    final inactiveColor = colors.textWeak;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200), // Pencil Skill: 快速动画
-        padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: SizedBox(
+        height: 60.0,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Pencil Skill: 图标使用 Material Symbols Rounded 风格
             Icon(
               isActive ? item.activeIcon : item.icon,
-              size: 26.w,
-              color: isActive ? AppColors.primary : AppColors.textTertiary, // 使用主题色作为选中颜色
+              size: 24.0,
+              color: isActive ? activeColor : inactiveColor,
             ),
-            SizedBox(height: 4.h),
+            const SizedBox(height: 2.0),
             Text(
               item.label,
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: 11.0,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? AppColors.primary : AppColors.textTertiary, // 使用主题色作为选中颜色
+                color: isActive ? activeColor : inactiveColor,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+// iPad 导航项
+// ═══════════════════════════════════════════════
+
+class _IpadNavItem extends StatelessWidget {
+  final NavigationItem item;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _IpadNavItem({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final activeColor = colors.primary;
+    final inactiveColor = colors.textWeak;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 2.0.h),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor.withValues(alpha: 0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: isActive ? 3.0 : 0.0,
+                decoration: BoxDecoration(
+                  color: isActive ? activeColor : Colors.transparent,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(2.0),
+                    bottomRight: Radius.circular(2.0),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0.w,
+                    vertical: 12.0.h,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isActive ? item.activeIcon : item.icon,
+                        size: 22.0,
+                        color: isActive ? activeColor : inactiveColor,
+                      ),
+                      SizedBox(width: 12.0.w),
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: 15.0.sp,
+                          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                          color: isActive ? activeColor : colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

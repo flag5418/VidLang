@@ -1,78 +1,38 @@
-/// Homepage - VidLang v4.3
+/// 首页 v8.0 — 全面优化
 library;
-
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/stats_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_spacing.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 
-class _EntryData {
-  final VideoFolder? folder;
-  final String? cover;
-  final String? playTitle;
-  final int count;
-  final String countLabel;
-  final Color color;
-  final IconData typeIcon;
-  _EntryData({
-    required this.folder,
-    required this.cover,
-    required this.playTitle,
-    required this.count,
-    required this.countLabel,
-    required this.color,
-    required this.typeIcon,
-  });
-}
-
-class _LearningItem {
-  final VideoFolder folder;
-  final _ResourceDetail detail;
-  _LearningItem({required this.folder, required this.detail});
-}
-
-class _ResourceDetail {
-  final String? name;
-  final int currentPosition;
-  final int totalDuration;
-  final double progress;
-  final int totalParagraphs;
-  final int wordCount;
-  _ResourceDetail({
-    this.name,
-    this.currentPosition = 0,
-    this.totalDuration = 0,
-    this.progress = 0.0,
-    this.totalParagraphs = 0,
-    this.wordCount = 0,
-  });
-}
-
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  final VoidCallback? onNavigateToTab;
+  
+  const HomePage({super.key, this.onNavigateToTab});
+
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  Map<String, List<VideoFolder>> _recentFolders = {};
   HomeStats _stats = const HomeStats();
   bool _loading = true;
-  _EntryData? _videoEntry;
-  _EntryData? _musicEntry;
-  _EntryData? _articleEntry;
-  List<_LearningItem> _recentLearningItems = [];
+  List<RecentResource> _recentResources = [];
 
   @override
   void initState() {
@@ -86,765 +46,965 @@ class _HomePageState extends ConsumerState<HomePage> {
       final results = await Future.wait([
         StatsService.getAllRecentFolders(),
         StatsService.getHomeStats(),
-        StatsService.getRecentLearningFolders(limit: 8),
+        LearningStatsService.instance.getRecentResources(limit: 5),
       ]);
       if (!mounted) return;
-      final folders = results[0] as Map<String, List<VideoFolder>>;
-      final stats = results[1] as HomeStats;
-      final recentFolders = results[2] as List<VideoFolder>;
-      _videoEntry = await _buildEntryData('video', folders['video']?.first, context.colors);
-      _musicEntry = await _buildEntryData('music', folders['music']?.first, context.colors);
-      _articleEntry = await _buildEntryData('article', folders['article']?.first, context.colors);
-      _recentLearningItems = [];
-      final Set<String> seenCodes = {};
-      for (final folder in recentFolders) {
-        if (folder.code == null || seenCodes.contains(folder.code)) continue;
-        seenCodes.add(folder.code!);
-        final detail = await _fetchResourceDetail(folder);
-        _recentLearningItems.add(_LearningItem(folder: folder, detail: detail));
-      }
       setState(() {
-        _stats = stats;
+        _recentFolders = results[0] as Map<String, List<VideoFolder>>;
+        _stats = results[1] as HomeStats;
+        _recentResources = results[2] as List<RecentResource>;
         _loading = false;
       });
     } catch (e, st) {
-      debugPrint('[HomePage] _loadData error: $e\n$st');
+      debugPrint('[HomePage] _loadData failed: $e\n$st');
       if (!mounted) return;
       setState(() => _loading = false);
     }
   }
 
-  Future<_EntryData?> _buildEntryData(String type, VideoFolder? folder, AppColorsData colors) async {
-    if (folder == null) return null;
-    String? cover;
-    String? playTitle;
-    final int count = folder.videoCount;
-    if (type == 'video' || type == 'music') {
-      final info = await _fetchLastVideo(folder.code);
-      cover = info?.currentCover ?? folder.cover ?? info?.cover;
-      playTitle = info?.name ?? folder.name;
-    } else {
-      final article = await _fetchLastArticle(folder.code);
-      playTitle = article?.title ?? folder.name;
-    }
-    return _EntryData(
-      folder: folder,
-      cover: cover,
-      playTitle: playTitle,
-      count: count,
-      countLabel: type == 'article' ? '篇' : '个',
-      color: _typeColor(type, colors),
-      typeIcon: _typeIcon(type),
-    );
-  }
-
-  Color _typeColor(String type, AppColorsData colors) {
-    switch (type) {
-      case 'music':
-        return colors.audioType;
-      case 'article':
-        return colors.articleType;
-      default:
-        return colors.videoType;
-    }
-  }
-
-  IconData _typeIcon(String type) {
-    switch (type) {
-      case 'music':
-        return Icons.music_note;
-      case 'article':
-        return Icons.article_outlined;
-      default:
-        return Icons.movie_outlined;
-    }
-  }
-
-  Future<VideoInfo?> _fetchLastVideo(String? folderCode) async {
-    if (folderCode == null) return null;
-    try {
-      final items = await DatabaseService.findByCondition(
-        () => VideoInfo(),
-        where: 'folder_code = ? AND is_deleted = 0',
-        whereArgs: [folderCode],
-        orderBy: 'play_date DESC, order_index ASC',
-      );
-      if (items.isNotEmpty) {
-        return items.firstWhere((v) => v.playDate != null, orElse: () => items.first);
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  Future<Article?> _fetchLastArticle(String? folderCode) async {
-    if (folderCode == null) return null;
-    try {
-      final articles = await DatabaseService.findByCondition(
-        () => Article(),
-        where: 'folder_code = ? AND is_deleted = 0',
-        whereArgs: [folderCode],
-        orderBy: 'last_study_date DESC, updated_at DESC',
-      );
-      if (articles.isNotEmpty) {
-        return articles.firstWhere((a) => a.lastStudyDate != null, orElse: () => articles.first);
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  Future<_ResourceDetail> _fetchResourceDetail(VideoFolder folder) async {
-    final code = folder.code;
-    if (code == null) return _ResourceDetail();
-    if (folder.folderType == FolderContentType.article) {
-      final article = await _fetchLastArticle(code);
-      if (article != null) {
-        return _ResourceDetail(
-          name: article.title,
-          progress: article.progress,
-          totalParagraphs: article.totalParagraphs,
-          wordCount: article.wordCount,
-        );
-      }
-    } else {
-      final video = await _fetchLastVideo(code);
-      if (video != null) {
-        return _ResourceDetail(
-          name: video.name,
-          currentPosition: video.currentPosition,
-          totalDuration: video.duration > 0 ? video.duration : 1,
-        );
-      }
-    }
-    return _ResourceDetail(name: folder.name);
-  }
-
-  String _formatTimeMs(int ms) {
-    if (ms <= 0) return '00:00';
-    final totalSeconds = (ms / 1000).floor();
-    final minutes = (totalSeconds / 60).floor();
-    final seconds = totalSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  String _formatRelativeTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
-    if (diff.inHours < 24) return '${diff.inHours}小时前';
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final timeDay = DateTime(time.year, time.month, time.day);
-    if (timeDay == yesterday) return '昨天';
-    final days = today.difference(timeDay).inDays;
-    if (days < 7) return '$days天前';
-    return '${time.month}-${time.day}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                '加载中...',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppSpacing.md),
-                _buildBrandCard(),
-                const SizedBox(height: AppSpacing.lg),
-                _buildTodayStats(),
-                const SizedBox(height: AppSpacing.lg),
-                _buildResourceEntries(),
-                const SizedBox(height: AppSpacing.lg),
-                _buildRecentLearning(),
-                SizedBox(height: MediaQuery.of(context).padding.bottom + 32),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // Brand Card — 品牌卡片
-  // ============================================================
-
-  Widget _buildBrandCard() {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Container(
-        height: 160,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colors.primary.withValues(alpha: 0.85),
-              colors.primary.withValues(alpha: 0.65),
-              colors.tertiary.withValues(alpha: 0.5),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          boxShadow: [
-            BoxShadow(
-              color: colors.primary.withValues(alpha: 0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            onTap: () {},
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Image.asset('assets/app/logo.png', fit: BoxFit.contain),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'VidLang',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '沉浸式语言学习平台',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // Today Stats — 今日学习统计
-  // ============================================================
-
-  Widget _buildTodayStats() {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '今日学习',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: colors.onSurface,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  '连续',
-                  '${_stats.streakDays}',
-                  '天',
-                  Icons.local_fire_department,
-                  colors.primary,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _buildStatCard(
-                  '今日',
-                  '${_stats.todayDuration ~/ 60}',
-                  '分钟',
-                  Icons.schedule,
-                  Colors.orange,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _buildStatCard(
-                  '单词',
-                  '${_stats.wordCount}',
-                  '个',
-                  Icons.menu_book,
-                  Colors.teal,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, String unit, IconData icon, Color color) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: colors.onSurface,
-                ),
-              ),
-              if (unit.isNotEmpty) ...[
-                const SizedBox(width: 2),
-                Text(
-                  unit,
-                  style: TextStyle(fontSize: 12, color: colors.onSurface.withValues(alpha: 0.6)),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // Resource Entry Cards — 资源库入口
-  // ============================================================
-
-  Widget _buildResourceEntries() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '资源库',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _buildEntryCard(_videoEntry),
-          const SizedBox(height: AppSpacing.md),
-          _buildEntryCard(_musicEntry),
-          const SizedBox(height: AppSpacing.md),
-          _buildEntryCard(_articleEntry),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEntryCard(_EntryData? data) {
-    if (data == null) return const SizedBox.shrink();
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      height: 88,
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: () => _goToResources(data.folder),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: data.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    child: data.cover != null && data.cover!.isNotEmpty
-                        ? (data.cover!.startsWith('/')
-                            ? Image.file(
-                                File(data.cover!),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Icon(data.typeIcon, color: data.color, size: 28),
-                              )
-                            : Image.asset(
-                                data.cover!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Icon(data.typeIcon, color: data.color, size: 28),
-                              ))
-                        : Icon(data.typeIcon, color: data.color, size: 28),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        data.playTitle ?? '未命名',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: colors.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${data.count}${data.countLabel}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: colors.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: colors.onSurface.withValues(alpha: 0.4)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _goToResources(VideoFolder? folder) {
-    if (folder == null) return;
-    final typeIndex = ['video', 'music', 'article'].indexOf(folder.folderType.name);
+  void _goToResources(String folderType) {
+    final typeIndex = ['video', 'music', 'article'].indexOf(folderType);
     if (typeIndex < 0) return;
     ref.read(resourceTabProvider.notifier).state = typeIndex;
-    ref.read(navigationIndexProvider.notifier).setIndex(1);
+    // 使用回调触发页面跳转
+    widget.onNavigateToTab?.call();
   }
 
-  // ============================================================
-  // Recent Learning — 最近学习
-  // ============================================================
-
-  Widget _buildRecentLearning() {
-    final colors = Theme.of(context).colorScheme;
-    if (_recentLearningItems.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '最近学习',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: colors.onSurface,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ..._recentLearningItems.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: _buildLearningCard(item),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLearningCard(_LearningItem item) {
-    final colors = Theme.of(context).colorScheme;
-    final folder = item.folder;
-    final detail = item.detail;
-    final bool isArticle = folder.folderType == FolderContentType.article;
-    final String displayTitle = detail.name ?? folder.name;
-    final int totalDuration = detail.totalDuration;
-    final int currentPosition = detail.currentPosition;
-    final FolderContentType folderType = folder.folderType;
-    final Color typeColor = _typeColor(
-      folderType == FolderContentType.video
-          ? 'video'
-          : (folderType == FolderContentType.music ? 'music' : 'article'),
-      context.colors,
-    );
-    final IconData typeIcon = _typeIcon(
-      folderType == FolderContentType.video
-          ? 'video'
-          : (folderType == FolderContentType.music ? 'music' : 'article'),
-    );
-
-    final DateTime? lastActivity = folder.lastPlayDate;
-    final double progress = isArticle
-        ? detail.progress
-        : (totalDuration > 0 ? currentPosition / totalDuration : 0.0);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: () => _navigateToDetail(item),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: typeColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Icon(typeIcon, size: 20, color: typeColor),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            displayTitle,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: colors.onSurface,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              if (isArticle) ...[
-                                Text(
-                                  '阅读 ${detail.totalParagraphs}段',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colors.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ] else ...[
-                                Text(
-                                  _formatTimeMs(currentPosition),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colors.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                                Text(
-                                  ' / ${_formatTimeMs(totalDuration)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colors.onSurface.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                              ],
-                              const Spacer(),
-                              if (lastActivity != null) ...[
-                                Icon(
-                                  Icons.access_time,
-                                  size: 12,
-                                  color: colors.onSurface.withValues(alpha: 0.4),
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  _formatRelativeTime(lastActivity),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: colors.onSurface.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
-                    minHeight: 3,
-                    backgroundColor: typeColor.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation(typeColor),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToDetail(_LearningItem item) {
-    final folder = item.folder;
+  Future<void> _openFolder(VideoFolder folder) async {
     final code = folder.code;
     if (code == null) return;
 
     if (folder.folderType == FolderContentType.article) {
-      _openArticleFolder(folder);
-    } else if (folder.folderType == FolderContentType.music) {
-      _openMediaFolder(folder, isMusic: true);
-    } else {
-      _openMediaFolder(folder, isMusic: false);
-    }
-  }
-
-  Future<void> _openArticleFolder(VideoFolder folder) async {
-    try {
-      final articles = await DatabaseService.findByCondition(
-        () => Article(),
-        where: 'folder_code = ? AND is_deleted = 0',
-        whereArgs: [folder.code],
-        orderBy: 'last_study_date DESC, updated_at DESC',
-      );
-      if (articles.isNotEmpty && mounted) {
-        final target = articles.firstWhere(
-          (a) => a.lastStudyDate != null,
-          orElse: () => articles.first,
+      try {
+        final articles = await DatabaseService.findByCondition(
+          () => Article(),
+          where: 'folder_code = ? AND is_deleted = 0',
+          whereArgs: [code],
+          orderBy: 'last_study_date DESC, updated_at DESC',
         );
-        if (target.code != null && target.code!.isNotEmpty) {
+        if (articles.isNotEmpty && mounted) {
+          Article target = articles.firstWhere(
+            (a) => a.lastStudyDate != null,
+            orElse: () => articles.first,
+          );
+          if (!mounted) return;
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => ArticleReaderPage(articleCode: target.code!),
             ),
           );
-          if (mounted) await _loadData();
+          if (!mounted) return;
+          await _loadData();
+          return;
         }
-      }
-    } catch (e) {
-      debugPrint('[HomePage] open article failed: $e');
+      } catch (_) {}
     }
-  }
 
-  Future<void> _openMediaFolder(VideoFolder folder, {required bool isMusic}) async {
     try {
       final videos = await DatabaseService.findByCondition(
         () => VideoInfo(),
         where: 'folder_code = ? AND is_deleted = 0',
-        whereArgs: [folder.code],
+        whereArgs: [code],
         orderBy: 'order_index ASC, created_at ASC',
       );
       if (videos.isNotEmpty && mounted) {
         final firstVideo = videos.first;
-        if (firstVideo.code != null && firstVideo.code!.isNotEmpty) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => isMusic
-                  ? AudioPlayerPage(
-                      videoCode: firstVideo.code!,
-                      folderVideos: videos,
-                      audioType: 'music',
+        await ref.read(fileProvider.notifier).loadVideos(code);
+        if (!mounted) return;
+        final isMusic = folder.folderType == FolderContentType.music;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => isMusic
+                ? AudioPlayerPage(
+                    videoCode: firstVideo.code!,
+                    folderVideos: videos,
+                    audioType: 'music',
+                  )
+                : PlayerPage(
+                    videoCode: firstVideo.code!,
+                    folderVideos: videos,
+                  ),
+          ),
+        );
+        if (!mounted) return;
+        await _loadData();
+      }
+    } catch (_) {}
+  }
+
+  AppDeviceType get _deviceType => ref.read(deviceTypeProvider);
+  bool get _isIpad => _deviceType.isTablet;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final brightness = Theme.of(context).brightness;
+    final surfaceColor = AppColors.getSurface(brightness: brightness);
+
+    if (_isIpad) {
+      return Scaffold(
+        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+        body: _buildIpadBody(colorScheme, brightness, surfaceColor),
+      );
+    }
+    return Scaffold(
+      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _buildIphoneBody(colorScheme, brightness, surfaceColor),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // iPhone 布局
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildIphoneBody(
+    ColorScheme colorScheme,
+    Brightness brightness,
+    Color surfaceColor,
+  ) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 品牌 + 学习统计（固定区域）
+          _buildBrandStatsCard(colorScheme, brightness, surfaceColor),
+          SizedBox(height: 14.h),
+          // 资源中心（固定区域）
+          _buildResourceSection(colorScheme, brightness, surfaceColor),
+          SizedBox(height: 14.h),
+          // 最近学习标题（固定区域）
+          Padding(
+            padding: EdgeInsets.only(left: 4.w),
+            child: Text(
+              '最近学习',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+          SizedBox(height: 10.h),
+          // 最近学习列表（可滚动区域，占据剩余空间）
+          Expanded(
+            child: _buildRecentList(colorScheme, brightness, surfaceColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 品牌 + 学习统计（合并卡片）
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildBrandStatsCard(
+    ColorScheme colorScheme,
+    Brightness brightness,
+    Color surfaceColor,
+  ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primary,
+            colorScheme.primary.withValues(alpha: 0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 顶部品牌区
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 20.h),
+            child: Row(
+              children: [
+                // 大图标
+                Container(
+                  width: 56.w,
+                  height: 56.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.school_rounded,
+                    color: Colors.white,
+                    size: 30.sp,
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                // 标题 + 副标题
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'VidLang',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        '看视频、听音乐、读文章，轻松学英语',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 底部统计区（白色背景）
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                _buildStatItem(
+                  icon: Icons.local_fire_department_rounded,
+                  value: '${_stats.streakDays}',
+                  label: '连续',
+                  color: const Color(0xFFFF6B35),
+                  colorScheme: colorScheme,
+                ),
+                _buildStatDivider(colorScheme),
+                _buildStatItem(
+                  icon: Icons.apps_rounded,
+                  value: '${_stats.resourceCount}',
+                  label: '资源',
+                  color: colorScheme.primary,
+                  colorScheme: colorScheme,
+                ),
+                _buildStatDivider(colorScheme),
+                _buildStatItem(
+                  icon: Icons.menu_book_rounded,
+                  value: '${_stats.wordCount}',
+                  label: '单词',
+                  color: const Color(0xFF22C55E),
+                  colorScheme: colorScheme,
+                ),
+                _buildStatDivider(colorScheme),
+                _buildStatItem(
+                  icon: Icons.schedule_rounded,
+                  value: _formatDurationCompact(_stats.todayDuration),
+                  label: '时长',
+                  color: const Color(0xFFA855F7),
+                  colorScheme: colorScheme,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color color,
+    required ColorScheme colorScheme,
+  }) {
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18.sp, color: color),
+          SizedBox(height: 4.h),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.sp,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatDivider(ColorScheme colorScheme) {
+    return Container(
+      width: 1,
+      height: 32.h,
+      color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+    );
+  }
+
+  String _formatDurationCompact(int seconds) {
+    if (seconds < 60) return '$seconds秒';
+    if (seconds < 3600) return '${seconds ~/ 60}分';
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    return m > 0 ? '$h.$m时' : '$h时';
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 资源中心
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildResourceSection(
+    ColorScheme colorScheme,
+    Brightness brightness,
+    Color surfaceColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 4.w),
+          child: Text(
+            '资源中心',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
+          ),
+        ),
+        SizedBox(height: 10.h),
+        // 三行横排卡片
+        _buildResourceRow(
+          type: 'video',
+          title: '视频',
+          icon: Icons.movie_outlined,
+          color: AppColors.videoColor,
+          colorScheme: colorScheme,
+          surfaceColor: surfaceColor,
+        ),
+        SizedBox(height: 8.h),
+        _buildResourceRow(
+          type: 'music',
+          title: '音频',
+          icon: Icons.music_note_outlined,
+          color: AppColors.audioColor,
+          colorScheme: colorScheme,
+          surfaceColor: surfaceColor,
+        ),
+        SizedBox(height: 8.h),
+        _buildResourceRow(
+          type: 'article',
+          title: '文章',
+          icon: Icons.menu_book_outlined,
+          color: AppColors.articleColor,
+          colorScheme: colorScheme,
+          surfaceColor: surfaceColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResourceRow({
+    required String type,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required ColorScheme colorScheme,
+    required Color surfaceColor,
+  }) {
+    final folders = _recentFolders[type] ?? [];
+    final recentFolder = folders.isNotEmpty ? folders.first : null;
+    final count = folders.fold<int>(0, (sum, f) => sum + f.videoCount);
+    final hasFolders = folders.isNotEmpty;
+
+    return GestureDetector(
+      onTap: () => _goToResources(type),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            // 图标
+            Container(
+              width: 36.w,
+              height: 36.w,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 20.sp, color: color),
+            ),
+            SizedBox(width: 12.w),
+            // 中间内容区
+            Expanded(
+              child: hasFolders
+                  ? _buildResourceContent(
+                      recentFolder: recentFolder,
+                      colorScheme: colorScheme,
                     )
-                  : PlayerPage(
-                      videoCode: firstVideo.code!,
-                      folderVideos: videos,
+                  : _buildResourceEmpty(
+                      title: title,
+                      colorScheme: colorScheme,
                     ),
             ),
-          );
-          if (mounted) await _loadData();
+            // 右侧：数量 + 箭头
+            if (hasFolders) ...[
+              Text(
+                '$count个',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              SizedBox(width: 4.w),
+            ],
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18.sp,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 有资源时显示的内容
+  Widget _buildResourceContent({
+    required VideoFolder? recentFolder,
+    required ColorScheme colorScheme,
+  }) {
+    if (recentFolder == null) {
+      return Text(
+        '暂无内容',
+        style: TextStyle(
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 文件夹名称
+        Text(
+          recentFolder.name,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        SizedBox(height: 2.h),
+        // 最后播放的资源名称
+        FutureBuilder<String>(
+          future: _getLastPlayTitleAsync(recentFolder),
+          builder: (context, snapshot) {
+            final t = snapshot.data ?? '暂无播放记录';
+            return Text(
+              t,
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // 没有资源时显示的内容
+  Widget _buildResourceEmpty({
+    required String title,
+    required ColorScheme colorScheme,
+  }) {
+    return Text(
+      '暂无$title资源，点击管理',
+      style: TextStyle(
+        fontSize: 13.sp,
+        color: colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  Future<String> _getLastPlayTitleAsync(VideoFolder folder) async {
+    if (folder.lastVideoCode == null || folder.lastVideoCode!.isEmpty) {
+      return '暂无播放记录';
+    }
+    try {
+      final videos = await DatabaseService.findByCondition(
+        () => VideoInfo(),
+        where: 'code = ? AND is_deleted = 0',
+        whereArgs: [folder.lastVideoCode],
+        limit: 1,
+      );
+      if (videos.isNotEmpty) {
+        return videos.first.name.isNotEmpty ? videos.first.name : '上次播放';
+      }
+    } catch (_) {}
+    return '上次播放';
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 最近学习列表（可滚动）
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildRecentList(
+    ColorScheme colorScheme,
+    Brightness brightness,
+    Color surfaceColor,
+  ) {
+    if (_recentResources.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 24.h),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: 0.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.history_toggle_off_rounded,
+              size: 32.sp,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              '暂无学习记录',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: _recentResources.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: 8.h),
+          child: _buildRecentItem(
+            _recentResources[index],
+            colorScheme,
+            brightness,
+            surfaceColor,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecentItem(
+    RecentResource resource,
+    ColorScheme colorScheme,
+    Brightness brightness,
+    Color surfaceColor,
+  ) {
+    final typeColor = AppColors.colorForType(
+      resource.resourceType,
+      brightness: brightness,
+    );
+    final icon = _iconForType(resource.resourceType);
+    final timeAgo = _getTimeAgo(resource.lastStudiedAt);
+
+    return GestureDetector(
+      onTap: () => _openRecentResource(resource),
+      child: Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: 0.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 第一行：图标 + 标题 + 时间
+            Row(
+              children: [
+                Icon(icon, size: 18.sp, color: typeColor),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    _getResourceTitle(resource),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  timeAgo,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            // 第二行：详细信息
+            _buildResourceDetail(resource, typeColor, colorScheme),
+            SizedBox(height: 8.h),
+            // 第三行：进度条
+            _buildProgressBar(resource, typeColor, colorScheme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 资源详细信息（时长/段落等）
+  Widget _buildResourceDetail(
+    RecentResource resource,
+    Color typeColor,
+    ColorScheme colorScheme,
+  ) {
+    if (resource.resourceType == 'article') {
+      return _buildArticleDetail(resource, colorScheme);
+    } else {
+      return _buildVideoDetail(resource, colorScheme);
+    }
+  }
+
+  // 视频/音频详情
+  Widget _buildVideoDetail(RecentResource resource, ColorScheme colorScheme) {
+    return FutureBuilder<VideoInfo?>(
+      future: _loadVideoInfo(resource.resourceCode),
+      builder: (context, snapshot) {
+        final video = snapshot.data;
+        if (video == null) return const SizedBox.shrink();
+
+        final currentPos = video.currentPosition > 0
+            ? _formatDuration(video.currentPosition ~/ 1000)
+            : '0:00';
+        final totalDur = video.duration > 0
+            ? _formatDuration(video.duration ~/ 1000)
+            : '0:00';
+
+        return Row(
+          children: [
+            Icon(
+              Icons.play_circle_outline_rounded,
+              size: 14.sp,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              '$currentPos / $totalDur',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 文章详情
+  Widget _buildArticleDetail(RecentResource resource, ColorScheme colorScheme) {
+    return FutureBuilder<Article?>(
+      future: _loadArticleInfo(resource.resourceCode),
+      builder: (context, snapshot) {
+        final article = snapshot.data;
+        if (article == null) return const SizedBox.shrink();
+
+        return Row(
+          children: [
+            // 段落信息
+            Icon(
+              Icons.format_list_numbered_rounded,
+              size: 14.sp,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              '${article.lastParagraphIndex}/${article.totalParagraphs}段',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            // 字数信息
+            Icon(
+              Icons.text_fields_rounded,
+              size: 14.sp,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              '${article.wordCount}字',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressBar(
+    RecentResource resource,
+    Color typeColor,
+    ColorScheme colorScheme,
+  ) {
+    return FutureBuilder<double>(
+      future: _getProgress(resource),
+      builder: (context, snapshot) {
+        final progress = snapshot.data ?? 0.0;
+        final percentage = (progress * 100).toInt();
+        return Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: progress > 0 ? progress : null,
+                  minHeight: 4,
+                  backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress > 0 ? typeColor : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              '$percentage%',
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: typeColor,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Article?> _loadArticleInfo(String code) async {
+    try {
+      final articles = await DatabaseService.findByCondition(
+        () => Article(),
+        where: 'code = ? AND is_deleted = 0',
+        whereArgs: [code],
+        limit: 1,
+      );
+      return articles.isNotEmpty ? articles.first : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<VideoInfo?> _loadVideoInfo(String code) async {
+    try {
+      final videos = await DatabaseService.findByCondition(
+        () => VideoInfo(),
+        where: 'code = ? AND is_deleted = 0',
+        whereArgs: [code],
+        limit: 1,
+      );
+      return videos.isNotEmpty ? videos.first : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<double> _getProgress(RecentResource resource) async {
+    try {
+      if (resource.resourceType == 'article') {
+        final article = await _loadArticleInfo(resource.resourceCode);
+        if (article != null && article.totalParagraphs > 0) {
+          return (article.lastParagraphIndex / article.totalParagraphs)
+              .clamp(0.0, 1.0);
+        }
+      } else {
+        final video = await _loadVideoInfo(resource.resourceCode);
+        if (video != null && video.duration > 0) {
+          return (video.currentPosition / video.duration).clamp(0.0, 1.0);
         }
       }
-    } catch (e) {
-      debugPrint('[HomePage] open media failed: $e');
+    } catch (_) {}
+    return 0.0;
+  }
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'article':
+        return Icons.menu_book_outlined;
+      case 'music':
+        return Icons.music_note_outlined;
+      default:
+        return Icons.movie_outlined;
     }
+  }
+
+  String _getResourceTitle(RecentResource resource) {
+    if (resource.folderCode != null && resource.folderCode!.isNotEmpty) {
+      final folders = _recentFolders[resource.resourceType] ?? [];
+      final folder = folders.where((f) => f.code == resource.folderCode).firstOrNull;
+      if (folder != null) {
+        return folder.name;
+      }
+    }
+    final shortCode = resource.resourceCode.length > 8
+        ? resource.resourceCode.substring(0, 8)
+        : resource.resourceCode;
+    return '资源 $shortCode';
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+    if (diff.inSeconds < 60) return '刚刚';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+    if (diff.inHours < 24) return '${diff.inHours}小时前';
+    if (diff.inDays < 7) return '${diff.inDays}天前';
+    return '${dateTime.month}/${dateTime.day}';
+  }
+
+  String _formatDuration(int seconds) {
+    if (seconds < 60) return '$seconds秒';
+    if (seconds < 3600) return '${seconds ~/ 60}分钟';
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    return m > 0 ? '$h小时$m分' : '$h小时';
+  }
+
+  Future<void> _openRecentResource(RecentResource resource) async {
+    if (resource.folderCode == null || resource.folderCode!.isEmpty) return;
+    final folders = _recentFolders[resource.resourceType] ?? [];
+    final folder = folders.where((f) => f.code == resource.folderCode).firstOrNull;
+    if (folder == null) return;
+    await _openFolder(folder);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // iPad 布局
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildIpadBody(
+    ColorScheme colorScheme,
+    Brightness brightness,
+    Color surfaceColor,
+  ) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 4,
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildBrandStatsCard(colorScheme, brightness, surfaceColor),
+                SizedBox(height: 24.h),
+                _buildResourceSection(colorScheme, brightness, surfaceColor),
+              ],
+            ),
+          ),
+        ),
+        Container(
+          width: 0.5,
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+        Expanded(
+          flex: 6,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '最近学习',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                Expanded(
+                  child: _buildRecentList(colorScheme, brightness, surfaceColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
