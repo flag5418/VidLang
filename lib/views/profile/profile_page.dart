@@ -26,6 +26,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_page.dart';
 import 'package:vidlang/views/profile/edit_profile_page.dart';
@@ -33,6 +34,7 @@ import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
 import 'package:vidlang/views/settings/model_settings_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/ui/outlined_card.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -68,6 +70,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _loadSummaryStats();
     _loadWifiPort();
     _loadTtsCacheInfo();
+    _refreshBalance(); // 进入页面时刷新最新余额
   }
 
   Future<void> _checkUser() async {
@@ -147,12 +150,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   subtitle: difficulty.label,
                   onTap: () => _showDifficultyPicker(),
                 ),
-                _SettingItem(
-                  icon: Icons.smart_toy_outlined,
-                  title: 'AI 模型设置',
-                  subtitle: '管理本地AI模型',
-                  onTap: () => _navigateToModelSettings(),
-                ),
+
                 _SettingItem(
                   icon: Icons.volume_up_rounded,
                   title: 'TTS 缓存管理',
@@ -204,51 +202,71 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final displayName = _currentUser?.nickname.isNotEmpty == true
         ? _currentUser!.nickname
         : (_currentUser?.username ?? '未登录');
-    final loginName = _currentUser?.username ?? '';
     final avatarPath = _currentUser?.avatar;
+    final daysLabel = _summaryStats.totalDays > 0
+        ? '已坚持学习 ${_summaryStats.totalDays} 天'
+        : '开始学习之旅';
 
-    return GestureDetector(
+    return OutlinedCard(
       onTap: () => _navigateToEditProfile(),
-      child: Container(
-        padding: EdgeInsets.all(AppSpacing.space5),
-        decoration: BoxDecoration(
-          color: AppColors.getSurface(brightness: Theme.of(context).brightness),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        child: Row(
-          children: [
-            _buildAvatarWidget(colorScheme, avatarPath, displayName),
-            SizedBox(width: 14.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: TextStyle(
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
+      padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: AppSpacing.space3),
+      child: Row(
+        children: [
+          // 头像 56pt
+          _buildAvatarWidget(colorScheme, avatarPath, displayName, size: 56),
+          SizedBox(width: AppSpacing.space4),
+          // 信息区
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  displayName,
+                  style: TextStyle(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
                   ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    loginName,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: colorScheme.onSurfaceVariant,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 3.h),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 14.sp,
+                      color: Colors.orange.withValues(alpha: 0.8),
                     ),
-                  ),
-                ],
-              ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      daysLabel,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Icon(
+          ),
+          // 右侧箭头 + 层次装饰
+          Container(
+            width: 32.w,
+            height: 32.w,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(
               Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant,
-              size: 24.w,
+              size: 20.sp,
+              color: colorScheme.primary.withValues(alpha: 0.6),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -256,23 +274,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget _buildAvatarWidget(
     ColorScheme colorScheme,
     String? avatarPath,
-    String displayName,
-  ) {
+    String displayName, {
+    double size = 52,
+  }) {
     if (avatarPath != null && avatarPath.isNotEmpty) {
       final file = File(avatarPath);
       if (file.existsSync()) {
         return ClipOval(
-          child: Image.file(file, width: 52.w, height: 52.w, fit: BoxFit.cover),
+          child: Image.file(file, width: size, height: size, fit: BoxFit.cover),
         );
       }
     }
     return CircleAvatar(
-      radius: 26.r,
+      radius: size / 2,
       backgroundColor: colorScheme.primary.withValues(alpha: 0.12),
       child: Text(
         displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
         style: TextStyle(
-          fontSize: 22.sp,
+          fontSize: size * 0.35,
           fontWeight: FontWeight.bold,
           color: colorScheme.primary,
         ),
@@ -320,7 +339,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '余额：¥${subState.balance.toStringAsFixed(2)}',
+                  isPremium
+                      ? '余额：¥${subState.balance.toStringAsFixed(2)}'
+                      : '使用基础功能，不产生费用',
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: colorScheme.onSurfaceVariant,
@@ -497,65 +518,78 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: List.generate(items.length, (i) {
           final item = items[i];
           final isLast = i == items.length - 1;
-          return InkWell(
-            onTap: item.onTap,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.space4,
-                vertical: AppSpacing.space3,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 32.w,
-                    height: 32.w,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Icon(
-                      item.icon,
-                      size: 18.sp,
-                      color: colorScheme.primary,
-                    ),
+          return Column(
+            children: [
+              InkWell(
+                onTap: item.onTap,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.space4,
+                    vertical: AppSpacing.space3,
                   ),
-                  SizedBox(width: AppSpacing.space4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: TextStyle(
-                            fontSize: AppTypography.fontSizeBase.sp,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurface,
-                          ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32.w,
+                        height: 32.w,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
-                        if (item.subtitle != null) ...[
-                          SizedBox(height: 2.h),
-                          Text(
-                            item.subtitle!,
-                            style: TextStyle(
-                              fontSize: AppTypography.fontSizeXSmall.sp,
-                              color: colorScheme.onSurfaceVariant,
+                        child: Icon(
+                          item.icon,
+                          size: 18.sp,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      SizedBox(width: AppSpacing.space4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              style: TextStyle(
+                                fontSize: AppTypography.fontSizeBase.sp,
+                                fontWeight: FontWeight.w500,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
+                            if (item.subtitle != null) ...[
+                              SizedBox(height: 2.h),
+                              Text(
+                                item.subtitle!,
+                                style: TextStyle(
+                                  fontSize: AppTypography.fontSizeXSmall.sp,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20.sp,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ],
                   ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20.sp,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ],
+                ),
               ),
-            ),
+              // Add 0.5pt divider between items
+              if (!isLast)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4),
+                  child: Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    color: colorScheme.outline.withValues(alpha: 0.3),
+                  ),
+                ),
+            ],
           );
-          // Add divider except for last item
         }),
       ),
     );
@@ -564,71 +598,105 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   // ==================== 底部操作 ====================
 
   Widget _buildBottomActions(ColorScheme colorScheme) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.space4),
-      decoration: BoxDecoration(
-        color: AppColors.getSurface(brightness: Theme.of(context).brightness),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-      ),
-      child: Column(
-        children: [
-          _bottomActionItem('关于', 'VidLang v1.0.0', colorScheme, onTap: () {}),
-          Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.3)),
-          _bottomActionItem(
-            '退出登录',
-            null,
-            colorScheme,
-            isDestructive: true,
-            onTap: () => _logout(),
+    return Column(
+      children: [
+        // 关于卡片
+        _ElevatedCard(
+          onTap: () {},
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.space4,
+            vertical: AppSpacing.space3 + 2,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomActionItem(
-    String title,
-    String? subtitle,
-    ColorScheme colorScheme, {
-    bool isDestructive = false,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.space2),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: AppTypography.fontSizeBase.sp,
-                      fontWeight: FontWeight.w500,
-                      color: isDestructive
-                          ? colorScheme.error
-                          : colorScheme.onSurface,
+          child: Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  size: 18.sp,
+                  color: colorScheme.primary.withValues(alpha: 0.8),
+                ),
+              ),
+              SizedBox(width: AppSpacing.space4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '关于',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                  if (subtitle != null) ...[
                     SizedBox(height: 2.h),
                     Text(
-                      subtitle,
+                      'VidLang v1.0.0',
                       style: TextStyle(
-                        fontSize: AppTypography.fontSizeXSmall.sp,
+                        fontSize: 13.sp,
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20.sp,
+                color: colorScheme.outline.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
         ),
-      ),
+        SizedBox(height: AppSpacing.space3),
+        // 退出登录卡片（红色文字）
+        _ElevatedCard(
+          onTap: () => _logout(),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.space4,
+            vertical: AppSpacing.space3 + 2,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36.w,
+                height: 36.w,
+                decoration: BoxDecoration(
+                  color: colorScheme.error.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(
+                  Icons.logout_rounded,
+                  size: 18.sp,
+                  color: colorScheme.error.withValues(alpha: 0.7),
+                ),
+              ),
+              SizedBox(width: AppSpacing.space4),
+              Text(
+                '退出登录',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.error,
+                ),
+              ),
+              const Spacer(),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20.sp,
+                color: colorScheme.outline.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1024,5 +1092,94 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final port = await SettingsService.getWifiPort();
     if (!mounted) return;
     setState(() => _wifiPort = port);
+  }
+
+  /// 刷新余额（从 Supabase user_wallet 拉取最新值）
+  Future<void> _refreshBalance() async {
+    await ref.read(subscriptionProvider.notifier).refreshBalance();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+/// 带阴影的卡片组件——白色背景 + 阴影 + 圆角
+// ═══════════════════════════════════════════════════════════════
+class _ElevatedCard extends StatefulWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final VoidCallback? onTap;
+
+  const _ElevatedCard({required this.child, this.padding, this.onTap});
+
+  @override
+  State<_ElevatedCard> createState() => _ElevatedCardState();
+}
+
+class _ElevatedCardState extends State<_ElevatedCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _controller.reverse();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+
+    return GestureDetector(
+      onTapDown: widget.onTap != null ? (_) => _controller.forward() : null,
+      onTapUp: widget.onTap != null ? (_) => widget.onTap!.call() : null,
+      onTapCancel: widget.onTap != null ? () => _controller.reverse() : null,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) =>
+            Transform.scale(scale: _scaleAnimation.value, child: child),
+        child: Container(
+          padding: widget.padding ?? const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: AppColors.getSurface(brightness: brightness),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: brightness == Brightness.dark ? 0.3 : 0.06,
+                ),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: brightness == Brightness.dark ? 0.2 : 0.03,
+                ),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: widget.child,
+        ),
+      ),
+    );
   }
 }
