@@ -1,3 +1,5 @@
+import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/word_book.dart';
@@ -391,6 +393,36 @@ class StatsService {
     }
 
     return result;
+  }
+  /// 获取近 N 条学习记录对应的文件夹（去重，按最后播放/学习时间排序）
+  /// 包含视频、音频（通过 last_play_date）和文章（通过 last_study_date）
+  static Future<List<VideoFolder>> getRecentLearningFolders({int limit = 8}) async {
+    // 使用 UNION 查询同时涵盖 video/music 和 article 文件夹
+    const sql = '''
+      SELECT vf.* FROM video_folder vf
+      INNER JOIN (
+        SELECT code, last_play_date AS last_activity FROM video_folder
+        WHERE is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != '' AND last_play_date IS NOT NULL
+        UNION
+        SELECT vf2.code, MAX(a.last_study_date) AS last_activity
+        FROM video_folder vf2
+        INNER JOIN article a ON a.folder_code = vf2.code AND a.is_deleted = 0
+        WHERE vf2.is_deleted = 0 AND vf2.parent_code IS NOT NULL AND vf2.parent_code != '' AND a.last_study_date IS NOT NULL
+        GROUP BY vf2.code
+      ) activity ON vf.code = activity.code
+      ORDER BY activity.last_activity DESC
+      LIMIT ?
+    ''';
+    try {
+      final rows = await DatabaseService.rawQuery(sql, [limit]);
+      return rows.map((row) {
+        final folder = VideoFolder();
+        return folder.fromMap(row) as VideoFolder;
+      }).toList();
+    } catch (e) {
+      debugPrint('[StatsService] getRecentLearningFolders failed: $e');
+      return [];
+    }
   }
 }
 
