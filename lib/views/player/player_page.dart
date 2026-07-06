@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omni_player/omni_player.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
@@ -18,7 +17,9 @@ import 'package:vidlang/services/thumbnail_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
-import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
@@ -40,6 +41,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   bool _showReadAloud = false;
   List<VideoInfo>? _folderVideosOverride;
 
+  // 控件自动隐藏
+  bool _controlsVisible = true;
+  Timer? _hideTimer;
+
   final List<double> _speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
   final List<Map<String, String>> _playModeOptions = [
@@ -49,15 +54,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     {'label': '顺序播放', 'value': 'sequence_play'},
   ];
 
-  // TTS playback
   final ap.AudioPlayer _aliAudioPlayer = ap.AudioPlayer();
   bool _isTtsSpeaking = false;
-
   bool _showWordPopup = false;
-
-  // Player overlay is always dark regardless of theme mode
-  Color _drawerText() => AppColors.onSurface;
-  Color _drawerTextVariant() => AppColors.onSurfaceVariant;
 
   @override
   void initState() {
@@ -65,7 +64,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     WidgetsBinding.instance.addObserver(this);
     _lockLandscape();
     _loadSettings();
-    // 沉浸式状态栏：透明背景
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -75,19 +73,37 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       ),
     );
     Future.microtask(() => _initializePlayer());
+    _resetAutoHide();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _aliAudioPlayer.dispose();
+    _hideTimer?.cancel();
     _unlockOrientation();
     _initialized = false;
     super.dispose();
   }
 
+  void _resetAutoHide() {
+    _hideTimer?.cancel();
+    setState(() => _controlsVisible = true);
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && !_showReadAloud && !_showVideoList && !_showWordPopup) {
+        setState(() => _controlsVisible = false);
+      }
+    });
+  }
+
+  void _showControls() {
+    if (!_controlsVisible) {
+      setState(() => _controlsVisible = true);
+    }
+    _resetAutoHide();
+  }
+
   void _lockLandscape() {
-    // 允许用户竖屏播放
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
@@ -128,7 +144,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     } else {
       await _loadFolderVideos();
     }
-    // 检查并初始化翻译
     if (mounted) {
       await _checkAndInitializeTranslation(notifier);
     }
@@ -152,7 +167,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     if (mounted) setState(() => _folderVideosOverride = fv);
   }
 
-  /// 检查并初始化翻译
   Future<void> _checkAndInitializeTranslation(
     PlayerEngineNotifier notifier,
   ) async {
@@ -166,22 +180,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
     if (needCount == 0) return;
 
-    // 翻译期间阻止其他 DB 写入操作（跟读评分等）
     _translationInProgress = true;
 
-    // 显示加载提示
     if (!mounted) return;
-    TDMessage.showMessage(
-      context: context,
-      content: '正在进行翻译初始化...',
-      theme: MessageTheme.info,
-      duration: 2000,
-      visible: true,
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('正在进行翻译初始化...'), duration: Duration(seconds: 2)),
     );
 
     final currentTitle = notifier.currentVideo?.name ?? widget.videoCode;
 
-    // 执行翻译
     try {
       await TranslationInitService.translateSubtitles(
         subtitles: subtitles,
@@ -190,19 +197,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         mode: subState.mode,
         onProgress: (current, total) {},
       );
-
-      if (mounted) {
-        setState(() {}); // 刷新 UI 显示翻译
-      }
+      if (mounted) setState(() {});
     } catch (e) {
       dev.log('Translation init failed: $e', name: 'PlayerPage');
       if (mounted) {
-        TDMessage.showMessage(
-          context: context,
-          content: '翻译初始化失败: $e',
-          theme: MessageTheme.error,
-          duration: 3000,
-          visible: true,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('翻译初始化失败: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     } finally {
@@ -215,23 +219,63 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     final state = ref.watch(playerEngineProvider);
     final notifier = ref.read(playerEngineProvider.notifier);
     final subtitlesList = notifier.subtitles;
-    final isTablet = false; // iPhone only
+    final isPad = Adaptive.of(context);
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     final hasSubtitles = subtitlesList.isNotEmpty;
     final idx = state.currentSubtitleIndex;
-    final currentSub =
-        (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length)
+    final currentSub = (hasSubtitles && idx != null && idx >= 0 && idx < subtitlesList.length)
         ? subtitlesList[idx]
         : null;
     final drawerOpen = _showVideoList;
-
+    final colors = context.colors;
     final topPadding = MediaQuery.of(context).padding.top;
-    MediaQuery.of(context).padding.bottom;
+
+    // iPad 横屏：70/30 分栏
+    if (isPad && isLandscape) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Row(
+          children: [
+            // 播放器 70%
+            Expanded(
+              flex: 7,
+              child: _buildPlayerStack(state, notifier, subtitlesList, hasSubtitles, idx, currentSub, drawerOpen, topPadding, isPad, colors),
+            ),
+            // 右侧 30% 推荐/列表
+            Expanded(
+              flex: 3,
+              child: _buildRecommendationPanel(state, notifier, colors),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
+      body: _buildPlayerStack(state, notifier, subtitlesList, hasSubtitles, idx, currentSub, drawerOpen, topPadding, isPad, colors),
+    );
+  }
+
+  Widget _buildPlayerStack(
+    PlayerEngineState state,
+    PlayerEngineNotifier notifier,
+    List<Subtitles> subtitlesList,
+    bool hasSubtitles,
+    int? idx,
+    Subtitles? currentSub,
+    bool drawerOpen,
+    double topPadding,
+    bool isPad,
+    AppColorsData colors,
+  ) {
+    return GestureDetector(
+      onTap: _showControls,
+      behavior: HitTestBehavior.translucent,
+      child: Stack(
         children: [
-          // Video fills screen (edge-to-edge, immersive)
+          // 视频层
           Positioned.fill(
             child: Container(
               color: Colors.black,
@@ -243,148 +287,210 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
             ),
           ),
 
-          // Top bar (with status bar padding)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding:
-                  EdgeInsets.only(
-                    top: topPadding > 0 ? topPadding : 32,
-                    bottom: 8,
-                  ) +
-                  EdgeInsets.symmetric(horizontal: _horizontalMargin),
-
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black87, Colors.transparent],
-                ),
-              ),
-              child: Row(
-                children: [
-                  // 返回按钮：扩展左侧点击区域
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        _unlockOrientation();
-                        Navigator.pop(context);
-                      },
-                      borderRadius: BorderRadius.circular(22),
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  Expanded(
-                    child: Text(
-                      state.title,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  Row(
-                    spacing: 10,
-                    children: [
-                      _topBtn(
-                        Icons.format_list_bulleted_rounded,
-                        () => setState(() {
-                          _showVideoList = !_showVideoList;
-                        }),
-                        active: _showVideoList,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Bottom area (with navigation bar padding)
-          if (!drawerOpen)
+          // 顶部栏（BackdropFilter + 半透明）
+          if (_controlsVisible)
             Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: EdgeInsets.only(bottom: 4),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black87],
+              top: 0, left: 0, right: 0,
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      top: topPadding > 0 ? topPadding : 32,
+                      bottom: 8,
+                    ) + EdgeInsets.symmetric(horizontal: _horizontalMargin),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.55),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              _unlockOrientation();
+                              Navigator.pop(context);
+                            },
+                            borderRadius: BorderRadius.circular(22),
+                            child: const SizedBox(
+                              width: 44, height: 44,
+                              child: Icon(Icons.arrow_back_ios_new_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            state.title,
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() => _showVideoList = !_showVideoList);
+                            },
+                            borderRadius: BorderRadius.circular(22),
+                            child: Container(
+                              height: 44,
+                              padding: const EdgeInsets.only(left: 16),
+                              alignment: Alignment.centerRight,
+                              child: Icon(
+                                Icons.format_list_bulleted_rounded,
+                                color: _showVideoList ? colors.primary : Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                child: _buildBottomArea(
-                  state,
-                  notifier,
-                  subtitlesList,
-                  isTablet,
-                  hasSubtitles,
-                  idx,
-                  currentSub,
                 ),
               ),
             ),
 
-          // Drawer overlay
+          // 底部控制区（BackdropFilter + 半透明）
+          if (_controlsVisible && !drawerOpen)
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.55),
+                        ],
+                      ),
+                    ),
+                    child: _buildBottomArea(
+                      state, notifier, subtitlesList, isPad, hasSubtitles, idx, currentSub, colors,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // 抽屉遮罩
           if (drawerOpen && !_showWordPopup)
             GestureDetector(
-              onTap: () => setState(() {
-                _showVideoList = false;
-              }),
+              onTap: () => setState(() => _showVideoList = false),
               behavior: HitTestBehavior.translucent,
               child: Container(color: Colors.black.withValues(alpha: 0.4)),
             ),
 
-          // Drawer panel
+          // 抽屉面板
           if (drawerOpen && !_showWordPopup)
             Positioned(
-              top: 0,
-              right: 0,
-              bottom: 0,
+              top: 0, right: 0, bottom: 0,
               child: ClipRRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    width: 360,
+                    width: 320,
                     decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.85),
+                      color: Colors.black.withValues(alpha: 0.85),
                       border: Border(
-                        left: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          width: 0.5,
-                        ),
+                        left: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 0.5),
                       ),
                     ),
                     child: SafeArea(
                       left: false,
-                      child: _buildVideoListContent(state, notifier),
+                      child: _buildVideoListContent(state, notifier, colors),
                     ),
                   ),
                 ),
               ),
             ),
 
-          // Read-aloud popup
+          // 跟读弹窗
           if (_showReadAloud)
-            _buildNewShadowReader(state, notifier, currentSub),
+            _buildNewShadowReader(state, notifier, currentSub, isPad),
+
+          // 控件隐藏时的点击恢复层（必须置于最顶层）
+          if (!_controlsVisible && !drawerOpen && !_showReadAloud)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _showControls,
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// iPad 横屏右侧推荐面板
+  Widget _buildRecommendationPanel(
+    PlayerEngineState state,
+    PlayerEngineNotifier notifier,
+    AppColorsData colors,
+  ) {
+    final list = state.folderVideos.isNotEmpty
+        ? state.folderVideos
+        : (_folderVideosOverride ?? const <VideoInfo>[]);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(left: BorderSide(color: colors.border, width: 0.5)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(Adaptive.w(context, 16)),
+            child: Row(
+              children: [
+                Text(
+                  '推荐视频',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: Adaptive.sp(context, 16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: colors.border),
+          Expanded(
+            child: list.isEmpty
+                ? Center(
+                    child: Text('暂无推荐', style: TextStyle(color: colors.textSecondary)),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                    itemCount: list.length,
+                    itemBuilder: (_, i) => _VideoListItem(
+                      video: list[i],
+                      isCurrent: list[i].code == state.videoCode,
+                      onTap: () {
+                        final code = list[i].code;
+                        if (code != null && code != state.videoCode) {
+                          setState(() => _showVideoList = false);
+                          notifier.switchToVideo(code);
+                        }
+                      },
+                    ),
+                  ),
+          ),
         ],
       ),
     );
@@ -393,33 +499,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   double get _horizontalMargin {
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
-    // 横屏时考虑刘海屏/圆角安全区域
     final insets = MediaQuery.of(context).padding;
     final safeSide = (w > h) ? insets.left.toDouble() : 16.0;
     return safeSide > 0 ? safeSide : 16.0;
   }
 
-  Widget _topBtn(IconData icon, VoidCallback onTap, {bool active = false}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          height: 44,
-          padding: const EdgeInsets.only(left: 16),
-          alignment: Alignment.centerRight,
-          child: Icon(
-            icon,
-            color: active ? AppColors.primary : Colors.white,
-            size: 24,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ─── Bottom Area ────────────────────────────────
   Widget _buildBottomArea(
     PlayerEngineState s,
     PlayerEngineNotifier n,
@@ -428,169 +512,81 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     bool hs,
     int? idx,
     Subtitles? cs,
+    AppColorsData colors,
   ) {
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    // 左侧组：上一句、播放、下一句
     final playbackControls = Row(
       mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: isPortrait
-          ? MainAxisAlignment.center
-          : MainAxisAlignment.start,
+      mainAxisAlignment: isPortrait ? MainAxisAlignment.center : MainAxisAlignment.start,
       children: [
         if (hs)
-          _smallCtrl(
-            Icons.skip_previous_rounded,
-            (idx ?? 0) > 0 ? () => n.previousSentence() : null,
-            t,
-          ),
+          _smallCtrl(Icons.skip_previous_rounded,
+              (idx ?? 0) > 0 ? () {
+                _showControls();
+                n.previousSentence();
+              } : null, t),
         _smallCtrl(
-          s.playerState == PlayerState.playing
-              ? Icons.pause_rounded
-              : Icons.play_arrow_rounded,
-          () => n.togglePlayPause(),
-          t,
-          size: isPortrait ? 40 : 32,
+          s.playerState == PlayerState.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          () {
+            _showControls();
+            n.togglePlayPause();
+          },
+          t, size: isPortrait ? 40 : 32,
         ),
         if (hs)
-          _smallCtrl(
-            Icons.skip_next_rounded,
-            (idx ?? 0) < sl.length - 1 ? () => n.nextSentence() : null,
-            t,
-          ),
+          _smallCtrl(Icons.skip_next_rounded,
+              (idx ?? 0) < sl.length - 1 ? () {
+                _showControls();
+                n.nextSentence();
+              } : null, t),
       ],
     );
 
-    // 右侧功能按钮组
     final featureButtons = <Widget>[
-      if (hs)
-        _plainTextBtn("跟读", _showReadAloud, () {
-          if (_translationInProgress) {
-            TDMessage.showMessage(
-              context: context,
-              content: '翻译进行中，请稍后再试',
-              theme: MessageTheme.warning,
-              duration: 1500,
-              visible: true,
-            );
-            return;
+      if (hs) _plainTextBtn("跟读", _showReadAloud, () {
+        _showControls();
+        if (_translationInProgress) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('翻译进行中，请稍后再试'), duration: Duration(seconds: 2)),
+          );
+          return;
+        }
+        final shouldBeOpen = !_showReadAloud;
+        if (shouldBeOpen) {
+          n.player.pause();
+          n.setSingleSentencePause(true);
+          if (cs != null) {
+            n.seekToMs(Duration(milliseconds: cs.startPosition.toInt()).inMilliseconds);
+            Future.microtask(() => n.player.play());
           }
-          final shouldBeOpen = !_showReadAloud;
-          if (shouldBeOpen) {
-            n.player.pause();
-            n.setSingleSentencePause(true);
-            if (cs != null) {
-              n.seekToMs(
-                Duration(milliseconds: cs.startPosition.toInt()).inMilliseconds,
-              );
-              Future.microtask(() => n.player.play());
-            }
-          }
-          setState(() => _showReadAloud = shouldBeOpen);
-        }),
-      if (hs)
-        _plainTextBtn(
-          "清晰朗读",
-          hs ? _isTtsSpeaking : false,
-          hs
-              ? () {
-                  if (_isTtsSpeaking) {
-                    _stopClaritySpeak(n);
-                  } else if (cs != null) {
-                    _handleClaritySpeak(n, s, cs);
-                  }
-                }
-              : null,
-        ),
-      if (hs)
-        _plainTextBtn("字幕", s.subtitleVisible, () => n.toggleSubtitleVisible()),
-      if (hs)
-        _plainTextBtn(
-          "翻译",
-          s.translateVisible,
-          () => n.toggleTranslateVisible(),
-        ),
-      if (hs)
-        _plainTextBtn(
-          "单句暂停",
-          s.singleSentencePause,
-          () => n.toggleSingleSentencePause(),
-        ),
-      if (hs)
-        _plainTextBtn(
-          "由慢到快",
-          s.slowToFastActive,
-          () => n.toggleSlowToFastCurrentSentence(),
-        ),
-      // 循环模式按钮
-      PopupMenuButton<String>(
-        initialValue: s.loopingMode,
-        onSelected: (mode) => n.setLoopingMode(mode),
-        offset: const Offset(0, -220),
-        color: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        child: _plainTextBtn(
-          _loopModeLabel(s.loopingMode),
-          s.loopingMode != 'single_play',
-          null,
-        ),
-        itemBuilder: (context) {
-          return _playModeOptions.map((opt) {
-            final active = s.loopingMode == opt['value'];
-            return PopupMenuItem<String>(
-              value: opt['value'],
-              height: 36,
-              child: Center(
-                child: Text(
-                  opt['label']!,
-                  style: TextStyle(
-                    color: active ? AppColors.primary : Colors.white,
-                    fontSize: 13,
-                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-        },
-      ),
-      // 字体大小按钮（仿照倍速按钮，使用 PopupMenuButton + 竖向 Slider）
-      _buildFontSizePopupButton(s, n),
-      // 倍数按钮
-      PopupMenuButton<double>(
-        initialValue: s.speed,
-        onSelected: (sp) {
-          n.setSpeed(sp);
-        },
-        offset: const Offset(0, -220),
-        color: AppColors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        child: _plainTextBtn(
-          "${s.speed.toString().replaceAll(RegExp(r'\.0$'), '')}X",
-          s.speed != 1.0,
-          null,
-        ),
-        itemBuilder: (context) {
-          return _speedOptions.map((sp) {
-            final active = s.speed == sp;
-            return PopupMenuItem<double>(
-              value: sp,
-              height: 36,
-              child: Center(
-                child: Text(
-                  '${sp}X',
-                  style: TextStyle(
-                    color: active ? AppColors.primary : Colors.white,
-                    fontSize: 13,
-                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-        },
-      ),
+        }
+        setState(() => _showReadAloud = shouldBeOpen);
+      }, colors),
+      if (hs) _plainTextBtn("清晰朗读", _isTtsSpeaking, hs ? () {
+        _showControls();
+        if (_isTtsSpeaking) { _stopClaritySpeak(n); }
+        else if (cs != null) { _handleClaritySpeak(n, s, cs); }
+      } : null, colors),
+      if (hs) _plainTextBtn("字幕", s.subtitleVisible, () {
+        _showControls();
+        n.toggleSubtitleVisible();
+      }, colors),
+      if (hs) _plainTextBtn("翻译", s.translateVisible, () {
+        _showControls();
+        n.toggleTranslateVisible();
+      }, colors),
+      if (hs) _plainTextBtn("单句暂停", s.singleSentencePause, () {
+        _showControls();
+        n.toggleSingleSentencePause();
+      }, colors),
+      if (hs) _plainTextBtn("由慢到快", s.slowToFastActive, () {
+        _showControls();
+        n.toggleSlowToFastCurrentSentence();
+      }, colors),
+      _buildLoopModePopup(s, n, colors),
+      _buildFontSizePopupButton(s, n, colors),
+      _buildSpeedPopup(s, n, colors),
     ];
 
     return Column(
@@ -599,23 +595,22 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         if (cs != null)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
-            child: _buildSelectableSubtitle(s, cs, t),
+            child: _buildSelectableSubtitle(s, cs, t, colors),
           ),
-        // 进度条 + 两端时间
-        _buildProgressBarWithTime(s, n),
+        SizedBox(height: isPortrait ? 8 : 4),
+        _buildProgressBarWithTime(s, n, colors),
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: _horizontalMargin,
-            vertical: isPortrait ? 12 : 0,
+            vertical: isPortrait ? 8 : 4,
           ),
           child: isPortrait
               ? Column(
                   children: [
                     playbackControls,
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
+                      spacing: 8, runSpacing: 8,
                       alignment: WrapAlignment.center,
                       children: featureButtons,
                     ),
@@ -624,49 +619,33 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               : Row(
                   children: [
                     playbackControls,
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: featureButtons
-                                .map(
-                                  (btn) => Padding(
-                                    padding: const EdgeInsets.only(right: 12),
-                                    child: btn,
-                                  ),
-                                )
-                                .toList(),
-                          ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: featureButtons
+                              .map((btn) => Padding(padding: const EdgeInsets.only(right: 8), child: btn))
+                              .toList(),
                         ),
                       ),
                     ),
                   ],
                 ),
         ),
-        SizedBox(height: isPortrait ? 24 : 16),
+        SizedBox(height: isPortrait ? 20 : 12),
       ],
     );
   }
 
-  void _handleClaritySpeak(
-    PlayerEngineNotifier n,
-    PlayerEngineState s,
-    Subtitles cs,
-  ) async {
+  void _handleClaritySpeak(PlayerEngineNotifier n, PlayerEngineState s, Subtitles cs) async {
     final wasPlaying = s.playerState == PlayerState.playing;
     if (wasPlaying) n.player.pause();
-
     setState(() => _isTtsSpeaking = true);
-
-    // 使用统一的 TtsService
     final subState = ref.read(subscriptionProvider);
     await TtsService().speakClarity(
-      text: cs.content,
-      mode: subState.mode,
+      text: cs.content, mode: subState.mode,
       onComplete: () {
         if (!mounted) return;
         setState(() => _isTtsSpeaking = false);
@@ -682,12 +661,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     setState(() => _isTtsSpeaking = false);
   }
 
-  Widget _smallCtrl(
-    IconData icon,
-    VoidCallback? onTap,
-    bool t, {
-    double size = 28,
-  }) {
+  Widget _smallCtrl(IconData icon, VoidCallback? onTap, bool t, {double size = 28}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -695,18 +669,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         borderRadius: BorderRadius.circular(22),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Icon(
-            icon,
-            color: onTap != null ? Colors.white : Colors.white24,
-            size: size,
-          ),
+          child: Icon(icon, color: onTap != null ? Colors.white : Colors.white24, size: size),
         ),
       ),
     );
   }
 
-  /// 纯文字按钮（无边框、无背景，与倍数按钮样式一致）
-  Widget _plainTextBtn(String label, bool active, VoidCallback? onTap) {
+  Widget _plainTextBtn(String label, bool active, VoidCallback? onTap, AppColorsData colors) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -718,7 +687,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
             label,
             style: TextStyle(
               color: active
-                  ? AppColors.primary
+                  ? colors.primary
                   : (onTap == null ? Colors.white24 : Colors.white70),
               fontSize: 13,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
@@ -729,32 +698,88 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
   }
 
-  /// 循环模式标签映射
   String _loopModeLabel(String mode) {
     switch (mode) {
-      case 'single_loop':
-        return '单集循环';
-      case 'list_loop':
-        return '列表循环';
-      case 'single_play':
-        return '单集播放';
-      case 'sequence_play':
-        return '顺序播放';
-      default:
-        return '单集循环';
+      case 'single_loop': return '单集循环';
+      case 'list_loop': return '列表循环';
+      case 'single_play': return '单集播放';
+      case 'sequence_play': return '顺序播放';
+      default: return '单集循环';
     }
   }
 
-  // ─── Selectable Subtitle (word-level swipe-to-select) ──
-  Widget _buildSelectableSubtitle(PlayerEngineState s, Subtitles sub, bool t) {
+  Widget _buildLoopModePopup(PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors) {
+    return PopupMenuButton<String>(
+      initialValue: s.loopingMode,
+      onSelected: (mode) {
+        _showControls();
+        n.setLoopingMode(mode);
+      },
+      offset: const Offset(0, -220),
+      color: Colors.grey[900],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: _plainTextBtn(_loopModeLabel(s.loopingMode), s.loopingMode != 'single_play', null, colors),
+      itemBuilder: (ctx) => _playModeOptions.map((opt) {
+        final active = s.loopingMode == opt['value'];
+        return PopupMenuItem<String>(
+          value: opt['value'], height: 36,
+          child: Center(
+            child: Text(
+              opt['label']!,
+              style: TextStyle(
+                color: active ? colors.primary : Colors.white,
+                fontSize: 13,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSpeedPopup(PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors) {
+    return PopupMenuButton<double>(
+      initialValue: s.speed,
+      onSelected: (sp) {
+        _showControls();
+        n.setSpeed(sp);
+      },
+      offset: const Offset(0, -220),
+      color: Colors.grey[900],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: _plainTextBtn(
+        "${s.speed.toString().replaceAll(RegExp(r'\.0$'), '')}X",
+        s.speed != 1.0, null, colors,
+      ),
+      itemBuilder: (ctx) => _speedOptions.map((sp) {
+        final active = s.speed == sp;
+        return PopupMenuItem<double>(
+          value: sp, height: 36,
+          child: Center(
+            child: Text(
+              '${sp}X',
+              style: TextStyle(
+                color: active ? colors.primary : Colors.white,
+                fontSize: 13,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSelectableSubtitle(PlayerEngineState s, Subtitles sub, bool t, AppColorsData colors) {
     return Align(
       alignment: Alignment.center,
       child: Container(
         width: double.infinity,
-        margin: EdgeInsets.only(bottom: 4),
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.playerSubtitleBg,
+          color: Colors.black.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -765,29 +790,20 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 text: sub.content,
                 fontSize: s.subtitleFontSize,
                 fontColor: Colors.white,
-                selectedBgColor: AppColors.primary.withValues(alpha: 0.7),
-                onStartSelection: () {
-                  setState(() {
-                    _showWordPopup = false;
-                  });
-                },
+                selectedBgColor: colors.primary.withValues(alpha: 0.7),
+                onStartSelection: () => setState(() => _showWordPopup = false),
                 onSelectionChanged: (words) {
                   if (words.isNotEmpty) {
                     final selectedText = words.join(' ');
-                    // 暂停播放
                     final notifier = ref.read(playerEngineProvider.notifier);
-                    final wasPlaying =
-                        ref.read(playerEngineProvider).playerState ==
-                        PlayerState.playing;
+                    final wasPlaying = ref.read(playerEngineProvider).playerState == PlayerState.playing;
                     notifier.player.pause();
-                    // 弹出查词卡片
                     final subState = ref.read(subscriptionProvider);
                     final isPremium = subState.mode == SubscriptionMode.premium;
-                    final state = ref.read(playerEngineProvider);
+                    final state2 = ref.read(playerEngineProvider);
                     final currentSub = _getCurrentSubtitle();
                     final canSave = WordBookService.isSingleWord(selectedText);
-                    WordCard.show(
-                      context,
+                    WordCard.show(context,
                       word: selectedText,
                       contextSentence: currentSub?.content,
                       isPaidMode: isPremium,
@@ -795,7 +811,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                       onSaveWord: canSave ? _handleSaveWord : null,
                       sourceType: 'video',
                       sourceCode: widget.videoCode,
-                      sourceTitle: state.title,
+                      sourceTitle: state2.title,
                       segmentCode: currentSub?.code,
                     ).then((_) {
                       if (wasPlaying && mounted) notifier.player.play();
@@ -803,15 +819,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                   }
                 },
               ),
-            if (s.translateVisible &&
-                sub.contentTranslate != null &&
-                sub.contentTranslate!.isNotEmpty)
+            if (s.translateVisible && sub.contentTranslate != null && sub.contentTranslate!.isNotEmpty)
               Padding(
-                padding: EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   sub.contentTranslate!,
                   style: TextStyle(
-                    color: AppColors.playerSubtitleTranslate,
+                    color: Colors.white.withValues(alpha: 0.7),
                     fontSize: s.subtitleFontSize - 2,
                     height: 1.3,
                   ),
@@ -824,33 +838,23 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
   }
 
-  /// 收藏单词到生词本
   Future<bool> _handleSaveWord({
-    required String word,
-    String? contextSentence,
-    required String sourceType,
-    required String sourceCode,
-    String? sourceTitle,
+    required String word, String? contextSentence,
+    required String sourceType, required String sourceCode, String? sourceTitle,
   }) async {
     final notifier = ref.read(playerEngineProvider.notifier);
     final state = ref.read(playerEngineProvider);
     final video = notifier.currentVideo;
     final currentSub = _getCurrentSubtitle();
-
     final result = await WordBookService.saveWord(
-      word: word,
-      sourceType: sourceType,
-      sourceCode: sourceCode,
-      sourceTitle: sourceTitle,
-      contextSentence: contextSentence,
-      segmentCode: currentSub?.code,
-      videoPath: video?.filePath,
+      word: word, sourceType: sourceType, sourceCode: sourceCode,
+      sourceTitle: sourceTitle, contextSentence: contextSentence,
+      segmentCode: currentSub?.code, videoPath: video?.filePath,
       positionMs: state.position.inMilliseconds,
     );
     return result != null;
   }
 
-  /// 获取当前字幕
   Subtitles? _getCurrentSubtitle() {
     final notifier = ref.read(playerEngineProvider.notifier);
     final state = ref.read(playerEngineProvider);
@@ -862,25 +866,18 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     return null;
   }
 
-  /// 单词朗读：通过统一 TTS 服务自动按订阅模式分流
-  /// - 免费模式 → 原生 TTS（无需 AI 模型）
-  /// - 收费模式 → 云端阿里云 TTS（ai-proxy Edge Function）
   Future<void> _speakSelectedWord(String word) async {
     final subState = ref.read(subscriptionProvider);
     try {
-      await TtsService().speakClarity(
-        text: word,
-        mode: subState.mode,
-        onComplete: () {},
-      );
+      await TtsService().speakClarity(text: word, mode: subState.mode, onComplete: () {});
     } catch (e) {
       debugPrint('TTS speak error: $e');
     }
   }
 
+  /// 进度条：4pt 高度 + 20pt 拖拽热区
   Widget _buildProgressBarWithTime(
-    PlayerEngineState s,
-    PlayerEngineNotifier n,
+    PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors,
   ) {
     final p = s.duration.inMilliseconds > 0
         ? s.position.inMilliseconds / s.duration.inMilliseconds
@@ -889,75 +886,71 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
       child: Row(
         children: [
-          SizedBox(width: 24),
-          // 左侧当前时间
+          const SizedBox(width: 24),
           Text(
             _fmtDuration(s.position),
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: AppTypography.fontSizeXSmall,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
           const SizedBox(width: 8),
-          // 进度条
           Expanded(
-            child: SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 4,
-                activeTrackColor: AppColors.secondary,
-                inactiveTrackColor: Colors.white10,
-                thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
-                overlayShape: RoundSliderOverlayShape(overlayRadius: 14),
-                thumbColor: AppColors.primary,
-              ),
-              child: Slider(
-                value: p.clamp(0.0, 1.0),
-                onChanged: (v) =>
-                    n.seekToMs((v * s.duration.inMilliseconds).round()),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (details) {
+                _showControls();
+                final box = context.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final localX = box.globalToLocal(details.globalPosition).dx;
+                final totalWidth = box.size.width;
+                final fraction = (localX / totalWidth).clamp(0.0, 1.0);
+                n.seekToMs((fraction * s.duration.inMilliseconds).round());
+              },
+              onHorizontalDragUpdate: (details) {
+                _showControls();
+                final box = context.findRenderObject() as RenderBox?;
+                if (box == null) return;
+                final localX = box.globalToLocal(details.globalPosition).dx;
+                final totalWidth = box.size.width;
+                final fraction = (localX / totalWidth).clamp(0.0, 1.0);
+                n.seekToMs((fraction * s.duration.inMilliseconds).round());
+              },
+              child: Container(
+                height: 20, // 热区 20pt
+                alignment: Alignment.center,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: LinearProgressIndicator(
+                    value: p,
+                    minHeight: 4,
+                    backgroundColor: Colors.white10,
+                    valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+                  ),
+                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          // 右侧总时长
           Text(
             _fmtDuration(s.duration),
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: AppTypography.fontSizeXSmall,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildVideoListContent(PlayerEngineState s, PlayerEngineNotifier n) {
+  Widget _buildVideoListContent(PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors) {
     final list = s.folderVideos.isNotEmpty
         ? s.folderVideos
         : (_folderVideosOverride ?? const <VideoInfo>[]);
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          decoration: BoxDecoration(color: Colors.transparent),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
-              Text(
-                '视频列表',
-                style: TextStyle(
-                  color: _drawerText(),
-                  fontSize: AppTypography.fontSizeSmall,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text('视频列表', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
               const Spacer(),
-              Text(
-                '共 ${list.length} 集',
-                style: TextStyle(
-                  color: _drawerTextVariant(),
-                  fontSize: AppTypography.fontSizeXSmall,
-                ),
-              ),
+              Text('共 ${list.length} 集', style: TextStyle(color: Colors.white70, fontSize: 12)),
             ],
           ),
         ),
@@ -967,24 +960,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.video_library_outlined,
-                        size: 48,
-                        color: Colors.white24,
-                      ),
+                      const Icon(Icons.video_library_outlined, size: 48, color: Colors.white24),
                       const SizedBox(height: 8),
-                      Text(
-                        '暂无可播视频',
-                        style: TextStyle(
-                          color: _drawerTextVariant(),
-                          fontSize: 14,
-                        ),
-                      ),
+                      Text('暂无可播视频', style: TextStyle(color: Colors.white70, fontSize: 14)),
                     ],
                   ),
                 )
               : ListView.builder(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12),
                   itemCount: list.length,
                   itemBuilder: (_, i) => _VideoListItem(
                     video: list[i],
@@ -1003,25 +986,20 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     );
   }
 
+  // ─── 字体大小弹窗 ────────────────────
   final GlobalKey _fontSizeBtnKey = GlobalKey();
+  OverlayEntry? _fontSizeOverlayEntry;
 
-  /// 字体大小调整按钮（使用 OverlayEntry 弹窗）
-  Widget _buildFontSizePopupButton(
-    PlayerEngineState s,
-    PlayerEngineNotifier n,
-  ) {
+  Widget _buildFontSizePopupButton(PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors) {
     return GestureDetector(
       key: _fontSizeBtnKey,
-      onTap: () => _showFontSizePicker(s, n),
-      child: _plainTextBtn("字号", s.subtitleFontSize != 18.0, null),
+      onTap: () => _showFontSizePicker(s, n, colors),
+      child: _plainTextBtn("字号", s.subtitleFontSize != 18.0, null, colors),
     );
   }
 
-  OverlayEntry? _fontSizeOverlayEntry;
-
-  void _showFontSizePicker(PlayerEngineState s, PlayerEngineNotifier n) {
+  void _showFontSizePicker(PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors) {
     _hideFontSizePicker();
-
     final renderBox = _fontSizeBtnKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
     final offset = renderBox.localToGlobal(Offset.zero);
@@ -1030,41 +1008,33 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     final bottom = MediaQuery.of(context).size.height - offset.dy + 8;
 
     _fontSizeOverlayEntry = OverlayEntry(
-      builder: (context) {
-        return GestureDetector(
-          onTap: _hideFontSizePicker,
-          behavior: HitTestBehavior.translucent,
-          child: Material(
-            color: Colors.transparent,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Container(color: Colors.transparent),
-                ),
-                // 弹窗内容
-                Positioned(
-                  left: left,
-                  bottom: bottom,
-                  child: GestureDetector(
-                    onTap: () {},
-                      child: Container(
-                      width: 48,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: _buildVerticalFontSlider(s, n),
+      builder: (ctx) => GestureDetector(
+        onTap: _hideFontSizePicker,
+        behavior: HitTestBehavior.translucent,
+        child: Material(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              Positioned.fill(child: Container(color: Colors.transparent)),
+              Positioned(
+                left: left, bottom: bottom,
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    width: 48, height: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: _buildVerticalFontSlider(s, n, colors),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
-
     Overlay.of(context).insert(_fontSizeOverlayEntry!);
   }
 
@@ -1073,56 +1043,39 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     _fontSizeOverlayEntry = null;
   }
 
-  /// 竖向字体大小滑条（使用 TDSlider）
-  Widget _buildVerticalFontSlider(PlayerEngineState s, PlayerEngineNotifier n) {
+  Widget _buildVerticalFontSlider(PlayerEngineState s, PlayerEngineNotifier n, AppColorsData colors) {
     return SizedBox(
-      height: 180,
-      width: 48,
+      height: 180, width: 48,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 大 A
-          Text(
-            'A',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
+          Text('A', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.primary)),
           const SizedBox(height: 4),
-          // 竖向 TDSlider
           Expanded(
             child: RotatedBox(
               quarterTurns: 3,
-              child: TDSlider(
-                value: s.subtitleFontSize,
-                onChanged: (v) => n.setSubtitleFontSize(v),
-                boxDecoration: const BoxDecoration(color: Colors.transparent),
-                sliderThemeData: TDSliderThemeData(
-                  context: context,
-                  min: 12,
-                  max: 40,
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.surfaceElevated,
-                  showThumbValue: false,
-                  sliderThemeData: SliderThemeData(
-                    thumbColor: AppColors.primary,
-                    inactiveTrackColor: AppColors.surfaceElevated,
-                  ),
+              child: SliderTheme(
+                data: SliderThemeData(
+                  trackHeight: 4,
+                  activeTrackColor: colors.primary,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: colors.primary,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                ),
+                child: Slider(
+                  value: s.subtitleFontSize,
+                  min: 12, max: 40,
+                  onChanged: (v) {
+                    _showControls();
+                    n.setSubtitleFontSize(v);
+                  },
                 ),
               ),
             ),
           ),
           const SizedBox(height: 4),
-          // 小 A
-          Text(
-            'A',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-          ),
+          Text('A', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7))),
         ],
       ),
     );
@@ -1139,9 +1092,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   Widget _buildNewShadowReader(
-    PlayerEngineState s,
-    PlayerEngineNotifier n,
-    Subtitles? cs,
+    PlayerEngineState s, PlayerEngineNotifier n, Subtitles? cs, bool isPad,
   ) {
     if (cs == null) return const SizedBox.shrink();
     final video = n.currentVideo;
@@ -1154,26 +1105,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     Future<void> playAtSubtitleIndex(int index) async {
       if (index < 0 || index >= n.subtitles.length) return;
       final sub = n.subtitles[index];
-      await n.seekToMs(
-        Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds,
-      );
+      await n.seekToMs(Duration(milliseconds: sub.startPosition.toInt()).inMilliseconds);
       await n.player.play();
     }
 
-    // 内联渲染：直接返回 Positioned Widget，不创建新路由，避免视频黑屏
-    // 横屏时限制最大高度不超过 60%，确保视频区域仍然可见
     return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
+      left: 0, right: 0, bottom: 0,
       child: ShadowReaderComponent.inline(
         config: ShadowReaderConfig(
-          subtitle: cs,
-          resourceType: 'video',
-          resourceCode: code,
-          resourceTitle: s.title,
-          language: lang,
-          scope: 'sentence',
+          subtitle: cs, resourceType: 'video', resourceCode: code,
+          resourceTitle: s.title, language: lang, scope: 'sentence',
           getPosition: () => s.position,
           seekTo: (d) async => n.seekToMs(d.inMilliseconds),
           togglePlayPause: () async => n.togglePlayPause(),
@@ -1192,20 +1133,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
             await TtsService().speakSubtitle(text, mode: subState.mode);
           },
           isTtsSpeaking: _isTtsSpeaking,
-          onScore: ({
-            required overall,
-            required fluency,
-            required accuracy,
-            required completeness,
-            required rawResult,
-          }) async {},
-          onAiEvaluation: ({
-            required resourceCode,
-            required resourceTitle,
-            required language,
-            required overallScore,
-            required summary,
-          }) async {},
+          onScore: ({required overall, required fluency, required accuracy, required completeness, required rawResult}) async {},
+          onAiEvaluation: ({required resourceCode, required resourceTitle, required language, required overallScore, required summary}) async {},
           getHeadphoneMode: null,
           currentSubtitleIndex: s.currentSubtitleIndex,
           nextSentence: () async => n.nextSentence(),
@@ -1213,28 +1142,27 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
           playAtSubtitleIndex: playAtSubtitleIndex,
           subscriptionMode: subState.mode,
         ),
-        heightFactor: isLandscape ? 0.6 : 0.55,
+        heightFactor: isLandscape ? (isPad ? 0.5 : 0.6) : 0.55,
         onClose: () => setState(() => _showReadAloud = false),
       ),
     );
   }
 }
 
+// ─── _VideoListItem ────────────────────────────
 class _VideoListItem extends ConsumerStatefulWidget {
   final VideoInfo video;
   final bool isCurrent;
   final VoidCallback onTap;
-  const _VideoListItem({
-    required this.video,
-    required this.isCurrent,
-    required this.onTap,
-  });
+  const _VideoListItem({required this.video, required this.isCurrent, required this.onTap});
+
   @override
   ConsumerState<_VideoListItem> createState() => _VideoListItemState();
 }
 
 class _VideoListItemState extends ConsumerState<_VideoListItem> {
   String? _resolvedCoverPath;
+
   @override
   void initState() {
     super.initState();
@@ -1251,11 +1179,8 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
   }
 
   Future<void> _resolveCover() async {
-    final cover =
-        (widget.video.currentCover != null &&
-            widget.video.currentCover!.isNotEmpty)
-        ? widget.video.currentCover
-        : widget.video.cover;
+    final cover = (widget.video.currentCover != null && widget.video.currentCover!.isNotEmpty)
+        ? widget.video.currentCover : widget.video.cover;
     if (cover == null || cover.isEmpty) return;
     final fp = await ThumbnailService.getFullPath(cover);
     if (mounted) setState(() => _resolvedCoverPath = fp);
@@ -1266,113 +1191,67 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
     final v = widget.video;
     final cur = widget.isCurrent;
     final cover = _resolvedCoverPath;
+    final colors = context.colors;
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 300),
       tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset((1 - value) * 12, 0),
-            child: child,
-          ),
-        );
-      },
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(offset: Offset((1 - value) * 12, 0), child: child),
+      ),
       child: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.only(bottom: 8),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(12),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
               curve: Curves.easeInOut,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                color: cur
-                    ? AppColors.primary.withValues(alpha: 0.12)
-                    : AppColors.surfaceElevated,
-                border: cur
-                    ? Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                        width: 1.5,
-                      )
-                    : null,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x15000000),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(12),
+                color: cur ? colors.primary.withValues(alpha: 0.12) : Colors.grey[850],
+                border: cur ? Border.all(color: colors.primary.withValues(alpha: 0.5), width: 1.5) : null,
               ),
               child: Row(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.horizontal(
-                      left: Radius.circular(AppRadius.md),
-                    ),
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                     child: SizedBox(
-                      width: 110,
-                      height: 76,
+                      width: 110, height: 76,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
                           (cover != null && File(cover).existsSync())
-                              ? Image.file(
-                                  File(cover),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => _placeholder(),
-                                )
+                              ? Image.file(File(cover), fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => _placeholder())
                               : _placeholder(),
-                          // 左上角字幕标签
                           Positioned(
-                            top: 4,
-                            left: 4,
+                            top: 4, left: 4,
                             child: Container(
                               padding: const EdgeInsets.all(3),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.xs,
-                                ),
-                                color: v.hasSubtitles
-                                    ? AppColors.primary
-                                    : Colors.black.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(4),
+                                color: v.hasSubtitles ? colors.primary : Colors.black.withValues(alpha: 0.5),
                               ),
-                              child: Icon(
-                                Icons.subtitles,
-                                size: 10,
-                                color: v.hasSubtitles
-                                    ? Colors.white
-                                    : Colors.white38,
-                              ),
+                              child: Icon(Icons.subtitles, size: 10,
+                                  color: v.hasSubtitles ? Colors.white : Colors.white38),
                             ),
                           ),
-                          // 左上角播放中标签 (紧跟在字幕后面)
                           if (cur)
                             Positioned(
                               top: 4,
                               left: v.hasSubtitles ? 24 : 4,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.xs,
-                                  ),
-                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(4),
+                                  color: colors.primary,
                                 ),
-                                child: Text(
-                                  '播放中',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                child: const Text('播放中',
+                                    style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w600)),
                               ),
                             ),
                         ],
@@ -1381,47 +1260,32 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.space3),
+                      padding: const EdgeInsets.all(8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            v.name,
+                          Text(v.name,
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: cur
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
+                              color: Colors.white, fontSize: 14,
+                              fontWeight: cur ? FontWeight.bold : FontWeight.w500,
                               letterSpacing: 0.1,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2, overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(
-                                Icons.schedule,
-                                size: 14,
-                                color: Colors.white70,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                v.durationString,
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: AppTypography.fontSizeXSmall,
-                                ),
-                              ),
+                              const Icon(Icons.schedule, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(v.durationString,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
                             ],
                           ),
                         ],
                       ),
                     ),
                   ),
-                  if (cur) Container(width: 3, color: AppColors.primary),
                 ],
               ),
             ),
@@ -1431,7 +1295,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
     );
   }
 
-  Widget _placeholder() => Center(
+  Widget _placeholder() => const Center(
     child: Icon(Icons.movie_outlined, size: 48, color: Colors.white24),
   );
 }

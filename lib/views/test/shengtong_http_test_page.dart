@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:vidlang/services/shengtong_http_evaluator.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 声通 HTTP 评测测试页面
 class ShengtongHttpTestPage extends StatefulWidget {
@@ -162,7 +163,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('声通 HTTP 评测测试'),
-        backgroundColor: Colors.teal,
+        backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -206,9 +207,9 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppColors.lightBackground,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: AppColors.borderLight!),
               ),
               child: SelectableText(
                 _log.isEmpty ? '日志将显示在这里...' : _log,

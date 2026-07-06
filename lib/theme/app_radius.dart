@@ -107,9 +107,16 @@ class AppRadius {
   // 组件特定圆角
   // ============================================================
   
+  // ─── VidLang 设计升级 v3.0 新增 ─────────────
+  /// Filled Card 圆角
+  static const double filledCard = 20.0;
+  /// Outlined Card 圆角
+  static const double outlinedCard = 14.0;
   /// 按钮圆角
-  static const double button = md;
-  
+  static const double button = 10.0;
+  /// 小圆角
+  static const double small = 8.0;
+
   /// 按钮圆角（大）
   static const double buttonLarge = lg;
   

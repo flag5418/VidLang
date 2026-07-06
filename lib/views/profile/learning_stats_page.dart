@@ -147,7 +147,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: colorScheme.surface,
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+                boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
                 border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 1),
               ),
               child: Icon(badge.icon, size: 26.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
@@ -193,7 +193,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colorScheme.surface,
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                  boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
                   border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2), width: 1),
                 ),
                 child: Icon(badge.icon, size: 30.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
@@ -298,7 +298,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14.r),
           color: colorScheme.surface,
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
           border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
         ),
         child: Column(
@@ -381,7 +381,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14.r),
         color: colorScheme.surface,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Column(
@@ -484,7 +484,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14.r),
             color: colorScheme.surface,
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
             border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
           ),
           child: Column(

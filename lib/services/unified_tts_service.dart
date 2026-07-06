@@ -66,12 +66,13 @@ class UnifiedTtsService {
   Future<TtsResult> synthesize({
     required String text,
     required SubscriptionMode mode,
+    void Function(String word, int startOffset, int endOffset)? onWord,
   }) async {
     final modeLabel = mode == SubscriptionMode.premium ? 'premium(云端)' : 'free(原生)';
     _ttsLog('🔊 [TTS] synthesize 开始 | mode=$modeLabel | text="${_truncateText(text, 50)}"');
 
     if (mode == SubscriptionMode.free) {
-      return await _synthesizeLocal(text: text);
+      return await _synthesizeLocal(text: text, onWord: onWord);
     } else {
       return await _synthesizeCloud(text: text);
     }
@@ -139,7 +140,10 @@ class UnifiedTtsService {
 
   // ─── 本地 TTS ─────────────────────────────
 
-  Future<TtsResult> _synthesizeLocal({required String text}) async {
+  Future<TtsResult> _synthesizeLocal({
+    required String text,
+    void Function(String word, int startOffset, int endOffset)? onWord,
+  }) async {
     try {
       if (!_nativeTts.isInitialized) {
         await _nativeTts.initialize();
@@ -156,7 +160,10 @@ class UnifiedTtsService {
 
       // 文件合成失败 → 直接 speak 播放（iOS AVSpeechSynthesizer 不可靠时的兜底）
       _ttsLog('🔊 [TTS] synthesizeToFile 未生成文件，使用 speak 直接播放');
-      await _nativeTts.synthesizeToAudio(text: text);
+      await _nativeTts.synthesizeToAudio(
+        text: text,
+        onWord: onWord,
+      );
       return TtsResult(audioPath: '', success: true, format: 'direct');
     } catch (e) {
       _ttsLog('🔊 [TTS] 原生 TTS 异常: $e');

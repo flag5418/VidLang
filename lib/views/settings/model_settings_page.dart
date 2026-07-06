@@ -52,7 +52,8 @@ class _ModelSettingsPageState extends State<ModelSettingsPage> {
   }
 
   Widget _buildStatusCard() {
-    final color = _modelStatus == LocalModelStatus.ready ? Colors.green : AppColors.error;
+    final cs = Theme.of(context).colorScheme;
+    final color = _modelStatus == LocalModelStatus.ready ? AppColors.success : AppColors.error;
     final icon = _modelStatus == LocalModelStatus.ready ? Icons.check_circle : Icons.warning_amber_rounded;
 
     return Card(
@@ -69,16 +70,17 @@ class _ModelSettingsPageState extends State<ModelSettingsPage> {
                 children: [
                   Text(
                     _modelStatus.displayName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _modelStatus.description,
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ],
               ),

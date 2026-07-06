@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/pronunciation_evaluation_modal.dart';
 import '../models/evaluation_models.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 评测测试页面 - 用于演示各种评测模式
 class EvaluationTestPage extends StatefulWidget {
@@ -27,7 +28,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
       appBar: AppBar(
         title: const Text('跟读评测测试'),
         backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
         elevation: 2,
       ),
       body: Container(
@@ -49,7 +50,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               '点击下方按钮测试不同类型的跟读评测',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 32),
@@ -65,28 +66,28 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
                   _buildTestCard(
                     '免费STT模式',
                     'speech_to_text',
-                    Colors.blue,
+                    AppColors.primary,
                     Icons.mic,
                     () => _showEvaluation(_testTexts['STT模式']!, EvaluationMode.freeSTT),
                   ),
                   _buildTestCard(
                     '单词评测',
                     'word_evaluation',
-                    Colors.green,
+                    AppColors.success,
                     Icons.text_fields,
                     () => _showEvaluation(_testTexts['单词模式']!, EvaluationMode.word),
                   ),
                   _buildTestCard(
                     '句子评测',
                     'sentence_evaluation',
-                    Colors.orange,
+                    AppColors.warning,
                     Icons.chat_bubble_outline,
                     () => _showEvaluation(_testTexts['短句模式']!, EvaluationMode.sentence),
                   ),
                   _buildTestCard(
                     '段落评测',
                     'paragraph_evaluation',
-                    Colors.purple,
+                    AppColors.primary,
                     Icons.article_outlined,
                     () => _showEvaluation(_testTexts['段落模式']!, EvaluationMode.paragraph),
                   ),
@@ -132,7 +133,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               ),
               child: Icon(
                 icon,
-                color: Colors.white,
+                color: AppColors.surface,
                 size: 24,
               ),
             ),
@@ -203,7 +204,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.surface,
                   ),
                 ),
               ),
@@ -216,7 +217,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
             '评测文本: ${_lastResult!.referenceText.length > 50 ? _lastResult!.referenceText.substring(0, 50) + "..." : _lastResult!.referenceText}',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade700,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -243,8 +244,8 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
   }
 
   Widget _buildScoreChip(String label, double score) {
-    final color = score >= 80 ? Colors.green : 
-                  score >= 60 ? Colors.orange : Colors.red;
+    final color = score >= 80 ? AppColors.success : 
+                  score >= 60 ? AppColors.warning : AppColors.error;
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -291,7 +292,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               children: [
                 Icon(
                   Icons.check_circle,
-                  color: Colors.white,
+                  color: AppColors.surface,
                   size: 20,
                 ),
                 const SizedBox(width: 8),

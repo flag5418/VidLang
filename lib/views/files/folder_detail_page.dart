@@ -12,7 +12,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
-import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
@@ -1148,44 +1147,30 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     return dot > 0 ? filePath.substring(dot).toLowerCase() : '';
   }
 
-  /// 重命名当前文件夹
+  /// 重命名当前文件夹 — 使用 TDesign TDInputDialog
   Future<void> _showRenameDialog() async {
     final folder = ref.read(fileProvider).currentFolder;
     if (folder == null) return;
-    final colorScheme = Theme.of(context).colorScheme;
 
     final controller = TextEditingController(text: folder.name);
-    await DialogUtils.show(
+    showGeneralDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('重命名', style: TextStyle(color: colorScheme.onSurface)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: colorScheme.onSurface),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
+      pageBuilder: (buildContext, animation, secondaryAnimation) {
+        return TDInputDialog(
+          textEditingController: controller,
+          title: '重命名',
+          content: '请输入新的文件夹名称',
+          hintText: folder.name,
+          leftBtn: TDDialogButtonOptions(
+            title: '取消',
+            action: () => Navigator.pop(buildContext),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              '取消',
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
+          rightBtn: TDDialogButtonOptions(
+            title: '保存',
+            action: () async {
               final name = controller.text.trim();
               if (name.isEmpty) return;
-              Navigator.pop(ctx);
+              Navigator.pop(buildContext);
               try {
                 folder.name = name;
                 await DatabaseService.update(folder);
@@ -1196,50 +1181,34 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 _showMessage('重命名失败: $e', theme: MessageTheme.error);
               }
             },
-            child: Text('保存', style: TextStyle(color: colorScheme.primary)),
           ),
-        ],
-      ),
+        );
+      },
     );
-    controller.dispose();
   }
 
   /// 综合测试（针对当前资源集所有资源）
-  /// 视频重命名
+  /// 视频重命名 — 使用 TDesign TDInputDialog
   Future<void> _showVideoRenameDialog(dynamic video) async {
-    final colorScheme = Theme.of(context).colorScheme;
     final controller = TextEditingController(text: video.name ?? '');
-    await DialogUtils.show(
+    showGeneralDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('重命名视频', style: TextStyle(color: colorScheme.onSurface)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: colorScheme.onSurface),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
+      pageBuilder: (buildContext, animation, secondaryAnimation) {
+        return TDInputDialog(
+          textEditingController: controller,
+          title: '重命名视频',
+          content: '请输入新的视频名称',
+          hintText: video.name ?? '',
+          leftBtn: TDDialogButtonOptions(
+            title: '取消',
+            action: () => Navigator.pop(buildContext),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              '取消',
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
+          rightBtn: TDDialogButtonOptions(
+            title: '保存',
+            action: () async {
               final name = controller.text.trim();
               if (name.isEmpty) return;
-              Navigator.pop(ctx);
+              Navigator.pop(buildContext);
               try {
                 await ref
                     .read(fileProvider.notifier)
@@ -1249,12 +1218,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 _showMessage('重命名失败: $e', theme: MessageTheme.error);
               }
             },
-            child: Text('保存', style: TextStyle(color: colorScheme.primary)),
           ),
-        ],
-      ),
+        );
+      },
     );
-    controller.dispose();
   }
 
   /// 为视频导入字幕文件
@@ -1421,56 +1388,36 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     AppToast.show(context, content, type: type);
   }
 
+  /// 文章重命名 — 使用 TDesign TDInputDialog
   Future<void> _showArticleRenameDialog(Article article) async {
-    final colorScheme = Theme.of(context).colorScheme;
     final controller = TextEditingController(text: article.title);
-    await DialogUtils.show(
+    showGeneralDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surface,
-        title: Text('重命名文章', style: TextStyle(color: colorScheme.onSurface)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: colorScheme.onSurface),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
-            ),
+      pageBuilder: (buildContext, animation, secondaryAnimation) {
+        return TDInputDialog(
+          textEditingController: controller,
+          title: '重命名文章',
+          content: '请输入新的文章名称',
+          hintText: article.title,
+          leftBtn: TDDialogButtonOptions(
+            title: '取消',
+            action: () => Navigator.pop(buildContext),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              '取消',
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
+          rightBtn: TDDialogButtonOptions(
+            title: '确定',
+            action: () async {
               final name = controller.text.trim();
               if (name.isEmpty) return;
-              Navigator.pop(ctx);
+              Navigator.pop(buildContext);
               try {
                 article.title = name;
                 await DatabaseService.update(article);
                 if (mounted) setState(() {});
               } catch (_) {}
             },
-            child: Text(
-              '确定',
-              style: TextStyle(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

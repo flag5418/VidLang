@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../providers/forum_admin_providers.dart';
 import '../../../widgets/common/loading_widget.dart';
 import '../../../widgets/common/error_widget.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class ForumAdminPage extends ConsumerStatefulWidget {
   const ForumAdminPage({Key? key}) : super(key: key);
@@ -42,7 +43,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock, size: 64, color: Colors.grey),
+                  Icon(Icons.lock, size: 64, color: AppColors.onSurfaceVariant),
                   SizedBox(height: 16),
                   Text('您没有管理员权限'),
                 ],
@@ -54,13 +55,13 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
         return Scaffold(
           appBar: AppBar(
             title: const Text('论坛管理后台'),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.textPrimary,
             elevation: 1,
             bottom: TabBar(
               controller: _tabController,
               labelColor: Theme.of(context).primaryColor,
-              unselectedLabelColor: Colors.grey,
+              unselectedLabelColor: AppColors.onSurfaceVariant,
               indicatorColor: Theme.of(context).primaryColor,
               tabs: const [
                 Tab(text: '内容审核'),
@@ -105,8 +106,8 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
               Tab(text: '待审核帖子'),
               Tab(text: '待审核评论'),
             ],
-            labelColor: Colors.black87,
-            indicatorColor: Colors.blue,
+            labelColor: AppColors.textPrimary,
+            indicatorColor: AppColors.primary,
           ),
           Expanded(
             child: TabBarView(
@@ -131,7 +132,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle, size: 64, color: Colors.green),
+                Icon(Icons.check_circle, size: 64, color: AppColors.success),
                 SizedBox(height: 16),
                 Text('所有帖子已审核完成'),
               ],
@@ -176,7 +177,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                       post.content,
                       style: TextStyle(
                         fontSize: 14.sp,
-                        color: Colors.grey[600],
+                        color: AppColors.textSecondary,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -188,7 +189,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           '作者: ${post.authorName}',
                           style: TextStyle(
                             fontSize: 12.sp,
-                            color: Colors.grey[500],
+                            color: AppColors.onSurfaceVariant,
                           ),
                         ),
                         const Spacer(),
@@ -228,7 +229,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle, size: 64, color: Colors.green),
+                Icon(Icons.check_circle, size: 64, color: AppColors.success),
                 SizedBox(height: 16),
                 Text('所有评论已审核完成'),
               ],
@@ -253,7 +254,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                       ),
                     ),
                     SizedBox(height: 8.h),
@@ -268,7 +269,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           '评论者: ${comment.userName}',
                           style: TextStyle(
                             fontSize: 12.sp,
-                            color: Colors.grey[500],
+                            color: AppColors.onSurfaceVariant,
                           ),
                         ),
                         const Spacer(),
@@ -303,7 +304,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people, size: 64, color: Colors.grey),
+          Icon(Icons.people, size: 64, color: AppColors.onSurfaceVariant),
           SizedBox(height: 16),
           Text('用户管理功能开发中'),
         ],
@@ -316,7 +317,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.feedback, size: 64, color: Colors.grey),
+          Icon(Icons.feedback, size: 64, color: AppColors.onSurfaceVariant),
           SizedBox(height: 16),
           Text('反馈管理功能开发中'),
         ],
@@ -371,7 +372,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
               title,
               style: TextStyle(
                 fontSize: 14.sp,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -383,15 +384,15 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
   Color _getPostTypeColor(String postType) {
     switch (postType) {
       case 'resource':
-        return Colors.blue.withOpacity(0.2);
+        return AppColors.primary.withValues(alpha: 0.2);
       case 'discussion':
-        return Colors.green.withOpacity(0.2);
+        return AppColors.success.withValues(alpha: 0.2);
       case 'feedback':
-        return Colors.orange.withOpacity(0.2);
+        return AppColors.warning.withValues(alpha: 0.2);
       case 'help':
-        return Colors.red.withOpacity(0.2);
+        return AppColors.error.withValues(alpha: 0.2);
       default:
-        return Colors.grey.withOpacity(0.2);
+        return AppColors.onSurfaceVariant.withValues(alpha: 0.2);
     }
   }
 

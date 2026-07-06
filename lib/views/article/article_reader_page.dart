@@ -22,6 +22,7 @@ import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/widgets/article/selectable_paragraph_text.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
@@ -87,10 +88,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   List<ArticleSentence> _sentences = [];
   bool _isLoading = true;
   double _fontSize = 16.0;
+  int _totalWords = 0; // 文章总字数
+  
+  // 阅读计时器
+  int _readingSeconds = 0; // 阅读秒数
+  Timer? _readingTimer; // 阅读计时器
 
   // 段落激活
   int? _activeParagraphIndex;
-  int _activeParagraphPosition = -1;
+  bool _isScrollingToTarget = false;
 
   // 划词选择状态
   bool _isSelecting = false; // 划词进行中（禁用滚动）
@@ -181,10 +187,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   bool _isSpeakingSelection = false;
   int _ttsCurrentWordIndex = -1;
   List<String> _ttsWords = [];
-  Timer? _ttsTimer;
   ap.AudioPlayer? _audioPlayer;
   StreamSubscription? _audioPositionSub;
   StreamSubscription? _audioDurationSub;
+  
+  // 按段落/句子组织的单词索引
+  int _currentSpeakingParagraphIndex = -1;
+  int _ttsGeneration = 0; // TTS 生成计数器，用于防止过期回调覆盖新状态
 
   // 全文朗读
   bool _isReadingAll = false;
@@ -197,6 +206,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _initFontSize();
     _initTts();
     _loadMarkRecords().then((_) => _loadArticle());
+    // 启动阅读计时器
+    _startReadingTimer();
   }
 
   @override
@@ -209,7 +220,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   void _resetForNewArticle() {
-    _ttsTimer?.cancel();
     _isSpeaking = false;
     _isSpeakingSelection = false;
     _ttsCurrentWordIndex = -1;
@@ -242,8 +252,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   @override
   void dispose() {
     _saveReadingPosition();
+    // 结束学习会话记录
+    LearningStatsService.instance.endSession();
     TtsService().stop();
-    _ttsTimer?.cancel();
+    _readingTimer?.cancel(); // 取消阅读计时器
     _audioPositionSub?.cancel();
     _audioDurationSub?.cancel();
     _audioPlayer?.stop();
@@ -263,6 +275,27 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   Future<void> _initTts() async {
     // TTS 统一由 TtsService 管理，无需在此初始化 flutter_tts
     // 文章阅读器的单词高亮由 _startWordHighlightTimer 模拟
+  }
+
+  /// 启动阅读计时器
+  void _startReadingTimer() {
+    _readingSeconds = 0;
+    _readingTimer?.cancel();
+    _readingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() => _readingSeconds++);
+      }
+    });
+  }
+
+  /// 格式化阅读时间
+  String _formatReadingTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    if (minutes > 0) {
+      return '$minutes分${secs.toString().padLeft(2, '0')}秒';
+    }
+    return '${secs}秒';
   }
 
   Future<void> _loadArticle() async {
@@ -316,7 +349,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       if (_paragraphs.isEmpty) _paragraphs = paragraphs;
       _readSentenceIndex = article.lastSentenceIndex;
       _isLoading = false;
+      // 计算总字数
+      _totalWords = _sentences.fold(0, (sum, s) => sum + s.content.length);
     });
+
+    // 开始学习会话记录
+    LearningStatsService.instance.beginSession(
+      resourceCode: widget.articleCode,
+      resourceType: 'article',
+      folderCode: article.folderCode,
+    );
 
     // 根据 lastSentenceIndex 找到当前段落并滚动
     final currentSentence = _sentences
@@ -327,8 +369,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
           _activeParagraphIndex = currentParaIdx;
-          final paraIndices = _getParagraphIndices();
-          _activeParagraphPosition = paraIndices.indexOf(currentParaIdx);
         });
         final paraIndices = _getParagraphIndices();
         final pos = paraIndices.indexOf(currentParaIdx);
@@ -475,7 +515,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients || _sentences.isEmpty || _isSelecting) {
+    if (!_scrollController.hasClients || _sentences.isEmpty || _isSelecting || _isScrollingToTarget) {
       return;
     }
     final viewportHeight = _scrollController.position.viewportDimension;
@@ -510,8 +550,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       }
       if (_activeParagraphIndex != bestParaIdx) {
         _activeParagraphIndex = bestParaIdx;
-        final paraIndices = _getParagraphIndices();
-        _activeParagraphPosition = paraIndices.indexOf(bestParaIdx);
         setState(() {});
       }
     }
@@ -638,58 +676,91 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   Future<void> _speakText(String text) async {
-    // 停止之前的播放
-    _stopSpeaking();
+    _articleTtsLog('🎙️ [SpeakText] 开始播放文本 | 长度=${text.length}');
+    _articleTtsLog('🎙️ [SpeakText] 当前状态: _isSpeaking=$_isSpeaking, _isReadingAll=$_isReadingAll');
+    
+    // 只停止引擎，保留朗读状态（如 _isReadingAll）
+    _stopEngine();
+    final int gen = ++_ttsGeneration;
+    _articleTtsLog('🎙️ [SpeakText] 生成器: $gen');
 
     final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
     _articleTtsLog(
-      '📖 [ArticleTTS] _speakText | mode=$mode | text="${text.length > 50 ? '${text.substring(0, 50)}...' : text}"',
+      '🎙️ [SpeakText] mode=$mode | text="${text.length > 50 ? '${text.substring(0, 50)}...' : text}"',
     );
 
     // 准备单词列表用于高亮（在播放前准备好）
     final wordRegex = RegExp(r'\b\w+\b');
     final wordMatches = wordRegex.allMatches(text).toList();
     _ttsWords = wordMatches.map((m) => m.group(0)!).toList();
+    _articleTtsLog('🎙️ [SpeakText] 单词数量: ${_ttsWords.length}');
 
     setState(() {
       _isSpeaking = true;
       _isSpeakingSelection = false;
       _ttsCurrentWordIndex = _ttsWords.isNotEmpty ? 0 : -1;
+      _articleTtsLog('🎙️ [SpeakText] 设置 _isSpeaking=true, _ttsCurrentWordIndex=$_ttsCurrentWordIndex');
     });
 
     try {
-      // 使用统一 TTS 服务（自带缓存、日志、分流逻辑）
+      _articleTtsLog('🎙️ [SpeakText] 开始调用 TtsService().speakClarity');
       await TtsService().speakClarity(
         text: text,
         mode: mode,
+        onProgress: (fraction) {
+          if (gen != _ttsGeneration || !mounted) return;
+          _onTtsProgress(fraction);
+        },
         onEvent: (event) {
-          _articleTtsLog(
-            '📖 [ArticleTTS] event=${event.type} ${event.message ?? ""}',
-          );
-          if (event.type == TtsEventType.loading && mounted) {
-            // loading 状态：可以显示加载指示器（当前保持 isSpeaking=true 即可）
-          }
+          if (gen != _ttsGeneration) return; // 过期事件忽略
+          _articleTtsLog('🎙️ [SpeakText] TTS事件: ${event.type} | ${event.message ?? ""}');
           if (event.type == TtsEventType.playing && mounted) {
-            // 开始播放时启动单词高亮定时器
-            _startWordHighlightTimer(text);
+            _articleTtsLog('🎙️ [SpeakText] 开始播放');
           }
         },
         onComplete: () {
-          _articleTtsLog('📖 [ArticleTTS] onComplete');
-          _finishSpeaking();
-          if (_isReadingAll) _readAllNext();
+          if (gen != _ttsGeneration) {
+            _articleTtsLog('🎙️ [SpeakText] 过期回调忽略 (gen=$gen != $_ttsGeneration)');
+            return;
+          }
+          _articleTtsLog('🎙️ [SpeakText] TTS引擎播放完成');
+          TtsService().stop();
+          setState(() {
+            _isSpeaking = false;
+            _ttsCurrentWordIndex = -1;
+            _ttsWords = [];
+            _currentSpeakingParagraphIndex = -1;
+          });
+          if (_isReadingAll) {
+            _articleTtsLog('🎙️ [SpeakText] 继续朗读下一段');
+            _readAllNext();
+          }
         },
       );
+      _articleTtsLog('🎙️ [SpeakText] speakClarity 返回');
     } catch (e) {
-      _articleTtsLog('📖 [ArticleTTS] 异常: $e');
+      _articleTtsLog('🎙️ [SpeakText] 异常: $e');
+      _stopEngine();
+      setState(() {
+        _isSpeaking = false;
+        _ttsCurrentWordIndex = -1;
+        _ttsWords = [];
+        _currentSpeakingParagraphIndex = -1;
+      });
       if (mounted) {
-        _finishSpeaking();
-        // 统一使用 TtsService 回退（复用传入的 mode）
         await TtsService().speakClarity(
           text: text,
           mode: mode,
           onComplete: () {
-            _finishSpeaking();
+            if (gen != _ttsGeneration) return;
+            _articleTtsLog('🎙️ [SpeakText] 重试播放完成');
+            TtsService().stop();
+            setState(() {
+              _isSpeaking = false;
+              _ttsCurrentWordIndex = -1;
+              _ttsWords = [];
+              _currentSpeakingParagraphIndex = -1;
+            });
             if (_isReadingAll) _readAllNext();
           },
         );
@@ -697,57 +768,54 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     }
   }
 
-  /// 启动单词高亮定时器（用于流式 TTS 播放时模拟单词进度）
-  void _startWordHighlightTimer(String text) {
-    // 取消之前的定时器
-    _ttsTimer?.cancel();
-    
+  /// 根据音频播放进度更新高亮单词索引
+  void _onTtsProgress(double fraction) {
     if (_ttsWords.isEmpty) return;
-    
-    // 估算每个单词的持续时间（基于平均语速）
-    // 假设平均语速为 150 词/分钟 = 2.5 词/秒 = 400ms/词
-    const int avgWordDurationMs = 400;
-    
-    _ttsTimer = Timer.periodic(Duration(milliseconds: avgWordDurationMs), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_ttsCurrentWordIndex >= _ttsWords.length - 1) {
-        timer.cancel();
-        _ttsTimer = null;
-        return;
-      }
-      setState(() => _ttsCurrentWordIndex++);
-    });
+    final index = (fraction * _ttsWords.length).floor().clamp(0, _ttsWords.length - 1);
+    if (index != _ttsCurrentWordIndex) {
+      _ttsCurrentWordIndex = index;
+      setState(() {});
+    }
   }
 
-  void _stopSpeaking() {
-    _ttsTimer?.cancel();
+  /// 只停止 TTS 引擎，保留朗读状态（_isReadingAll/_isSpeaking 等）
+  void _stopEngine() {
+    _articleTtsLog('🛑 [StopEngine] 停止引擎');
     TtsService().stop();
     _audioPositionSub?.cancel();
     _audioDurationSub?.cancel();
     _audioPlayer?.stop();
-    _isReadingAll = false;
-    _finishSpeaking();
   }
 
-  void _finishSpeaking() {
-    final wasSelection = _isSpeakingSelection;
+  /// 返回按钮处理 - 确保停止所有播放后关闭页面
+  void _onBackPressed() {
+    _articleTtsLog('🔙 [BackPressed] 用户点击返回按钮');
+    _stopSpeaking();
+    _saveReadingPosition();
     if (mounted) {
-      setState(() {
-        _isSpeaking = false;
-        _isSpeakingSelection = false;
-        _ttsCurrentWordIndex = -1;
-        _ttsWords = [];
-      });
-      if (wasSelection) _clearSelection();
+      Navigator.pop(context);
     }
+  }
+
+  /// 完全停止播放 - 停止引擎 + 重置所有朗读状态
+  void _stopSpeaking() {
+    _articleTtsLog('🛑 [StopSpeaking] 完全停止播放');
+    _stopEngine();
+    _isReadingAll = false;
+    setState(() {
+      _isSpeaking = false;
+      _isSpeakingSelection = false;
+      _ttsCurrentWordIndex = -1;
+      _ttsWords = [];
+      _currentSpeakingParagraphIndex = -1;
+    });
+    _articleTtsLog('✅ [StopSpeaking] 完全停止完成');
   }
 
   // ── 全文朗读 ──
 
   void _startReadAll() {
+    _articleTtsLog('📚 [StartReadAll] 开始全文朗读');
     if (_sentences.isEmpty) return;
     final sortedParas = _getParagraphIndices();
     if (sortedParas.isEmpty) return;
@@ -755,12 +823,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _readingAllParagraphIndex = sortedParas.first;
     setState(() {
       _activeParagraphIndex = sortedParas.first;
-      _activeParagraphPosition = 0;
       _readSentenceIndex = _sentences.first.sentenceIndex;
+      _ttsCurrentWordIndex = 0; // 从第一个单词开始
+      _currentSpeakingParagraphIndex = sortedParas.first;
     });
-    // 滚动到顶部
+    _articleTtsLog('📚 [StartReadAll] 设置 _activeParagraphIndex=${sortedParas.first}, _currentSpeakingParagraphIndex=${sortedParas.first}');
+    // 滚动到第一段并居中显示
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToParagraph(sortedParas.first);
+      _scrollToParagraph(sortedParas.first, alignment: 0.35);
     });
     _speakCurrentParagraph();
   }
@@ -771,41 +841,53 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   void _readAllNext() {
+    _articleTtsLog('➡️ [ReadAllNext] 当前 _isReadingAll=$_isReadingAll, _readingAllParagraphIndex=$_readingAllParagraphIndex');
     if (!_isReadingAll) return;
     final sortedParas = _getParagraphIndices();
     final currentIdx = sortedParas.indexOf(_readingAllParagraphIndex);
     if (currentIdx < 0 || currentIdx >= sortedParas.length - 1) {
+      _articleTtsLog('➡️ [ReadAllNext] 到达最后一段，停止全文朗读');
       _isReadingAll = false;
       if (mounted) setState(() {});
       return;
     }
     _readingAllParagraphIndex = sortedParas[currentIdx + 1];
+    _articleTtsLog('➡️ [ReadAllNext] 切换到段落 $_readingAllParagraphIndex');
+    _isScrollingToTarget = true;
     setState(() {
       _activeParagraphIndex = _readingAllParagraphIndex;
-      _activeParagraphPosition = currentIdx + 1;
+      _currentSpeakingParagraphIndex = _readingAllParagraphIndex;
     });
     _scrollToParagraph(_readingAllParagraphIndex);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isScrollingToTarget = false;
+    });
     _speakCurrentParagraph();
   }
 
   void _speakCurrentParagraph() {
+    _articleTtsLog('🗣️ [SpeakCurrentParagraph] 朗读段落 $_readingAllParagraphIndex');
     final sentences = _sentences
         .where((s) => s.paragraphIndex == _readingAllParagraphIndex)
         .toList();
     if (sentences.isEmpty) {
+      _articleTtsLog('🗣️ [SpeakCurrentParagraph] 段落 $_readingAllParagraphIndex 没有句子');
       _readAllNext();
       return;
     }
-    _speakText(sentences.map((s) => s.content).join(' '));
+    final text = sentences.map((s) => s.content).join(' ');
+    _articleTtsLog('🗣️ [SpeakCurrentParagraph] 文本长度: ${text.length}, 句子数: ${sentences.length}');
+    _speakText(text);
   }
 
-  void _scrollToParagraph(int paragraphIndex) {
+  void _scrollToParagraph(int paragraphIndex, {double alignment = 0.3}) {
     final key = _paragraphKeys[paragraphIndex];
     if (key?.currentContext != null) {
       Scrollable.ensureVisible(
         key!.currentContext!,
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
+        alignment: alignment,
       );
     }
   }
@@ -827,15 +909,32 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   // ── 段落朗读 ──
 
   void _speakParagraph(int paragraphIndex) {
+    _articleTtsLog('📖 [SpeakParagraph] 开始朗读段落 $paragraphIndex');
+    _articleTtsLog('📖 [SpeakParagraph] 当前状态: _isReadingAll=$_isReadingAll, _isSpeaking=$_isSpeaking');
+    
+    // 如果正在进行整体朗读，先停止
+    if (_isReadingAll) {
+      _articleTtsLog('📖 [SpeakParagraph] 停止整体朗读');
+      _isReadingAll = false;
+    }
+    
     final sentences = _sentencesForParagraph(paragraphIndex);
-    if (sentences.isEmpty) return;
+    if (sentences.isEmpty) {
+      _articleTtsLog('📖 [SpeakParagraph] 段落 $paragraphIndex 没有句子');
+      return;
+    }
     final firstSentence = sentences.first;
+    _isScrollingToTarget = true;
     setState(() {
       _activeParagraphIndex = paragraphIndex;
-      _activeParagraphPosition = _getParagraphIndices().indexOf(paragraphIndex);
       _readSentenceIndex = firstSentence.sentenceIndex;
+      _currentSpeakingParagraphIndex = paragraphIndex;
     });
+    _articleTtsLog('📖 [SpeakParagraph] 设置 _activeParagraphIndex=$paragraphIndex, _currentSpeakingParagraphIndex=$paragraphIndex');
     _scrollToParagraph(paragraphIndex);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isScrollingToTarget = false;
+    });
     _speakText(sentences.map((s) => s.content).join(' '));
   }
 
@@ -874,21 +973,25 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       _hideSelectionToolbar();
       return;
     }
+    _isScrollingToTarget = true;
     setState(() {
       if (_activeParagraphIndex == paragraphIndex) {
         _activeParagraphIndex = null;
-        _activeParagraphPosition = -1;
       } else {
         _activeParagraphIndex = paragraphIndex;
         _selectionText = null;
         _toolbarOffset = null;
-        final paraIndices = _getParagraphIndices();
-        _activeParagraphPosition = paraIndices.indexOf(paragraphIndex);
       }
     });
+    // 滚动到屏幕中央
+    _scrollToParagraph(paragraphIndex, alignment: 0.35);
     // 更新阅读位置
     final firstSentence = _sentencesForParagraph(paragraphIndex).firstOrNull;
     if (firstSentence != null) _readSentenceIndex = firstSentence.sentenceIndex;
+    // 等待滚动动画结束后恢复滚动监听
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isScrollingToTarget = false;
+    });
   }
 
   void _hideSelectionToolbar() {
@@ -968,18 +1071,67 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       if (!mounted) return;
 
       final translation = detail.translation ?? detail.definitions.firstOrNull?.chineseMeaning ?? '';
-      String displayText;
+      String popoverText;
       if (translation.isNotEmpty && _containsChinese(translation)) {
-        displayText = '$text\n$translation';
+        popoverText = translation;
       } else {
-        displayText = '未找到「$text」的中文释义';
+        popoverText = '未找到「$text」的中文释义';
       }
 
-      TDToast.showText(
-        displayText,
+      if (!mounted) return;
+      // 使用 Dialog 显示释义
+      showGeneralDialog(
         context: context,
-        duration: const Duration(seconds: 3),
+        barrierDismissible: true,
+        barrierLabel: '释义',
+        barrierColor: Colors.transparent,
+        transitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (ctx, _, __) {
+          return Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  popoverText,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(ctx).colorScheme.onSurface,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        },
+        transitionBuilder: (ctx, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
       );
+    } catch (e) {
+      debugPrint('释义查询失败: $e');
+      if (mounted) {
+        TDToast.showText(
+          '释义查询失败',
+          context: context,
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -1125,14 +1277,19 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           _clearSelection();
         }
       },
-      child: Scaffold(
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _onBackPressed();
+        },
+        child: Scaffold(
         backgroundColor: cs.surface,
         appBar: AppBar(
           backgroundColor: cs.surface,
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
+            onPressed: _onBackPressed,
           ),
           title: Text(
             _article!.title,
@@ -1233,6 +1390,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               _buildMarkManagerPopup(cs),
             ],
 
+            // 段落导航按钮（右侧）
+            if (_activeParagraphIndex != null)
+              Positioned(
+                right: 8.w,
+                top: MediaQuery.of(context).size.height * 0.4,
+                child: _buildParagraphNavButtons(cs),
+              ),
+
             // 文章列表侧边栏
             if (_showArticleList) ...[
               // 半透明遮罩
@@ -1254,6 +1419,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             ],
           ],
         ),
+      ),
       ),
     );
   }
@@ -1291,8 +1457,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     final isActive = paragraphIndex == _activeParagraphIndex;
     final isSpeakingPara =
         _isSpeaking &&
-        _isReadingAll &&
-        _readingAllParagraphIndex == paragraphIndex;
+        _currentSpeakingParagraphIndex == paragraphIndex;
 
     _paragraphKeys.putIfAbsent(paragraphIndex, () => GlobalKey());
     final key = _paragraphKeys[paragraphIndex]!;
@@ -1304,18 +1469,28 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         onTap: isActive ? null : () => _onParagraphTap(paragraphIndex),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           margin: EdgeInsets.only(bottom: 24.h),
           decoration: BoxDecoration(
             color: isActive
-                ? cs.primary.withValues(alpha: 0.03)
+                ? cs.primary.withValues(alpha: 0.08)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(16.r),
             border: isActive
                 ? Border.all(
-                    color: cs.primary.withValues(alpha: 0.1),
-                    width: 0.5,
+                    color: cs.primary.withValues(alpha: 0.3),
+                    width: 1.0,
                   )
-                : Border.all(color: Colors.transparent, width: 0.5),
+                : Border.all(color: Colors.transparent, width: 1.0),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: cs.primary.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 16.h),
           child: Column(
@@ -1407,8 +1582,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     if (_activeParagraphIndex == paragraphIndex) {
       final isTtsHighlight =
           !_isSpeakingSelection &&
-          (isSpeakingPara || (_isSpeaking && !_isReadingAll));
+          _currentSpeakingParagraphIndex == paragraphIndex &&
+          _isSpeaking;
       final ttsWordIdx = isTtsHighlight ? _ttsCurrentWordIndex : -1;
+      
+      if (isTtsHighlight && _ttsCurrentWordIndex >= 0) {
+        _articleTtsLog('🔍 [Highlight] 段落 $paragraphIndex 高亮 | _ttsCurrentWordIndex=$_ttsCurrentWordIndex, 单词数=${_ttsWords.length}');
+      }
 
       final marksForPara = _markRecords
           .where((m) => m.paragraphIndex == paragraphIndex)
@@ -1428,20 +1608,25 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         onSelectionDone: (selectedWords, position, startIdx, endIdx) {
           final selectedText = selectedWords.join(' ');
           _isSelecting = false;
+          // 估算工具栏实际宽度（5个按钮 + padding）
+          // 每个按钮约 50w，Row padding 12w，Container padding 6w×2，总计约 280w
+          const toolbarWidth = 280.0;
+          const toolbarHeight = 80.0;
+          final screenWidth = MediaQuery.of(context).size.width;
+          final screenHeight = MediaQuery.of(context).size.height;
+          
+          _articleTtsLog('🎙️ [Selection] 划词位置: dx=${position.dx}, dy=${position.dy} | 屏幕: ${screenWidth}x${screenHeight}');
+          
           setState(() {
             _selectionText = selectedText;
             _selectionStartIndex = startIdx;
             _selectionEndIndex = endIdx;
-            _toolbarOffset = Offset(
-              position.dx.clamp(
-                20.w,
-                MediaQuery.of(context).size.width - 220.w,
-              ),
-              (position.dy - 60.h).clamp(
-                40.h,
-                MediaQuery.of(context).size.height - 100.h,
-              ),
-            );
+            // 水平方向：确保工具栏不超出屏幕右边界
+            final clampedDx = position.dx.clamp(20.w, screenWidth - toolbarWidth);
+            // 垂直方向：工具栏在选中位置上方（dy - 60），确保不超出屏幕下边界
+            final clampedDy = (position.dy - toolbarHeight).clamp(40.h, screenHeight - toolbarHeight);
+            _toolbarOffset = Offset(clampedDx, clampedDy);
+            _articleTtsLog('🎙️ [Selection] 调整后: dx=$clampedDx, dy=$clampedDy');
           });
         },
       );
@@ -1596,9 +1781,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     final progress = totalSentences > 0
         ? (_readSentenceIndex + 1) / totalSentences
         : 0.0;
-    final percent = (progress * 100).round().clamp(0, 100);
-    final paraIndices = _getParagraphIndices();
-    final totalParas = paraIndices.length;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
@@ -1627,9 +1809,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               ),
             ),
             SizedBox(height: 12.h),
-            // 操作按钮
+            // 操作按钮和信息
             Row(
               children: [
+                // 播放按钮
                 IconButton(
                   icon: Icon(
                     _isReadingAll
@@ -1644,14 +1827,28 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   constraints: const BoxConstraints(),
                 ),
                 SizedBox(width: 16.w),
+                // 文章字数和阅读时间
                 Expanded(
-                  child: Text(
-                    '${_activeParagraphPosition + 1} / $totalParas 段  •  $percent%',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$_totalWords 字',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        '阅读 ${_formatReadingTime(_readingSeconds)}',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 // 书签按钮 + 角标（Stack 叠加）
@@ -1743,6 +1940,116 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // ── 段落导航按钮 ──
+
+  Widget _buildParagraphNavButtons(ColorScheme cs) {
+    final paraIndices = _getParagraphIndices();
+    if (paraIndices.isEmpty) return const SizedBox.shrink();
+
+    final currentIndex = paraIndices.indexOf(_activeParagraphIndex!);
+    final hasPrev = currentIndex > 0;
+    final hasNext = currentIndex < paraIndices.length - 1;
+
+    // 使用中性颜色，在浅色/深色模式下都清晰可见
+    final buttonBgColor = cs.surfaceContainerHighest;
+    final activeButtonBgColor = cs.surfaceContainerHigh;
+    final iconColor = cs.onSurfaceVariant;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 上一段
+        GestureDetector(
+          onTap: hasPrev
+              ? () {
+                  final prevIndex = paraIndices[currentIndex - 1];
+                  _onParagraphTap(prevIndex);
+                }
+              : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: hasPrev ? activeButtonBgColor : buttonBgColor,
+              borderRadius: BorderRadius.circular(18.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.keyboard_arrow_up_rounded,
+              color: hasPrev ? iconColor : iconColor.withValues(alpha: 0.3),
+              size: 24.sp,
+            ),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        // 当前段落指示
+        Container(
+          width: 40.w,
+          padding: EdgeInsets.symmetric(vertical: 4.h),
+          decoration: BoxDecoration(
+            color: activeButtonBgColor,
+            borderRadius: BorderRadius.circular(8.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              '${currentIndex + 1}/${paraIndices.length}',
+              style: TextStyle(
+                fontSize: 10.sp,
+                color: cs.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        // 下一段
+        GestureDetector(
+          onTap: hasNext
+              ? () {
+                  final nextIndex = paraIndices[currentIndex + 1];
+                  _onParagraphTap(nextIndex);
+                }
+              : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: hasNext ? activeButtonBgColor : buttonBgColor,
+              borderRadius: BorderRadius.circular(18.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: hasNext ? iconColor : iconColor.withValues(alpha: 0.3),
+              size: 24.sp,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -2075,9 +2382,9 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                         r.endIndex == eIdx &&
                         r.color == _markerColors[i],
                   );
-                  return GestureDetector(
-                    onTap: () => Navigator.pop(ctx, i),
-                    child: Container(
+                    return GestureDetector(
+                      onTap: () => Navigator.pop(ctx, i),
+                      child: Container(
                       width: 44.w,
                       height: 44.w,
                       decoration: BoxDecoration(

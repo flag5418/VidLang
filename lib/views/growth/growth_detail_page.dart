@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/providers/growth_provider.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 单次评测详细页 — 展示完整 AI 评价报告
 class GrowthDetailPage extends ConsumerStatefulWidget {
@@ -71,10 +72,10 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: score >= 80
-                        ? Colors.green
+                        ? AppColors.success
                         : score >= 60
-                            ? Colors.orange
-                            : Colors.red,
+                            ? AppColors.warning
+                            : AppColors.error,
                   ),
             ),
             const SizedBox(height: 8),
@@ -97,7 +98,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
 
   Widget _buildAiReport(BuildContext context, dynamic eval) {
     return Card(
-      color: Colors.blue.shade50,
+      color: AppColors.primary.withValues(alpha: 0.1),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -105,7 +106,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome, color: Colors.amber),
+                const Icon(Icons.auto_awesome, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Text('AI 评价报告',
                     style: Theme.of(context).textTheme.titleMedium),
@@ -187,13 +188,13 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
               child: LinearProgressIndicator(
                 value: score / 100,
                 minHeight: 12,
-                backgroundColor: Colors.grey.shade200,
+                backgroundColor: AppColors.borderLight,
                 valueColor: AlwaysStoppedAnimation(
                   score >= 80
-                      ? Colors.green
+                      ? AppColors.success
                       : score >= 60
-                          ? Colors.orange
-                          : Colors.red,
+                          ? AppColors.warning
+                          : AppColors.error,
                 ),
               ),
             ),
@@ -230,11 +231,11 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
                 leading: CircleAvatar(
                   radius: 14,
                   backgroundColor:
-                      isCorrect ? Colors.green.shade100 : Colors.red.shade100,
+                      isCorrect ? AppColors.success.withValues(alpha: 0.15) : AppColors.error.withValues(alpha: 0.15),
                   child: Icon(
                     isCorrect ? Icons.check : Icons.close,
                     size: 16,
-                    color: isCorrect ? Colors.green : Colors.red,
+                    color: isCorrect ? AppColors.success : AppColors.error,
                   ),
                 ),
                 title: Text(
@@ -246,7 +247,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
                   style: const TextStyle(fontSize: 12),
                 ),
                 trailing: (item.score ?? 0) >= 80
-                    ? const Icon(Icons.emoji_events, color: Colors.amber, size: 20)
+                    ? const Icon(Icons.emoji_events, color: AppColors.warning, size: 20)
                     : null,
               );
             }),

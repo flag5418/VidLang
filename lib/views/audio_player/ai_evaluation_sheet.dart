@@ -179,7 +179,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: AppColors.onSurface.withValues(alpha: 0.24),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -191,7 +191,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 Text(
                   'AI 点评',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.onSurface,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -206,7 +206,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                     ),
                     decoration: BoxDecoration(
                       gradient: _loading ? null : AppColors.sunsetGradient,
-                      color: _loading ? Colors.grey : null,
+                      color: _loading ? AppColors.onSurfaceVariant : null,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
@@ -218,20 +218,20 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                             height: 12,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.onSurface,
                             ),
                           )
                         else
                           Icon(
                             Icons.auto_awesome,
                             size: 14,
-                            color: Colors.white,
+                            color: AppColors.onSurface,
                           ),
                         const SizedBox(width: 6),
                         Text(
                           _loading ? '分析中...' : '请求点评',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.onSurface,
                             fontSize: 12.sp,
                           ),
                         ),
@@ -258,11 +258,11 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         SizedBox(height: 40),
-        Icon(Icons.auto_awesome_outlined, size: 48, color: Colors.white24),
+        Icon(Icons.auto_awesome_outlined, size: 48, color: AppColors.onSurface.withValues(alpha: 0.24)),
         SizedBox(height: 12),
         Text(
           '暂无AI点评\n跟读练习后点击"请求点评"',
-          style: TextStyle(color: Colors.white54, fontSize: 13.sp),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 13.sp),
           textAlign: TextAlign.center,
         ),
       ],
@@ -357,7 +357,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
             child: Text(
               e.summary!,
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.onSurface,
                 fontSize: 13.sp,
                 height: 1.6,
               ),
@@ -368,7 +368,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         if (_history.length > 1) ...[
           Text(
             '历史点评',
-            style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 12.sp),
           ),
           const SizedBox(height: 8),
           ..._history.skip(1).map((h) => _historyItem(h)),
@@ -402,12 +402,12 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: Colors.white70),
+              Icon(icon, size: 16, color: AppColors.onSurface.withValues(alpha: 0.7)),
               const SizedBox(width: 6),
               Text(
                 title,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: AppColors.onSurface.withValues(alpha: 0.7),
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -417,7 +417,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           const SizedBox(height: 8),
           Text(
             content,
-            style: TextStyle(color: Colors.white, fontSize: 13.sp, height: 1.6),
+            style: TextStyle(color: AppColors.onSurface, fontSize: 13.sp, height: 1.6),
           ),
         ],
       ),
@@ -438,12 +438,12 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb, size: 16, color: Colors.white70),
+              Icon(Icons.lightbulb, size: 16, color: AppColors.onSurface.withValues(alpha: 0.7)),
               const SizedBox(width: 6),
               Text(
                 '建议',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: AppColors.onSurface.withValues(alpha: 0.7),
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -459,13 +459,13 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 children: [
                   Text(
                     '• ',
-                    style: TextStyle(color: Colors.white54, fontSize: 13.sp),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 13.sp),
                   ),
                   Expanded(
                     child: Text(
                       '$s',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.onSurface,
                         fontSize: 13.sp,
                         height: 1.5,
                       ),
@@ -488,7 +488,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               ? (showInt ? value.round().toString() : value.round().toString())
               : '-',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.onSurface,
             fontSize: 16.sp,
             fontWeight: FontWeight.bold,
           ),
@@ -496,7 +496,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
         ),
       ],
     );
@@ -532,14 +532,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           Expanded(
             child: Text(
               h.summary ?? '无点评内容',
-              style: TextStyle(color: Colors.white70, fontSize: 13.sp),
+              style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 13.sp),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             _fmtDate(h.evaluatedAt),
-            style: TextStyle(color: Colors.white38, fontSize: 12.sp),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 12.sp),
           ),
         ],
       ),

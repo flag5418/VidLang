@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/providers/growth_provider.dart';
 import 'package:vidlang/views/growth/growth_detail_page.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 成长记录主页 — 年→月→日→评测 四层结构 + 日历热力图 + 能力雷达图
 class GrowthRecordPage extends ConsumerStatefulWidget {
@@ -108,7 +109,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
           children: [
             Column(
               children: [
-                const Icon(Icons.local_fire_department, color: Colors.orange, size: 36),
+                const Icon(Icons.local_fire_department, color: AppColors.warning, size: 36),
                 const SizedBox(height: 4),
                 Text('当前连胜',
                     style: Theme.of(context).textTheme.bodySmall),
@@ -116,10 +117,10 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                     style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
-            Container(width: 1, height: 48, color: Colors.grey.shade300),
+            Container(width: 1, height: 48, color: AppColors.borderLight),
             Column(
               children: [
-                const Icon(Icons.emoji_events, color: Colors.amber, size: 36),
+                const Icon(Icons.emoji_events, color: AppColors.warning, size: 36),
                 const SizedBox(height: 4),
                 Text('最佳纪录',
                     style: Theme.of(context).textTheme.bodySmall),
@@ -172,7 +173,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.2 + intensity * 0.7),
+                          color: AppColors.success.withValues(alpha: 0.2 + intensity * 0.7),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         alignment: Alignment.center,
@@ -180,14 +181,14 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                           '$count',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: intensity > 0.5 ? Colors.white : Colors.green.shade800,
+                            color: intensity > 0.5 ? AppColors.surface : AppColors.success,
                           ),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${day.avgScore.toStringAsFixed(0)}分',
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
                       ),
                     ],
                   );
@@ -257,7 +258,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                 child: Text(
                   entry.key,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.grey.shade600,
+                        color: AppColors.textSecondary,
                       ),
                 ),
               ),
@@ -279,19 +280,19 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: score >= 80
-              ? Colors.green.shade100
+              ? AppColors.success.withValues(alpha: 0.15)
               : score >= 60
-                  ? Colors.orange.shade100
-                  : Colors.red.shade100,
+                  ? AppColors.warning.withValues(alpha: 0.15)
+                  : AppColors.error.withValues(alpha: 0.15),
           child: Text(
             '$score',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: score >= 80
-                  ? Colors.green.shade800
+                  ? AppColors.success
                   : score >= 60
-                      ? Colors.orange.shade800
-                      : Colors.red.shade800,
+                      ? AppColors.warning
+                      : AppColors.error,
             ),
           ),
         ),
@@ -353,7 +354,7 @@ class _TrendLinePainter extends CustomPainter {
 
     // 网格线
     final gridPaint = Paint()
-      ..color = Colors.grey.shade200
+      ..color = AppColors.borderLight
       ..style = PaintingStyle.stroke;
     for (int i = 0; i <= 3; i++) {
       final y = padding + h * i / 3;
@@ -362,7 +363,7 @@ class _TrendLinePainter extends CustomPainter {
 
     // 数据线
     final linePaint = Paint()
-      ..color = Colors.blue
+      ..color = AppColors.primary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -382,7 +383,7 @@ class _TrendLinePainter extends CustomPainter {
     for (int i = 0; i < data.length; i++) {
       final x = padding + (w * i / (data.length - 1).clamp(1, 999));
       final y = padding + h * (1 - (data[i] - minVal) / range);
-      canvas.drawCircle(Offset(x, y), 3, Paint()..color = Colors.blue);
+      canvas.drawCircle(Offset(x, y), 3, Paint()..color = AppColors.primary);
     }
 
     // X 轴标签（仅显示部分）
@@ -391,7 +392,7 @@ class _TrendLinePainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: labels[i],
-          style: const TextStyle(fontSize: 9, color: Colors.grey),
+          style: const TextStyle(fontSize: 9, color: AppColors.onSurfaceVariant),
         ),
         textDirection: TextDirection.ltr,
       );

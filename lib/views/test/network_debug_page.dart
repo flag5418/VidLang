@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 声通网络连通性测试页面
 /// 用于排查 WebSocket 连接问题
@@ -121,7 +122,7 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('网络连通性测试'),
-        backgroundColor: Colors.teal,
+        backgroundColor: AppColors.primary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -150,9 +151,9 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: AppColors.borderLight!),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(

@@ -15,6 +15,11 @@ import Translation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Suppress verbose AVFoundation AVAudioFormat os_log spam in debug mode.
+    // These logs (<AVAudioFormat 0x...: 1 ch, 22050 Hz, Float32>) come from
+    // AVAudioEngine.installTap and are harmless but clutter the console.
+    setenv("OS_ACTIVITY_MODE", "disable", 1)
+
     GeneratedPluginRegistrant.register(with: self)
     let ok = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     DispatchQueue.main.async { [weak self] in

@@ -78,9 +78,9 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('学习记录', style: TextStyle(color: Colors.white, fontSize: 16.sp)),
+        title: Text('学习记录', style: TextStyle(color: AppColors.onSurface, fontSize: 16.sp)),
         backgroundColor: AppColors.surface,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: AppColors.onSurface),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -126,7 +126,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       ),
       child: Column(
         children: [
-          Text(widget.videoTitle, style: TextStyle(color: Colors.white70, fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(widget.videoTitle, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 12),
           if (_resourceScore != null) ...[
             Text(
@@ -138,13 +138,13 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
               ),
             ),
             const SizedBox(height: 4),
-            Text('综合评分', style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
+            Text('综合评分', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp)),
           ] else
             Column(
               children: [
-                Icon(Icons.mic_none_rounded, size: 48, color: Colors.white24),
+                Icon(Icons.mic_none_rounded, size: 48, color: AppColors.onSurface.withValues(alpha: 0.24)),
                 const SizedBox(height: 8),
-                Text('暂无跟读评分', style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
+                Text('暂无跟读评分', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 13.sp)),
               ],
             ),
           if (_sentenceAvg != null || _fullAvg != null)
@@ -155,7 +155,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                 children: [
                   if (_sentenceAvg != null) _miniScore('单句', _sentenceAvg!),
                   if (_sentenceAvg != null && _fullAvg != null)
-                    Container(width: 1, height: 16, color: Colors.white12, margin: const EdgeInsets.symmetric(horizontal: 16)),
+                    Container(width: 1, height: 16, color: AppColors.onSurface.withValues(alpha: 0.12), margin: const EdgeInsets.symmetric(horizontal: 16)),
                   if (_fullAvg != null) _miniScore('全文', _fullAvg!),
                 ],
               ),
@@ -169,7 +169,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
     return Column(
       children: [
         Text('${score.round()}', style: TextStyle(color: _scoreColor(score), fontSize: 18.sp, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
+        Text(label, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp)),
       ],
     );
   }
@@ -194,8 +194,8 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       children: [
         Icon(icon, color: AppColors.primary, size: 20),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 12.sp)),
+        Text(value, style: TextStyle(color: AppColors.onSurface, fontSize: 16.sp, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp)),
       ],
     );
   }
@@ -207,13 +207,13 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('表现分析', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+          Text('表现分析', style: TextStyle(color: AppColors.onSurface, fontSize: 14.sp, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           if (_bestRefText != null)
-            _analysisRow(Icons.thumb_up_outlined, '最佳', _bestRefText ?? '', _bestScore!, Colors.green),
+            _analysisRow(Icons.thumb_up_outlined, '最佳', _bestRefText ?? '', _bestScore!, AppColors.success),
           if (_bestRefText != null && _worstRefText != null) const SizedBox(height: 8),
           if (_worstRefText != null)
-            _analysisRow(Icons.thumb_down_outlined, '待提升', _worstRefText ?? '', _worstScore!, Colors.orange),
+            _analysisRow(Icons.thumb_down_outlined, '待提升', _worstRefText ?? '', _worstScore!, AppColors.warning),
         ],
       ),
     );
@@ -225,7 +225,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
         Icon(icon, color: color, size: 16),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(text, style: TextStyle(color: Colors.white70, fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(text, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 12.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -246,7 +246,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('分数趋势', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+          Text('分数趋势', style: TextStyle(color: AppColors.onSurface, fontSize: 14.sp, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           SizedBox(
             height: 120,
@@ -293,7 +293,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('薄弱句型', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+          Text('薄弱句型', style: TextStyle(color: AppColors.onSurface, fontSize: 14.sp, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           ...weakWithText.map((e) {
             final text = codeToText[e.key] ?? e.key;
@@ -307,7 +307,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                     Icon(Icons.refresh, size: 14, color: AppColors.primary),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text(text, style: TextStyle(color: Colors.white70, fontSize: 13.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(text, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 13.sp), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
@@ -331,7 +331,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
       children: [
         Row(
           children: [
-            Text('AI 点评历史', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+            Text('AI 点评历史', style: TextStyle(color: AppColors.onSurface, fontSize: 14.sp, fontWeight: FontWeight.w600)),
             const Spacer(),
             GestureDetector(
               onTap: () => AiEvaluationSheet.show(
@@ -364,14 +364,14 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
                     ),
                   const SizedBox(width: 8),
                   if (e.overallLevel != null)
-                    Text(e.overallLevel!, style: TextStyle(color: Colors.white54, fontSize: 13.sp)),
+                    Text(e.overallLevel!, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 13.sp)),
                   const Spacer(),
-                  Text(_fmtDate(e.evaluatedAt), style: TextStyle(color: Colors.white38, fontSize: 12.sp)),
+                  Text(_fmtDate(e.evaluatedAt), style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 12.sp)),
                 ],
               ),
               if (e.summary != null && e.summary!.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Text(e.summary!, style: TextStyle(color: Colors.white70, fontSize: 13.sp, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(e.summary!, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 13.sp, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
               ],
             ],
           ),
@@ -385,7 +385,7 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('跟读记录', style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+        Text('跟读记录', style: TextStyle(color: AppColors.onSurface, fontSize: 14.sp, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         ..._records.take(20).map((r) => Container(
           margin: const EdgeInsets.only(bottom: 6),
@@ -405,21 +405,21 @@ class _LearningRecordPageState extends State<LearningRecordPage> {
               else
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(6)),
-                  child: Text('--', style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
+                  decoration: BoxDecoration(color: AppColors.onSurface.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Text('--', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 13.sp)),
                 ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   r.refText ?? '',
-                  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                  style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 12.sp),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 r.scope == 'sentence' ? '单句' : '全文',
-                style: TextStyle(color: Colors.white38, fontSize: 12.sp),
+                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 12.sp),
               ),
             ],
           ),

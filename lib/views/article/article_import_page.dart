@@ -187,16 +187,16 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _importArticle,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: context.colors.primary,
+                    foregroundColor: context.colors.surface,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                    disabledBackgroundColor: context.colors.primary.withValues(alpha: 0.5),
                   ),
                   child: _isSaving
                       ? SizedBox(
                           width: 20.w,
                           height: 20.w,
-                          child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.surface),
                         )
                       : Text('导入并打开', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
                 ),

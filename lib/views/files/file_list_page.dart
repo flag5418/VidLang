@@ -127,7 +127,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
         color: AppColors.getSurface(brightness: Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      padding: EdgeInsets.all(3.w),
+      padding: EdgeInsets.all(5),
       child: Row(
         children: List.generate(_resourceTypes.length, (index) {
           final isSelected = index == currentTab;
@@ -149,7 +149,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
                     fontSize: 13.sp,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
-                        ? Colors.white
+                        ? AppColors.onSurface
                         : colorScheme.onSurfaceVariant,
                   ),
                 ),

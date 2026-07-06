@@ -20,6 +20,7 @@ import 'package:vidlang/views/word_book/widgets/snippet_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_nav_panel.dart';
 import 'package:vidlang/widgets/word_card.dart';
+import 'package:vidlang/theme/theme.dart';
 
 import 'word_book_detail_sheet.dart';
 import 'word_book_review_page.dart';

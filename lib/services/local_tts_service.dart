@@ -96,6 +96,19 @@ class LocalTtsService {
     await _tts?.setLanguage(language);
   }
 
+  /// 设置单词进度回调（flutter_tts 原生支持）
+  void setProgressHandler(
+    void Function(String text, int startOffset, int endOffset, String word) handler,
+  ) {
+    _tts?.setProgressHandler(handler);
+  }
+
+  /// 清除进度回调
+  void clearProgressHandler() {
+    // flutter_tts 没有 clearProgressHandler，直接设 null 即可
+    // 下次 speak 时会重新设置
+  }
+
   /// 设置语速
   Future<void> setSpeechRate(double rate) async {
     await _tts?.setSpeechRate(rate);
@@ -165,15 +178,16 @@ class LocalTtsService {
   }
 
   /// 合成语音并返回音频数据
-  Future<Uint8List?> synthesizeToAudio({
+  Future<void> synthesizeToAudio({
     required String text,
     int? speakerId,
+    void Function(String word, int startOffset, int endOffset)? onWord,
   }) async {
     if (!_isInitialized) {
       await initialize();
       if (!_isInitialized) {
         debugPrint('TTS 模型未初始化');
-        return null;
+        return;
       }
     }
 
@@ -182,11 +196,15 @@ class LocalTtsService {
         await _tts!.setVoice(_availableVoices[speakerId]);
       }
 
+      if (onWord != null) {
+        _tts!.setProgressHandler((text, startOffset, endOffset, word) {
+          onWord(word, startOffset, endOffset);
+        });
+      }
+
       await _tts!.speak(text);
-      return null;
     } catch (e) {
       debugPrint('TTS 合成失败: $e');
-      return null;
     }
   }
 

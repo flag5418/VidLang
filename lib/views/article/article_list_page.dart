@@ -88,7 +88,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
           await Navigator.push(context, MaterialPageRoute(builder: (_) => const ArticleImportPage()));
           if (mounted) _loadArticles();
         },
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.colors.surface),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class WordBookLookupSheet extends StatefulWidget {
   final String word;

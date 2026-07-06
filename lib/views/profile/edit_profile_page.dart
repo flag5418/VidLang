@@ -17,6 +17,7 @@ import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_radius.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -54,18 +55,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickAvatar() async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      barrierColor: Theme.of(
-        context,
-      ).colorScheme.surface.withValues(alpha: 0.1),
-      builder: (ctx) =>
-          _AvatarPickerSheet(onSelect: (source) => Navigator.pop(ctx, source)),
-    );
-    if (result == null) return;
+    String? selectedSource;
 
-    final source = result == 'camera'
+    await TDActionSheet(
+      context,
+      description: '选择头像来源',
+      items: [
+        TDActionSheetItem(
+          label: '相册',
+          icon: Icon(Icons.photo_library_rounded, size: 22.sp),
+        ),
+        TDActionSheetItem(
+          label: '拍照',
+          icon: Icon(Icons.camera_alt_rounded, size: 22.sp),
+        ),
+      ],
+      onSelected: (item, _) {
+        selectedSource = item.label == '相册' ? 'gallery' : 'camera';
+      },
+      visible: true,
+    );
+
+    if (selectedSource == null) return;
+    final source = selectedSource == 'camera'
         ? ImageSource.camera
         : ImageSource.gallery;
     try {
@@ -416,6 +428,8 @@ class _ElevatedCardState extends State<_ElevatedCard>
               ),
             ],
           ),
+          // 用 Expanded 包裹 child，确保在 unbounded 宽度约束下不会报错
+          // 同时不影响正常布局（外层有约束时 Expanded 自适应）
           child: widget.child,
         ),
       ),
@@ -423,121 +437,4 @@ class _ElevatedCardState extends State<_ElevatedCard>
   }
 }
 
-/// 头像选择底部弹窗
-class _AvatarPickerSheet extends StatelessWidget {
-  final void Function(String source) onSelect;
-  const _AvatarPickerSheet({required this.onSelect});
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36.w,
-              height: 4.h,
-              margin: EdgeInsets.only(bottom: 12.h),
-              decoration: BoxDecoration(
-                color: cs.onSurface.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            Text(
-              '选择头像',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Row(
-              children: [
-                Expanded(
-                  child: _OptionCard(
-                    icon: Icons.photo_library_rounded,
-                    label: '相册',
-                    cs: cs,
-                    onTap: () => onSelect('gallery'),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: _OptionCard(
-                    icon: Icons.camera_alt_rounded,
-                    label: '拍照',
-                    cs: cs,
-                    onTap: () => onSelect('camera'),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(
-                  backgroundColor: cs.surfaceContainerHighest,
-                  padding: EdgeInsets.symmetric(vertical: 14.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Text(
-                  '取消',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w500,
-                    color: cs.onSurface,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OptionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final ColorScheme cs;
-  final VoidCallback onTap;
-  const _OptionCard({
-    required this.icon,
-    required this.label,
-    required this.cs,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 20.h),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 32.sp, color: cs.primary),
-            SizedBox(height: 8.h),
-            Text(
-              label,
-              style: TextStyle(fontSize: 13.sp, color: cs.onSurface),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

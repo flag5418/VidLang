@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class WifiTransferPage extends StatefulWidget {
   const WifiTransferPage({super.key});

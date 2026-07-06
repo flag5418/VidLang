@@ -2,6 +2,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/playback_settings.dart';
+import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// 片头/片尾/封面截图设置底部面板

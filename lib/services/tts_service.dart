@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/foundation.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/dashscope_tts_service.dart';
+import 'package:vidlang/services/local_tts_service.dart';
 import 'package:vidlang/services/unified_tts_service.dart';
 
 /// TTS 事件回调
@@ -89,6 +90,7 @@ class TtsService {
     SubscriptionMode? mode,
     void Function(TtsEvent)? onEvent,
     FutureOr<void> Function()? onComplete,
+    void Function(double fraction)? onProgress,
   }) async {
     if (text.isEmpty) {
       onEvent?.call(const TtsEvent.completed());
@@ -110,8 +112,8 @@ class TtsService {
         // 收费模式：使用 PCM 流式播放（低延迟）
         await _speakPremium(text: text, onEvent: onEvent, onComplete: onComplete);
       } else {
-        // 免费模式：使用原生 TTS（文件播放）
-        await _speakFree(text: text, onEvent: onEvent, onComplete: onComplete);
+        // 免费模式：使用原生 TTS（文件播放或直接播放）
+        await _speakFree(text: text, onEvent: onEvent, onComplete: onComplete, onProgress: onProgress);
       }
     } catch (e) {
       _ttsLog('🔊 [TtsPlayer] 💥 异常: $e');
@@ -163,8 +165,13 @@ class TtsService {
     required String text,
     void Function(TtsEvent)? onEvent,
     FutureOr<void> Function()? onComplete,
+    void Function(double fraction)? onProgress,
   }) async {
-    final result = await UnifiedTtsService.instance.synthesize(text: text, mode: SubscriptionMode.free);
+    final result = await UnifiedTtsService.instance.synthesize(
+      text: text,
+      mode: SubscriptionMode.free,
+      onWord: null,
+    );
 
     if (result.success) {
       // 检查是否为直接播放模式（audioPath 为空）
@@ -172,8 +179,22 @@ class TtsService {
         _ttsLog('🔊 [TtsPlayer] 📢 使用直接播放模式（跳过文件）');
         onEvent?.call(const TtsEvent.playing());
         // 直接播放已完成，因为 synthesizeToAudio 已经调用了 speak
-        // 等待一小段时间模拟播放完成（原生 TTS 通常很快）
-        await Future.delayed(const Duration(milliseconds: 500));
+        // 根据字数估算播放时长，使高亮定时器与播放保持同步
+        // 基准：150 词/分钟 ≈ 400ms/词
+        final wordCount =
+            text.trim().isEmpty ? 1 : text.trim().split(RegExp(r'\s+')).length;
+        final estimatedMs = (wordCount * 400).clamp(500, 30000);
+        final sw = Stopwatch()..start();
+        Timer? progressTimer;
+        progressTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+          final fraction = sw.elapsedMilliseconds / estimatedMs;
+          onProgress?.call(fraction.clamp(0.0, 1.0));
+          if (fraction >= 1.0) {
+            progressTimer?.cancel();
+          }
+        });
+        await Future.delayed(Duration(milliseconds: estimatedMs));
+        progressTimer.cancel();
         _ttsLog('🔊 [TtsPlayer] ✅ 直接播放完成');
         _isSpeaking = false;
         onEvent?.call(const TtsEvent.completed());
@@ -218,8 +239,19 @@ class TtsService {
 
         _ttsLog('🔊 [TtsPlayer] ▶️ 开始播放 (${playSw.elapsedMilliseconds}ms) | fromCache=${result.fromCache} | path=${result.audioPath.split('/').last}');
 
+        // 用播放进度驱动高亮
+        StreamSubscription? posSub;
+        final duration = await _player.getDuration();
+        if (duration != null && duration.inMilliseconds > 0) {
+          posSub = _player.onPositionChanged.listen((pos) {
+            final fraction = pos.inMilliseconds / duration.inMilliseconds;
+            onProgress?.call(fraction.clamp(0.0, 1.0));
+          });
+        }
+
         await _player.onPlayerComplete.first;
 
+        await posSub?.cancel();
         _ttsLog('🔊 [TtsPlayer] ✅ 播放完成');
       } catch (e) {
         _ttsLog('🔊 [TtsPlayer] ❌ 播放异常: $e');
@@ -287,12 +319,14 @@ class TtsService {
   /// 停止朗读
   Future<void> stop() async {
     _isSpeaking = false;
-    // 停止 AudioPlayer 播放
+    // 停止 AudioPlayer 播放（文件模式）
     if (_player.state == ap.PlayerState.playing) {
       await _player.stop();
     }
-    // 停止 PCM 播放器（通过释放资源）
+    // 停止 PCM 流式播放（收费模式）
     await DashScopeTtsService.instance.stopPcmPlayback();
+    // 停止本地 TTS（免费模式，flutter_tts → AVSpeechSynthesizer）
+    await LocalTtsService.instance.stop();
   }
 
   void _ttsLog(String message) {

@@ -5,6 +5,7 @@ import '../../models/forum/forum_category.dart';
 import '../../models/forum/forum_post.dart';
 import '../../providers/forum_providers.dart';
 import 'forum_home_page.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 创建帖子页面
 class ForumCreatePostPage extends ConsumerStatefulWidget {
@@ -84,11 +85,11 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.lightSurfaceElevated,
       appBar: AppBar(
         title: const Text('创建新帖子'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 1,
         actions: [
           TextButton(
@@ -140,9 +141,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColors.borderLight!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +153,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppColors.textPrimary,
             ),
           ),
           SizedBox(height: 12.h),
@@ -180,7 +181,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
                 labelStyle: TextStyle(
                   color: isSelected 
                       ? Theme.of(context).primaryColor 
-                      : Colors.grey[700],
+                      : AppColors.textSecondary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               );
@@ -195,9 +196,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColors.borderLight!),
       ),
       child: TextFormField(
         controller: _titleController,
@@ -207,7 +208,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           border: InputBorder.none,
           labelStyle: TextStyle(
             fontSize: 14.sp,
-            color: Colors.grey[700],
+            color: AppColors.textSecondary,
           ),
         ),
         style: TextStyle(fontSize: 16.sp),
@@ -231,9 +232,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColors.borderLight!),
       ),
       child: categoriesAsync.when(
         data: (categories) => DropdownButtonFormField<int>(
@@ -243,10 +244,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             border: InputBorder.none,
             labelStyle: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey[700],
+              color: AppColors.textSecondary,
             ),
           ),
-          style: TextStyle(fontSize: 16.sp, color: Colors.black87),
+          style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
           items: categories.map((category) {
             return DropdownMenuItem<int>(
               value: category.id,
@@ -273,7 +274,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
         ),
         error: (error, stack) => Text(
           '加载分类失败: $error',
-          style: TextStyle(color: Colors.red[600]),
+          style: TextStyle(color: AppColors.error),
         ),
       ),
     );
@@ -283,9 +284,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColors.borderLight!),
       ),
       child: TextFormField(
         controller: _contentController,
@@ -296,7 +297,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           alignLabelWithHint: true,
           labelStyle: TextStyle(
             fontSize: 14.sp,
-            color: Colors.grey[700],
+            color: AppColors.textSecondary,
           ),
         ),
         style: TextStyle(fontSize: 16.sp, height: 1.5),
@@ -319,9 +320,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.amber[50],
+        color: AppColors.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.amber[200]!),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,7 +332,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
-              color: Colors.amber[800],
+              color: AppColors.warning,
             ),
           ),
           SizedBox(height: 12.h),
@@ -343,7 +344,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              fillColor: Colors.white,
+              fillColor: AppColors.surface,
               filled: true,
             ),
             items: _resourceTypes.map((type) {
@@ -368,7 +369,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              fillColor: Colors.white,
+              fillColor: AppColors.surface,
               filled: true,
             ),
             style: TextStyle(fontSize: 14.sp),
@@ -383,7 +384,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),
-              fillColor: Colors.white,
+              fillColor: AppColors.surface,
               filled: true,
             ),
             style: TextStyle(fontSize: 14.sp),
@@ -398,9 +399,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppColors.borderLight!),
       ),
       child: TextFormField(
         controller: _tagsController,
@@ -410,7 +411,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           border: InputBorder.none,
           labelStyle: TextStyle(
             fontSize: 14.sp,
-            color: Colors.grey[700],
+            color: AppColors.textSecondary,
           ),
         ),
         style: TextStyle(fontSize: 16.sp),
@@ -426,7 +427,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
         onPressed: _isLoading ? null : _submitPost,
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
@@ -440,7 +441,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
                     width: 20.w,
                     height: 20.w,
                     child: const CircularProgressIndicator(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       strokeWidth: 2,
                     ),
                   ),
@@ -508,12 +509,12 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
+                const Icon(Icons.check_circle, color: AppColors.surface),
                 SizedBox(width: 8.w),
                 const Text('帖子发布成功！'),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -561,12 +562,12 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white),
+            const Icon(Icons.error_outline, color: AppColors.surface),
             SizedBox(width: 8.w),
             Text(message),
           ],
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: AppColors.error,
         duration: const Duration(seconds: 3),
       ),
     );

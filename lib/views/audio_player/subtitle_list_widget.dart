@@ -167,13 +167,13 @@ class _SubtitleItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeFontSize = isCurrent ? fontSize : fontSize - 2;
-    final textColor = isCurrent ? Colors.white : Colors.white.withValues(alpha: 0.35);
+    final textColor = isCurrent ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.35);
     final pronColor = isCurrent
         ? AppColors.primary.withValues(alpha: 0.9)
         : AppColors.primary.withValues(alpha: 0.3);
     final translateColor = isCurrent
-        ? Colors.white.withValues(alpha: 0.75)
-        : Colors.white.withValues(alpha: 0.25);
+        ? AppColors.onSurface.withValues(alpha: 0.75)
+        : AppColors.onSurface.withValues(alpha: 0.25);
 
     final pronMap = _parsePronunciationMap(subtitle.pronunciationMapJson);
     final hasAlignedPron = pronMap != null && pronMap.isNotEmpty && pronunciationVisible;
@@ -186,7 +186,7 @@ class _SubtitleItem extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: isCurrent ? 10 : 6),
         decoration: isCurrent
             ? BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: AppColors.onSurface.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               )
             : null,
@@ -315,14 +315,14 @@ class _AlignedPronRow extends StatelessWidget {
       } else if (clean.isNotEmpty) {
         spans.add(TextSpan(
           text: ' ' * (token.length > 1 ? token.length : 1),
-          style: TextStyle(fontSize: fontSize, color: Colors.transparent),
+          style: TextStyle(fontSize: fontSize, color: context.colors.background.withValues(alpha: 0)),
         ));
       }
 
       if (i < tokens.length - 1) {
         spans.add(TextSpan(
           text: ' ',
-          style: TextStyle(fontSize: fontSize, color: Colors.transparent),
+          style: TextStyle(fontSize: fontSize, color: context.colors.background.withValues(alpha: 0)),
         ));
       }
     }

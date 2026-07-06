@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/services/dashscope_tts_service.dart';
 import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/services/shengtong_http_evaluator.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// DashScope TTS + 声通评测 联合测试页面
 ///
@@ -396,7 +397,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('音频服务测试'),
-        backgroundColor: Colors.teal,
+        backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -478,9 +479,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppColors.lightBackground,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: AppColors.borderLight!),
               ),
               child: SelectableText(
                 _ttsLog.isEmpty ? 'TTS 日志将显示在这里...' : _ttsLog,
@@ -541,8 +542,8 @@ class _AudioTestPageState extends State<AudioTestPage> {
                     : const Icon(Icons.http),
                 label: Text(_isShengtongHttpTesting ? 'HTTP 评测中...' : '测试 HTTP 评测'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.warning,
+                  foregroundColor: AppColors.surface,
                 ),
               ),
             ),
@@ -560,9 +561,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppColors.lightBackground,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: AppColors.borderLight!),
               ),
               child: SelectableText(
                 _shengtongLog.isEmpty ? '声通日志将显示在这里...' : _shengtongLog,

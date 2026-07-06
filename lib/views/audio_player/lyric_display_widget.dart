@@ -25,6 +25,7 @@ class LyricDisplayWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = context.colors;
     final pronMap = parsePronunciationMap(subtitle.pronunciationMapJson);
     final hasAlignedPron = pronMap != null && pronMap.isNotEmpty && pronunciationVisible;
 
@@ -42,14 +43,14 @@ class LyricDisplayWidget extends StatelessWidget {
                 ? SelectableEnglishLine(
                     text: subtitle.content,
                     fontSize: fontSize,
-                    fontColor: Colors.white,
-                    selectedBgColor: AppColors.primary.withValues(alpha: 0.7),
+                    fontColor: cs.textPrimary,
+                    selectedBgColor: cs.primary.withValues(alpha: 0.7),
                     onStartSelection: () {},
                     onSelectionChanged: onSelectionChanged!,
                   )
                 : Text(
                     subtitle.content,
-                    style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: cs.textPrimary, fontSize: fontSize, fontWeight: FontWeight.w500),
                     textAlign: TextAlign.center,
                   ),
           if (pronunciationVisible && !hasAlignedPron && subtitle.pronunciation != null && subtitle.pronunciation!.isNotEmpty)

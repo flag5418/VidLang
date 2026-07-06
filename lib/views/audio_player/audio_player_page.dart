@@ -680,14 +680,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           // 1. Background with blur
           _buildBackground(),
           // 1.5 Dark overlay for subtitle readability
           Positioned.fill(
-            child: Container(color: Colors.black.withValues(alpha: 0.55)),
+            child: Container(color: AppColors.background.withValues(alpha: 0.55)),
           ),
           // 2. Full-screen subtitle list
           if (hasSubtitles)
@@ -732,11 +732,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.music_note, size: 48, color: Colors.white24),
+                  Icon(Icons.music_note, size: 48, color: AppColors.onSurface.withValues(alpha: 0.24)),
                   const SizedBox(height: 8),
                   Text(
                     '暂无字幕，可在菜单中添加',
-                    style: TextStyle(color: Colors.white38, fontSize: 12.sp),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 12.sp),
                   ),
                 ],
               ),
@@ -777,7 +777,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 _showAudioList = false;
               }),
               behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.black.withValues(alpha: 0.4)),
+              child: Container(color: AppColors.background.withValues(alpha: 0.4)),
             ),
           // 6. Drawer panel
           if (_drawerOpen)
@@ -794,7 +794,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       color: AppColors.surface.withValues(alpha: 0.85),
                       border: Border(
                         left: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: AppColors.onSurface.withValues(alpha: 0.1),
                           width: 0.5,
                         ),
                       ),
@@ -867,11 +867,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             bottom: 8.h,
           ) +
           const EdgeInsets.symmetric(horizontal: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black87, Colors.transparent],
+          colors: [AppColors.background.withValues(alpha: 0.87), Colors.transparent],
         ),
       ),
       child: Row(
@@ -889,7 +889,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   child: Center(
                     child: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
+                      color: AppColors.onSurface,
                       size: 20.sp,
                     ),
                   ),
@@ -905,7 +905,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 Text(
                   s.title,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.onSurface,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -916,7 +916,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 if (n.currentVideo?.artist != null)
                   Text(
                     n.currentVideo!.artist!,
-                    style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -974,7 +974,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           child: Center(
             child: Icon(
               icon,
-              color: active ? AppColors.primary : Colors.white,
+              color: active ? AppColors.primary : AppColors.onSurface,
               size: 24,
             ),
           ),
@@ -995,11 +995,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.only(bottom: bottomPadding > 0 ? bottomPadding : 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black87],
+          colors: [Colors.transparent, AppColors.background.withValues(alpha: 0.87)],
         ),
       ),
       child: Column(
@@ -1028,14 +1028,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
         children: [
           Text(
             _fmtDuration(s.position),
-            style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
           ),
           Expanded(
             child: SliderTheme(
               data: SliderThemeData(
                 trackHeight: 3,
                 activeTrackColor: AppColors.secondary,
-                inactiveTrackColor: Colors.white12,
+                inactiveTrackColor: AppColors.onSurface.withValues(alpha: 0.12),
                 thumbColor: AppColors.primary,
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                 overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
@@ -1049,7 +1049,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           ),
           Text(
             _fmtDuration(s.duration),
-            style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
           ),
         ],
       ),
@@ -1120,7 +1120,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                     child: Text(
                       '${sp}X',
                       style: TextStyle(
-                        color: active ? AppColors.primary : Colors.white,
+                        color: active ? AppColors.primary : AppColors.onSurface,
                         fontSize: 13,
                         fontWeight: active
                             ? FontWeight.bold
@@ -1181,7 +1181,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           width: 44,
           height: 44,
           child: Center(
-            child: Icon(icon, color: Colors.white, size: size),
+            child: Icon(icon, color: AppColors.onSurface, size: size),
           ),
         ),
       ),
@@ -1204,7 +1204,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           child: Text(
             label,
             style: TextStyle(
-              color: active ? Colors.white : Colors.white70,
+              color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.7),
               fontSize: 13,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
@@ -1226,7 +1226,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: AppColors.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1242,12 +1242,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               const SizedBox(width: 8),
               Text(
                 s.isRecording ? '录音中' : '准备$followLabel',
-                style: TextStyle(color: Colors.white, fontSize: 12.sp),
+                style: TextStyle(color: AppColors.onSurface, fontSize: 12.sp),
               ),
               const Spacer(),
               Text(
                 '原音:',
-                style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
               ),
               SizedBox(
                 width: 100,
@@ -1255,7 +1255,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   data: SliderThemeData(
                     trackHeight: 2,
                     activeTrackColor: AppColors.primary,
-                    inactiveTrackColor: Colors.white12,
+                    inactiveTrackColor: AppColors.onSurface.withValues(alpha: 0.12),
                     thumbShape: const RoundSliderThumbShape(
                       enabledThumbRadius: 4,
                     ),
@@ -1269,7 +1269,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               ),
               Text(
                 '${(s.originalVolume * 100).round()}%',
-                style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
               ),
             ],
           ),
@@ -1309,13 +1309,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: s.isRecording ? Colors.white24 : AppColors.primary,
+                      color: s.isRecording ? AppColors.onSurface.withValues(alpha: 0.24) : AppColors.primary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       s.isRecording ? '录音中...' : '开始$followLabel',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.onSurface,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1336,13 +1336,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withValues(alpha: 0.7),
+                        color: AppColors.error.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         '停止',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.onSurface,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1473,7 +1473,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 data: SliderThemeData(
                   trackHeight: 3,
                   activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: Colors.white12,
+                  inactiveTrackColor: AppColors.onSurface.withValues(alpha: 0.12),
                   thumbColor: AppColors.primary,
                   thumbShape: const RoundSliderThumbShape(
                     enabledThumbRadius: 6,
@@ -1510,7 +1510,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: active ? AppColors.primary : Colors.white12,
+                          color: active ? AppColors.primary : AppColors.onSurface.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -1519,13 +1519,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                             Icon(
                               icon,
                               size: 13,
-                              color: active ? Colors.white : Colors.white54,
+                              color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.54),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               label,
                               style: TextStyle(
-                                color: active ? Colors.white : Colors.white70,
+                                color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.7),
                                 fontSize: 11.sp,
                               ),
                             ),
@@ -1553,7 +1553,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: AppColors.onSurface.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1593,7 +1593,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white12,
+                      color: AppColors.onSurface.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1645,7 +1645,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                     value: value,
                     onChanged: (_) => onChanged(),
                     activeThumbColor: AppColors.primary,
-                    inactiveThumbColor: Colors.white38,
+                    inactiveThumbColor: AppColors.onSurface.withValues(alpha: 0.38),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                 ),
@@ -1718,13 +1718,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       Icon(
                         Icons.music_off_outlined,
                         size: 48,
-                        color: Colors.white24,
+                        color: AppColors.onSurface.withValues(alpha: 0.24),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         '暂无可播音频',
                         style: TextStyle(
-                          color: Colors.white54,
+                          color: AppColors.onSurface.withValues(alpha: 0.54),
                           fontSize: 13.sp,
                         ),
                       ),
@@ -1756,7 +1756,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                           decoration: BoxDecoration(
                             color: isCurrent
                                 ? AppColors.primary.withValues(alpha: 0.15)
-                                : Colors.white.withValues(alpha: 0.05),
+                                : AppColors.onSurface.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: isCurrent
                                 ? Border.all(
@@ -1775,7 +1775,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                                 decoration: BoxDecoration(
                                   color: isCurrent
                                       ? AppColors.primary.withValues(alpha: 0.3)
-                                      : Colors.white12,
+                                      : AppColors.onSurface.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Center(
@@ -1788,7 +1788,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                                       : Text(
                                           '${i + 1}',
                                           style: TextStyle(
-                                            color: Colors.white54,
+                                            color: AppColors.onSurface.withValues(alpha: 0.54),
                                             fontSize: 14.sp,
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -1806,7 +1806,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                                       style: TextStyle(
                                         color: isCurrent
                                             ? AppColors.primary
-                                            : Colors.white,
+                                            : AppColors.onSurface,
                                         fontSize: 14.sp,
                                         fontWeight: isCurrent
                                             ? FontWeight.w600
@@ -1825,20 +1825,20 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                                               : Icons.subtitles_off_rounded,
                                           size: 14,
                                           color: v.hasSubtitles
-                                              ? Colors.greenAccent.withValues(
+                                              ? AppColors.success.withValues(
                                                   alpha: 0.7,
                                                 )
-                                              : Colors.white24,
+                                              : AppColors.onSurface.withValues(alpha: 0.24),
                                         ),
                                         const SizedBox(width: 3),
                                         Text(
                                           v.hasSubtitles ? '有字幕' : '无字幕',
                                           style: TextStyle(
                                             color: v.hasSubtitles
-                                                ? Colors.greenAccent.withValues(
+                                                ? AppColors.success.withValues(
                                                     alpha: 0.7,
                                                   )
-                                                : Colors.white30,
+                                                : AppColors.onSurface.withValues(alpha: 0.3),
                                             fontSize: 12.sp,
                                           ),
                                         ),
@@ -1847,13 +1847,13 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                                         Icon(
                                           Icons.access_time_rounded,
                                           size: 12,
-                                          color: Colors.white30,
+                                          color: AppColors.onSurface.withValues(alpha: 0.3),
                                         ),
                                         const SizedBox(width: 3),
                                         Text(
                                           durationStr,
                                           style: TextStyle(
-                                            color: Colors.white38,
+                                            color: AppColors.onSurface.withValues(alpha: 0.38),
                                             fontSize: 12.sp,
                                           ),
                                         ),
@@ -1864,7 +1864,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                                             child: Text(
                                               v.artist!,
                                               style: TextStyle(
-                                                color: Colors.white30,
+                                                color: AppColors.onSurface.withValues(alpha: 0.3),
                                                 fontSize: 12.sp,
                                               ),
                                               maxLines: 1,
@@ -2128,7 +2128,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             Text(
               '跟读评分',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.onSurface,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.bold,
               ),
@@ -2193,17 +2193,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
         ),
       ],
     );
   }
 
   Color _scoreColor(double score) {
-    if (score >= 90) return Colors.green;
-    if (score >= 75) return Colors.orange;
-    if (score >= 60) return Colors.deepOrange;
-    return Colors.red;
+    if (score >= 90) return AppColors.success;
+    if (score >= 75) return AppColors.warning;
+    if (score >= 60) return AppColors.error;
+    return AppColors.error;
   }
 
   // ─── Helpers ─────────────────────────────────────

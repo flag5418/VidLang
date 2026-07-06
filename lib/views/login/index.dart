@@ -20,6 +20,7 @@ import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/views/main/main_page.dart';
+import 'package:vidlang/theme/theme.dart';
 
 enum _AuthMode { login, register, verifyOtp }
 
@@ -467,7 +468,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ? SizedBox(
                 width: 24.w,
                 height: 24.w,
-                child: const CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: Theme.of(context).colorScheme.primary),
               )
             : Text(
                 label,
@@ -564,7 +565,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           decoration: BoxDecoration(
             color: isActive ? colorScheme.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(AppRadius.xs),
-            boxShadow: isActive ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
+            boxShadow: isActive ? [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
           ),
           child: Text(
             label,

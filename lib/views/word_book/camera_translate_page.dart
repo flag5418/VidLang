@@ -7,6 +7,7 @@ import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/word_card.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class CameraTranslatePage extends ConsumerStatefulWidget {
   const CameraTranslatePage({super.key});
@@ -141,19 +142,19 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
 
     if (_loading) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
           child: Column(
             children: [
               _buildTopBar(cs),
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircularProgressIndicator(color: Colors.white),
-                      SizedBox(height: 16),
-                      Text('拍照识别中...', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                      const CircularProgressIndicator(color: AppColors.onSurface),
+                      const SizedBox(height: 16),
+                      Text('拍照识别中...', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 14)),
                     ],
                   ),
                 ),
@@ -165,7 +166,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -178,25 +179,26 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   }
 
   Widget _buildTopBar(ColorScheme cs) {
+    final col = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-            style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.1)),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: col.textPrimary, size: 20),
+            style: IconButton.styleFrom(backgroundColor: col.textPrimary.withValues(alpha: 0.1)),
           ),
           const SizedBox(width: 12),
           Text(
             '拍照翻译',
-            style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+            style: TextStyle(color: col.textPrimary, fontSize: 17, fontWeight: FontWeight.w600),
           ),
           const Spacer(),
           IconButton(
             onPressed: _takePhoto,
-            icon: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 20),
-            style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.1)),
+            icon: Icon(Icons.camera_alt_outlined, color: col.textPrimary, size: 20),
+            style: IconButton.styleFrom(backgroundColor: col.textPrimary.withValues(alpha: 0.1)),
             tooltip: '重新拍照',
           ),
         ],
@@ -211,7 +213,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
           child: Container(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: AppColors.onSurface.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(16),
             ),
             child: ClipRRect(
@@ -224,7 +226,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                     SelectableEnglishLine(
                       text: _recognizedText,
                       fontSize: 20,
-                      fontColor: Colors.white,
+                      fontColor: AppColors.onSurface,
                       selectedBgColor: cs.primary.withValues(alpha: 0.7),
                       onSelectionChanged: (words) => _onWordSelected(words),
                       onTapWord: (word) => _showWordDetail(word),
@@ -235,12 +237,12 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
+                          color: AppColors.onSurface.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           _fullTranslation!,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 16, height: 1.5),
+                          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.8), fontSize: 16, height: 1.5),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -269,7 +271,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                                 ),
                                 Text(
                                   ' $trans',
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+                                  style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 11),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),

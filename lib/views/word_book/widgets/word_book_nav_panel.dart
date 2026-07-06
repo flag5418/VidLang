@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class WordBookNavPanel extends StatelessWidget {
   final String selectedStatus;

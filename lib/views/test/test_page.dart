@@ -16,6 +16,7 @@ import 'package:vidlang/services/shengtong_http_evaluator.dart';
 import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -532,13 +533,13 @@ class _QuestionTypeCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
+        color: isDark ? colorScheme.surfaceContainerHigh : AppColors.surface,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
+                  color: AppColors.textPrimary.withValues(alpha: 0.03),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -941,12 +942,12 @@ class _TestRunPageState extends State<_TestRunPage> {
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
                   color: _isCorrect
-                      ? Colors.green.withValues(alpha: 0.1)
+                      ? AppColors.success.withValues(alpha: 0.1)
                       : colorScheme.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
                     color: _isCorrect
-                        ? Colors.green.withValues(alpha: 0.3)
+                        ? AppColors.success.withValues(alpha: 0.3)
                         : colorScheme.error.withValues(alpha: 0.3),
                   ),
                 ),
@@ -955,7 +956,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: _isCorrect ? Colors.green : colorScheme.error,
+                    color: _isCorrect ? AppColors.success : colorScheme.error,
                   ),
                 ),
               ),
@@ -1064,7 +1065,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: AppColors.textPrimary.withValues(alpha: 0.02),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1107,16 +1108,16 @@ class _TestRunPageState extends State<_TestRunPage> {
                     Color bg = isWrong
                         ? colorScheme.error.withValues(alpha: 0.1)
                         : (isCorrect
-                              ? Colors.green.withValues(alpha: 0.1)
+                              ? AppColors.success.withValues(alpha: 0.1)
                               : colorScheme.primary.withValues(alpha: 0.12));
                     Color border = isWrong
                         ? colorScheme.error.withValues(alpha: 0.3)
                         : (isCorrect
-                              ? Colors.green.withValues(alpha: 0.3)
+                              ? AppColors.success.withValues(alpha: 0.3)
                               : colorScheme.primary.withValues(alpha: 0.2));
                     Color textCol = isWrong
                         ? colorScheme.error
-                        : (isCorrect ? Colors.green : colorScheme.primary);
+                        : (isCorrect ? AppColors.success : colorScheme.primary);
                     return Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 10.w,
@@ -1206,7 +1207,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
+                            color: AppColors.textPrimary.withValues(alpha: 0.02),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -1232,7 +1233,7 @@ class _TestRunPageState extends State<_TestRunPage> {
               '正确答案：${answer.join(' ')}',
               style: TextStyle(
                 fontSize: 13.sp,
-                color: Colors.green,
+                color: AppColors.success,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1280,18 +1281,18 @@ class _TestRunPageState extends State<_TestRunPage> {
                   Color bg = isWrong
                       ? colorScheme.error.withValues(alpha: 0.1)
                       : (isCorrect
-                            ? Colors.green.withValues(alpha: 0.1)
+                            ? AppColors.success.withValues(alpha: 0.1)
                             : colorScheme.surface);
                   Color border = isWrong
                       ? colorScheme.error.withValues(alpha: 0.3)
                       : (isCorrect
-                            ? Colors.green.withValues(alpha: 0.3)
+                            ? AppColors.success.withValues(alpha: 0.3)
                             : colorScheme.outlineVariant.withValues(
                                 alpha: 0.5,
                               ));
                   Color textCol = isWrong
                       ? colorScheme.error
-                      : (isCorrect ? Colors.green : colorScheme.primary);
+                      : (isCorrect ? AppColors.success : colorScheme.primary);
                   return Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 12.w,
@@ -1373,7 +1374,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
+                            color: AppColors.textPrimary.withValues(alpha: 0.02),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -1400,7 +1401,7 @@ class _TestRunPageState extends State<_TestRunPage> {
               '正确答案：$answer',
               style: TextStyle(
                 fontSize: 13.sp,
-                color: Colors.green,
+                color: AppColors.success,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1719,8 +1720,8 @@ class _TestRunPageState extends State<_TestRunPage> {
               Color bg;
               Color border;
               if (isCorrect) {
-                bg = Colors.green.withValues(alpha: 0.1);
-                border = Colors.green.withValues(alpha: 0.3);
+                bg = AppColors.success.withValues(alpha: 0.1);
+                border = AppColors.success.withValues(alpha: 0.3);
               } else if (isWrong) {
                 bg = colorScheme.error.withValues(alpha: 0.1);
                 border = colorScheme.error.withValues(alpha: 0.3);
@@ -1789,7 +1790,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                             color: isWrong
                                 ? colorScheme.error
                                 : (isCorrect
-                                      ? Colors.green
+                                      ? AppColors.success
                                       : colorScheme.onSurface),
                             fontWeight: (isCorrect || isWrong)
                                 ? FontWeight.w500
@@ -1890,13 +1891,13 @@ class _TestRunPageState extends State<_TestRunPage> {
               height: 80.r,
               decoration: BoxDecoration(
                 color: isRecording
-                    ? Colors.red
+                    ? AppColors.error
                     : (_submitted ? colorScheme.outline : colorScheme.primary),
                 shape: BoxShape.circle,
                 boxShadow: isRecording
                     ? [
                         BoxShadow(
-                          color: Colors.red.withValues(alpha: 0.4),
+                          color: AppColors.error.withValues(alpha: 0.4),
                           blurRadius: 12,
                           spreadRadius: 4,
                         ),
@@ -1907,13 +1908,13 @@ class _TestRunPageState extends State<_TestRunPage> {
                   ? Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.mic, size: 28.sp, color: Colors.white),
+                        Icon(Icons.mic, size: 28.sp, color: AppColors.surface),
                         SizedBox(height: 2.h),
                         Text(
                           '${_pronRecordingSeconds}s',
                           style: TextStyle(
                             fontSize: 11.sp,
-                            color: Colors.white70,
+                            color: AppColors.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -2242,8 +2243,8 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
     Color bg;
     Color border;
     if (isCorrect) {
-      bg = Colors.green.withValues(alpha: 0.1);
-      border = Colors.green.withValues(alpha: 0.3);
+      bg = AppColors.success.withValues(alpha: 0.1);
+      border = AppColors.success.withValues(alpha: 0.3);
     } else if (isWrong) {
       bg = colorScheme.error.withValues(alpha: 0.1);
       border = colorScheme.error.withValues(alpha: 0.3);
@@ -2298,7 +2299,7 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
                   fontSize: 15.sp,
                   color: isWrong
                       ? colorScheme.error
-                      : (isCorrect ? Colors.green : colorScheme.onSurface),
+                      : (isCorrect ? AppColors.success : colorScheme.onSurface),
                   fontWeight: (isCorrect || isWrong)
                       ? FontWeight.w500
                       : FontWeight.normal,

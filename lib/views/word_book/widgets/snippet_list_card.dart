@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class SnippetListCard extends StatelessWidget {
   final WordBook snippet;

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/models/test_models.dart';
 import 'package:vidlang/providers/test_provider.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 评测结果页 - 展示得分 + AI 评价报告
 class TestResultPage extends ConsumerWidget {
@@ -70,10 +71,10 @@ class TestResultPage extends ConsumerWidget {
   Widget _buildScoreCard(BuildContext context, TestSession session) {
     final score = session.totalScore?.round() ?? 0;
     final color = score >= 80
-        ? Colors.green
+        ? AppColors.success
         : score >= 60
-            ? Colors.orange
-            : Colors.red;
+            ? AppColors.warning
+            : AppColors.error;
 
     return Card(
       child: Padding(
@@ -109,7 +110,7 @@ class TestResultPage extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome, color: Colors.amber),
+                const Icon(Icons.auto_awesome, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Text('AI 评价报告',
                     style: Theme.of(context).textTheme.titleMedium),
@@ -196,9 +197,9 @@ class TestResultPage extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _statItem('正确', correct, Colors.green),
-                _statItem('错误', wrong, Colors.red),
-                _statItem('总题数', items.length, Colors.blue),
+                _statItem('正确', correct, AppColors.success),
+                _statItem('错误', wrong, AppColors.error),
+                _statItem('总题数', items.length, AppColors.primary),
               ],
             ),
             const SizedBox(height: 16),
@@ -211,10 +212,10 @@ class TestResultPage extends ConsumerWidget {
                             ? Icons.cancel
                             : Icons.help,
                     color: item.isCorrect == true
-                        ? Colors.green
+                        ? AppColors.success
                         : item.isCorrect == false
-                            ? Colors.red
-                            : Colors.grey,
+                            ? AppColors.error
+                            : AppColors.onSurfaceVariant,
                     size: 20,
                   ),
                   title: Text(
@@ -303,7 +304,7 @@ class _RadarChartPainter extends CustomPainter {
 
     // 背景网格
     final gridPaint = Paint()
-      ..color = Colors.grey.shade300
+      ..color = AppColors.borderLight
       ..style = PaintingStyle.stroke;
 
     for (int i = 1; i <= 3; i++) {
@@ -341,7 +342,7 @@ class _RadarChartPainter extends CustomPainter {
     // 数据区域
     final dataPath = Path();
     final dataPaint = Paint()
-      ..color = Colors.blue.withValues(alpha: 0.3)
+      ..color = AppColors.primary.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < 4; i++) {
@@ -362,7 +363,7 @@ class _RadarChartPainter extends CustomPainter {
 
     // 数据边框
     final borderPaint = Paint()
-      ..color = Colors.blue
+      ..color = AppColors.primary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawPath(dataPath, borderPaint);
@@ -373,7 +374,7 @@ class _RadarChartPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: labels[i],
-          style: const TextStyle(color: Colors.black54, fontSize: 12),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
         textDirection: TextDirection.ltr,
       );

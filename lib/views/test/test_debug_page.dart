@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// AI 出题系统调试页面
 ///
@@ -414,7 +415,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                     else if (_videoList!.isEmpty)
                       const Text(
                         '没有可用的视频资源',
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: AppColors.onSurfaceVariant),
                       )
                     else
                       DropdownButtonFormField<String>(
@@ -593,7 +594,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
 
             // 日志输出
             Card(
-              color: Colors.grey[50],
+              color: AppColors.lightSurfaceElevated,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -620,7 +621,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                       ),
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.black87,
+                        color: AppColors.textPrimary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.all(12),
@@ -629,7 +630,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                         style: const TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
-                          color: Colors.greenAccent,
+                          color: AppColors.success,
                         ),
                       ),
                     ),

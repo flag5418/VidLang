@@ -7,6 +7,7 @@ import '../../providers/forum_providers.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../widgets/common/error_widget.dart';
 import 'forum_create_post_page.dart';
+import 'package:vidlang/theme/theme.dart';
 
 class ForumHomePage extends ConsumerStatefulWidget {
   const ForumHomePage({Key? key}) : super(key: key);
@@ -38,16 +39,16 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
         title: const Text('学习论坛'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 1,
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(120.h),
           child: Container(
-            color: Colors.white,
+            color: AppColors.surface,
             child: Column(
               children: [
                 _buildSearchBar(),
@@ -79,7 +80,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(
           Icons.add,
-          color: Colors.white,
+          color: AppColors.surface,
         ),
       ),
     );
@@ -96,7 +97,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
             borderRadius: BorderRadius.circular(8.r),
           ),
           filled: true,
-          fillColor: Colors.grey[100],
+          fillColor: AppColors.lightBackground,
           suffixIcon: IconButton(
             icon: const Icon(Icons.clear),
             onPressed: () {
@@ -123,7 +124,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       controller: _tabController,
       isScrollable: true,
       labelColor: Theme.of(context).primaryColor,
-      unselectedLabelColor: Colors.grey,
+      unselectedLabelColor: AppColors.onSurfaceVariant,
       indicatorColor: Theme.of(context).primaryColor,
       indicatorSize: TabBarIndicatorSize.tab,
       labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
@@ -183,9 +184,9 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 8.h),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: AppColors.borderLight!),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -200,7 +201,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
               label,
               style: TextStyle(
                 fontSize: 10.sp,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
               ),
             ),
           ],
@@ -285,14 +286,14 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           Icon(
             icon,
             size: 80.sp,
-            color: Colors.grey[400],
+            color: AppColors.onSurfaceVariant,
           ),
           SizedBox(height: 16.h),
           Text(
             message,
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey[400],
+              color: AppColors.onSurfaceVariant,
             ),
           ),
           SizedBox(height: 24.h),
@@ -308,11 +309,11 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   Widget _buildPostCard(ForumPost post) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.textPrimary.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -354,7 +355,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           child: Text(
             post.authorName?.substring(0, 1) ?? 'U',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.surface,
               fontSize: 14.sp,
               fontWeight: FontWeight.bold,
             ),
@@ -372,7 +373,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   if (post.isPinned) ...[
@@ -380,7 +381,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                     Icon(
                       Icons.push_pin,
                       size: 14.sp,
-                      color: Colors.orange,
+                      color: AppColors.warning,
                     ),
                   ],
                   if (post.isFeatured) ...[
@@ -388,7 +389,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                     Icon(
                       Icons.star,
                       size: 14.sp,
-                      color: Colors.orange,
+                      color: AppColors.warning,
                     ),
                   ],
                 ],
@@ -397,7 +398,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                 _formatTime(post.createdAt),
                 style: TextStyle(
                   fontSize: 12.sp,
-                  color: Colors.grey[500],
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
             ],
@@ -418,19 +419,19 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         tagText = '资源';
         break;
       case 'discussion':
-        tagColor = Colors.green;
+        tagColor = AppColors.success;
         tagText = '讨论';
         break;
       case 'feedback':
-        tagColor = Colors.orange;
+        tagColor = AppColors.warning;
         tagText = '反馈';
         break;
       case 'help':
-        tagColor = Colors.red;
+        tagColor = AppColors.error;
         tagText = '求助';
         break;
       default:
-        tagColor = Colors.grey;
+        tagColor = AppColors.onSurfaceVariant;
         tagText = '其他';
     }
 
@@ -460,7 +461,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: AppColors.textPrimary,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -470,7 +471,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           post.summary ?? post.content,
           style: TextStyle(
             fontSize: 14.sp,
-            color: Colors.grey[600],
+            color: AppColors.textSecondary,
             height: 1.4,
           ),
           maxLines: 3,
@@ -485,14 +486,14 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
               return Container(
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: AppColors.borderLight,
                   borderRadius: BorderRadius.circular(3.r),
                 ),
                 child: Text(
                   '#$tag',
                   style: TextStyle(
                     fontSize: 10.sp,
-                    color: Colors.grey[500],
+                    color: AppColors.onSurfaceVariant,
                   ),
                 ),
               );
@@ -559,7 +560,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                     post.resourceDescription!,
                     style: TextStyle(
                       fontSize: 11.sp,
-                      color: Colors.grey[500],
+                      color: AppColors.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -619,7 +620,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   }) {
     final color = isActive
         ? Theme.of(context).primaryColor
-        : Colors.grey[500];
+        : AppColors.onSurfaceVariant;
 
     return GestureDetector(
       onTap: onTap,

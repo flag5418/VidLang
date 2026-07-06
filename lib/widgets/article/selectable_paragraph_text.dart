@@ -38,6 +38,7 @@ class SelectableParagraphTextController {
 class SelectableParagraphText extends StatefulWidget {
   final String text;
   final double fontSize;
+  final FontWeight? fontWeight;
   final Color textColor;
   final ColorScheme colorScheme;
 
@@ -70,6 +71,7 @@ class SelectableParagraphText extends StatefulWidget {
     super.key,
     required this.text,
     required this.fontSize,
+    this.fontWeight,
     required this.textColor,
     required this.colorScheme,
     this.controller,
@@ -364,10 +366,11 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
           Color? underlineColor;
 
           if (isTtsHighlight) {
-            bgColor = widget.colorScheme.primary.withValues(alpha: 0.2);
+            bgColor = widget.colorScheme.primary.withValues(alpha: 0.15);
             textColor = widget.colorScheme.primary;
+            decoration = null; // TTS高亮不使用下划线
           } else if (isSelected) {
-            bgColor = widget.colorScheme.primary.withValues(alpha: 0.25);
+            bgColor = widget.colorScheme.primary.withValues(alpha: 0.12);
             textColor = widget.colorScheme.primary;
           } else if (markColor != null) {
             bgColor = markColor.withValues(alpha: 0.2);
@@ -379,17 +382,23 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
 
           return Container(
             key: word.key,
-            padding: EdgeInsets.symmetric(horizontal: 1.w, vertical: 2.h),
+            padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(3.r),
+              border: isTtsHighlight
+                  ? Border.all(
+                      color: widget.colorScheme.primary.withValues(alpha: 0.4),
+                      width: 1.0,
+                    )
+                  : null,
             ),
             child: Text(
               word.text,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: widget.fontSize.sp,
                 color: textColor,
-                fontWeight: FontWeight.w500,
+                fontWeight: widget.fontWeight ?? FontWeight.w500,
                 height: 1.6,
                 decoration: decoration,
                 decorationStyle: decorationStyle,
