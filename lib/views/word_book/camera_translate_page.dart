@@ -186,7 +186,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: col.textPrimary, size: 20),
+            icon: Icon(AppIcons.arrowBackIosNew, color: col.textPrimary, size: 20),
             style: IconButton.styleFrom(backgroundColor: col.textPrimary.withValues(alpha: 0.1)),
           ),
           const SizedBox(width: 12),
@@ -197,7 +197,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
           const Spacer(),
           IconButton(
             onPressed: _takePhoto,
-            icon: Icon(Icons.camera_alt_outlined, color: col.textPrimary, size: 20),
+            icon: Icon(AppIcons.cameraAlt, color: col.textPrimary, size: 20),
             style: IconButton.styleFrom(backgroundColor: col.textPrimary.withValues(alpha: 0.1)),
             tooltip: '重新拍照',
           ),
@@ -327,13 +327,13 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
           ),
           IconButton(
             onPressed: () => TtsService().speakWord(word),
-            icon: Icon(Icons.volume_up_rounded, color: cs.primary, size: 22),
+            icon: Icon(AppIcons.volumeUp, color: cs.primary, size: 22),
             style: IconButton.styleFrom(backgroundColor: cs.primaryContainer.withValues(alpha: 0.3)),
           ),
           const SizedBox(width: 4),
           IconButton(
             onPressed: () => _showWordDetail(word),
-            icon: Icon(Icons.expand_more_rounded, color: cs.primary, size: 22),
+            icon: Icon(AppIcons.expandMore, color: cs.primary, size: 22),
             style: IconButton.styleFrom(backgroundColor: cs.primaryContainer.withValues(alpha: 0.3)),
           ),
         ],

@@ -106,7 +106,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome, color: AppColors.warning),
+                const Icon(AppIcons.autoAwesome, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Text('AI 评价报告',
                     style: Theme.of(context).textTheme.titleMedium),
@@ -233,7 +233,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
                   backgroundColor:
                       isCorrect ? AppColors.success.withValues(alpha: 0.15) : AppColors.error.withValues(alpha: 0.15),
                   child: Icon(
-                    isCorrect ? Icons.check : Icons.close,
+                    isCorrect ? AppIcons.check : AppIcons.close,
                     size: 16,
                     color: isCorrect ? AppColors.success : AppColors.error,
                   ),
@@ -247,7 +247,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
                   style: const TextStyle(fontSize: 12),
                 ),
                 trailing: (item.score ?? 0) >= 80
-                    ? const Icon(Icons.emoji_events, color: AppColors.warning, size: 20)
+                    ? const Icon(AppIcons.emojiEvents, color: AppColors.warning, size: 20)
                     : null,
               );
             }),

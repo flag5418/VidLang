@@ -7,12 +7,15 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/components/folder_card.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
+import 'package:vidlang/services/article_parser.dart';
+import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
@@ -20,9 +23,12 @@ import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/views/article/article_import_page.dart';
+import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/views/files/folder_detail_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class FileListPage extends ConsumerStatefulWidget {
   const FileListPage({super.key});
@@ -35,6 +41,13 @@ class _FileListPageState extends ConsumerState<FileListPage> {
   final TextEditingController _folderNameController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isImporting = false;
+
+  /// URL 正则：合法的 http/https 网址
+  static final _urlRegExp = RegExp(
+    r'^https?://[\w\-]+(\.[\w\-]+)+(:\d+)?(/[\w\-./?%&=+#@!~*(),;:]*)?$',
+    caseSensitive: false,
+  );
 
   static const _resourceTypes = ['video', 'music', 'article'];
   static const _resourceLabels = ['视频', '音频', '文章'];
@@ -73,7 +86,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
         title: Text(
           '资源',
           style: TextStyle(
-            fontSize: 18.sp,
+            fontSize: Adaptive.sp(context, 18),
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
           ),
@@ -91,7 +104,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
               if (!mounted) return;
               await ref.read(fileProvider.notifier).loadFolders();
             },
-            icon: Icon(Icons.wifi_tethering_outlined, size: 22.sp),
+            icon: Icon(AppIcons.wifiTethering, size: Adaptive.sp(context, 22)),
           ),
         ],
       ),
@@ -146,7 +159,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
                   _resourceLabels[index],
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: Adaptive.sp(context, 13),
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
                         ? AppColors.onSurface
@@ -162,37 +175,29 @@ class _FileListPageState extends ConsumerState<FileListPage> {
   }
 
   Widget _buildSearchBar(ColorScheme colorScheme) {
+    final isArticleTab = _resourceTypes[_currentTab] == 'article';
+
     return TextField(
       controller: _searchController,
+      keyboardType: isArticleTab ? TextInputType.url : TextInputType.text,
       onChanged: (v) => setState(() => _searchQuery = v),
+      onSubmitted: isArticleTab && _searchQuery.trim().isNotEmpty ? (_) => _importFromUrl() : null,
       style: TextStyle(
         color: colorScheme.onSurface,
-        fontSize: AppTypography.fontSizeSmall.sp,
+        fontSize: Adaptive.sp(context, AppTypography.fontSizeSmall),
       ),
       decoration: InputDecoration(
-        hintText: '搜索${_resourceLabels[_currentTab]}...',
+        hintText: isArticleTab ? '请输入链接' : '搜索${_resourceLabels[_currentTab]}...',
         hintStyle: TextStyle(
           color: AppColors.onSurfaceDisabled,
-          fontSize: AppTypography.fontSizeSmall.sp,
+          fontSize: Adaptive.sp(context, AppTypography.fontSizeSmall),
         ),
         prefixIcon: Icon(
-          AppIcons.search,
-          size: 18.sp,
+          isArticleTab ? AppIcons.link : AppIcons.search,
+          size: Adaptive.sp(context, 18),
           color: colorScheme.onSurfaceVariant,
         ),
-        suffixIcon: _searchQuery.isNotEmpty
-            ? GestureDetector(
-                onTap: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-                child: Icon(
-                  Icons.clear,
-                  size: 18.sp,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
+        suffixIcon: _buildSearchSuffix(colorScheme, isArticleTab),
         filled: true,
         fillColor: AppColors.getSurfaceElevated(
           brightness: Theme.of(context).brightness,
@@ -219,6 +224,64 @@ class _FileListPageState extends ConsumerState<FileListPage> {
     );
   }
 
+  Widget? _buildSearchSuffix(ColorScheme colorScheme, bool isArticleTab) {
+    // 导入中：显示加载动画
+    if (_isImporting) {
+      return Padding(
+        padding: const EdgeInsets.all(10),
+        child: SizedBox(
+          width: Adaptive.sp(context, 16),
+          height: Adaptive.sp(context, 16),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: colorScheme.primary,
+          ),
+        ),
+      );
+    }
+
+    // 无输入：不显示后缀
+    if (_searchQuery.isEmpty) return null;
+
+    // 文章 Tab：显示「转入」按钮
+    if (isArticleTab) {
+      return Padding(
+        padding: const EdgeInsets.all(5),
+        child: GestureDetector(
+          onTap: _isImporting ? null : _importFromUrl,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: colorScheme.primary,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '转入',
+              style: TextStyle(
+                color: AppColors.onSurface,
+                fontSize: Adaptive.sp(context, 12),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 视频/音频 Tab：显示清除按钮
+    return GestureDetector(
+      onTap: () {
+        _searchController.clear();
+        setState(() => _searchQuery = '');
+      },
+      child: Icon(
+        AppIcons.clear,
+        size: Adaptive.sp(context, 18),
+        color: colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
   List<VideoFolder> _filteredFolders(List<VideoFolder> folders) {
     final currentType = _resourceTypes[_currentTab];
     var filtered = folders
@@ -231,6 +294,123 @@ class _FileListPageState extends ConsumerState<FileListPage> {
           .toList();
     }
     return filtered;
+  }
+
+  /// 从 URL 导入文章
+  ///
+  /// 调用 Supabase Edge Function（extract-article）提取网页正文，
+  /// 通过 ArticleParser 解析后存入数据库，跳转 ArticleReaderPage。
+  Future<void> _importFromUrl() async {
+    final url = _searchQuery.trim();
+
+    if (!_urlRegExp.hasMatch(url)) {
+      _showSnackBar('请输入有效的网址（以 http:// 或 https:// 开头）');
+      return;
+    }
+
+    setState(() => _isImporting = true);
+
+    try {
+      // 调用 Edge Function 提取正文
+      final client = sb.Supabase.instance.client;
+      final resp = await client.functions.invoke(
+        'extract-article',
+        body: {'url': url},
+      );
+      final data = resp.data as Map<String, dynamic>?;
+
+      if (data == null || data['ok'] != true) {
+        final msg = data?['message'] as String? ?? '提取失败，请尝试手动复制粘贴';
+        setState(() => _isImporting = false);
+        _showSnackBarWithAction(msg, '手动复制', () {
+          _searchController.clear();
+          setState(() => _searchQuery = '');
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ArticleImportPage()),
+          );
+        });
+        return;
+      }
+
+      final title = (data['title'] as String?) ?? '未命名文章';
+      final textContent = (data['textContent'] as String?) ?? '';
+
+      if (textContent.isEmpty) {
+        setState(() => _isImporting = false);
+        _showSnackBarWithAction('提取到的文章内容为空', '手动复制', () {
+          _searchController.clear();
+          setState(() => _searchQuery = '');
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ArticleImportPage()));
+        });
+        return;
+      }
+
+      // 复用现有 ArticleParser 解析并保存
+      final parsed = ArticleParser.parse(title: title, content: textContent);
+
+      await DatabaseService.insert(parsed.article);
+      final articleCode = parsed.article.code!;
+
+      for (final s in parsed.sentences) {
+        s.articleCode = articleCode;
+      }
+      for (final ch in parsed.chapters) {
+        ch.articleCode = articleCode;
+      }
+      for (final p in parsed.paragraphs) {
+        p.articleCode = articleCode;
+      }
+
+      if (parsed.sentences.isNotEmpty) {
+        await DatabaseService.batchInsert(parsed.sentences);
+      }
+      if (parsed.chapters.isNotEmpty) {
+        await DatabaseService.batchInsert(parsed.chapters);
+      }
+      if (parsed.paragraphs.isNotEmpty) {
+        await DatabaseService.batchInsert(parsed.paragraphs);
+      }
+
+      try {
+        await ConversationService.uploadArticleContentToCloud(
+          articleCode,
+          folderCode: parsed.article.folderCode,
+        );
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      setState(() => _isImporting = false);
+      _searchController.clear();
+      setState(() => _searchQuery = '');
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ArticleReaderPage(articleCode: articleCode)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isImporting = false);
+      _showSnackBarWithAction('导入失败: $e', '手动复制', () {
+        _searchController.clear();
+        setState(() => _searchQuery = '');
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ArticleImportPage()));
+      });
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showSnackBarWithAction(String message, String actionLabel, VoidCallback onAction) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(label: actionLabel, onPressed: onAction),
+      ),
+    );
   }
 
   Widget _buildContent(ColorScheme colorScheme, FileState state) {
@@ -246,43 +426,54 @@ class _FileListPageState extends ConsumerState<FileListPage> {
       brightness: Theme.of(context).brightness,
     );
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(24.w),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: typeColor.withValues(alpha: 0.06),
-            ),
-            child: Icon(
-              Icons.folder_open_rounded,
-              size: 48.sp,
-              color: typeColor.withValues(alpha: 0.6),
-            ),
-          ),
-          SizedBox(height: AppSpacing.lg),
-          Text(
-            _searchQuery.isNotEmpty
-                ? '没有匹配的文件夹'
-                : '暂无${_resourceLabels[_currentTab]}',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          if (_searchQuery.isEmpty) ...[
-            SizedBox(height: 6.h),
-            Text(
-              '点击右上角 + 创建',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+      child: Container(
+        margin: EdgeInsets.all(Adaptive.w(context, 24)),
+        padding: EdgeInsets.symmetric(
+          horizontal: Adaptive.w(context, 32),
+          vertical: Adaptive.h(context, 32),
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(Adaptive.w(context, 20)),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: typeColor.withValues(alpha: 0.08),
+              ),
+              child: Icon(
+                AppIcons.folderOpen,
+                size: Adaptive.sp(context, 48),
+                color: typeColor.withValues(alpha: 0.6),
               ),
             ),
+            SizedBox(height: Adaptive.h(context, 20)),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? '没有匹配的文件夹'
+                  : '暂无${_resourceLabels[_currentTab]}',
+              style: TextStyle(
+                fontSize: Adaptive.sp(context, 16),
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (_searchQuery.isEmpty) ...[
+              SizedBox(height: Adaptive.h(context, 8)),
+              Text(
+                '点击右上角 + 创建',
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  color: colorScheme.outline,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -325,22 +516,22 @@ class _FileListPageState extends ConsumerState<FileListPage> {
             const Spacer(flex: 2),
             Center(
               child: Container(
-                width: 40.w,
-                height: 40.w,
+                width: Adaptive.w(context, 40),
+                height: Adaptive.w(context, 40),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colorScheme.primary.withValues(alpha: 0.1),
                 ),
-                child: Icon(Icons.add, size: 24.sp, color: colorScheme.primary),
+                child: Icon(AppIcons.add, size: Adaptive.sp(context, 24), color: colorScheme.primary),
               ),
             ),
             const Spacer(flex: 1),
             Padding(
-              padding: EdgeInsets.only(bottom: 14.h),
+              padding: EdgeInsets.only(bottom: Adaptive.h(context, 14)),
               child: Text(
                 '新建',
                 style: TextStyle(
-                  fontSize: 13.sp,
+                  fontSize: Adaptive.sp(context, 13),
                   fontWeight: FontWeight.w600,
                   color: colorScheme.primary,
                 ),
@@ -410,12 +601,12 @@ class _FileListPageState extends ConsumerState<FileListPage> {
       items: [
         AppBottomSheetMenuItem(
           text: '重命名',
-          icon: Icons.edit_outlined,
+          icon: AppIcons.edit,
           onTap: () => _showRenameDialog(folder),
         ),
         AppBottomSheetMenuItem(
           text: '删除',
-          icon: Icons.delete_outline,
+          icon: AppIcons.delete,
           destructive: true,
           onTap: () => _confirmDeleteFolder(folder),
         ),

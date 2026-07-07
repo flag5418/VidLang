@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// AI 对话消息气泡 - 微信风格
 class ChatBubble extends StatelessWidget {
@@ -62,7 +64,7 @@ class ChatBubble extends StatelessWidget {
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: const Icon(Icons.smart_toy, color: Colors.white, size: 20),
+      child: const Icon(AppIcons.smartToy, color: Colors.white, size: 20),
     );
   }
 
@@ -74,7 +76,7 @@ class ChatBubble extends StatelessWidget {
         color: AppColors.secondary,
         borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: const Icon(Icons.person, color: Colors.white, size: 20),
+      child: const Icon(AppIcons.person, color: Colors.white, size: 20),
     );
   }
 
@@ -156,7 +158,7 @@ class TranscriptionPreview extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.mic, size: 16, color: AppColors.primary),
+                  Icon(AppIcons.mic, size: 16, color: AppColors.primary),
                   SizedBox(width: AppSpacing.space2),
                   Flexible(
                     child: Text(

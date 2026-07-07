@@ -155,7 +155,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
         children: [
           Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
           IconButton(
-            icon: const Icon(Icons.remove_rounded, size: 20),
+            icon: const Icon(AppIcons.remove, size: 20),
             onPressed: value > min ? () => onChanged(value - 1) : null,
           ),
           Text('$value', style: Theme.of(context).textTheme.titleMedium),

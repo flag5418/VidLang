@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../models/forum/forum_category.dart';
 import '../../models/forum/forum_post.dart';
 import '../../providers/forum_providers.dart';
 import 'forum_home_page.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 /// 创建帖子页面
 class ForumCreatePostPage extends ConsumerStatefulWidget {
@@ -96,8 +96,8 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             onPressed: _isLoading ? null : _submitPost,
             child: _isLoading
                 ? SizedBox(
-                    width: 20.w,
-                    height: 20.w,
+                    width: Adaptive.w(context, 20),
+                    height: Adaptive.w(context, 20),
                     child: const CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('发布'),
@@ -110,26 +110,26 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildBody() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildPostTypeSection(),
-            SizedBox(height: 24.h),
+            SizedBox(height: Adaptive.h(context, 24)),
             _buildTitleField(),
-            SizedBox(height: 16.h),
+            SizedBox(height: Adaptive.h(context, 16)),
             _buildCategorySelector(),
-            SizedBox(height: 16.h),
+            SizedBox(height: Adaptive.h(context, 16)),
             _buildContentField(),
             if (_selectedPostType == 'resource') ...[
-              SizedBox(height: 16.h),
+              SizedBox(height: Adaptive.h(context, 16)),
               _buildResourceSection(),
             ],
-            SizedBox(height: 16.h),
+            SizedBox(height: Adaptive.h(context, 16)),
             _buildTagsField(),
-            SizedBox(height: 32.h),
+            SizedBox(height: Adaptive.h(context, 32)),
             _buildSubmitButton(),
           ],
         ),
@@ -139,10 +139,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildPostTypeSection() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         border: Border.all(color: AppColors.borderLight!),
       ),
       child: Column(
@@ -151,14 +151,14 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           Text(
             '帖子类型',
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: Adaptive.sp(context, 16),
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: Adaptive.h(context, 12)),
           Wrap(
-            spacing: 8.w,
+            spacing: Adaptive.w(context, 8),
             children: _postTypes.map((type) {
               final isSelected = _selectedPostType == type;
               return ChoiceChip(
@@ -194,10 +194,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildTitleField() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         border: Border.all(color: AppColors.borderLight!),
       ),
       child: TextFormField(
@@ -207,11 +207,11 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           hintText: '请输入一个有吸引力的标题',
           border: InputBorder.none,
           labelStyle: TextStyle(
-            fontSize: 14.sp,
+            fontSize: Adaptive.sp(context, 14),
             color: AppColors.textSecondary,
           ),
         ),
-        style: TextStyle(fontSize: 16.sp),
+        style: TextStyle(fontSize: Adaptive.sp(context, 16)),
         maxLength: 100,
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
@@ -230,10 +230,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     final categoriesAsync = ref.watch(forumCategoriesProvider);
     
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         border: Border.all(color: AppColors.borderLight!),
       ),
       child: categoriesAsync.when(
@@ -243,11 +243,11 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             labelText: '选择分类 *',
             border: InputBorder.none,
             labelStyle: TextStyle(
-              fontSize: 14.sp,
+              fontSize: Adaptive.sp(context, 14),
               color: AppColors.textSecondary,
             ),
           ),
-          style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: Adaptive.sp(context, 16), color: AppColors.textPrimary),
           items: categories.map((category) {
             return DropdownMenuItem<int>(
               value: category.id,
@@ -267,7 +267,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           },
         ),
         loading: () => Container(
-          height: 50.h,
+          height: Adaptive.h(context, 50),
           child: const Center(
             child: CircularProgressIndicator(),
           ),
@@ -282,10 +282,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildContentField() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         border: Border.all(color: AppColors.borderLight!),
       ),
       child: TextFormField(
@@ -296,11 +296,11 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           border: InputBorder.none,
           alignLabelWithHint: true,
           labelStyle: TextStyle(
-            fontSize: 14.sp,
+            fontSize: Adaptive.sp(context, 14),
             color: AppColors.textSecondary,
           ),
         ),
-        style: TextStyle(fontSize: 16.sp, height: 1.5),
+        style: TextStyle(fontSize: Adaptive.sp(context, 16), height: 1.5),
         maxLines: 8,
         maxLength: 5000,
         validator: (value) {
@@ -318,10 +318,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildResourceSection() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)!),
       ),
       child: Column(
@@ -330,19 +330,19 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           Text(
             '资源信息',
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: Adaptive.sp(context, 16),
               fontWeight: FontWeight.w600,
               color: AppColors.warning,
             ),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: Adaptive.h(context, 12)),
           // 资源类型选择
           DropdownButtonFormField<String>(
             value: _selectedResourceType,
             decoration: InputDecoration(
               labelText: '资源类型',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
               ),
               fillColor: AppColors.surface,
               filled: true,
@@ -359,7 +359,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               });
             },
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: Adaptive.h(context, 12)),
           // 资源链接
           TextFormField(
             controller: _resourceUrlController,
@@ -367,14 +367,14 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               labelText: '资源链接',
               hintText: 'https://example.com/resource',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
               ),
               fillColor: AppColors.surface,
               filled: true,
             ),
-            style: TextStyle(fontSize: 14.sp),
+            style: TextStyle(fontSize: Adaptive.sp(context, 14)),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: Adaptive.h(context, 12)),
           // 资源描述
           TextFormField(
             controller: _resourceDescriptionController,
@@ -382,12 +382,12 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               labelText: '资源描述',
               hintText: '简要描述这个资源的内容和价值',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
               ),
               fillColor: AppColors.surface,
               filled: true,
             ),
-            style: TextStyle(fontSize: 14.sp),
+            style: TextStyle(fontSize: Adaptive.sp(context, 14)),
             maxLines: 3,
           ),
         ],
@@ -397,10 +397,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildTagsField() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         border: Border.all(color: AppColors.borderLight!),
       ),
       child: TextFormField(
@@ -410,11 +410,11 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           hintText: '用逗号分隔多个标签，如: Flutter, Dart, 教程',
           border: InputBorder.none,
           labelStyle: TextStyle(
-            fontSize: 14.sp,
+            fontSize: Adaptive.sp(context, 14),
             color: AppColors.textSecondary,
           ),
         ),
-        style: TextStyle(fontSize: 16.sp),
+        style: TextStyle(fontSize: Adaptive.sp(context, 16)),
       ),
     );
   }
@@ -422,14 +422,14 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
-      height: 50.h,
+      height: Adaptive.h(context, 50),
       child: ElevatedButton(
         onPressed: _isLoading ? null : _submitPost,
         style: ElevatedButton.styleFrom(
           backgroundColor: Theme.of(context).primaryColor,
           foregroundColor: AppColors.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
           ),
           elevation: 2,
         ),
@@ -438,18 +438,18 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: 20.w,
-                    height: 20.w,
+                    width: Adaptive.w(context, 20),
+                    height: Adaptive.w(context, 20),
                     child: const CircularProgressIndicator(
                       color: AppColors.surface,
                       strokeWidth: 2,
                     ),
                   ),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: Adaptive.w(context, 8)),
                   Text(
                     '发布中...',
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: Adaptive.sp(context, 16),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -458,7 +458,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             : Text(
                 '发布帖子',
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: Adaptive.sp(context, 16),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -509,8 +509,8 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: AppColors.surface),
-                SizedBox(width: 8.w),
+                const Icon(AppIcons.checkCircle, color: AppColors.surface),
+                SizedBox(width: Adaptive.w(context, 8)),
                 const Text('帖子发布成功！'),
               ],
             ),
@@ -562,8 +562,8 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: AppColors.surface),
-            SizedBox(width: 8.w),
+            const Icon(AppIcons.error, color: AppColors.surface),
+            SizedBox(width: Adaptive.w(context, 8)),
             Text(message),
           ],
         ),

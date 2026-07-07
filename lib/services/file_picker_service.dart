@@ -245,8 +245,8 @@ class FilePickerService {
 
       final duplicatedName = await DatabaseService.findByCondition(
         () => VideoFolder(),
-        where: 'name = ? AND is_deleted = 0',
-        whereArgs: [folderName],
+        where: 'name = ? AND folder_type = ? AND is_deleted = 0',
+        whereArgs: [folderName, 'video'],
         limit: 1,
       );
       if (duplicatedName.isNotEmpty) {

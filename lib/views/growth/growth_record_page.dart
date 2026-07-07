@@ -32,7 +32,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
         title: const Text('成长记录'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             onPressed: () => ref.read(growthProvider.notifier).loadGrowthData(),
           ),
         ],
@@ -76,11 +76,11 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _overviewStat('总评测', '${summary.totalTests}次', Icons.assignment),
+                _overviewStat('总评测', '${summary.totalTests}次', AppIcons.assignment),
                 _overviewStat(
-                    '平均分', '${summary.overallAvgScore.toStringAsFixed(1)}', Icons.trending_up),
+                    '平均分', '${summary.overallAvgScore.toStringAsFixed(1)}', AppIcons.trendingUp),
                 _overviewStat(
-                    '总时长', '${summary.totalStudyMinutes}分钟', Icons.timer),
+                    '总时长', '${summary.totalStudyMinutes}分钟', AppIcons.timer),
               ],
             ),
           ],
@@ -109,7 +109,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
           children: [
             Column(
               children: [
-                const Icon(Icons.local_fire_department, color: AppColors.warning, size: 36),
+                const Icon(AppIcons.localFireDepartment, color: AppColors.warning, size: 36),
                 const SizedBox(height: 4),
                 Text('当前连胜',
                     style: Theme.of(context).textTheme.bodySmall),
@@ -120,7 +120,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
             Container(width: 1, height: 48, color: AppColors.borderLight),
             Column(
               children: [
-                const Icon(Icons.emoji_events, color: AppColors.warning, size: 36),
+                const Icon(AppIcons.emojiEvents, color: AppColors.warning, size: 36),
                 const SizedBox(height: 4),
                 Text('最佳纪录',
                     style: Theme.of(context).textTheme.bodySmall),
@@ -302,7 +302,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
         subtitle: Text(
           '${t.completedItems}/${t.totalItems}题 · $time · ${t.difficulty}',
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(AppIcons.chevronRight),
         onTap: () {
           final growthNotifier = ref.read(growthProvider.notifier);
           growthNotifier.loadTestDetail(t.id as int);

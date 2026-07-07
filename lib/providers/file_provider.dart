@@ -321,23 +321,24 @@ class FileNotifier extends StateNotifier<FileState> {
   }) async {
     state = state.copyWith(isLoading: true);
     try {
-      final duplicated = await DatabaseService.findByCondition(
-        () => VideoFolder(),
-        where: 'name = ? AND is_deleted = 0',
-        whereArgs: [name],
-        limit: 1,
-      );
-      if (duplicated.isNotEmpty) {
-        state = state.copyWith(isLoading: false, error: '视频集名称已存在');
-        return '视频集名称已存在';
-      }
-
       final groupCode =
           parentCode ?? await SettingsService.ensureDefaultGroupCode();
       final folderContentType = FolderContentType.values.firstWhere(
         (e) => e.name == contentType,
         orElse: () => FolderContentType.video,
       );
+
+      // 同一用户下，同一分类(folder_type)内名称唯一；不同分类允许同名
+      final duplicated = await DatabaseService.findByCondition(
+        () => VideoFolder(),
+        where: 'name = ? AND folder_type = ? AND is_deleted = 0',
+        whereArgs: [name, folderContentType.name],
+        limit: 1,
+      );
+      if (duplicated.isNotEmpty) {
+        state = state.copyWith(isLoading: false, error: '该分类下已存在同名文件夹');
+        return '该分类下已存在同名文件夹';
+      }
       VideoFolder folder = VideoFolder(
         name: name,
         type: VideoFolderType.virtual,
@@ -366,15 +367,16 @@ class FileNotifier extends StateNotifier<FileState> {
     try {
       VideoFolder? folder = await findFolderByCode(code);
       if (folder != null) {
+        // 同一分类内名称唯一；不同分类允许同名
         final duplicated = await DatabaseService.findByCondition(
           () => VideoFolder(),
-          where: 'name = ? AND code != ? AND is_deleted = 0',
-          whereArgs: [newName, code],
+          where: 'name = ? AND folder_type = ? AND code != ? AND is_deleted = 0',
+          whereArgs: [newName, folder.folderType.name, code],
           limit: 1,
         );
         if (duplicated.isNotEmpty) {
-          state = state.copyWith(isLoading: false, error: '视频集名称已存在');
-          return '视频集名称已存在';
+          state = state.copyWith(isLoading: false, error: '该分类下已存在同名文件夹');
+          return '该分类下已存在同名文件夹';
         }
 
         folder.name = newName;
@@ -440,8 +442,8 @@ class FileNotifier extends StateNotifier<FileState> {
               where: 'video_code = ? AND is_deleted = 0',
               whereArgs: [videoCode],
             );
-            for (final s in subtitles) {
-              await s.softDelete();
+            if (subtitles.isNotEmpty) {
+              await DatabaseService.batchSoftDelete(subtitles);
             }
 
             final participles = await DatabaseService.findByCondition(
@@ -449,12 +451,22 @@ class FileNotifier extends StateNotifier<FileState> {
               where: 'video_code = ? AND is_deleted = 0',
               whereArgs: [videoCode],
             );
-            for (final p in participles) {
-              await p.softDelete();
+            if (participles.isNotEmpty) {
+              await DatabaseService.batchSoftDelete(participles);
             }
           }
 
           await v.softDelete();
+        }
+
+        // 批量标记所有子资源为已删除状态（ai-test-plan 综合测试时会跳过）
+        final deletedVideoCodes = videos
+            .map((v) => v.code)
+            .where((c) => c != null && c!.isNotEmpty)
+            .cast<String>()
+            .toList();
+        if (deletedVideoCodes.isNotEmpty) {
+          ConversationService.markResourcesDeleted(deletedVideoCodes);
         }
 
         await folder.softDelete();
@@ -843,14 +855,16 @@ class FileNotifier extends StateNotifier<FileState> {
         final videoCode = video.code;
         if (videoCode != null && videoCode.isNotEmpty) {
           ConversationService.deleteSubtitlesFromCloud(videoCode);
+          // 标记资源已删除（ai-test-plan 综合测试时会跳过此资源）
+          ConversationService.markResourcesDeleted([videoCode]);
           await ThumbnailService.deleteVideoScreenshots(videoCode);
           final subtitles = await DatabaseService.findByCondition(
             () => Subtitles(),
             where: 'video_code = ? AND is_deleted = 0',
             whereArgs: [videoCode],
           );
-          for (final s in subtitles) {
-            await s.softDelete();
+          if (subtitles.isNotEmpty) {
+            await DatabaseService.batchSoftDelete(subtitles);
           }
 
           final participles = await DatabaseService.findByCondition(
@@ -858,8 +872,8 @@ class FileNotifier extends StateNotifier<FileState> {
             where: 'video_code = ? AND is_deleted = 0',
             whereArgs: [videoCode],
           );
-          for (final p in participles) {
-            await p.softDelete();
+          if (participles.isNotEmpty) {
+            await DatabaseService.batchSoftDelete(participles);
           }
         }
 

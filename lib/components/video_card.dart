@@ -17,6 +17,7 @@ import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
 class VideoCard extends StatefulWidget {
@@ -116,7 +117,7 @@ class _VideoCardState extends State<VideoCard> {
       color: AppColors.cardThumbnailBg,
       child: Center(
         child: Icon(
-          Icons.movie_outlined,
+          AppIcons.movie,
           size: Adaptive.sp(context, 22),
           color: colors.textWeak,
         ),
@@ -160,7 +161,7 @@ class _VideoCardState extends State<VideoCard> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.schedule, size: 10, color: Colors.white70),
+                const Icon(AppIcons.schedule, size: 10, color: Colors.white70),
                 const SizedBox(width: 4),
                 Text(
                   '${widget.video.currentPositionString} / ${widget.video.durationString}',
@@ -191,7 +192,7 @@ class _VideoCardState extends State<VideoCard> {
               : Colors.black.withValues(alpha: 0.5),
         ),
         child: Icon(
-          Icons.subtitles,
+          AppIcons.subtitles,
           size: Adaptive.sp(context, 12),
           color: widget.video.hasSubtitles ? Colors.white : Colors.white38,
         ),
@@ -218,7 +219,7 @@ class _VideoCardState extends State<VideoCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.mic, size: 9, color: Colors.white),
+            const Icon(AppIcons.mic, size: 9, color: Colors.white),
             const SizedBox(width: 2),
             Text(
               '${score.round()}',
@@ -280,7 +281,7 @@ class _VideoCardState extends State<VideoCard> {
             color: Colors.black.withValues(alpha: 0.65),
           ),
           child: Icon(
-            Icons.more_vert,
+            AppIcons.moreVert,
             size: Adaptive.sp(context, 16),
             color: Colors.white,
           ),
@@ -289,7 +290,7 @@ class _VideoCardState extends State<VideoCard> {
           final items = <PopupMenuEntry<String>>[
             PopupMenuItem(
               value: 'rename',
-              child: _menuRow(context, Icons.edit_outlined, '重命名', colors),
+              child:               _menuRow(context, AppIcons.edit, '重命名', colors),
             ),
           ];
           if (!widget.video.hasSubtitles && widget.onImportSubtitle != null) {
@@ -298,7 +299,7 @@ class _VideoCardState extends State<VideoCard> {
                 value: 'importSubtitle',
                 child: _menuRow(
                   context,
-                  Icons.closed_caption,
+                  AppIcons.closedCaption,
                   '导入字幕',
                   colors,
                 ),
@@ -309,7 +310,7 @@ class _VideoCardState extends State<VideoCard> {
             items.add(
               PopupMenuItem(
                 value: 'aiConversation',
-                child: _menuRow(context, Icons.forum_outlined, 'AI 对话', colors),
+                child: _menuRow(context, AppIcons.forum, 'AI 对话', colors),
               ),
             );
           }
@@ -319,7 +320,7 @@ class _VideoCardState extends State<VideoCard> {
                 value: 'unitTest',
                 child: _menuRow(
                   context,
-                  Icons.quiz_outlined,
+                  AppIcons.quiz,
                   '单元测试',
                   colors,
                 ),
@@ -330,7 +331,7 @@ class _VideoCardState extends State<VideoCard> {
             const PopupMenuDivider(height: 1),
             PopupMenuItem(
               value: 'delete',
-              child: _menuRow(context, Icons.delete_outline, '删除', colors),
+              child: _menuRow(context, AppIcons.delete, '删除', colors),
             ),
           ]);
           return items;
@@ -384,7 +385,7 @@ class _VideoCardState extends State<VideoCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.play_arrow,
+              AppIcons.play,
               size: Adaptive.sp(context, 10),
               color: Colors.white,
             ),

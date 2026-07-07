@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -18,6 +17,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToTab;
@@ -33,10 +33,36 @@ class _HomePageState extends ConsumerState<HomePage> {
   HomeStats _stats = const HomeStats();
   bool _loading = true;
   List<RecentResource> _recentResources = [];
+  int _lastRefreshTick = 0; // 用于避免重复刷新
 
   @override
   void initState() {
     super.initState();
+    _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 每次依赖变化（如从其他 Tab 切回首页）时检查是否需要刷新
+    final currentIndex = ref.read(navigationIndexProvider);
+    if (currentIndex == 0) {
+      _refreshIfNeeded();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Widget 更新时也触发刷新检查
+    _refreshIfNeeded();
+  }
+
+  /// 智能刷新：防止短时间内重复刷新（防抖）
+  void _refreshIfNeeded() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastRefreshTick < 2000) return; // 2秒内不重复刷新
+    _lastRefreshTick = now;
     _loadData();
   }
 
@@ -169,29 +195,29 @@ class _HomePageState extends ConsumerState<HomePage> {
     Color surfaceColor,
   ) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 0),
+      padding: EdgeInsets.fromLTRB(Adaptive.w(context, 16), Adaptive.h(context, 16), Adaptive.w(context, 16), 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 品牌 + 学习统计（固定区域）
           _buildBrandStatsCard(colorScheme, brightness, surfaceColor),
-          SizedBox(height: 14.h),
+          SizedBox(height: Adaptive.h(context, 14)),
           // 资源中心（固定区域）
           _buildResourceSection(colorScheme, brightness, surfaceColor),
-          SizedBox(height: 14.h),
+          SizedBox(height: Adaptive.h(context, 14)),
           // 最近学习标题（固定区域）
           Padding(
-            padding: EdgeInsets.only(left: 4.w),
+            padding: EdgeInsets.only(left: Adaptive.w(context, 4)),
             child: Text(
               '最近学习',
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: Adaptive.sp(context, 16),
                 fontWeight: FontWeight.w700,
                 color: colorScheme.onSurface,
               ),
             ),
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: Adaptive.h(context, 10)),
           // 最近学习列表（可滚动区域，占据剩余空间）
           Expanded(
             child: _buildRecentList(colorScheme, brightness, surfaceColor),
@@ -235,24 +261,24 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           // 顶部品牌区
           Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 20.h),
+            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 20), Adaptive.h(context, 24), Adaptive.w(context, 20), Adaptive.h(context, 20)),
             child: Row(
               children: [
                 // 大图标
                 Container(
-                  width: 56.w,
-                  height: 56.w,
+                  width: Adaptive.w(context, 56),
+                  height: Adaptive.w(context, 56),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
-                    Icons.school_rounded,
+                    AppIcons.schoolFill,
                     color: Colors.white,
-                    size: 30.sp,
+                    size: Adaptive.sp(context, 30),
                   ),
                 ),
-                SizedBox(width: 16.w),
+                SizedBox(width: Adaptive.w(context, 16)),
                 // 标题 + 副标题
                 Expanded(
                   child: Column(
@@ -261,16 +287,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                       Text(
                         'VidLang',
                         style: TextStyle(
-                          fontSize: 24.sp,
+                          fontSize: Adaptive.sp(context, 24),
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(height: Adaptive.h(context, 4)),
                       Text(
                         '看视频、听音乐、读文章，轻松学英语',
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: Adaptive.sp(context, 13),
                           color: Colors.white.withValues(alpha: 0.85),
                         ),
                       ),
@@ -283,7 +309,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           // 底部统计区（白色背景）
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 16)),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: const BorderRadius.vertical(
@@ -293,7 +319,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: Row(
               children: [
                 _buildStatItem(
-                  icon: Icons.local_fire_department_rounded,
+                  icon: AppIcons.localFireDepartment,
                   value: '${_stats.streakDays}',
                   label: '连续',
                   color: const Color(0xFFFF6B35),
@@ -301,7 +327,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
                 _buildStatDivider(colorScheme),
                 _buildStatItem(
-                  icon: Icons.apps_rounded,
+                  icon: AppIcons.apps,
                   value: '${_stats.resourceCount}',
                   label: '资源',
                   color: colorScheme.primary,
@@ -309,7 +335,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
                 _buildStatDivider(colorScheme),
                 _buildStatItem(
-                  icon: Icons.menu_book_rounded,
+                  icon: AppIcons.menuBook,
                   value: '${_stats.wordCount}',
                   label: '单词',
                   color: const Color(0xFF22C55E),
@@ -317,7 +343,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
                 _buildStatDivider(colorScheme),
                 _buildStatItem(
-                  icon: Icons.schedule_rounded,
+                  icon: AppIcons.schedule,
                   value: _formatDurationCompact(_stats.todayDuration),
                   label: '时长',
                   color: const Color(0xFFA855F7),
@@ -342,21 +368,21 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18.sp, color: color),
-          SizedBox(height: 4.h),
+          Icon(icon, size: Adaptive.sp(context, 18), color: color),
+          SizedBox(height: Adaptive.h(context, 4)),
           Text(
             value,
             style: TextStyle(
-              fontSize: 15.sp,
+              fontSize: Adaptive.sp(context, 15),
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
             ),
           ),
-          SizedBox(height: 2.h),
+          SizedBox(height: Adaptive.h(context, 2)),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11.sp,
+              fontSize: Adaptive.sp(context, 11),
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -368,7 +394,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildStatDivider(ColorScheme colorScheme) {
     return Container(
       width: 1,
-      height: 32.h,
+      height: Adaptive.h(context, 32),
       color: colorScheme.outlineVariant.withValues(alpha: 0.3),
     );
   }
@@ -394,40 +420,40 @@ class _HomePageState extends ConsumerState<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.only(left: 4.w),
+          padding: EdgeInsets.only(left: Adaptive.w(context, 4)),
           child: Text(
             '资源中心',
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: Adaptive.sp(context, 16),
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
             ),
           ),
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: Adaptive.h(context, 10)),
         // 三行横排卡片
         _buildResourceRow(
           type: 'video',
           title: '视频',
-          icon: Icons.movie_outlined,
+          icon: AppIcons.movie,
           color: AppColors.videoColor,
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: Adaptive.h(context, 8)),
         _buildResourceRow(
           type: 'music',
           title: '音频',
-          icon: Icons.music_note_outlined,
+          icon: AppIcons.musicNote,
           color: AppColors.audioColor,
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: Adaptive.h(context, 8)),
         _buildResourceRow(
           type: 'article',
           title: '文章',
-          icon: Icons.menu_book_outlined,
+          icon: AppIcons.menuBook,
           color: AppColors.articleColor,
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
@@ -452,7 +478,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return GestureDetector(
       onTap: () => _goToResources(type),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 14), vertical: Adaptive.h(context, 12)),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(12),
@@ -465,15 +491,15 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             // 图标
             Container(
-              width: 36.w,
-              height: 36.w,
+              width: Adaptive.w(context, 36),
+              height: Adaptive.w(context, 36),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 20.sp, color: color),
+              child: Icon(icon, size: Adaptive.sp(context, 20), color: color),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: Adaptive.w(context, 12)),
             // 中间内容区
             Expanded(
               child: hasFolders
@@ -491,15 +517,15 @@ class _HomePageState extends ConsumerState<HomePage> {
               Text(
                 '$count个',
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: Adaptive.sp(context, 12),
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: Adaptive.w(context, 4)),
             ],
             Icon(
-              Icons.chevron_right_rounded,
-              size: 18.sp,
+              AppIcons.chevronRight,
+              size: Adaptive.sp(context, 18),
               color: colorScheme.onSurfaceVariant,
             ),
           ],
@@ -517,7 +543,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       return Text(
         '暂无内容',
         style: TextStyle(
-          fontSize: 14.sp,
+          fontSize: Adaptive.sp(context, 14),
           fontWeight: FontWeight.w600,
           color: colorScheme.onSurface,
         ),
@@ -531,14 +557,14 @@ class _HomePageState extends ConsumerState<HomePage> {
         Text(
           recentFolder.name,
           style: TextStyle(
-            fontSize: 14.sp,
+            fontSize: Adaptive.sp(context, 14),
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        SizedBox(height: 2.h),
+        SizedBox(height: Adaptive.h(context, 2)),
         // 最后播放的资源名称
         FutureBuilder<String>(
           future: _getLastPlayTitleAsync(recentFolder),
@@ -547,7 +573,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             return Text(
               t,
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: Adaptive.sp(context, 11),
                 color: colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
@@ -567,7 +593,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Text(
       '暂无$title资源，点击管理',
       style: TextStyle(
-        fontSize: 13.sp,
+        fontSize: Adaptive.sp(context, 13),
         color: colorScheme.onSurfaceVariant,
       ),
     );
@@ -603,7 +629,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (_recentResources.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 24.h),
+        padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 24)),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(12),
@@ -616,15 +642,15 @@ class _HomePageState extends ConsumerState<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.history_toggle_off_rounded,
-              size: 32.sp,
+              AppIcons.historyToggleOff,
+              size: Adaptive.sp(context, 32),
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: Adaptive.h(context, 6)),
             Text(
               '暂无学习记录',
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: Adaptive.sp(context, 13),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -638,7 +664,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       itemCount: _recentResources.length,
       itemBuilder: (context, index) {
         return Padding(
-          padding: EdgeInsets.only(bottom: 8.h),
+          padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
           child: _buildRecentItem(
             _recentResources[index],
             colorScheme,
@@ -666,7 +692,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return GestureDetector(
       onTap: () => _openRecentResource(resource),
       child: Container(
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(Adaptive.w(context, 12)),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(12),
@@ -681,13 +707,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             // 第一行：图标 + 标题 + 时间
             Row(
               children: [
-                Icon(icon, size: 18.sp, color: typeColor),
-                SizedBox(width: 8.w),
+                Icon(icon, size: Adaptive.sp(context, 18), color: typeColor),
+                SizedBox(width: Adaptive.w(context, 8)),
                 Expanded(
                   child: Text(
                     _getResourceTitle(resource),
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: Adaptive.sp(context, 14),
                       fontWeight: FontWeight.w600,
                       color: colorScheme.onSurface,
                     ),
@@ -698,16 +724,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                 Text(
                   timeAgo,
                   style: TextStyle(
-                    fontSize: 11.sp,
+                    fontSize: Adaptive.sp(context, 11),
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: Adaptive.h(context, 8)),
             // 第二行：详细信息
             _buildResourceDetail(resource, typeColor, colorScheme),
-            SizedBox(height: 8.h),
+            SizedBox(height: Adaptive.h(context, 8)),
             // 第三行：进度条
             _buildProgressBar(resource, typeColor, colorScheme),
           ],
@@ -747,15 +773,15 @@ class _HomePageState extends ConsumerState<HomePage> {
         return Row(
           children: [
             Icon(
-              Icons.play_circle_outline_rounded,
-              size: 14.sp,
+              AppIcons.playCircleOutline,
+              size: Adaptive.sp(context, 14),
               color: colorScheme.onSurfaceVariant,
             ),
-            SizedBox(width: 4.w),
+            SizedBox(width: Adaptive.w(context, 4)),
             Text(
               '$currentPos / $totalDur',
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: Adaptive.sp(context, 11),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -777,30 +803,30 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             // 段落信息
             Icon(
-              Icons.format_list_numbered_rounded,
-              size: 14.sp,
+              AppIcons.formatListNumbered,
+              size: Adaptive.sp(context, 14),
               color: colorScheme.onSurfaceVariant,
             ),
-            SizedBox(width: 4.w),
+            SizedBox(width: Adaptive.w(context, 4)),
             Text(
               '${article.lastParagraphIndex}/${article.totalParagraphs}段',
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: Adaptive.sp(context, 11),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: Adaptive.w(context, 12)),
             // 字数信息
             Icon(
-              Icons.text_fields_rounded,
-              size: 14.sp,
+              AppIcons.textFields,
+              size: Adaptive.sp(context, 14),
               color: colorScheme.onSurfaceVariant,
             ),
-            SizedBox(width: 4.w),
+            SizedBox(width: Adaptive.w(context, 4)),
             Text(
               '${article.wordCount}字',
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: Adaptive.sp(context, 11),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -835,11 +861,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ),
               ),
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: Adaptive.w(context, 8)),
             Text(
               '$percentage%',
               style: TextStyle(
-                fontSize: 11.sp,
+                fontSize: Adaptive.sp(context, 11),
                 fontWeight: FontWeight.w600,
                 color: typeColor,
               ),
@@ -899,11 +925,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   IconData _iconForType(String type) {
     switch (type) {
       case 'article':
-        return Icons.menu_book_outlined;
+        return AppIcons.menuBook;
       case 'music':
-        return Icons.music_note_outlined;
+        return AppIcons.musicNote;
       default:
-        return Icons.movie_outlined;
+        return AppIcons.movie;
     }
   }
 
@@ -966,12 +992,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         Expanded(
           flex: 4,
           child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 40), vertical: Adaptive.h(context, 40)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildBrandStatsCard(colorScheme, brightness, surfaceColor),
-                SizedBox(height: 24.h),
+                SizedBox(height: Adaptive.h(context, 24)),
                 _buildResourceSection(colorScheme, brightness, surfaceColor),
               ],
             ),
@@ -984,19 +1010,19 @@ class _HomePageState extends ConsumerState<HomePage> {
         Expanded(
           flex: 6,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 40.h),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 40), vertical: Adaptive.h(context, 40)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '最近学习',
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: Adaptive.h(context, 12)),
                 Expanded(
                   child: _buildRecentList(colorScheme, brightness, surfaceColor),
                 ),

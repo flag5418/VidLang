@@ -15,6 +15,8 @@ class AiEvaluationService {
   /// [resourceTitle] 资源标题
   /// [refText] 参考文本
   /// [language] 语言，默认 'en'
+  /// [sourceType] 资源类型（video/article/music），用于资源溯源
+  /// [sourceCode] 资源编码，用于资源溯源
   ///
   /// 返回 AI 分析结果，失败返回 null
   static Future<AiAnalysisResult?> analyzePronunciation({
@@ -22,6 +24,8 @@ class AiEvaluationService {
     required String resourceTitle,
     String? refText,
     String? language,
+    String? sourceType,
+    String? sourceCode,
   }) async {
     try {
       // 1. 可选：获取历史摘要（提供上下文）
@@ -63,6 +67,8 @@ class AiEvaluationService {
         ruleCode: 'ai_audio_evaluation',
         scene: 'shadow_reader',
         entry: 'ai_analysis',
+        sourceType: sourceType,
+        sourceCode: sourceCode,
         params: {
           ...aiData,
           'resource_title': resourceTitle,

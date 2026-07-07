@@ -710,12 +710,51 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'no_content', message: '该文件夹下没有已上传的字幕内容，请先导入字幕并上传' }, 400)
     }
 
+    // ════════════════════════════════════════════
+    //  v2.1: 过滤已删除资源（resource-status 双重保障）
+    //
+    //  问题：用户在本地删除某个资源后，如果 subtitle-storage 的物理删除
+    //        因网络失败等原因未执行，已删资源的字幕文件仍在 Storage 中。
+    //  解决：通过 resource-status 边缘函数查询逻辑删除标记，
+    //        即使物理删除失败也能拦截已删资源出题。
+    // ════════════════════════════════════════════
+    let filteredFiles = folderResult.files
+    try {
+      const allVideoCodes = folderResult.files.map((f: any) => f.video_code as string)
+      const { data: statusData, error: statusError } = await createClient(supabaseUrl, supabaseServiceKey)
+        .functions.invoke('resource-status', {
+          body: {
+            op: 'batch_check',
+            video_codes: allVideoCodes,
+          },
+        })
+
+      if (!statusError && statusData?.ok && Array.isArray(statusData.deleted_codes)) {
+        const deletedSet = new Set(statusData.deleted_codes as string[])
+        if (deletedSet.size > 0) {
+          const beforeCount = filteredFiles.length
+          filteredFiles = filteredFiles.filter((f: any) => !deletedSet.has(f.video_code))
+          console.log(`[ai-test-plan] resource-status filter: removed ${deletedSet.size} deleted resources (${beforeCount} → ${filteredFiles.length}), deleted=[${statusData.deleted_codes.join(',')}]`)
+        }
+      }
+      // batch_check 失败时不阻断（保守策略：宁可多出题也不可阻断）
+      if (statusError) {
+        console.warn('[ai-test-plan] resource-status batch_check failed, skipping filter:', statusError.message ?? statusError)
+      }
+    } catch (e: any) {
+      console.warn('[ai-test-plan] resource-status check exception, skipping filter:', e.message ?? e)
+    }
+
+    if (filteredFiles.length === 0) {
+      return json({ ok: false, error: 'no_content', message: '该文件夹下所有资源已被删除或无可用字幕内容' }, 400)
+    }
+
     // 合并所有资源的字幕：sentences + wordPool + sentenceSourceMap
     const allSentences: string[] = []
     const allWordPool: string[] = []
     const seenSentences = new Set<string>()
 
-    for (const file of folderResult.files) {
+    for (const file of filteredFiles) {
       const srcVideoCode = file.video_code
       const storage = await fetchSubtitlesFromStorage(userId, srcVideoCode)
       if (!storage) continue

@@ -198,7 +198,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.send),
+                  : const Icon(AppIcons.send),
               label: Text(_isLoading ? '评测中...' : '发送 HTTP 评测请求'),
             ),
             const SizedBox(height: 16),

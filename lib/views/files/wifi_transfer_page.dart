@@ -2,11 +2,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/wifi_transfer_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class WifiTransferPage extends StatefulWidget {
   const WifiTransferPage({super.key});
@@ -69,7 +69,7 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
       appBar: AppBar(
         title: Text(
           'WiFi 传输',
-          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         backgroundColor: colorScheme.surface,
@@ -77,7 +77,7 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20.sp),
+          icon: Icon(AppIcons.arrowBackIosNew, size: Adaptive.sp(context, 20)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -87,10 +87,10 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CircularProgressIndicator(strokeWidth: 3, color: colorScheme.primary),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: Adaptive.h(context, 16)),
                   Text(
                     '正在启动服务...',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14.sp),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: Adaptive.sp(context, 14)),
                   ),
                 ],
               ),
@@ -98,45 +98,45 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
           : SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 24), vertical: Adaptive.h(context, 16)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 头部图标与状态
                     Container(
-                      padding: EdgeInsets.all(16.w),
+                      padding: EdgeInsets.all(Adaptive.w(context, 16)),
                       decoration: BoxDecoration(
                         color: service.isRunning ? colorScheme.primary.withValues(alpha: 0.08) : colorScheme.onSurfaceVariant.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        service.isRunning ? Icons.wifi_tethering_rounded : Icons.wifi_tethering_off_rounded,
-                        size: 40.w,
+                        service.isRunning ? AppIcons.wifiTethering : AppIcons.wifiTetheringOff,
+                        size: Adaptive.w(context, 40),
                         color: service.isRunning ? colorScheme.primary : colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    SizedBox(height: 16.h),
+                    SizedBox(height: Adaptive.h(context, 16)),
                     Text(
                       service.isRunning ? '服务已启动' : '服务未启动',
-                      style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface, letterSpacing: 0.5),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 18), fontWeight: FontWeight.bold, color: colorScheme.onSurface, letterSpacing: 0.5),
                     ),
-                    SizedBox(height: 6.h),
+                    SizedBox(height: Adaptive.h(context, 6)),
                     Text(
                       '请确保手机与电脑连接在同一局域网下',
-                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.onSurfaceVariant),
                     ),
 
-                    SizedBox(height: 32.h),
+                    SizedBox(height: Adaptive.h(context, 32)),
 
                     // 错误信息提示
                     if (_error != null)
                       Container(
-                        padding: EdgeInsets.all(12.w),
-                        margin: EdgeInsets.only(bottom: 20.h),
-                        decoration: BoxDecoration(color: colorScheme.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12.r)),
+                        padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                        margin: EdgeInsets.only(bottom: Adaptive.h(context, 20)),
+                        decoration: BoxDecoration(color: colorScheme.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(Adaptive.r(context, 12))),
                         child: Text(
                           _error!,
-                          style: TextStyle(color: colorScheme.error, fontSize: 13.sp),
+                          style: TextStyle(color: colorScheme.error, fontSize: Adaptive.sp(context, 13)),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -145,24 +145,24 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
                     if (service.isRunning && url != null) ...[
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
+                        padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 24), horizontal: Adaptive.w(context, 16)),
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(20.r),
+                          borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
                           border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
                         ),
                         child: Column(
                           children: [
                             Text(
                               '在电脑浏览器中输入以下地址',
-                              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                              style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.onSurfaceVariant),
                             ),
-                            SizedBox(height: 12.h),
+                            SizedBox(height: Adaptive.h(context, 12)),
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: SelectableText(
                                 url,
-                                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w600, color: colorScheme.primary, letterSpacing: 0.5),
+                                style: TextStyle(fontSize: Adaptive.sp(context, 20), fontWeight: FontWeight.w600, color: colorScheme.primary, letterSpacing: 0.5),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -170,14 +170,14 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
                         ),
                       ),
 
-                      SizedBox(height: 24.h),
+                      SizedBox(height: Adaptive.h(context, 24)),
 
                       // 按钮组
                       Row(
                         children: [
                           Expanded(
                             child: _buildActionBtn(
-                              icon: Icons.copy_rounded,
+                              icon: AppIcons.copy,
                               label: '复制地址',
                               isPrimary: true,
                               onTap: () {
@@ -186,48 +186,48 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
                               },
                             ),
                           ),
-                          SizedBox(width: 12.w),
+                          SizedBox(width: Adaptive.w(context, 12)),
                           Expanded(
-                            child: _buildActionBtn(icon: Icons.stop_circle_rounded, label: '停止服务', isPrimary: false, onTap: _stop),
+                            child: _buildActionBtn(icon: AppIcons.stopCircle, label: '停止服务', isPrimary: false, onTap: _stop),
                           ),
                         ],
                       ),
                     ] else if (!service.isRunning && _error == null) ...[
                       SizedBox(
-                        width: 200.w,
-                        child: _buildActionBtn(icon: Icons.play_circle_fill_rounded, label: '重新启动', isPrimary: true, onTap: _start),
+                        width: Adaptive.w(context, 200),
+                        child: _buildActionBtn(icon: AppIcons.playCircleFill, label: '重新启动', isPrimary: true, onTap: _start),
                       ),
                     ],
 
                     // 备用地址列表
                     if (service.isRunning && service.addresses.length > 1) ...[
-                      SizedBox(height: 32.h),
+                      SizedBox(height: Adaptive.h(context, 32)),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           '备用地址',
-                          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
+                          style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
                         ),
                       ),
-                      SizedBox(height: 10.h),
+                      SizedBox(height: Adaptive.h(context, 10)),
                       ...service.addresses.where((ip) => 'http://$ip:${service.port}' != url).map((ip) {
                         final altUrl = 'http://$ip:${service.port ?? 9999}';
                         return Container(
-                          margin: EdgeInsets.only(bottom: 8.h),
-                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                          margin: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+                          padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 12)),
                           decoration: BoxDecoration(
                             color: colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
                             border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.link_rounded, size: 14.sp, color: colorScheme.onSurfaceVariant),
-                              SizedBox(width: 10.w),
+                              Icon(AppIcons.link, size: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant),
+                              SizedBox(width: Adaptive.w(context, 10)),
                               Expanded(
                                 child: Text(
                                   altUrl,
-                                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurface),
+                                  style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurface),
                                 ),
                               ),
                               GestureDetector(
@@ -235,7 +235,7 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
                                   Clipboard.setData(ClipboardData(text: altUrl));
                                   TDToast.showText('已复制备用地址', context: context);
                                 },
-                                child: Icon(Icons.copy_rounded, size: 16.sp, color: colorScheme.primary),
+                                child: Icon(AppIcons.copy, size: Adaptive.sp(context, 16), color: colorScheme.primary),
                               ),
                             ],
                           ),
@@ -253,24 +253,24 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: isPrimary ? colorScheme.primary : colorScheme.surface,
-      borderRadius: BorderRadius.circular(12.r),
+      borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 14.h),
+          padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 14)),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
             border: isPrimary ? null : Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.8)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18.sp, color: isPrimary ? colorScheme.onPrimary : colorScheme.onSurface),
-              SizedBox(width: 6.w),
+              Icon(icon, size: Adaptive.sp(context, 18), color: isPrimary ? colorScheme.onPrimary : colorScheme.onSurface),
+              SizedBox(width: Adaptive.w(context, 6)),
               Text(
                 label,
-                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isPrimary ? colorScheme.onPrimary : colorScheme.onSurface),
+                style: TextStyle(fontSize: Adaptive.sp(context, 15), fontWeight: FontWeight.w600, color: isPrimary ? colorScheme.onPrimary : colorScheme.onSurface),
               ),
             ],
           ),

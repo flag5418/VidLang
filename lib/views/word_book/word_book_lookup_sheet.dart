@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class WordBookLookupSheet extends StatefulWidget {
   final String word;
@@ -84,45 +84,45 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
         return Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 20))),
           ),
           child: Column(
             children: [
-              SizedBox(height: 8.h),
+              SizedBox(height: Adaptive.h(context, 8)),
               Container(
-                width: 36.w,
-                height: 4.h,
+                width: Adaptive.w(context, 36),
+                height: Adaptive.h(context, 4),
                 decoration: BoxDecoration(
                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 2)),
                 ),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: Adaptive.h(context, 8)),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 20)),
                 child: Row(
                   children: [
                     Text(
                       '查词结果',
-                      style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 17), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                     ),
                     const Spacer(),
                     if (_alreadySaved)
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 4)),
                         decoration: BoxDecoration(
                           color: colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999.r),
+                          borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
                         ),
                         child: Text(
                           '已收藏',
-                          style: TextStyle(fontSize: 12.sp, color: colorScheme.primary, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.primary, fontWeight: FontWeight.w600),
                         ),
                       ),
                   ],
                 ),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: Adaptive.h(context, 8)),
               Expanded(
                 child: _buildContent(context, scrollController),
               ),
@@ -140,20 +140,20 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
     if (!widget.isPaidMode) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.all(40.r),
+          padding: EdgeInsets.all(Adaptive.r(context, 40)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_outlined, size: 48.sp, color: colorScheme.onSurfaceVariant),
-              SizedBox(height: 16.h),
+              Icon(AppIcons.cloudOff, size: Adaptive.sp(context, 48), color: colorScheme.onSurfaceVariant),
+              SizedBox(height: Adaptive.h(context, 16)),
               Text(
                 '离线词典暂未集成',
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: Adaptive.h(context, 8)),
               Text(
                 '请切换到收费模式使用 AI 查词',
-                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -169,14 +169,14 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.all(40.r),
+          padding: EdgeInsets.all(Adaptive.r(context, 40)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 48.sp, color: colorScheme.error),
-              SizedBox(height: 16.h),
-              Text('查询失败', style: TextStyle(fontSize: 14.sp, color: colorScheme.error)),
-              SizedBox(height: 12.h),
+              Icon(AppIcons.error, size: Adaptive.sp(context, 48), color: colorScheme.error),
+              SizedBox(height: Adaptive.h(context, 16)),
+              Text('查询失败', style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.error)),
+              SizedBox(height: Adaptive.h(context, 12)),
               OutlinedButton(onPressed: _lookup, child: const Text('重试')),
             ],
           ),
@@ -194,74 +194,74 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
 
     return ListView(
       controller: scrollController,
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 20)),
       children: [
         // Word
         Text(
           data.word,
-          style: TextStyle(fontSize: 28.sp, fontWeight: FontWeight.w700, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: Adaptive.sp(context, 28), fontWeight: FontWeight.w700, color: colorScheme.onSurface),
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: Adaptive.h(context, 8)),
         // Phonetic
         if (data.pronounce.ukPhonetic != null)
           Row(
             children: [
               Text(
                 '/${data.pronounce.ukPhonetic}/',
-                style: TextStyle(fontSize: 15.sp, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(fontSize: Adaptive.sp(context, 15), color: colorScheme.onSurfaceVariant),
               ),
-              SizedBox(width: 12.w),
-              Icon(Icons.volume_up, size: 20.sp, color: colorScheme.primary),
+              SizedBox(width: Adaptive.w(context, 12)),
+              Icon(AppIcons.volumeUp, size: Adaptive.sp(context, 20), color: colorScheme.primary),
             ],
           ),
         if (data.definitions.isNotEmpty) ...[
-          SizedBox(height: 20.h),
+          SizedBox(height: Adaptive.h(context, 20)),
           _buildDivider(colorScheme),
-          SizedBox(height: 12.h),
-          Text('释义', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.tertiary)),
-          SizedBox(height: 6.h),
+          SizedBox(height: Adaptive.h(context, 12)),
+          Text('释义', style: TextStyle(fontSize: Adaptive.sp(context, 12), fontWeight: FontWeight.w600, color: colorScheme.tertiary)),
+          SizedBox(height: Adaptive.h(context, 6)),
           ...data.definitions.map((d) {
             final pos = d.partOfSpeech;
             return Padding(
-              padding: EdgeInsets.only(bottom: 4.h),
+              padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
               child: Text(
                 '${pos != null ? '$pos. ' : ''}${d.chineseMeaning}',
-                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurface),
               ),
             );
           }),
           // Examples from definitions
           ...data.definitions.where((d) => d.examples.isNotEmpty).expand((d) => d.examples.map((ex) {
             return Padding(
-              padding: EdgeInsets.only(top: 2.h, left: 8.w, bottom: 2.h),
+              padding: EdgeInsets.only(top: Adaptive.h(context, 2), left: Adaptive.w(context, 8), bottom: Adaptive.h(context, 2)),
               child: Text(
                 ex.english,
-                style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
               ),
             );
           })),
         ],
         // Examples list
         if (data.standaloneExamples.isNotEmpty) ...[
-          SizedBox(height: 16.h),
+          SizedBox(height: Adaptive.h(context, 16)),
           _buildDivider(colorScheme),
-          SizedBox(height: 12.h),
-          Text('例句', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.tertiary)),
-          SizedBox(height: 6.h),
+          SizedBox(height: Adaptive.h(context, 12)),
+          Text('例句', style: TextStyle(fontSize: Adaptive.sp(context, 12), fontWeight: FontWeight.w600, color: colorScheme.tertiary)),
+          SizedBox(height: Adaptive.h(context, 6)),
           ...data.standaloneExamples.map((ex) {
             return Padding(
-              padding: EdgeInsets.only(bottom: 4.h),
+              padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     ex.english,
-                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurface),
                   ),
                   if (ex.chinese.isNotEmpty)
                     Text(
                       ex.chinese,
-                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -269,28 +269,28 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
           }),
         ],
         if (morphology.isNotEmpty) ...[
-          SizedBox(height: 16.h),
+          SizedBox(height: Adaptive.h(context, 16)),
           _buildDivider(colorScheme),
-          SizedBox(height: 12.h),
-          Text('词形变化', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.tertiary)),
-          SizedBox(height: 6.h),
+          SizedBox(height: Adaptive.h(context, 12)),
+          Text('词形变化', style: TextStyle(fontSize: Adaptive.sp(context, 12), fontWeight: FontWeight.w600, color: colorScheme.tertiary)),
+          SizedBox(height: Adaptive.h(context, 6)),
           ...morphology.entries.map((e) {
             return Padding(
-              padding: EdgeInsets.only(bottom: 2.h),
+              padding: EdgeInsets.only(bottom: Adaptive.h(context, 2)),
               child: Text(
                 '${_morphologyLabel(e.key)}: ${e.value}',
-                style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurface),
               ),
             );
           }),
         ],
-        SizedBox(height: 24.h),
+        SizedBox(height: Adaptive.h(context, 24)),
       ],
     );
   }
 
   Widget _buildDivider(ColorScheme cs) {
-    return Divider(height: 1.h, color: cs.outlineVariant.withValues(alpha: 0.4));
+    return Divider(height: Adaptive.h(context, 1), color: cs.outlineVariant.withValues(alpha: 0.4));
   }
 
   Widget _buildBottomBar(BuildContext context) {
@@ -298,7 +298,7 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 12.h),
+        padding: EdgeInsets.fromLTRB(Adaptive.w(context, 20), Adaptive.h(context, 8), Adaptive.w(context, 20), Adaptive.h(context, 12)),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3))),
@@ -308,7 +308,7 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
           child: OutlinedButton(
             onPressed: () => Navigator.of(context).pop(),
             style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 20))),
             ),
             child: const Text('关闭'),
           ),

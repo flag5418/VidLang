@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class WordBookNavPanel extends StatelessWidget {
   final String selectedStatus;
@@ -32,10 +32,10 @@ class WordBookNavPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: EdgeInsets.all(12.r),
+      padding: EdgeInsets.all(Adaptive.r(context, 12)),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +47,7 @@ class WordBookNavPanel extends StatelessWidget {
           ),
           if (selectionMode && words != null && words!.isNotEmpty)
             _buildSmartRecommendations(context),
-          SizedBox(height: 16.h),
+          SizedBox(height: Adaptive.h(context, 16)),
           _buildSection(
             context,
             title: '已掌握',
@@ -83,47 +83,47 @@ class WordBookNavPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 4.h),
+        SizedBox(height: Adaptive.h(context, 4)),
         ...smartItems.where((item) => item.count > 0).map((item) {
           final allSelected = item.codes.isNotEmpty && item.codes.every((c) => selectedWordCodes.contains(c));
           return Padding(
-            padding: EdgeInsets.only(bottom: 6.h),
+            padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
             child: InkWell(
               onTap: () => onSmartSelect?.call(item.codes),
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 10)),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       allSelected && item.codes.isNotEmpty
-                          ? Icons.check_box
-                          : Icons.check_box_outline_blank,
-                      size: 18.sp,
+                          ? AppIcons.checkBox
+                          : AppIcons.checkBoxOutlineBlank,
+                      size: Adaptive.sp(context, 18),
                       color: colorScheme.primary,
                     ),
-                    SizedBox(width: 8.w),
+                    SizedBox(width: Adaptive.w(context, 8)),
                     Expanded(
                       child: Text(
                         item.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: Adaptive.sp(context, 13),
                           fontWeight: FontWeight.w500,
                           color: colorScheme.onSurface,
                         ),
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    SizedBox(width: Adaptive.w(context, 8)),
                     Text(
                       '${item.count}',
                       style: TextStyle(
-                        fontSize: 12.sp,
+                        fontSize: Adaptive.sp(context, 12),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -149,24 +149,24 @@ class WordBookNavPanel extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: 14.sp,
+            fontSize: Adaptive.sp(context, 14),
             fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
           ),
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: Adaptive.h(context, 8)),
         ...items.map((item) {
           final selected = item.status == selectedStatus && item.tagCode == selectedTagCode;
           return Padding(
-            padding: EdgeInsets.only(bottom: 6.h),
+            padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
             child: InkWell(
               onTap: () => onSelect(item),
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 10)),
                 decoration: BoxDecoration(
                   color: selected ? colorScheme.primary.withValues(alpha: 0.14) : colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
                 ),
                 child: Row(
                   children: [
@@ -176,17 +176,17 @@ class WordBookNavPanel extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: Adaptive.sp(context, 13),
                           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                           color: selected ? colorScheme.primary : colorScheme.onSurface,
                         ),
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    SizedBox(width: Adaptive.w(context, 8)),
                     Text(
                       '${item.count}',
                       style: TextStyle(
-                        fontSize: 12.sp,
+                        fontSize: Adaptive.sp(context, 12),
                         color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
                       ),
                     ),

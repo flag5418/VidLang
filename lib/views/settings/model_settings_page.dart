@@ -54,7 +54,7 @@ class _ModelSettingsPageState extends State<ModelSettingsPage> {
   Widget _buildStatusCard() {
     final cs = Theme.of(context).colorScheme;
     final color = _modelStatus == LocalModelStatus.ready ? AppColors.success : AppColors.error;
-    final icon = _modelStatus == LocalModelStatus.ready ? Icons.check_circle : Icons.warning_amber_rounded;
+    final icon = _modelStatus == LocalModelStatus.ready ? AppIcons.checkCircle : AppIcons.warning;
 
     return Card(
       color: color.withValues(alpha: 0.1),

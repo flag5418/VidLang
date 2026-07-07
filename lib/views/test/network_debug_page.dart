@@ -131,19 +131,19 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
           children: [
             ElevatedButton.icon(
               onPressed: _testDnsResolution,
-              icon: const Icon(Icons.dns),
+              icon: const Icon(AppIcons.dns),
               label: const Text('测试 DNS 解析'),
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: _testHttpConnection,
-              icon: const Icon(Icons.http),
+              icon: const Icon(AppIcons.http),
               label: const Text('测试 HTTP 连接'),
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: _testRawSocket,
-              icon: const Icon(Icons.cable),
+              icon: const Icon(AppIcons.cable),
               label: const Text('测试原始 Socket'),
             ),
             const SizedBox(height: 16),

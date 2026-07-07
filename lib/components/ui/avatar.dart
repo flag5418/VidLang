@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/theme.dart';
+import '../../utils/adaptive.dart';
 
 /// 头像组件
 /// 
@@ -40,54 +41,54 @@ class Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size.value.w,
-      height: size.value.h,
+      width: Adaptive.w(context, size.value),
+      height: Adaptive.h(context, size.value),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: borderColor != null
           ? Border.all(color: borderColor!, width: borderWidth)
           : null,
       ),
-      child: _buildContent(),
+      child: _buildContent(context),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       // 图片模式
       return ClipOval(
         child: Image.network(
           imageUrl!,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => 
-            _buildTextOrIcon(),
+          errorBuilder: (ctx, error, stackTrace) => 
+            _buildTextOrIcon(ctx),
         ),
       );
     } else if (text != null && text!.isNotEmpty) {
       // 文字模式
-      return _buildTextOrIcon();
+      return _buildTextOrIcon(context);
     } else {
       // 图标模式（默认）
-      return _buildTextOrIcon();
+      return _buildTextOrIcon(context);
     }
   }
 
-  Widget _buildTextOrIcon() {
+  Widget _buildTextOrIcon(BuildContext context) {
     return CircleAvatar(
-      radius: size.value.w / 2,
+      radius: Adaptive.w(context, size.value) / 2,
       backgroundColor: AppColors.primaryBrandLight,
       foregroundColor: AppColors.primaryBrandDark,
       child: text != null && text!.isNotEmpty
         ? Text(
             _getInitials(text!),
             style: TextStyle(
-              fontSize: size.fontSize.sp,
+              fontSize: Adaptive.sp(context, size.fontSize),
               fontWeight: FontWeight.w600,
             ),
           )
         : Icon(
-            icon ?? Icons.person,
-            size: size.iconSize.w,
+            icon ?? AppIcons.person,
+            size: Adaptive.sp(context, size.iconSize),
           ),
     );
   }

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/services/article_parser.dart';
 import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 /// 文章导入/创建页
 ///
@@ -111,66 +111,66 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(AppSpacing.md.w),
+              padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 标题输入
                   TextField(
                     controller: _titleController,
-                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 18), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: '文章标题',
                       hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                         borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest,
                     ),
                   ),
-                  SizedBox(height: AppSpacing.md.h),
+                  SizedBox(height: Adaptive.h(context, AppSpacing.md)),
 
                   // 正文输入
                   TextField(
                     controller: _contentController,
                     maxLines: null,
                     minLines: 12,
-                    style: TextStyle(fontSize: 15.sp, color: colorScheme.onSurface, height: 1.6),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 15), color: colorScheme.onSurface, height: 1.6),
                     decoration: InputDecoration(
                       hintText: '粘贴文章正文...',
                       hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                         borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest,
                     ),
                   ),
-                  SizedBox(height: AppSpacing.sm.h),
+                  SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
 
                   // 提示文字
                   Text(
                     '支持 Markdown 格式，段落之间用空行分隔',
-                    style: TextStyle(fontSize: 12.sp, color: colorScheme.outline),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.outline),
                   ),
                 ],
               ),
@@ -180,25 +180,25 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
           // 底部按钮
           SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(AppSpacing.md.w),
+              padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
               child: SizedBox(
                 width: double.infinity,
-                height: 50.h,
+                height: Adaptive.h(context, 50),
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _importArticle,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: context.colors.primary,
                     foregroundColor: context.colors.surface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 12))),
                     disabledBackgroundColor: context.colors.primary.withValues(alpha: 0.5),
                   ),
                   child: _isSaving
                       ? SizedBox(
-                          width: 20.w,
-                          height: 20.w,
+                          width: Adaptive.w(context, 20),
+                          height: Adaptive.w(context, 20),
                           child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.surface),
                         )
-                      : Text('导入并打开', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                      : Text('导入并打开', style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600)),
                 ),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/evaluation_models.dart';
 import '../services/evaluation_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 评测内容组件基类
 abstract class EvaluationContentWidget extends StatefulWidget {
@@ -54,7 +55,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.mic,
+                AppIcons.mic,
                 size: 16,
                 color: Colors.blue.shade600,
               ),
@@ -223,7 +224,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
       child: Column(
         children: [
           Icon(
-            Icons.keyboard_voice,
+            AppIcons.keyboardVoice,
             size: 32,
             color: Colors.grey.shade500,
           ),
@@ -307,7 +308,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.text_fields,
+                AppIcons.textFields,
                 size: 16,
                 color: Colors.green.shade600,
               ),
@@ -600,7 +601,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.headphones,
+            AppIcons.headphones,
             size: 48,
             color: Colors.grey.shade500,
           ),
@@ -667,7 +668,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.chat_bubble_outline,
+                AppIcons.chatBubbleOutline,
                 size: 16,
                 color: Colors.orange.shade600,
               ),
@@ -721,7 +722,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                 });
               },
               icon: Icon(
-                _showDetailedView ? Icons.expand_less : Icons.expand_more,
+                _showDetailedView ? AppIcons.expandLess : AppIcons.expandMore,
                 size: 20,
               ),
               label: Text(
@@ -888,7 +889,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                             ),
                             const SizedBox(width: 4),
                             Icon(
-                              Icons.info_outline,
+                              AppIcons.info,
                               size: 12,
                               color: eval.displayColor,
                             ),
@@ -995,7 +996,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.analytics_outlined,
+            AppIcons.analytics,
             size: 48,
             color: Colors.grey.shade500,
           ),
@@ -1041,7 +1042,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
               Row(
                 children: [
                   Icon(
-                    Icons.record_voice_over,
+                    AppIcons.recordVoiceOver,
                     color: eval.displayColor,
                     size: 20,
                   ),
@@ -1057,7 +1058,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(AppIcons.close, size: 20),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -1225,7 +1226,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.article_outlined,
+                AppIcons.article,
                 size: 16,
                 color: Colors.purple.shade600,
               ),
@@ -1408,7 +1409,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.auto_stories,
+            AppIcons.autoStories,
             size: 48,
             color: Colors.grey.shade500,
           ),

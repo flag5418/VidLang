@@ -27,6 +27,7 @@ import 'package:vidlang/services/shengtong_evaluator.dart';
 import 'package:vidlang/models/shengtong_evaluation_result.dart';
 import 'package:vidlang/services/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 // ─── 回调类型 ───────────────────────────────────────────
 typedef ScoreCallback = Future<void> Function({
@@ -251,9 +252,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     // 弹窗模式：从底部弹出，固定高度
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 16))),
       ),
       child: _currentPage == 'evaluation'
           ? _buildEvaluationPage(context, cfg)
@@ -270,9 +271,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final isEvaluating = _state == 'evaluating';
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 16))),
       ),
       child: Column(
         children: [
@@ -344,7 +345,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   /// 顶部标题栏
   Widget _buildTitleBar(BuildContext context, ShadowReaderConfig cfg) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 12)),
       child: Row(
         children: [
           Expanded(
@@ -352,7 +353,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               '跟读评测',
               style: TextStyle(
                 color: AppColors.onSurface,
-                fontSize: 16,
+                fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                 fontWeight: FontWeight.w600,
                 decoration: TextDecoration.none,
               ),
@@ -364,9 +365,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 ? widget._onClose
                 : () => Navigator.of(context).pop(),
             child: Icon(
-              Icons.close,
+              AppIcons.close,
               color: AppColors.onSurfaceVariant,
-              size: 20,
+              size: Adaptive.icon(context, isIPad(context) ? 24 : 20),
             ),
           ),
         ],
@@ -399,8 +400,8 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       children: [
         // 左侧：得分
         Container(
-          width: 64,
-          height: 64,
+          width: Adaptive.icon(context, isIPad(context) ? 76 : 64),
+          height: Adaptive.icon(context, isIPad(context) ? 76 : 64),
           decoration: BoxDecoration(
             color: scoreColor.withValues(alpha: 0.2),
             shape: BoxShape.circle,
@@ -412,8 +413,8 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           child: Center(
             child: isEvaluating
                 ? SizedBox(
-                    width: 24,
-                    height: 24,
+                    width: Adaptive.icon(context, isIPad(context) ? 28 : 24),
+                    height: Adaptive.icon(context, isIPad(context) ? 28 : 24),
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
@@ -423,14 +424,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     scoreText,
                     style: TextStyle(
                       color: scoreColor,
-                      fontSize: 20,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 23 : 20),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
                   ),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: Adaptive.w(context, isIPad(context) ? 14 : 12)),
         // 右侧：描述
         Expanded(
           child: Column(
@@ -440,7 +441,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 descText,
                 style: TextStyle(
                   color: AppColors.onSurfaceVariant,
-                  fontSize: 13,
+                  fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13),
                   decoration: TextDecoration.none,
                 ),
               ),
@@ -450,7 +451,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   '流利度 ${_fluencyScore?.round() ?? '-'} · 准确度 ${_accuracyScore?.round() ?? '-'} · 完整度 ${_completenessScore?.round() ?? '-'}',
                   style: TextStyle(
                     color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
-                    fontSize: 11,
+                    fontSize: Adaptive.sp(context, isIPad(context) ? 13 : 11),
                     decoration: TextDecoration.none,
                   ),
                 ),
@@ -482,10 +483,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(Adaptive.w(context, isIPad(context) ? 14 : 12)),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, isIPad(context) ? 10 : 8)),
         border: Border.all(color: AppColors.outline),
       ),
       child: Column(
@@ -496,21 +497,21 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Adaptive.w(context, isIPad(context) ? 10 : 6),
+                    vertical: Adaptive.h(context, isIPad(context) ? 4 : 2),
                   ),
                   decoration: BoxDecoration(
                     color: isOriginal
                         ? AppColors.primary.withValues(alpha: 0.2)
                         : AppColors.success.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(Adaptive.r(context, isIPad(context) ? 6 : 4)),
                   ),
                   child: Text(
                     label,
                     style: TextStyle(
                       color: isOriginal ? AppColors.primary : AppColors.success,
-                      fontSize: 10,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 12 : 10),
                       fontWeight: FontWeight.w500,
                       decoration: TextDecoration.none,
                     ),
@@ -531,7 +532,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         color: liveTranscribing
                             ? Colors.amber
                             : AppColors.onSurface,
-                        fontSize: 16,
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                         height: 1.5,
                         decoration: TextDecoration.none,
                       ),
@@ -555,16 +556,19 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           return GestureDetector(
             onTap: () => _showWordDetail(word),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: EdgeInsets.symmetric(
+                horizontal: Adaptive.w(context, isIPad(context) ? 10 : 6), 
+                vertical: Adaptive.h(context, isIPad(context) ? 4 : 2),
+              ),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, isIPad(context) ? 6 : 4)),
               ),
               child: Text(
                 word.word,
                 style: TextStyle(
                   color: color,
-                  fontSize: 16,
+                  fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                   decoration: TextDecoration.none,
                 ),
               ),
@@ -602,7 +606,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   word.word,
                   style: TextStyle(
                     color: AppColors.onSurface,
-                    fontSize: 20,
+                    fontSize: Adaptive.sp(context, isIPad(context) ? 23 : 20),
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.none,
                   ),
@@ -624,7 +628,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '${word.score.toStringAsFixed(0)}分',
                     style: TextStyle(
                       color: EvaluationDisplayHelper.getScoreColor(word.score),
-                      fontSize: 12,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
@@ -646,7 +650,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       word.readTypeLabel,
                       style: TextStyle(
                         color: word.readTypeColor,
-                        fontSize: 12,
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                         decoration: TextDecoration.none,
                       ),
                     ),
@@ -688,7 +692,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           p.phoneme,
                           style: TextStyle(
                             color: AppColors.onSurface,
-                            fontSize: 16,
+                            fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                             decoration: TextDecoration.none,
                           ),
                         ),
@@ -697,7 +701,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           '${(p.score ?? 0).round()}',
                           style: TextStyle(
                             color: phonemeColor,
-                            fontSize: 14,
+                            fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14),
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.none,
                           ),
@@ -717,16 +721,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '重音: ',
                     style: TextStyle(
                       color: AppColors.onSurfaceVariant,
-                      fontSize: 13,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13),
                       decoration: TextDecoration.none,
                     ),
                   ),
                   Icon(
-                    word.wordStress! ? Icons.check_circle : Icons.cancel,
+                    word.wordStress! ? AppIcons.checkCircle : AppIcons.cancel,
                     color: word.wordStress!
                         ? AppColors.success
                         : AppColors.error,
-                    size: 16,
+                    size: Adaptive.icon(context, isIPad(context) ? 19 : 16),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -735,7 +739,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       color: word.wordStress!
                           ? AppColors.success
                           : AppColors.error,
-                      fontSize: 13,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -780,7 +784,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final state = ref.read(playerEngineProvider);
     final vol = (state.originalVolume * 100).round();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, isIPad(context) ? 16 : 12), vertical: Adaptive.h(context, isIPad(context) ? 4 : 2)),
       child: Row(
         children: [
           GestureDetector(
@@ -789,8 +793,8 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             child: Padding(
               padding: const EdgeInsets.all(4),
               child: Icon(
-                _isMuted ? Icons.volume_off_rounded : Icons.volume_down_rounded,
-                size: 18,
+                _isMuted ? AppIcons.volumeOff : AppIcons.volumeDown,
+                    size: Adaptive.icon(context, isIPad(context) ? 21 : 18),
                 color: _isMuted
                     ? AppColors.onSurfaceVariant.withValues(alpha: 0.3)
                     : AppColors.onSurfaceVariant,
@@ -803,12 +807,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               color: Colors.transparent,
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  trackHeight: 2,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 6,
+                  trackHeight: isIPad(context) ? 3 : 2,
+                  thumbShape: RoundSliderThumbShape(
+                    enabledThumbRadius: isIPad(context) ? 7.0 : 6,
                   ),
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 12,
+                  overlayShape: RoundSliderOverlayShape(
+                    overlayRadius: isIPad(context) ? 14.0 : 12,
                   ),
                 ),
                 child: Slider(
@@ -832,9 +836,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             textAlign: TextAlign.right,
             style: TextStyle(
               color: AppColors.onSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              decoration: TextDecoration.none,
+              fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
             ),
           ),
         ],
@@ -856,16 +858,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       top: false,
       bottom: true,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+        padding: EdgeInsets.fromLTRB(Adaptive.w(context, isIPad(context) ? 16 : 12), Adaptive.h(context, isIPad(context) ? 8 : 6), Adaptive.w(context, isIPad(context) ? 16 : 12), Adaptive.h(context, isIPad(context) ? 12 : 10)),
         child: Row(
           children: [
             // ── 关闭按钮（内联模式）──
             if (widget._isInline && widget._onClose != null) ...[
               _circleBtn(
-                Icons.close_rounded,
+                AppIcons.close,
                 AppColors.onSurfaceVariant,
-                36,
-                18,
+                isIPad(context) ? 42.0 : 36,
+                isIPad(context) ? 21 : 18,
                 onTap: widget._onClose,
                 bg: AppColors.surfaceElevated,
               ),
@@ -875,10 +877,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             // ── 左组：导航（仅视频/音频显示）──
             if (showNavigation) ...[
               _circleBtn(
-                Icons.skip_previous_rounded,
+                AppIcons.skipPrevious,
                 AppColors.onSurfaceVariant,
-                40,
-                18,
+                isIPad(context) ? 46.0 : 40,
+                isIPad(context) ? 21 : 18,
                 onTap: cfg.previousSentence != null
                     ? () {
                         _resetRecordingState();
@@ -889,7 +891,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               ),
               const SizedBox(width: 6),
               _circleBtn(
-                Icons.play_arrow_rounded,
+                AppIcons.play,
                 AppColors.onSurfaceVariant,
                 40,
                 20,
@@ -898,10 +900,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               ),
               const SizedBox(width: 6),
               _circleBtn(
-                Icons.skip_next_rounded,
+                AppIcons.skipNext,
                 AppColors.onSurfaceVariant,
-                40,
-                18,
+                isIPad(context) ? 46.0 : 40,
+                isIPad(context) ? 21 : 18,
                 onTap: cfg.nextSentence != null
                     ? () {
                         _resetRecordingState();
@@ -913,7 +915,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             ] else ...[
               // 非视频/音频类型，显示播放按钮
               _circleBtn(
-                Icons.play_arrow_rounded,
+                AppIcons.play,
                 AppColors.onSurfaceVariant,
                 40,
                 20,
@@ -926,10 +928,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
             // ── 中间：录音/停止按钮 ──
             _circleBtn(
-              isListening ? Icons.stop_rounded : Icons.mic_rounded,
+              isListening ? AppIcons.stop : AppIcons.micRounded,
               isListening ? AppColors.onPrimary : AppColors.primary,
-              48,
-              22,
+              isIPad(context) ? 56.0 : 48,
+              isIPad(context) ? 26 : 22,
               onTap: isListening
                   ? () => _stopRecording(context, cfg)
                   : () => _startRecording(context, cfg),
@@ -942,10 +944,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
 
             // ── 右组：操作按钮 ──
             _circleBtn(
-              Icons.replay_rounded,
+              AppIcons.replay,
               AppColors.onSurfaceVariant,
-              40,
-              18,
+              isIPad(context) ? 46.0 : 40,
+              isIPad(context) ? 21 : 18,
               onTap: (!isListening && hasRecording)
                   ? () => _playRecording()
                   : null,
@@ -955,12 +957,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             // 详情按钮（图标）- 仅付费模式显示评价页入口
             if (cfg.subscriptionMode == SubscriptionMode.premium)
               _circleBtn(
-                Icons.analytics_rounded,
+                AppIcons.analytics,
                 (!isListening && isScored)
                     ? AppColors.primary
                     : AppColors.onSurfaceVariant.withValues(alpha: 0.3),
-                40,
-                18,
+                isIPad(context) ? 46.0 : 40,
+                isIPad(context) ? 21 : 18,
                 onTap: (!isListening && isScored)
                     ? () => _navigateToEvaluation(cfg)
                     : null,
@@ -1087,9 +1089,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     }
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 16))),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1158,9 +1160,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final color = _scoreColor(score);
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 16))),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1183,7 +1185,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                               '总分',
                               style: TextStyle(
                                 color: AppColors.onSurfaceVariant,
-                                fontSize: 12,
+                                fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                                 decoration: TextDecoration.none,
                               ),
                             ),
@@ -1194,7 +1196,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   '${score.round()}',
                                   style: TextStyle(
                                     color: color,
-                                    fontSize: 48,
+                                    fontSize: Adaptive.sp(context, isIPad(context) ? 56 : 48),
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.none,
                                   ),
@@ -1208,7 +1210,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                     '分',
                                     style: TextStyle(
                                       color: AppColors.onSurfaceVariant,
-                                      fontSize: 14,
+                                      fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14),
                                       decoration: TextDecoration.none,
                                     ),
                                   ),
@@ -1221,7 +1223,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         OutlinedButton.icon(
                           onPressed: _playRecording,
                           icon: Icon(
-                            Icons.play_arrow,
+                            AppIcons.play,
                             color: AppColors.success,
                           ),
                           label: Text(
@@ -1246,7 +1248,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       word.word,
                       style: TextStyle(
                         color: AppColors.error,
-                        fontSize: 36,
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 42 : 36),
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.none,
                       ),
@@ -1257,7 +1259,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         '/${word.phonemes!.map((p) => p.phoneme).join('')}/',
                         style: TextStyle(
                           color: AppColors.onSurfaceVariant,
-                          fontSize: 18,
+                          fontSize: Adaptive.sp(context, isIPad(context) ? 21 : 18),
                           decoration: TextDecoration.none,
                         ),
                       ),
@@ -1283,7 +1285,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                 '音标',
                                 style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
-                                  fontSize: 12,
+                                  fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
                                 ),
@@ -1295,7 +1297,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                 '拼写',
                                 style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
-                                  fontSize: 12,
+                                  fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
                                 ),
@@ -1307,7 +1309,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                 '评分结果',
                                 style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
-                                  fontSize: 12,
+                                  fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
                                 ),
@@ -1341,7 +1343,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   '/${p.phoneme}/',
                                   style: TextStyle(
                                     color: AppColors.onSurface,
-                                    fontSize: 16,
+                                    fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                                     decoration: TextDecoration.none,
                                   ),
                                   textAlign: TextAlign.center,
@@ -1352,7 +1354,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   p.spelling ?? p.expectedPhoneme ?? '',
                                   style: TextStyle(
                                     color: AppColors.onSurface,
-                                    fontSize: 16,
+                                    fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.none,
                                   ),
@@ -1364,7 +1366,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   '${(p.score ?? 0).round()}',
                                   style: TextStyle(
                                     color: phonemeColor,
-                                    fontSize: 16,
+                                    fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.none,
                                   ),
@@ -1413,7 +1415,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   '${score.round()}',
                   style: TextStyle(
                     color: color,
-                    fontSize: 18,
+                    fontSize: Adaptive.sp(context, isIPad(context) ? 21 : 18),
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.none,
                   ),
@@ -1569,7 +1571,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           Row(
             children: [
               Icon(
-                Icons.auto_awesome_rounded,
+                AppIcons.autoAwesome,
                 size: 14,
                 color: AppColors.primary,
               ),
@@ -1611,7 +1613,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   '• $s',
                   style: TextStyle(
                     color: AppColors.onSurfaceVariant,
-                    fontSize: 11,
+                    fontSize: Adaptive.sp(context, isIPad(context) ? 13 : 11),
                     height: 1.3,
                   ),
                 ),
@@ -1675,7 +1677,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.arrow_back_ios_rounded,
+                    AppIcons.arrowBackIos,
                     size: 14,
                     color: AppColors.onSurfaceVariant,
                   ),
@@ -1684,7 +1686,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '返回',
                     style: TextStyle(
                       color: AppColors.onSurfaceVariant,
-                      fontSize: 12,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                     ),
                   ),
                 ],
@@ -1729,9 +1731,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         Icon(
                           hasAiResult
                               ? (isAiActive
-                                    ? Icons.visibility
-                                    : Icons.visibility_off)
-                              : Icons.auto_awesome_rounded,
+                                    ? AppIcons.visibility
+                                    : AppIcons.visibilityOff)
+                              : AppIcons.autoAwesome,
                           size: 14,
                           color: AppColors.primary,
                         ),
@@ -1744,7 +1746,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                             : 'AI 分析',
                         style: TextStyle(
                           color: AppColors.primary,
-                          fontSize: 12,
+                          fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1759,7 +1761,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             // 重新录音
             _evalBtn(
               '重新录音',
-              Icons.refresh_rounded,
+              AppIcons.refresh,
               () => _restartFromEvaluation(context, cfg),
             ),
           ],
@@ -1822,7 +1824,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       word.word,
                       style: TextStyle(
                         color: color,
-                        fontSize: 12,
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                         fontWeight: FontWeight.w500,
                         decoration: TextDecoration.none,
                       ),
@@ -1853,7 +1855,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           : '${word.score.round()}',
                       style: TextStyle(
                         color: color,
-                        fontSize: 11,
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 13 : 11),
                         fontWeight: FontWeight.w600,
                         decoration: TextDecoration.none,
                       ),
@@ -1890,7 +1892,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                   word.word,
                   style: TextStyle(
                     color: AppColors.onSurface,
-                    fontSize: 20,
+                    fontSize: Adaptive.sp(context, isIPad(context) ? 23 : 20),
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.none,
                   ),
@@ -1912,7 +1914,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '${word.score.toStringAsFixed(0)}分',
                     style: TextStyle(
                       color: EvaluationDisplayHelper.getScoreColor(word.score),
-                      fontSize: 12,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
@@ -1934,7 +1936,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       word.readTypeLabel,
                       style: TextStyle(
                         color: word.readTypeColor,
-                        fontSize: 12,
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
                         decoration: TextDecoration.none,
                       ),
                     ),
@@ -1976,7 +1978,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           p.phoneme,
                           style: TextStyle(
                             color: AppColors.onSurface,
-                            fontSize: 16,
+                            fontSize: Adaptive.sp(context, isIPad(context) ? 18 : 16),
                             decoration: TextDecoration.none,
                           ),
                         ),
@@ -1985,7 +1987,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           '${(p.score ?? 0).round()}',
                           style: TextStyle(
                             color: phonemeColor,
-                            fontSize: 14,
+                            fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14),
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.none,
                           ),
@@ -2005,16 +2007,16 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '重音: ',
                     style: TextStyle(
                       color: AppColors.onSurfaceVariant,
-                      fontSize: 13,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13),
                       decoration: TextDecoration.none,
                     ),
                   ),
                   Icon(
-                    word.wordStress! ? Icons.check_circle : Icons.cancel,
+                    word.wordStress! ? AppIcons.checkCircle : AppIcons.cancel,
                     color: word.wordStress!
                         ? AppColors.success
                         : AppColors.error,
-                    size: 16,
+                    size: Adaptive.icon(context, isIPad(context) ? 19 : 16),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -2023,7 +2025,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       color: word.wordStress!
                           ? AppColors.success
                           : AppColors.error,
-                      fontSize: 13,
+                      fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -2054,7 +2056,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         children: [
           Row(
             children: [
-              Icon(Icons.tips_and_updates, size: 14, color: AppColors.warning),
+              Icon(AppIcons.tipsAndUpdates, size: 14, color: AppColors.warning),
               const SizedBox(width: 6),
               Text(
                 '提升建议',
@@ -2950,6 +2952,8 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         resourceTitle: cfg.resourceTitle,
         refText: cfg.subtitle.content,
         language: cfg.language,
+        sourceType: cfg.resourceType,
+        sourceCode: cfg.resourceCode,
       );
 
       if (result != null && mounted) {

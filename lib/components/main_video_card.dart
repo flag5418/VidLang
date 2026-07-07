@@ -16,6 +16,7 @@ import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
 class MainVideoCard extends StatefulWidget {
@@ -141,7 +142,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
       color: AppColors.cardThumbnailBg,
       child: Center(
         child: Icon(
-          Icons.movie_outlined,
+          AppIcons.movie,
           size: Adaptive.sp(context, 24),
           color: colors.textWeak,
         ),
@@ -163,7 +164,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
               : Colors.black.withValues(alpha: 0.5),
         ),
         child: Icon(
-          Icons.subtitles,
+          AppIcons.subtitles,
           size: Adaptive.sp(context, 14),
           color: widget.video.hasSubtitles ? Colors.white : Colors.white38,
         ),
@@ -213,7 +214,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
             color: Colors.black.withValues(alpha: 0.65),
           ),
           child: Icon(
-            Icons.more_vert,
+            AppIcons.moreVert,
             size: Adaptive.sp(context, 18),
             color: Colors.white,
           ),
@@ -222,7 +223,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
           final items = <PopupMenuEntry<String>>[
             PopupMenuItem(
               value: 'rename',
-              child: _menuRow(context, Icons.edit_outlined, '重命名', colors),
+              child: _menuRow(context, AppIcons.edit, '重命名', colors),
             ),
           ];
           if (!widget.video.hasSubtitles && widget.onImportSubtitle != null) {
@@ -231,7 +232,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
                 value: 'importSubtitle',
                 child: _menuRow(
                   context,
-                  Icons.closed_caption,
+                  AppIcons.closedCaption,
                   '导入字幕',
                   colors,
                 ),
@@ -244,7 +245,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
                 value: 'aiConversation',
                 child: _menuRow(
                   context,
-                  Icons.forum_outlined,
+                  AppIcons.forum,
                   'AI 对话',
                   colors,
                 ),
@@ -257,7 +258,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
                 value: 'unitTest',
                 child: _menuRow(
                   context,
-                  Icons.quiz_outlined,
+                  AppIcons.quiz,
                   '单元测试',
                   colors,
                 ),
@@ -268,7 +269,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
             const PopupMenuDivider(height: 1),
             PopupMenuItem(
               value: 'delete',
-              child: _menuRow(context, Icons.delete_outline, '删除', colors),
+              child: _menuRow(context, AppIcons.delete, '删除', colors),
             ),
           ]);
           return items;
@@ -338,7 +339,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
                 SizedBox(height: Adaptive.h(context, 2)),
                 Row(
                   children: [
-                    const Icon(Icons.schedule, size: 10, color: Colors.white70),
+                    const Icon(AppIcons.schedule, size: 10, color: Colors.white70),
                     SizedBox(width: Adaptive.w(context, 4)),
                     Text(
                       '${widget.video.currentPositionString} / ${widget.video.durationString}',
@@ -373,7 +374,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
           color: Colors.white.withValues(alpha: 0.9),
         ),
         child: Icon(
-          Icons.play_arrow_rounded,
+          AppIcons.play,
           size: Adaptive.sp(context, 24),
           color: colors.primary,
         ),

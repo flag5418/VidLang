@@ -6,6 +6,7 @@ import 'package:vidlang/providers/conversation_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/conversation/conversation_history_page.dart';
 
@@ -128,7 +129,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       backgroundColor: colors.background,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new, color: colors.textSecondary, size: 20),
+        icon: Icon(AppIcons.arrowBackIosNew, color: colors.textSecondary, size: 20),
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
@@ -168,7 +169,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           color: colors.textWeak.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(Icons.format_list_bulleted, size: 18, color: colors.textSecondary),
+        child: Icon(AppIcons.formatListBulleted, size: 18, color: colors.textSecondary),
       ),
     );
   }
@@ -203,7 +204,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, color: colors.error, size: 48),
+              Icon(AppIcons.error, color: colors.error, size: 48),
               const SizedBox(height: 12),
               Text(
                 convState.errorMessage ?? '连接出错',
@@ -247,7 +248,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                   color: colors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.chat_bubble_outline_rounded,
+                child: Icon(AppIcons.chatBubbleOutline,
                     size: 36, color: colors.primary),
               ),
               const SizedBox(height: 16),
@@ -477,7 +478,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                 color: colors.textWeak.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.person,
+              child: Icon(AppIcons.person,
                   size: 18, color: colors.textSecondary),
             ),
           ],
@@ -568,7 +569,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.mic, size: 16, color: colors.primary),
+                  Icon(AppIcons.mic, size: 16, color: colors.primary),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
@@ -737,7 +738,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.send_rounded,
+                  AppIcons.send,
                   size: 18,
                   color: isDisabled ? colors.textWeak : Colors.white,
                 ),
@@ -793,7 +794,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           ),
         ),
         child: Icon(
-          Icons.mic,
+          AppIcons.mic,
           color: _isHoldingRecord
               ? Colors.white
               : (isDisabled ? colors.textWeak : colors.primary),

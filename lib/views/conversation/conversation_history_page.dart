@@ -4,7 +4,9 @@ import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 对话历史记录列表页面
 class ConversationHistoryPage extends StatefulWidget {
@@ -64,23 +66,12 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   }
 
   Future<void> _deleteRecord(ConversationRecord record) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除对话记录'),
-        content: Text('确定要删除这条对话记录吗？\n${record.firstMessagePreview ?? ""}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final confirm = await AppConfirmDialog.show(
+      context,
+      title: '删除对话记录',
+      content: '确定要删除这条对话记录吗？\n${record.firstMessagePreview ?? ""}',
+      confirmText: '删除',
+      destructive: true,
     );
 
     if (confirm == true) {
@@ -102,7 +93,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
         backgroundColor: context.colors.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: context.colors.textSecondary, size: 20),
+          icon: Icon(AppIcons.arrowBackIosNew, color: context.colors.textSecondary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -116,7 +107,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
         actions: [
           if (_records.isNotEmpty)
             IconButton(
-              icon: Icon(Icons.delete_outline, color: context.colors.textSecondary),
+              icon: Icon(AppIcons.delete, color: context.colors.textSecondary),
               tooltip: '清空所有',
               onPressed: () => _showClearAllDialog(),
             ),
@@ -150,7 +141,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, color: context.colors.error, size: 48),
+              Icon(AppIcons.error, color: context.colors.error, size: 48),
               const SizedBox(height: 12),
               Text(
                 '加载失败',
@@ -192,7 +183,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.chat_bubble_outline_rounded,
+                  AppIcons.chatBubbleOutline,
                   size: 36,
                   color: context.colors.primary,
                 ),
@@ -324,7 +315,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                       const SizedBox(width: 8),
                       // 轮数
                       Icon(
-                        Icons.forum_outlined,
+                        AppIcons.forum,
                         size: 13,
                         color: colors.textWeak,
                       ),
@@ -339,7 +330,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                       const SizedBox(width: 8),
                       // 时长
                       Icon(
-                        Icons.schedule_outlined,
+                        AppIcons.schedule,
                         size: 13,
                         color: colors.textWeak,
                       ),
@@ -412,11 +403,11 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   IconData _getSourceIcon(String? sourceType) {
     switch (sourceType) {
       case 'subtitle':
-        return Icons.play_circle_outline;
+        return AppIcons.playCircleOutline;
       case 'article':
-        return Icons.article_outlined;
+        return AppIcons.article;
       default:
-        return Icons.chat_bubble_outline;
+        return AppIcons.chatBubbleOutline;
     }
   }
 
@@ -454,23 +445,12 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   }
 
   void _showClearAllDialog() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('清空所有记录'),
-        content: const Text('确定要删除所有对话记录吗？此操作不可恢复。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('全部删除'),
-          ),
-        ],
-      ),
+    final confirm = await AppConfirmDialog.show(
+      context,
+      title: '清空所有记录',
+      content: '确定要删除所有对话记录吗？此操作不可恢复。',
+      confirmText: '全部删除',
+      destructive: true,
     );
 
     if (confirm == true) {
@@ -504,7 +484,7 @@ class ConversationDetailPage extends ConsumerWidget {
         backgroundColor: colors.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: colors.textSecondary, size: 20),
+          icon: Icon(AppIcons.arrowBackIosNew, color: colors.textSecondary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -520,7 +500,7 @@ class ConversationDetailPage extends ConsumerWidget {
         actions: [
           // 可以添加"继续对话"按钮，用于恢复上下文
           IconButton(
-            icon: Icon(Icons.refresh, color: colors.primary),
+            icon: Icon(AppIcons.refresh, color: colors.primary),
             tooltip: '基于此记录继续对话',
             onPressed: () => _resumeConversation(context),
           ),
@@ -540,13 +520,13 @@ class ConversationDetailPage extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                _infoChip('${record.turnCount} 轮', Icons.forum_outlined, colors),
+                _infoChip('${record.turnCount} 轮', AppIcons.forum, colors),
                 const SizedBox(width: 10),
-                _infoChip(record.formattedDuration, Icons.schedule_outlined, colors),
+                _infoChip(record.formattedDuration, AppIcons.schedule, colors),
                 const SizedBox(width: 10),
-                _infoChip(record.difficultyLabel, Icons.school_outlined, colors),
+                _infoChip(record.difficultyLabel, AppIcons.school, colors),
                 const SizedBox(width: 10),
-                _infoChip(record.voice, Icons.record_voice_over_outlined, colors),
+                _infoChip(record.voice, AppIcons.recordVoiceOver, colors),
               ],
             ),
           ),
@@ -681,7 +661,7 @@ class ConversationDetailPage extends ConsumerWidget {
                 color: colors.textWeak.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.person, size: 18, color: colors.textSecondary),
+              child: Icon(AppIcons.person, size: 18, color: colors.textSecondary),
             ),
           ],
         ],

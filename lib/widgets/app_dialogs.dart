@@ -2,7 +2,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/theme/app_icons.dart';
+import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 // ─── 对话框脚手架 ────────────────────────────────────────────
 
@@ -17,10 +19,10 @@ class _DialogScaffold extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: 311.w,
+          width: Adaptive.w(context, isIPad(context) ? 360 : 311),
           decoration: BoxDecoration(
             color: cs.surface,
-            borderRadius: BorderRadius.all(Radius.circular(12.r)),
+            borderRadius: BorderRadius.all(Radius.circular(Adaptive.r(context, 12))),
           ),
           child: body,
         ),
@@ -44,7 +46,7 @@ class _DialogButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 40.h,
+      height: Adaptive.h(context, isIPad(context) ? 48 : 40),
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
@@ -52,8 +54,8 @@ class _DialogButton extends StatelessWidget {
           foregroundColor: foregroundColor,
           elevation: 0,
           padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-          textStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 20))),
+          textStyle: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14), fontWeight: FontWeight.w600),
         ),
         child: Center(child: Text(text)),
       ),
@@ -97,21 +99,21 @@ class AppConfirmDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 0),
+            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text(title, textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: cs.onSurface, height: 26 / 18)),
-              if (contentWidget != null) ...[SizedBox(height: 8.h), contentWidget!],
+                  style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface, height: 28 / 20)),
+              if (contentWidget != null) ...[SizedBox(height: Adaptive.h(context, 8)), contentWidget!],
               if (contentWidget == null && content.isNotEmpty) ...[
-                SizedBox(height: 8.h),
+                SizedBox(height: Adaptive.h(context, 8)),
                 Text(content, textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16.sp, color: cs.onSurfaceVariant, height: 24 / 16)),
+                    style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 15), color: cs.onSurfaceVariant, height: 26 / 17)),
               ],
             ]),
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: Adaptive.h(context, 24)),
           Padding(
-            padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h),
+            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
             child: Row(children: [
               Expanded(
                 child: _DialogButton(
@@ -121,7 +123,7 @@ class AppConfirmDialog extends StatelessWidget {
                   onTap: () { onCancel?.call(); Navigator.of(context).pop(false); },
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: Adaptive.w(context, 12)),
               Expanded(
                 child: _DialogButton(
                   text: confirmText,
@@ -187,19 +189,19 @@ class AppAlertDialog extends StatelessWidget {
     return _DialogScaffold(
       body: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 0),
+          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             if (title != null)
               Text(title!, textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: cs.onSurface, height: 26 / 18)),
-            if (title != null) SizedBox(height: 8.h),
+                  style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface, height: 28 / 20)),
+            if (title != null) SizedBox(height: Adaptive.h(context, 8)),
             Text(content, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16.sp, color: cs.onSurfaceVariant, height: 24 / 16)),
+                style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 15), color: cs.onSurfaceVariant, height: 26 / 17)),
           ]),
         ),
-        SizedBox(height: 24.h),
+        SizedBox(height: Adaptive.h(context, 24)),
         Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h),
+          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
           child: SizedBox(
             width: double.infinity,
             child: _DialogButton(
@@ -250,21 +252,21 @@ class AppActionSheet extends StatelessWidget {
       body: Column(mainAxisSize: MainAxisSize.min, children: [
         if (title != null)
           Padding(
-            padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 0),
+            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
             child: Text(title!, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface)),
           ),
-        SizedBox(height: (title != null) ? 16.h : 24.h),
+        SizedBox(height: (title != null) ? Adaptive.h(context, 16) : Adaptive.h(context, 24)),
         Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h),
+          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
           child: Column(
             children: List.generate(items.length, (i) {
               final item = items[i];
               return Padding(
-                padding: EdgeInsets.only(bottom: i < items.length - 1 ? 12.h : 0),
+                padding: EdgeInsets.only(bottom: i < items.length - 1 ? Adaptive.h(context, 12) : 0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 44.h,
+                  height: Adaptive.h(context, isIPad(context) ? 52 : 44),
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop(item);
@@ -275,13 +277,13 @@ class AppActionSheet extends StatelessWidget {
                       foregroundColor: item.destructive ? cs.error : cs.onSurface,
                       elevation: 0,
                       padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                      textStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 12))),
+                      textStyle: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14), fontWeight: FontWeight.w600),
                     ),
                     child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       if (item.icon != null) ...[
-                        Icon(item.icon, size: 20.sp, color: item.destructive ? cs.error : cs.onSurfaceVariant),
-                        SizedBox(width: 8.w),
+                        Icon(item.icon, size: Adaptive.sp(context, 20), color: item.destructive ? cs.error : cs.onSurfaceVariant),
+                        SizedBox(width: Adaptive.w(context, 8)),
                       ],
                       Text(item.text),
                     ]),
@@ -338,12 +340,12 @@ class AppBottomSheetMenu extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(Adaptive.w(context, 16), Adaptive.h(context, 8), Adaptive.w(context, 16), Adaptive.h(context, 16)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (title != null) ...[
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              child: Text(title!, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
+              padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+              child: Text(title!, style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
             ),
             Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
           ],
@@ -355,11 +357,11 @@ class AppBottomSheetMenu extends StatelessWidget {
                   final item = items[i];
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: item.icon != null ? Icon(item.icon, size: 22.sp, color: item.destructive ? cs.error : cs.onSurfaceVariant) : null,
+                    leading: item.icon != null ? Icon(item.icon, size: Adaptive.icon(context, 22), color: item.destructive ? cs.error : cs.onSurfaceVariant) : null,
                     title: Text(item.text,
-                        style: TextStyle(fontSize: 14.sp, color: item.destructive ? cs.error : cs.onSurface, fontWeight: FontWeight.w500)),
+                        style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14), color: item.destructive ? cs.error : cs.onSurface, fontWeight: FontWeight.w500)),
                     subtitle: item.subtitle != null
-                        ? Text(item.subtitle!, style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant))
+                        ? Text(item.subtitle!, style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12), color: cs.onSurfaceVariant))
                         : null,
                     trailing: item.trailing,
                     onTap: () {
@@ -385,7 +387,7 @@ class AppBottomSheetMenu extends StatelessWidget {
       context: context,
       backgroundColor: cs.surface,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16.r))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 16)))),
       builder: (_) => ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
         child: AppBottomSheetMenu(title: title, items: items),
@@ -418,28 +420,28 @@ class AppToast {
   static void show(BuildContext context, String message, {ToastType type = ToastType.info}) {
     final cs = Theme.of(context).colorScheme;
     final (icon, color) = switch (type) {
-      ToastType.success => (Icons.check_circle, Colors.green),
-      ToastType.error => (Icons.error, cs.error),
-      ToastType.warning => (Icons.warning_amber_rounded, Colors.orange),
-      ToastType.info => (Icons.info_outline, cs.primary),
+      ToastType.success => (AppIcons.checkCircle, Colors.green),
+      ToastType.error => (AppIcons.error, cs.error),
+      ToastType.warning => (AppIcons.warning, Colors.orange),
+      ToastType.info => (AppIcons.info, cs.primary),
     };
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(children: [
-          Icon(icon, size: 20.sp, color: color),
-          SizedBox(width: 8.w),
+          Icon(icon, size: Adaptive.icon(context, 20), color: color),
+          SizedBox(width: Adaptive.w(context, 8)),
           Expanded(
             child: Text(message,
-                style: TextStyle(color: cs.onSurface, fontSize: 14.sp)),
+                style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14))),
           ),
         ]),
         backgroundColor: cs.surfaceContainerHigh,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-        margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 8))),
+        margin: EdgeInsets.fromLTRB(Adaptive.w(context, 16), 0, Adaptive.w(context, 16), Adaptive.h(context, 16)),
         duration: const Duration(seconds: 2),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, isIPad(context) ? 14 : 12)),
         dismissDirection: DismissDirection.horizontal,
       ),
     );
@@ -481,30 +483,30 @@ class AppInputDialog extends StatelessWidget {
     return _DialogScaffold(
       body: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 0),
+          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text(title, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: cs.onSurface, height: 26 / 18)),
-            SizedBox(height: 16.h),
+                style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface, height: 28 / 20)),
+            SizedBox(height: Adaptive.h(context, 16)),
             TextField(
               controller: controller,
               autofocus: true,
               obscureText: obscureText,
-              style: TextStyle(color: cs.onSurface, fontSize: 16.sp),
+              style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 16)),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: TextStyle(color: cs.onSurfaceVariant),
+                hintStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14)),
                 filled: true,
                 fillColor: cs.surfaceContainerHighest,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r), borderSide: BorderSide.none),
-                contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 10)), borderSide: BorderSide.none),
+                contentPadding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 14), vertical: Adaptive.h(context, 12)),
               ),
             ),
           ]),
         ),
-        SizedBox(height: 24.h),
+        SizedBox(height: Adaptive.h(context, 24)),
         Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h),
+          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
           child: Row(children: [
             Expanded(
               child: _DialogButton(
@@ -514,7 +516,7 @@ class AppInputDialog extends StatelessWidget {
                 onTap: () => Navigator.of(context).pop(null),
               ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: Adaptive.w(context, 12)),
             Expanded(
               child: _DialogButton(
                 text: confirmText,

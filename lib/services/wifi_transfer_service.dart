@@ -321,14 +321,16 @@ class WifiTransferService extends ChangeNotifier {
   }
 
   Future<VideoFolder> _createFolder(String name, {required String type, String contentType = 'video'}) async {
-    final duplicated = await DatabaseService.findByCondition(() => VideoFolder(), where: 'name = ? AND is_deleted = 0', whereArgs: [name], limit: 1);
-    if (duplicated.isNotEmpty) {
-      throw Exception('视频集名称已存在');
-    }
-
     final groupCode = await SettingsService.ensureDefaultGroupCode();
     final folderType = type == 'virtual' ? VideoFolderType.virtual : VideoFolderType.real;
     final folderContentType = FolderContentType.values.firstWhere((e) => e.name == contentType, orElse: () => FolderContentType.video);
+
+    // 同一用户下，同一分类(folder_type)内名称唯一；不同分类允许同名
+    final duplicated = await DatabaseService.findByCondition(() => VideoFolder(), where: 'name = ? AND folder_type = ? AND is_deleted = 0', whereArgs: [name, folderContentType.name], limit: 1);
+    if (duplicated.isNotEmpty) {
+      throw Exception('该分类下已存在同名文件夹');
+    }
+
     final folder = VideoFolder(
       name: name,
       type: folderType,
@@ -348,13 +350,14 @@ class WifiTransferService extends ChangeNotifier {
     final folder = await _getFolderByCode(folderCode);
     if (folder == null) throw Exception('文件夹不存在');
 
+    // 同一分类内名称唯一；不同分类允许同名
     final duplicated = await DatabaseService.findByCondition(
       () => VideoFolder(),
-      where: 'name = ? AND code != ? AND is_deleted = 0',
-      whereArgs: [name, folderCode],
+      where: 'name = ? AND folder_type = ? AND code != ? AND is_deleted = 0',
+      whereArgs: [name, folder.folderType.name, folderCode],
       limit: 1,
     );
-    if (duplicated.isNotEmpty) throw Exception('视频集名称已存在');
+    if (duplicated.isNotEmpty) throw Exception('该分类下已存在同名文件夹');
 
     folder.name = name;
     await DatabaseService.update(folder);
@@ -511,13 +514,13 @@ class WifiTransferService extends ChangeNotifier {
 
   Future<void> _softDeleteSubtitleData(String videoCode) async {
     final subtitles = await DatabaseService.findByCondition(() => Subtitles(), where: 'video_code = ? AND is_deleted = 0', whereArgs: [videoCode]);
-    for (final s in subtitles) {
-      await DatabaseService.softDelete(s);
+    if (subtitles.isNotEmpty) {
+      await DatabaseService.batchSoftDelete(subtitles);
     }
 
     final participles = await DatabaseService.findByCondition(() => Participle(), where: 'video_code = ? AND is_deleted = 0', whereArgs: [videoCode]);
-    for (final p0 in participles) {
-      await DatabaseService.softDelete(p0);
+    if (participles.isNotEmpty) {
+      await DatabaseService.batchSoftDelete(participles);
     }
   }
 

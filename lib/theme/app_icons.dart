@@ -13,7 +13,15 @@
 /// - Media icons（媒体图标）
 /// - File icons（文件图标）
 /// - Status icons（状态图标）
-/// - Custom icons（自定义PNG图标）
+/// - User icons（用户图标）
+/// - Tab bar icons（标签栏图标）
+/// - Network icons（网络/连接图标）
+/// - Time/Date icons（时间/日期图标）
+/// - File operation icons（文件操作图标）
+/// - Conversation icons（对话图标）
+/// - Evaluation icons（评测图标）
+/// - Word Book icons（单词本图标）
+/// - Settings icons（设置图标）
 ///
 /// 使用方式：
 /// ```dart
@@ -67,6 +75,30 @@ class AppIcons {
   /// 检查
   static const IconData check = Icons.check_rounded;
 
+  /// 右箭头
+  static const IconData chevronRight = Icons.chevron_right_rounded;
+
+  /// 左箭头（iOS风格）
+  static const IconData arrowBackIos = Icons.arrow_back_ios_rounded;
+
+  /// 左箭头（iOS新风格）
+  static const IconData arrowBackIosNew = Icons.arrow_back_ios_new_rounded;
+
+  /// 取消
+  static const IconData cancel = Icons.cancel;
+
+  /// 上箭头
+  static const IconData arrowUpward = Icons.arrow_upward;
+
+  /// 下箭头
+  static const IconData arrowDownward = Icons.arrow_downward;
+
+  /// 键盘上箭头
+  static const IconData keyboardArrowUp = Icons.keyboard_arrow_up_rounded;
+
+  /// 键盘下箭头
+  static const IconData keyboardArrowDown = Icons.keyboard_arrow_down_rounded;
+
   // ============================================================
   // 操作图标
   // ============================================================
@@ -74,8 +106,17 @@ class AppIcons {
   /// 添加
   static const IconData add = Icons.add_rounded;
 
+  /// 添加圆形轮廓
+  static const IconData addCircleOutline = Icons.add_circle_outline;
+
   /// 删除
   static const IconData delete = Icons.delete_outline_rounded;
+
+  /// 永久删除
+  static const IconData deleteForever = Icons.delete_forever_rounded;
+
+  /// 批量删除
+  static const IconData deleteSweep = Icons.delete_sweep;
 
   /// 编辑/修改
   static const IconData edit = Icons.edit_outlined;
@@ -83,7 +124,7 @@ class AppIcons {
   /// 分享
   static const IconData share = Icons.share_outlined;
 
-  /// 更多
+  /// 更多（纵向）
   static const IconData moreVert = Icons.more_vert_rounded;
 
   /// 更多（横向）
@@ -113,6 +154,63 @@ class AppIcons {
   /// 上传
   static const IconData upload = Icons.upload_file_outlined;
 
+  /// 保存
+  static const IconData save = Icons.save;
+
+  /// 清除
+  static const IconData clear = Icons.clear;
+
+  /// 移除
+  static const IconData remove = Icons.remove_rounded;
+
+  /// 列表
+  static const IconData list = Icons.list;
+
+  /// 反馈
+  static const IconData feedback = Icons.feedback;
+
+  /// 分类
+  static const IconData category = Icons.category_outlined;
+
+  /// 图层
+  static const IconData layers = Icons.layers;
+
+  /// 拖拽手柄
+  static const IconData dragHandle = Icons.drag_handle;
+
+  /// 返回退格
+  static const IconData backspace = Icons.backspace_outlined;
+
+  /// 自动修复
+  static const IconData autoFixHigh = Icons.auto_fix_high;
+
+  /// 退格
+  static const IconData formatListBulleted = Icons.format_list_bulleted_rounded;
+
+  /// 有序列表
+  static const IconData formatListNumbered = Icons.format_list_numbered_rounded;
+
+  /// 标签轮廓
+  static const IconData labelOutline = Icons.label_outline_rounded;
+
+  /// 应用
+  static const IconData apps = Icons.apps_rounded;
+
+  /// 自动填充
+  static const IconData autoAwesome = Icons.auto_awesome;
+
+  /// 钉钉
+  static const IconData pushPin = Icons.push_pin;
+
+  /// 仪表盘
+  static const IconData dashboard = Icons.dashboard;
+
+  /// 档案
+  static const IconData assignment = Icons.assignment;
+
+  /// 类别
+  static const IconData appsRound = Icons.apps_rounded;
+
   // ============================================================
   // 媒体图标
   // ============================================================
@@ -141,6 +239,9 @@ class AppIcons {
   /// 音量
   static const IconData volumeUp = Icons.volume_up_rounded;
 
+  /// 音量降低
+  static const IconData volumeDown = Icons.volume_down_rounded;
+
   /// 静音
   static const IconData volumeOff = Icons.volume_off_rounded;
 
@@ -153,11 +254,17 @@ class AppIcons {
   /// 字幕
   static const IconData subtitles = Icons.subtitles_rounded;
 
+  /// 字幕关闭
+  static const IconData subtitlesOff = Icons.subtitles_off_rounded;
+
   /// 音频
   static const IconData audioTrack = Icons.audiotrack_rounded;
 
   /// 视频
   static const IconData video = Icons.videocam_outlined;
+
+  /// 摄像机
+  static const IconData videocam = Icons.videocam;
 
   /// 视频库
   static const IconData videoLibrary = Icons.video_library_outlined;
@@ -174,12 +281,93 @@ class AppIcons {
   /// 随机播放
   static const IconData shuffle = Icons.shuffle_rounded;
 
+  /// 麦克风
+  static const IconData mic = Icons.mic;
+
+  /// 麦克风（圆角）
+  static const IconData micRounded = Icons.mic_rounded;
+
+  /// 麦克风（无）
+  static const IconData micNone = Icons.mic_none_rounded;
+
+  /// 音乐笔记
+  static const IconData musicNote = Icons.music_note_outlined;
+
+  /// 音乐关闭
+  static const IconData musicOff = Icons.music_off_outlined;
+
+  /// 电影
+  static const IconData movie = Icons.movie_outlined;
+
+  /// 电影创作
+  static const IconData movieCreation = Icons.movie_creation_rounded;
+
+  /// 播放圆形轮廓
+  static const IconData playCircleOutline = Icons.play_circle_outline_rounded;
+
+  /// 播放圆形填充
+  static const IconData playCircleFill = Icons.play_circle_fill_rounded;
+
+  /// 停止圆形
+  static const IconData stopCircle = Icons.stop_circle_rounded;
+
+  /// 重放
+  static const IconData replay = Icons.replay_rounded;
+
+  /// 录音
+  static const IconData recordVoiceOver = Icons.record_voice_over;
+
+  /// 录音轮廓
+  static const IconData recordVoiceOverOutline = Icons.record_voice_over_outlined;
+
+  /// 速度
+  static const IconData speed = Icons.speed;
+
+  /// 歌词
+  static const IconData lyrics = Icons.lyrics_outlined;
+
+  /// 封闭字幕
+  static const IconData closedCaption = Icons.closed_caption;
+
+  /// 耳机
+  static const IconData headphones = Icons.headphones;
+
+  /// 相机
+  static const IconData cameraAlt = Icons.camera_alt_outlined;
+
+  /// 照片库
+  static const IconData photoLibrary = Icons.photo_library_rounded;
+
+  /// 照片相机
+  static const IconData photoCamera = Icons.photo_camera_rounded;
+
+  /// 音频文件
+  static const IconData audioFile = Icons.audio_file;
+
+  /// 键盘语音
+  static const IconData keyboardVoice = Icons.keyboard_voice;
+
+  /// 文本字段
+  static const IconData textFields = Icons.text_fields_rounded;
+
+  /// 短文本
+  static const IconData shortText = Icons.short_text;
+
+  /// 均衡器
+  static const IconData equalizer = Icons.equalizer_rounded;
+
+  /// 字幕轮廓
+  static const IconData subtitlesOutline = Icons.subtitles_outlined;
+
   // ============================================================
   // 文件图标
   // ============================================================
 
   /// 文件夹
   static const IconData folder = Icons.folder_outlined;
+
+  /// 文件夹打开
+  static const IconData folderOpen = Icons.folder_open_outlined;
 
   /// 文件
   static const IconData insertDriveFile = Icons.insert_drive_file_outlined;
@@ -192,6 +380,27 @@ class AppIcons {
 
   /// 压缩包
   static const IconData zipFile = Icons.folder_zip_outlined;
+
+  /// 文章
+  static const IconData article = Icons.article_outlined;
+
+  /// 菜单书
+  static const IconData menuBook = Icons.menu_book_outlined;
+
+  /// 图书
+  static const IconData book = Icons.book_outlined;
+
+  /// 图书馆
+  static const IconData libraryBooks = Icons.library_books_outlined;
+
+  /// 收据
+  static const IconData receiptLong = Icons.receipt_long_outlined;
+
+  /// 自动故事
+  static const IconData autoStories = Icons.auto_stories;
+
+  /// 文章（圆角）
+  static const IconData articleRound = Icons.article_rounded;
 
   // ============================================================
   // 状态图标
@@ -212,8 +421,11 @@ class AppIcons {
   /// 半星标
   static const IconData starHalf = Icons.star_half_rounded;
 
+  /// 星标轮廓
+  static const IconData starOutline = Icons.star_outline_rounded;
+
   /// 可见
-  static const IconData visibility = Icons.visibility_rounded;
+  static const IconData visibility = Icons.visibility_outlined;
 
   /// 不可见
   static const IconData visibilityOff = Icons.visibility_off_rounded;
@@ -236,6 +448,54 @@ class AppIcons {
   /// 帮助
   static const IconData help = Icons.help_outline_rounded;
 
+  /// 检查圆圈
+  static const IconData checkCircle = Icons.check_circle;
+
+  /// 检查圆圈轮廓
+  static const IconData checkCircleOutline = Icons.check_circle_outline;
+
+  /// 复选框
+  static const IconData checkBox = Icons.check_box_rounded;
+
+  /// 复选框空白
+  static const IconData checkBoxOutlineBlank = Icons.check_box_outline_blank_rounded;
+
+  /// 单选按钮未选中
+  static const IconData radioButtonUnchecked = Icons.radio_button_unchecked;
+
+  /// 趋势上升
+  static const IconData trendingUp = Icons.trending_up;
+
+  /// 书签边框
+  static const IconData bookmarkBorder = Icons.bookmark_border;
+
+  /// 书签填充
+  static const IconData bookmarkFill = Icons.bookmark_rounded;
+
+  /// 旗帜
+  static const IconData flag = Icons.flag;
+
+  /// 破损图片
+  static const IconData brokenImage = Icons.broken_image_outlined;
+
+  /// 提示更新
+  static const IconData tipsAndUpdates = Icons.tips_and_updates;
+
+  /// 灯泡
+  static const IconData lightbulb = Icons.lightbulb;
+
+  /// 灯泡轮廓
+  static const IconData lightbulbOutline = Icons.lightbulb_outline_rounded;
+
+  /// 安全
+  static const IconData security = Icons.security;
+
+  /// 盾牌
+  static const IconData shield = Icons.shield;
+
+  /// 本地火灾
+  static const IconData localFireDepartment = Icons.local_fire_department_rounded;
+
   // ============================================================
   // 用户相关图标
   // ============================================================
@@ -254,6 +514,18 @@ class AppIcons {
 
   /// 登录
   static const IconData login = Icons.login_rounded;
+
+  /// 人群
+  static const IconData people = Icons.people;
+
+  /// 人群轮廓
+  static const IconData peopleOutline = Icons.people_outline;
+
+  /// 管理账户
+  static const IconData manageAccounts = Icons.manage_accounts_outlined;
+
+  /// 添加用户
+  static const IconData personAddAlt = Icons.person_add_alt;
 
   // ============================================================
   // 主页/标签栏图标
@@ -302,6 +574,36 @@ class AppIcons {
   /// 同步
   static const IconData sync = Icons.sync_rounded;
 
+  /// WiFi热点
+  static const IconData wifiTethering = Icons.wifi_tethering_outlined;
+
+  /// WiFi热点关闭
+  static const IconData wifiTetheringOff = Icons.wifi_tethering_off_rounded;
+
+  /// 云关闭
+  static const IconData cloudOff = Icons.cloud_off_outlined;
+
+  /// HTTP
+  static const IconData http = Icons.http;
+
+  /// 链接
+  static const IconData link = Icons.link_rounded;
+
+  /// GPS定位
+  static const IconData gpsFixed = Icons.gps_fixed;
+
+  /// 网线
+  static const IconData cable = Icons.cable;
+
+  /// DNS
+  static const IconData dns = Icons.dns;
+
+  /// 邮箱
+  static const IconData email = Icons.email_outlined;
+
+  /// 替代邮件
+  static const IconData alternateEmail = Icons.alternate_email_rounded;
+
   // ============================================================
   // 时间/日期图标
   // ============================================================
@@ -321,6 +623,12 @@ class AppIcons {
   /// 计时器
   static const IconData timer = Icons.timer_outlined;
 
+  /// 访问时间
+  static const IconData accessTime = Icons.access_time_rounded;
+
+  /// 历史切换关闭
+  static const IconData historyToggleOff = Icons.history_toggle_off_rounded;
+
   // ============================================================
   // 文件操作图标
   // ============================================================
@@ -336,6 +644,133 @@ class AppIcons {
 
   /// 重命名
   static const IconData driveFileRename = Icons.drive_file_rename_outline_rounded;
+
+  // ============================================================
+  // 对话图标
+  // ============================================================
+
+  /// 问答
+  static const IconData quiz = Icons.quiz_outlined;
+
+  /// 论坛
+  static const IconData forum = Icons.forum_outlined;
+
+  /// 聊天气泡
+  static const IconData chatBubbleOutline = Icons.chat_bubble_outline;
+
+  /// 聊天
+  static const IconData chat = Icons.chat_outlined;
+
+  /// 评论
+  static const IconData comment = Icons.comment;
+
+  /// 智能机器人
+  static const IconData smartToy = Icons.smart_toy;
+
+  /// 发送
+  static const IconData send = Icons.send_rounded;
+
+  // ============================================================
+  // 评测图标
+  // ============================================================
+
+  /// 奖杯
+  static const IconData emojiEvents = Icons.emoji_events;
+
+  /// 规则
+  static const IconData rule = Icons.rule_outlined;
+
+  /// 分析
+  static const IconData analytics = Icons.analytics_rounded;
+
+  /// 展示图表
+  static const IconData showChart = Icons.show_chart_rounded;
+
+  /// 数字1
+  static const IconData looksOne = Icons.looks_one;
+
+  /// 数字2
+  static const IconData looksTwo = Icons.looks_two;
+
+  /// 数字3
+  static const IconData looksThree = Icons.looks_3;
+
+  /// 数字4
+  static const IconData looksFour = Icons.looks_4;
+
+  /// 数字5
+  static const IconData looksFive = Icons.looks_5;
+
+  /// 竖大拇指
+  static const IconData thumbUp = Icons.thumb_up_outlined;
+
+  /// 倒大拇指
+  static const IconData thumbDown = Icons.thumb_down_outlined;
+
+  /// 非常满意
+  static const IconData sentimentVerySatisfied = Icons.sentiment_very_satisfied;
+
+  /// 非常不满意
+  static const IconData sentimentVeryDissatisfied = Icons.sentiment_very_dissatisfied;
+
+  /// 满意
+  static const IconData sentimentSatisfied = Icons.sentiment_satisfied;
+
+  /// 中立
+  static const IconData sentimentNeutral = Icons.sentiment_neutral;
+
+  /// 不满意
+  static const IconData sentimentDissatisfied = Icons.sentiment_dissatisfied;
+
+  /// 心理学
+  static const IconData psychology = Icons.psychology_rounded;
+
+  /// 工作空间高级
+  static const IconData workspacePremium = Icons.workspace_premium;
+
+  /// 麦克风
+  static const IconData recordVoice = Icons.record_voice_over;
+
+  // ============================================================
+  // 单词本图标
+  // ============================================================
+
+  /// 翻译
+  static const IconData translate = Icons.translate_outlined;
+
+  /// 语言
+  static const IconData language = Icons.language;
+
+  /// 拼写检查
+  static const IconData spellcheck = Icons.spellcheck;
+
+  // ============================================================
+  // 设置图标
+  // ============================================================
+
+  /// 调整
+  static const IconData tune = Icons.tune_rounded;
+
+  /// 亮色模式
+  static const IconData lightMode = Icons.light_mode_outlined;
+
+  /// 暗色模式
+  static const IconData darkMode = Icons.dark_mode_outlined;
+
+  /// 亮度自动
+  static const IconData brightnessAuto = Icons.brightness_auto_outlined;
+
+  /// 调色板
+  static const IconData palette = Icons.palette_outlined;
+
+  /// 彩色镜头
+  static const IconData colorLens = Icons.color_lens_rounded;
+
+  /// 显示
+  static const IconData display = Icons.desktop_mac_outlined;
+
+  /// 账户钱包
+  static const IconData accountBalanceWallet = Icons.account_balance_wallet_outlined;
 
   // ============================================================
   // 获取图标的便捷方法

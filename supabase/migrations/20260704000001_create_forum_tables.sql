@@ -300,7 +300,7 @@ BEGIN
     SELECT 1
     FROM pg_publication_tables
     WHERE pubname = 'supabase_realtime'
-      AND schemanane = 'public'
+      AND schemaname = 'public'
       AND tablename = 'forum_notifications'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.forum_notifications;

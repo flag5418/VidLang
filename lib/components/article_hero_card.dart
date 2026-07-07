@@ -10,12 +10,13 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class ArticleHeroCard extends StatefulWidget {
   final Article article;
@@ -65,7 +66,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
             Center(
               child: Text(
                 letter,
-                style: TextStyle(fontSize: 72.sp, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.2), height: 1),
+                style: TextStyle(fontSize: Adaptive.sp(context, 72), fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.2), height: 1),
               ),
             ),
             _buildBottomSection(colorScheme, cardColor),
@@ -116,26 +117,26 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
               children: [
                 Text(
                   widget.article.title,
-                  style: TextStyle(fontSize: AppTypography.fontSizeBase.sp, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
+                  style: TextStyle(fontSize: Adaptive.sp(context, AppTypography.fontSizeBase), fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.3),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (metaParts.isNotEmpty) SizedBox(height: 2.h),
+                if (metaParts.isNotEmpty) SizedBox(height: Adaptive.h(context, 2)),
                 if (metaParts.isNotEmpty)
                   Text(
                     metaParts.join(' · '),
-                    style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: Adaptive.sp(context, AppTypography.fontSizeXSmall), color: Colors.white70, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                if (progress > 0 && metaParts.isNotEmpty) SizedBox(height: 4.h),
+                if (progress > 0 && metaParts.isNotEmpty) SizedBox(height: Adaptive.h(context, 4)),
                 if (progress > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm), color: Colors.white.withValues(alpha: 0.2)),
                     child: Text(
                       '已读 $percent%',
-                      style: TextStyle(fontSize: AppTypography.fontSizeXSmall.sp, color: Colors.white, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: Adaptive.sp(context, AppTypography.fontSizeXSmall), color: Colors.white, fontWeight: FontWeight.w500),
                     ),
                   ),
               ],
@@ -149,14 +150,14 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
   Widget _buildPlayButton(ColorScheme colorScheme) {
     return Center(
       child: Container(
-        width: 36.w,
-        height: 36.w,
+        width: Adaptive.w(context, 36),
+        height: Adaptive.w(context, 36),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.92),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        child: Icon(Icons.play_arrow_rounded, size: 20.w, color: Colors.white),
+        child: Icon(AppIcons.play, size: Adaptive.w(context, 20), color: Colors.white),
       ),
     );
   }
@@ -178,16 +179,16 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       elevation: 6,
       child: Container(
-        width: 28.r,
-        height: 28.r,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(AppRadius.sm.r), color: Colors.black.withValues(alpha: 0.65)),
-        child: Icon(Icons.more_vert, size: 18.sp, color: Colors.white),
+        width: Adaptive.r(context, 28),
+        height: Adaptive.r(context, 28),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(Adaptive.r(context, AppRadius.sm)), color: Colors.black.withValues(alpha: 0.65)),
+        child: Icon(AppIcons.moreVert, size: Adaptive.sp(context, 18), color: Colors.white),
       ),
       itemBuilder: (context) => [
-        if (widget.onRename != null) PopupMenuItem(value: 'rename', child: _menuRow(context, Icons.edit_outlined, '重命名', colorScheme)),
+        if (widget.onRename != null) PopupMenuItem(value: 'rename', child: _menuRow(context, AppIcons.edit, '重命名', colorScheme)),
         if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
-          PopupMenuItem(value: 'delete', child: _menuRow(context, Icons.delete_outline, '删除', colorScheme)),
+          PopupMenuItem(value: 'delete', child: _menuRow(context, AppIcons.delete, '删除', colorScheme)),
         ],
       ],
     );
@@ -196,11 +197,11 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
   Widget _menuRow(BuildContext context, IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: 18.sp, color: cs.onSurfaceVariant),
+        Icon(icon, size: Adaptive.sp(context, 18), color: cs.onSurfaceVariant),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: AppTypography.fontSizeBase.sp),
+          style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, AppTypography.fontSizeBase)),
         ),
       ],
     );

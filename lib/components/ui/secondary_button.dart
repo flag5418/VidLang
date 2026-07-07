@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/utils/adaptive.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
@@ -42,8 +42,8 @@ class SecondaryButton extends StatelessWidget {
       child: Container(
         width: isFullWidth ? double.infinity : null,
         padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.buttonPaddingHorizontal.w,
-          vertical: AppSpacing.buttonPaddingVertical.h,
+          horizontal: Adaptive.w(context, AppSpacing.buttonPaddingHorizontal),
+          vertical: Adaptive.h(context, AppSpacing.buttonPaddingVertical),
         ),
         decoration: BoxDecoration(
           color: AppColors.surfaceSecondaryLight,
@@ -55,7 +55,7 @@ class SecondaryButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null)
-              Icon(icon, size: 20.w, color: AppColors.textPrimary),
+              Icon(icon, size: Adaptive.w(context, 20), color: AppColors.textPrimary),
             
             if (icon != null && text.isNotEmpty)
               SizedBox(width: AppSpacing.sm),
@@ -65,7 +65,7 @@ class SecondaryButton extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),

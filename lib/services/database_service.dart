@@ -176,15 +176,25 @@ class DatabaseService {
   }
 
 
-  /// 运行时数据库损坏恢复
+  /// 运行时数据库损坏恢复（多级策略）
   ///
-  /// 当运行中检测到数据库损坏时调用，
-  /// 关闭损坏的连接，备份所有文件，删除后重新初始化数据库。
+  /// 当运行中检测到数据库损坏时调用，按以下顺序尝试修复：
+  ///
+  /// **Level 1 - WAL Checkpoint 修复**（最常见原因）：
+  ///   iOS APFS + WAL 模式下，WAL 文件与主文件不一致是 "malformed" 的首要原因。
+  ///   尝试以 readOnly 方式打开 → 强制 checkpoint → 关闭 → 重新打开验证。
+  ///
+  /// **Level 2 - 数据导出**：
+  ///   尝试用 ATTACH 方式将可读数据导出到新文件。
+  ///   如果导出的行数 > 0，用新文件替换损坏文件。
+  ///
+  /// **Level 3 - 删除重建**（最后手段）：
+  ///   仅当前两级都失败时才执行。会丢失所有数据！
   static Future<void> _recoverRuntimeCorruption(Object error, StackTrace st) async {
     // 恢复数据库属于全局初始化级别操作，使用 _initLock
     await _initLock.synchronized(() async {
       final path = await _getDbPath();
-      logger.fatal('database corrupted at runtime', tag: 'DB', error: error, stackTrace: st, extra: {'dbPath': path});
+      logger.fatal('database corrupted at runtime, starting multi-level recovery', tag: 'DB', error: error, stackTrace: st, extra: {'dbPath': path});
 
       // 关闭并清空损坏的数据库引用
       try {
@@ -193,48 +203,159 @@ class DatabaseService {
         }
       } catch (_) {}
       _database = null;
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      // 等待文件锁释放
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      // 备份所有数据库文件（主文件 + wal + shm）
+      // 备份原始文件（无论后续如何修复都先保留）
       try {
         final ts = DateTime.now().millisecondsSinceEpoch;
         final backupPrefix = '$path.corrupt-$ts';
         await _backupDbFiles(path, backupPrefix);
-        logger.warning('corrupted db backed up (including wal/shm)', tag: 'DB', extra: {'backupPrefix': backupPrefix});
+        logger.info('corrupted db backed up', tag: 'DB', extra: {'backupPrefix': backupPrefix});
       } catch (e) {
-        logger.error('corrupted db backup failed', tag: 'DB', error: e);
+        logger.error('backup failed', tag: 'DB', error: e);
       }
 
-      // 尝试 ATTACH 导出救援：在删除前尽量把可读数据导出到新文件
+      // ===== Level 1: WAL Checkpoint 修复 =====
+      logger.info('recovery Level 1: attempting WAL checkpoint repair...', tag: 'DB');
+      final level1Ok = await _tryCheckpointRepair(path);
+      if (level1Ok) {
+        logger.info('✅ Level 1 repair succeeded! Verifying...', tag: 'DB');
+        try {
+          _database = await _openDatabaseAtPath(path);
+          // 验证：执行一次简单查询确认数据库可用
+          await _database!.rawQuery('SELECT COUNT(*) FROM sqlite_master');
+          logger.info('✅ database recovered via Level 1 (WAL checkpoint)', tag: 'DB', extra: {'dbPath': path});
+          return;
+        } catch (e) {
+          logger.warning('Level 1 repair verified failed, trying next level', tag: 'DB', extra: {'detail': e.toString()});
+          try { _database?.close(); } catch (_) {}
+          _database = null;
+        }
+      }
+
+      // ===== Level 2: 数据导出救援 =====
+      logger.info('recovery Level 2: attempting data export rescue...', tag: 'DB');
       try {
         final exportPath = '$path.export-${DateTime.now().millisecondsSinceEpoch}';
         final exported = await _tryExportToNewDb(path, exportPath);
         if (exported) {
-          logger.warning('data exported before recovery', tag: 'DB', extra: {'exportPath': exportPath});
+          // 检查导出的数据是否有实质内容
+          final exportDb = await openDatabase(exportPath, readOnly: true);
+          try {
+            final tables = await exportDb.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+            int totalRows = 0;
+            for (final t in tables) {
+              final name = t['name'] as String;
+              try {
+                final r = await exportDb.rawQuery('SELECT COUNT(*) as c FROM $name');
+                totalRows += (r.first['c'] as int? ?? 0);
+              } catch (_) {}
+            }
+            await exportDb.close();
+
+            if (totalRows > 0) {
+              // 导出了有效数据，用导出文件替换原文件
+              logger.info('✅ Level 2: exported $totalRows rows to new db, replacing corrupted file', tag: 'DB');
+              try { await _deleteDbFiles(path); } catch (_) {}
+              // 将导出文件复制为新的主文件
+              await File(exportPath).copy(path);
+              // 清理导出临时文件
+              try { await File(exportPath).delete(); } catch (_) {}
+
+              _database = await _openDatabaseAtPath(path);
+              logger.info('✅ database recovered via Level 2 (data export), $totalRows rows preserved', tag: 'DB');
+              return;
+            } else {
+              logger.warning('Level 2: exported but 0 rows, falling through to Level 3', tag: 'DB');
+            }
+          } catch (e) {
+            await exportDb.close();
+            rethrow;
+          }
         }
       } catch (e) {
-        logger.error('export attempt failed', tag: 'DB', error: e);
+        logger.error('Level 2 export rescue failed', tag: 'DB', error: e);
       }
 
-      // 删除所有数据库文件
+      // ===== Level 3: 删除重建（最后手段，数据丢失！） =====
+      logger.fatal('recovery Level 3: LAST RESORT - deleting and recreating database (ALL DATA WILL BE LOST)', tag: 'DB');
       try {
         await _deleteDbFiles(path);
-        logger.warning('corrupted db deleted for recovery', tag: 'DB', extra: {'dbPath': path});
+        logger.warning('⚠️ database files deleted for rebuild', tag: 'DB', extra: {'dbPath': path});
       } catch (e) {
-        logger.error('corrupted db delete failed', tag: 'DB', error: e, extra: {'dbPath': path});
+        logger.error('Level 3: delete failed', tag: 'DB', error: e);
       }
 
-      // 重新初始化数据库
       try {
         _database = await _openDatabaseAtPath(path);
-        logger.info('database re-initialized after runtime corruption', tag: 'DB', extra: {'dbPath': path});
+        logger.fatal('⚠️ database rebuilt from scratch (all previous data lost)', tag: 'DB', extra: {'dbPath': path});
       } catch (e, st) {
-        logger.fatal('database re-init failed after runtime corruption', tag: 'DB', error: e, stackTrace: st);
+        logger.fatal('Level 3: re-init also failed', tag: 'DB', error: e, stackTrace: st);
         rethrow;
       }
     });
+  }
+
+  /// Level 1 修复：通过 WAL Checkpoint 尝试修复
+  ///
+  /// iOS 上最常见的损坏原因是 WAL 文件与主数据库文件不一致。
+  /// 以 readOnly 模式打开损坏数据库，强制执行 checkpoint 将 WAL 内容写入主文件，
+  /// 然后关闭并删除 WAL/SHM 文件，最后重新打开验证。
+  static Future<bool> _tryCheckpointRepair(String dbPath) async {
+    Database? db;
+    try {
+      // 以 readOnly 打开损坏的库（避免写操作加剧损坏）
+      db = await openDatabase(dbPath, readOnly: true);
+
+      // 尝试强制 checkpoint，将 WAL 中的变更合并到主文件
+      try {
+        await db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+        logger.info('checkpoint TRUNCATE executed', tag: 'DB');
+      } catch (e) {
+        // TRUNCATE 可能失败，尝试 PASSIVE
+        logger.warning('checkpoint TRUNCATE failed, trying PASSIVE', tag: 'DB', extra: {'error': e.toString()});
+        try {
+          await db.execute('PRAGMA wal_checkpoint(PASSIVE)');
+          logger.info('checkpoint PASSIVE executed', tag: 'DB');
+        } catch (e2) {
+          logger.warning('checkpoint PASSIVE also failed', tag: 'DB', extra: {'error': e2.toString()});
+        }
+      }
+
+      await db.close();
+      db = null;
+
+      // 删除 WAL 和 SHM 文件（checkpoint 后它们应该不再需要）
+      for (final suffix in ['-wal', '-shm']) {
+        try {
+          final f = File('$dbPath$suffix');
+          if (await f.exists()) {
+            await f.delete();
+            logger.info('deleted $suffix file after checkpoint', tag: 'DB');
+          }
+        } catch (_) {}
+      }
+
+      // 短暂等待文件系统同步
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // 验证修复效果：尝试正常打开并执行 integrity_check
+      final verifyDb = await openDatabase(dbPath, readOnly: true);
+      try {
+        final result = await verifyDb.rawQuery('PRAGMA integrity_check;');
+        final ok = result.isNotEmpty && result.first.values.first?.toString().toLowerCase() == 'ok';
+        await verifyDb.close();
+        return ok;
+      } catch (e) {
+        try { await verifyDb.close(); } catch (_) {}
+        logger.info('post-checkpoint integrity check still fails', tag: 'DB', extra: {'error': e.toString()});
+        return false;
+      }
+    } catch (e) {
+      logger.error('checkpoint repair failed with exception', tag: 'DB', error: e);
+      try { await db?.close(); } catch (_) {}
+      return false;
+    }
   }
 
   /// 尝试将损坏数据库的可读数据导出到新文件（ATTACH 方式）
@@ -1486,6 +1607,13 @@ class DatabaseService {
           whereArgs: [entity.id],
         );
       } catch (e, st) {
+        // 检测数据库损坏，尝试自动恢复
+        if (_isDatabaseCorrupted(e)) {
+          logger.fatal('db corrupted during softDelete, attempting recovery', tag: 'DB', error: e, stackTrace: st, extra: {'table': entity.tableName, 'id': entity.id, 'code': entity.code});
+          await _recoverRuntimeCorruption(e, st);
+          rethrow;
+        }
+
         logger.error(
           'db softDelete failed',
           tag: 'DB',
@@ -1558,6 +1686,13 @@ class DatabaseService {
           }
         });
       } catch (e, st) {
+        // 检测数据库损坏，尝试自动恢复
+        if (_isDatabaseCorrupted(e)) {
+          logger.fatal('db corrupted during batchSoftDelete, attempting recovery', tag: 'DB', error: e, stackTrace: st, extra: {'table': tableName, 'count': entities.length});
+          await _recoverRuntimeCorruption(e, st);
+          rethrow;
+        }
+
         logger.error('db batchSoftDelete failed', tag: 'DB', error: e, stackTrace: st, extra: {'table': tableName, 'count': entities.length});
         await _tryInsertErrorLog(db, {
           'code': const Uuid().v4().replaceAll('-', ''),

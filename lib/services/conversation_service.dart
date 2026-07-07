@@ -193,6 +193,62 @@ class ConversationService {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  //  resource-status：资源状态标记（已删除/有效）
+  //
+  //  用于 ai-test-plan 综合测试时过滤已删除资源。
+  //  作为 subtitle-storage 物理删除的逻辑补充（双重保障）。
+  // ═══════════════════════════════════════════════════════════════
+
+  /// 标记资源为已删除状态
+  ///
+  /// 删除视频/资源时调用，通知 Supabase 端该资源已被删除，
+  /// ai-test-plan 综合测试出题时会自动跳过已删除的资源。
+  ///
+  /// [videoCodes] 要标记删除的资源 code 列表
+  static Future<void> markResourcesDeleted(List<String> videoCodes) async {
+    if (videoCodes.isEmpty) return;
+    try {
+      AuthService.instance.ensureActiveSession();
+      final client = sb.Supabase.instance.client;
+      await client.functions.invoke('resource-status', body: {
+        'op': 'mark_deleted',
+        'video_codes': videoCodes,
+      });
+      dev.log(
+        '[resource-status] marked ${videoCodes.length} resources as deleted',
+        name: 'ConversationService',
+      );
+    } catch (e) {
+      // 标记失败不阻断删除流程（物理删除已完成，逻辑标记是补充保障）
+      dev.log(
+        'markResourcesDeleted failed (non-blocking): $e',
+        name: 'ConversationService',
+      );
+    }
+  }
+
+  /// 恢复资源为有效状态（重新导入同一资源时调用）
+  ///
+  /// [videoCodes] 要恢复的资源 code 列表
+  static Future<void> markResourcesActive(List<String> videoCodes) async {
+    if (videoCodes.isEmpty) return;
+    try {
+      AuthService.instance.ensureActiveSession();
+      final client = sb.Supabase.instance.client;
+      await client.functions.invoke('resource-status', body: {
+        'op': 'mark_active',
+        'video_codes': videoCodes,
+      });
+      dev.log(
+        '[resource-status] restored ${videoCodes.length} resources as active',
+        name: 'ConversationService',
+      );
+    } catch (e) {
+      dev.log('markResourcesActive failed: $e', name: 'ConversationService');
+    }
+  }
+
   /// 上传文章内容到云端（按 folder_code 组织存储）
   ///
   /// [articleCode] 文章 code

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 声通语音评测结果解析器
 /// 
@@ -476,11 +477,11 @@ class EvaluationDisplayHelper {
 
   /// 根据分数获取图标
   static IconData getScoreIcon(double score) {
-    if (score >= 90) return Icons.sentiment_very_satisfied;
-    if (score >= 80) return Icons.sentiment_satisfied;
-    if (score >= 70) return Icons.sentiment_neutral;
-    if (score >= 60) return Icons.sentiment_dissatisfied;
-    return Icons.sentiment_very_dissatisfied;
+    if (score >= 90) return AppIcons.sentimentVerySatisfied;
+    if (score >= 80) return AppIcons.sentimentSatisfied;
+    if (score >= 70) return AppIcons.sentimentNeutral;
+    if (score >= 60) return AppIcons.sentimentDissatisfied;
+    return AppIcons.sentimentVeryDissatisfied;
   }
 
   /// 获取维度图标
@@ -488,21 +489,21 @@ class EvaluationDisplayHelper {
     switch (dimension) {
       case '总分':
       case 'overall':
-        return Icons.star;
+        return AppIcons.star;
       case '流利度':
       case 'fluency':
-        return Icons.speed;
+        return AppIcons.speed;
       case '完整度':
       case 'integrity':
-        return Icons.check_circle;
+        return AppIcons.checkCircle;
       case '准确度':
       case 'accuracy':
-        return Icons.gps_fixed;
+        return AppIcons.gpsFixed;
       case '发音':
       case 'pronunciation':
-        return Icons.record_voice_over;
+        return AppIcons.recordVoiceOver;
       default:
-        return Icons.analytics;
+        return AppIcons.analytics;
     }
   }
 

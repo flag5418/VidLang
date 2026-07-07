@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../views/evaluation_test_page.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 评测功能演示组件 - 可直接在应用中使用
 class EvaluationDemo extends StatelessWidget {
@@ -18,7 +19,7 @@ class EvaluationDemo extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.record_voice_over,
+              AppIcons.recordVoiceOver,
               size: 80,
               color: Colors.green,
             ),
@@ -53,7 +54,7 @@ class EvaluationDemo extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.play_arrow),
+              icon: const Icon(AppIcons.play),
               label: const Text('开始评测测试'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -86,22 +87,22 @@ class EvaluationDemo extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildFeatureItem(
-                    Icons.mic_none,
+                    AppIcons.micNone,
                     '免费STT识别',
                     '基础语音识别和对比',
                   ),
                   _buildFeatureItem(
-                    Icons.text_fields,
+                    AppIcons.textFields,
                     '单词精听',
                     '音素级精准发音分析',
                   ),
                   _buildFeatureItem(
-                    Icons.chat_bubble_outline,
+                    AppIcons.chatBubbleOutline,
                     '句子评测',
                     '流利度、准确度、完整度',
                   ),
                   _buildFeatureItem(
-                    Icons.article_outlined,
+                    AppIcons.article,
                     '段落流畅度',
                     '长文本连贯性分析',
                   ),
@@ -231,18 +232,18 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                 // 播放控制
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.skip_previous),
+                  icon: const Icon(AppIcons.skipPrevious),
                   iconSize: 32,
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.play_arrow),
+              icon: const Icon(AppIcons.play),
                   iconSize: 48,
                   color: Colors.blue,
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.skip_next),
+                  icon: const Icon(AppIcons.skipNext),
                   iconSize: 32,
                 ),
                 
@@ -262,7 +263,7 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.mic, size: 20),
+                    icon: const Icon(AppIcons.mic, size: 20),
                     label: const Text('跟读评测'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,

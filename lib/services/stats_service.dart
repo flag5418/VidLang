@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/word_book.dart';
@@ -456,7 +457,7 @@ class StatsService {
         title: '保持节奏',
         description:
             '已连续学习 $streakDays 天！继续保持每天学习的习惯，效果会越来越明显。',
-        icon: Icons.local_fire_department,
+        icon: AppIcons.localFireDepartment,
       ));
     } else if (streakDays >= 3) {
       suggestions.add(AiSuggestion(
@@ -464,14 +465,14 @@ class StatsService {
         description:
             '连续 ${streakDays} 天了，再坚持 ${(7 - streakDays)} 天即可解锁「连续7天」成就！',
         actionText: '今日目标',
-        icon: Icons.flag,
+        icon: AppIcons.flag,
       ));
     } else {
       suggestions.add(AiSuggestion(
         title: '开始每日学习',
         description: '每天只需 15 分钟，坚持一周就能看到明显进步。',
         actionText: '开始学习',
-        icon: Icons.play_circle_outline,
+        icon: AppIcons.playCircleOutline,
       ));
     }
 
@@ -479,13 +480,13 @@ class StatsService {
       title: '多样化学习',
       description:
           '尝试结合视频、音频和文章多种资源类型，全面提升听说读写能力。',
-      icon: Icons.dashboard,
+      icon: AppIcons.dashboard,
     ));
 
     suggestions.add(AiSuggestion(
       title: '定期复习',
       description: '使用生词本复习功能巩固已学单词，间隔重复记忆效果最佳。',
-      icon: Icons.refresh,
+      icon: AppIcons.refresh,
     ));
 
     return suggestions;

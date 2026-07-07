@@ -67,28 +67,28 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
                     '免费STT模式',
                     'speech_to_text',
                     AppColors.primary,
-                    Icons.mic,
+                    AppIcons.mic,
                     () => _showEvaluation(_testTexts['STT模式']!, EvaluationMode.freeSTT),
                   ),
                   _buildTestCard(
                     '单词评测',
                     'word_evaluation',
                     AppColors.success,
-                    Icons.text_fields,
+                    AppIcons.textFields,
                     () => _showEvaluation(_testTexts['单词模式']!, EvaluationMode.word),
                   ),
                   _buildTestCard(
                     '句子评测',
                     'sentence_evaluation',
                     AppColors.warning,
-                    Icons.chat_bubble_outline,
+                    AppIcons.chatBubbleOutline,
                     () => _showEvaluation(_testTexts['短句模式']!, EvaluationMode.sentence),
                   ),
                   _buildTestCard(
                     '段落评测',
                     'paragraph_evaluation',
                     AppColors.primary,
-                    Icons.article_outlined,
+                    AppIcons.article,
                     () => _showEvaluation(_testTexts['段落模式']!, EvaluationMode.paragraph),
                   ),
                 ],
@@ -179,7 +179,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
           Row(
             children: [
               Icon(
-                Icons.analytics,
+                AppIcons.analytics,
                 color: _lastResult!.scoreColor,
                 size: 20,
               ),
@@ -291,7 +291,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
             content: Row(
               children: [
                 Icon(
-                  Icons.check_circle,
+                  AppIcons.checkCircle,
                   color: AppColors.surface,
                   size: 20,
                 ),

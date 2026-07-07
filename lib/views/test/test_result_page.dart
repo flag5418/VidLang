@@ -28,7 +28,7 @@ class TestResultPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('评测结果'),
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(AppIcons.close),
           onPressed: () {
             ref.read(testProvider.notifier).reset();
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -110,7 +110,7 @@ class TestResultPage extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome, color: AppColors.warning),
+                const Icon(AppIcons.autoAwesome, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Text('AI 评价报告',
                     style: Theme.of(context).textTheme.titleMedium),
@@ -207,10 +207,10 @@ class TestResultPage extends ConsumerWidget {
                   dense: true,
                   leading: Icon(
                     item.isCorrect == true
-                        ? Icons.check_circle
+                        ? AppIcons.checkCircle
                         : item.isCorrect == false
-                            ? Icons.cancel
-                            : Icons.help,
+                            ? AppIcons.cancel
+                            : AppIcons.help,
                     color: item.isCorrect == true
                         ? AppColors.success
                         : item.isCorrect == false

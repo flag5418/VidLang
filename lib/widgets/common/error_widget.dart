@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 // import 'package:hugeicons/hugeicons.dart';
 
 class ErrorDisplayWidget extends StatelessWidget {
@@ -21,36 +22,36 @@ class ErrorDisplayWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(24.w),
+        padding: EdgeInsets.all(Adaptive.w(context, 24)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.error_outline,
-              size: 64.sp,
+              AppIcons.error,
+              size: Adaptive.sp(context, 64),
               color: TDTheme.of(context).errorNormalColor,
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: Adaptive.h(context, 16)),
             Text(
               title ?? '出错了',
               style: TextStyle(
-                fontSize: 18.sp,
+                fontSize: Adaptive.sp(context, 18),
                 fontWeight: FontWeight.w600,
                 color: TDTheme.of(context).fontGyColor1,
               ),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: Adaptive.h(context, 8)),
             Text(
               error,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: Adaptive.sp(context, 14),
                 color: TDTheme.of(context).fontGyColor3,
                 height: 1.4,
               ),
             ),
             if (showRetry && onRetry != null) ...[
-              SizedBox(height: 24.h),
+              SizedBox(height: Adaptive.h(context, 24)),
               ElevatedButton(
                 onPressed: onRetry,
                 child: const Text('重试'),

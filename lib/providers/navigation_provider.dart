@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 底部导航索引状态
 final navigationIndexProvider = StateNotifierProvider<NavigationIndexNotifier, int>((ref) {
@@ -36,26 +37,26 @@ final navigationItems = [
   NavigationItem(
     id: NavigationPage.home,
     label: '首页',
-    icon: Icons.home_outlined,
-    activeIcon: Icons.home,
+    icon: AppIcons.home,
+    activeIcon: AppIcons.home,
   ),
   NavigationItem(
     id: NavigationPage.resources,
     label: '资源',
-    icon: Icons.folder_outlined,
-    activeIcon: Icons.folder,
+    icon: AppIcons.folder,
+    activeIcon: AppIcons.folder,
   ),
   NavigationItem(
     id: NavigationPage.wordBook,
     label: '收藏',
-    icon: Icons.star_border_rounded,
-    activeIcon: Icons.star_rounded,
+    icon: AppIcons.starBorder,
+    activeIcon: AppIcons.star,
   ),
   NavigationItem(
     id: NavigationPage.profile,
     label: '我的',
-    icon: Icons.person_outline,
-    activeIcon: Icons.person,
+    icon: AppIcons.person,
+    activeIcon: AppIcons.person,
   ),
 ];
 

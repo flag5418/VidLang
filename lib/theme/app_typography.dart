@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/adaptive.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 /// 字体系统 — VidLang 设计升级 v3.0
 ///

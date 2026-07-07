@@ -14,6 +14,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/services/settings_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 主题模式枚举
 enum AppThemeMode {
@@ -49,11 +50,11 @@ enum AppThemeMode {
   IconData get icon {
     switch (this) {
       case AppThemeMode.light:
-        return Icons.light_mode_outlined;
+        return AppIcons.lightMode;
       case AppThemeMode.dark:
-        return Icons.dark_mode_outlined;
+        return AppIcons.darkMode;
       case AppThemeMode.system:
-        return Icons.brightness_auto_outlined;
+        return AppIcons.brightnessAuto;
     }
   }
 

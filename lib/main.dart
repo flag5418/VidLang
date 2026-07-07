@@ -54,11 +54,11 @@ import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
 import 'package:vidlang/utils/device_utils.dart';
-import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/views/test/audio_test_page.dart';
 import 'package:vidlang/views/test/shengtong_http_test_page.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -257,25 +257,17 @@ class _VidLangAppState extends State<VidLangApp> {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
-    DialogUtils.show(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text('提示'),
-        content: const Text('您的账号在其他设备上已登录，请重新登录'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              navigatorKey.currentState?.popUntil((r) => r.isFirst);
-              navigatorKey.currentState?.pushNamedAndRemoveUntil(
-                '/login',
-                (r) => false,
-              );
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+    AppAlertDialog.show(
+      context,
+      title: '提示',
+      content: '您的账号在其他设备上已登录，请重新登录',
+      onAction: () {
+        navigatorKey.currentState?.popUntil((r) => r.isFirst);
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          '/login',
+          (r) => false,
+        );
+      },
     );
   }
 
@@ -447,7 +439,7 @@ class _SchemaErrorPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.error_outline,
+                AppIcons.error,
                 color: Color(0xFFEF4444),
                 size: 64,
               ),

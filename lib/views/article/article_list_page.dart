@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/views/article/article_import_page.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
+import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 文章列表页
 ///
@@ -45,20 +47,12 @@ class _ArticleListPageState extends State<ArticleListPage> {
   }
 
   Future<void> _deleteArticle(Article article) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除文章'),
-        content: Text('确定删除「${article.title}」？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: '删除文章',
+      content: '确定删除「${article.title}」？',
+      confirmText: '删除',
+      destructive: true,
     );
     if (confirmed == true) {
       await article.softDelete();
@@ -88,7 +82,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
           await Navigator.push(context, MaterialPageRoute(builder: (_) => const ArticleImportPage()));
           if (mounted) _loadArticles();
         },
-        child: Icon(Icons.add, color: context.colors.surface),
+        child: Icon(AppIcons.add, color: context.colors.surface),
       ),
     );
   }
@@ -98,11 +92,11 @@ class _ArticleListPageState extends State<ArticleListPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.article_outlined, size: 64.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
-          SizedBox(height: AppSpacing.md.h),
-          Text('暂无文章', style: TextStyle(fontSize: 16.sp, color: colorScheme.onSurfaceVariant)),
-          SizedBox(height: AppSpacing.sm.h),
-          Text('点击右下角按钮创建第一篇', style: TextStyle(fontSize: 13.sp, color: colorScheme.outline)),
+          Icon(AppIcons.article, size: Adaptive.sp(context, 64), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+          SizedBox(height: Adaptive.h(context, AppSpacing.md)),
+          Text('暂无文章', style: TextStyle(fontSize: Adaptive.sp(context, 16), color: colorScheme.onSurfaceVariant)),
+          SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
+          Text('点击右下角按钮创建第一篇', style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.outline)),
         ],
       ),
     );
@@ -112,7 +106,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
     return RefreshIndicator(
       onRefresh: _loadArticles,
       child: ListView.builder(
-        padding: EdgeInsets.all(AppSpacing.md.w),
+        padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
         itemCount: _articles.length,
         itemBuilder: (context, index) {
           final article = _articles[index];
@@ -126,11 +120,11 @@ class _ArticleListPageState extends State<ArticleListPage> {
     final estimatedMinutes = (article.wordCount / 200).ceil().clamp(1, 999);
 
     return Card(
-      margin: EdgeInsets.only(bottom: AppSpacing.sm.h),
+      margin: EdgeInsets.only(bottom: Adaptive.h(context, AppSpacing.sm)),
       color: colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 12))),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         onTap: () async {
           await Navigator.push(
             context,
@@ -140,7 +134,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
         },
         onLongPress: () => _deleteArticle(article),
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md.w),
+          padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -150,37 +144,37 @@ class _ArticleListPageState extends State<ArticleListPage> {
                   Expanded(
                     child: Text(
                       article.title,
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (article.lastStudyDate != null)
-                    Icon(Icons.history, size: 14.sp, color: colorScheme.onSurfaceVariant),
+                    Icon(AppIcons.history, size: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant),
                 ],
               ),
-              SizedBox(height: AppSpacing.sm.h),
+              SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
 
               // 统计信息
               Row(
                 children: [
                   _buildStatChip('${article.totalParagraphs} 段', colorScheme),
-                  SizedBox(width: AppSpacing.sm.w),
+                  SizedBox(width: Adaptive.w(context, AppSpacing.sm)),
                   _buildStatChip('${article.totalSentences} 句', colorScheme),
-                  SizedBox(width: AppSpacing.sm.w),
+                  SizedBox(width: Adaptive.w(context, AppSpacing.sm)),
                   _buildStatChip('${article.wordCount} 词', colorScheme),
                   const Spacer(),
                   _buildStatChip('约 $estimatedMinutes 分钟', colorScheme),
                 ],
               ),
-              SizedBox(height: AppSpacing.sm.h),
+              SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
 
               // 进度条
               ClipRRect(
-                borderRadius: BorderRadius.circular(4.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
                 child: LinearProgressIndicator(
                   value: article.progress.clamp(0.0, 1.0),
-                  minHeight: 4.h,
+                  minHeight: Adaptive.h(context, 4),
                   backgroundColor: colorScheme.outline.withValues(alpha: 0.3),
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
@@ -194,12 +188,12 @@ class _ArticleListPageState extends State<ArticleListPage> {
 
   Widget _buildStatChip(String text, ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 8), vertical: Adaptive.h(context, 2)),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(6.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 6)),
       ),
-      child: Text(text, style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant)),
+      child: Text(text, style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant)),
     );
   }
 }

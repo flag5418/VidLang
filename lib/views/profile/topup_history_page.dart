@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 /// 充值记录项
 class TopupRecord {
@@ -107,7 +107,7 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('充值明细', style: TextStyle(fontSize: 16.sp)),
+        title: Text('充值明细', style: TextStyle(fontSize: Adaptive.sp(context, 16))),
       ),
       body: FutureBuilder<List<TopupRecord>>(
         future: _future,
@@ -131,15 +131,15 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
               });
             },
             child: ListView(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(Adaptive.w(context, 16)),
               children: [
                 // 累计充值卡片
                 _buildTotalCard(colorScheme),
-                SizedBox(height: 16.h),
+                SizedBox(height: Adaptive.h(context, 16)),
 
                 // 充值记录列表
                 _buildSectionTitle('充值记录', colorScheme),
-                SizedBox(height: 12.h),
+                SizedBox(height: Adaptive.h(context, 12)),
                 ...records.map((record) => _buildRecordItem(colorScheme, record)),
               ],
             ),
@@ -151,9 +151,9 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
 
   Widget _buildTotalCard(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 20)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
         color: _panelColor(colorScheme),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
       ),
@@ -165,15 +165,15 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
               Text(
                 '累计充值',
                 style: TextStyle(
-                  fontSize: 13.sp,
+                  fontSize: Adaptive.sp(context, 13),
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: Adaptive.h(context, 4)),
               Text(
                 '¥${_totalTopup.toStringAsFixed(2)}',
                 style: TextStyle(
-                  fontSize: 24.sp,
+                  fontSize: Adaptive.sp(context, 24),
                   fontWeight: FontWeight.w700,
                   color: colorScheme.primary,
                 ),
@@ -189,7 +189,7 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 15.sp,
+        fontSize: Adaptive.sp(context, 15),
         fontWeight: FontWeight.w600,
         color: colorScheme.onSurface,
       ),
@@ -208,10 +208,10 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(14.w),
+      margin: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
+      padding: EdgeInsets.all(Adaptive.w(context, 14)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         color: _panelColor(colorScheme),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
       ),
@@ -225,16 +225,16 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
                 Text(
                   '¥${record.amountCny.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: Adaptive.h(context, 4)),
                 Text(
                   '$formattedTime',
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: Adaptive.sp(context, 12),
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -248,25 +248,25 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
               Text(
                 record.channelLabel,
                 style: TextStyle(
-                  fontSize: 13.sp,
+                  fontSize: Adaptive.sp(context, 13),
                   color: colorScheme.onSurface,
                 ),
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: Adaptive.h(context, 4)),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 8), vertical: Adaptive.h(context, 2)),
                 decoration: BoxDecoration(
                   color: record.status == 'success'
                       ? Colors.green.withValues(alpha: 0.12)
                       : record.status == 'failed'
                           ? colorScheme.error.withValues(alpha: 0.12)
                           : colorScheme.outlineVariant.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(4.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
                 ),
                 child: Text(
                   record.statusLabel,
                   style: TextStyle(
-                    fontSize: 11.sp,
+                    fontSize: Adaptive.sp(context, 11),
                     color: record.status == 'success'
                         ? Colors.green
                         : record.status == 'failed'
@@ -288,15 +288,15 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.receipt_long_outlined,
-            size: 48.sp,
+            AppIcons.receiptLong,
+            size: Adaptive.sp(context, 48),
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: Adaptive.h(context, 12)),
           Text(
             '暂无充值记录',
             style: TextStyle(
-              fontSize: 14.sp,
+              fontSize: Adaptive.sp(context, 14),
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -308,18 +308,18 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
   Widget _buildErrorState(ColorScheme colorScheme, String message) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(24.w),
+        padding: EdgeInsets.all(Adaptive.w(context, 24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48.sp, color: colorScheme.error),
-            SizedBox(height: 12.h),
+            Icon(AppIcons.error, size: Adaptive.sp(context, 48), color: colorScheme.error),
+            SizedBox(height: Adaptive.h(context, 12)),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14.sp),
+              style: TextStyle(fontSize: Adaptive.sp(context, 14)),
             ),
-            SizedBox(height: 12.h),
+            SizedBox(height: Adaptive.h(context, 12)),
             FilledButton(
               onPressed: () {
                 setState(() {

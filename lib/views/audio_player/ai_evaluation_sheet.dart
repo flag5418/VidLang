@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class AiEvaluationSheet extends StatefulWidget {
   final String videoCode;
@@ -192,7 +192,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                   'AI 点评',
                   style: TextStyle(
                     color: AppColors.onSurface,
-                    fontSize: 16.sp,
+                    fontSize: Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -223,7 +223,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                           )
                         else
                           Icon(
-                            Icons.auto_awesome,
+                            AppIcons.autoAwesome,
                             size: 14,
                             color: AppColors.onSurface,
                           ),
@@ -232,7 +232,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                           _loading ? '分析中...' : '请求点评',
                           style: TextStyle(
                             color: AppColors.onSurface,
-                            fontSize: 12.sp,
+                            fontSize: Adaptive.sp(context, 12),
                           ),
                         ),
                       ],
@@ -258,11 +258,11 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         SizedBox(height: 40),
-        Icon(Icons.auto_awesome_outlined, size: 48, color: AppColors.onSurface.withValues(alpha: 0.24)),
+        Icon(AppIcons.autoAwesome, size: 48, color: AppColors.onSurface.withValues(alpha: 0.24)),
         SizedBox(height: 12),
         Text(
           '暂无AI点评\n跟读练习后点击"请求点评"',
-          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 13.sp),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 13)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -284,7 +284,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                   '${e.resourceScore!.round()}',
                   style: TextStyle(
                     color: _scoreColor(e.resourceScore!),
-                    fontSize: 48.sp,
+                    fontSize: Adaptive.sp(context, 48),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -305,7 +305,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                       e.overallLevel!,
                       style: TextStyle(
                         color: _scoreColor(e.resourceScore!),
-                        fontSize: 12.sp,
+                        fontSize: Adaptive.sp(context, 12),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -327,23 +327,23 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         if (structured != null) ...[
           if (structured['encouragement'] != null)
             _evaluationSection(
-              Icons.favorite,
+              AppIcons.favorite,
               '鼓励',
               structured['encouragement']!,
             ),
           if (structured['pronunciation'] != null)
             _evaluationSection(
-              Icons.record_voice_over,
+              AppIcons.recordVoiceOver,
               '发音',
               structured['pronunciation']!,
             ),
           if (structured['fluency'] != null)
-            _evaluationSection(Icons.speed, '流畅度', structured['fluency']!),
+            _evaluationSection(AppIcons.speed, '流畅度', structured['fluency']!),
           if (structured['suggestions'] != null)
             _suggestionsSection(structured['suggestions']),
           if (structured['nextStep'] != null)
             _evaluationSection(
-              Icons.trending_up,
+              AppIcons.trendingUp,
               '下一步',
               structured['nextStep']!,
             ),
@@ -358,7 +358,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               e.summary!,
               style: TextStyle(
                 color: AppColors.onSurface,
-                fontSize: 13.sp,
+                fontSize: Adaptive.sp(context, 13),
                 height: 1.6,
               ),
             ),
@@ -368,7 +368,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         if (_history.length > 1) ...[
           Text(
             '历史点评',
-            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 12.sp),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: Adaptive.sp(context, 12)),
           ),
           const SizedBox(height: 8),
           ..._history.skip(1).map((h) => _historyItem(h)),
@@ -408,7 +408,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 title,
                 style: TextStyle(
                   color: AppColors.onSurface.withValues(alpha: 0.7),
-                  fontSize: 12.sp,
+                  fontSize: Adaptive.sp(context, 12),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -417,7 +417,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           const SizedBox(height: 8),
           Text(
             content,
-            style: TextStyle(color: AppColors.onSurface, fontSize: 13.sp, height: 1.6),
+            style: TextStyle(color: AppColors.onSurface, fontSize: Adaptive.sp(context, 13), height: 1.6),
           ),
         ],
       ),
@@ -438,13 +438,13 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb, size: 16, color: AppColors.onSurface.withValues(alpha: 0.7)),
+              Icon(AppIcons.lightbulb, size: 16, color: AppColors.onSurface.withValues(alpha: 0.7)),
               const SizedBox(width: 6),
               Text(
                 '建议',
                 style: TextStyle(
                   color: AppColors.onSurface.withValues(alpha: 0.7),
-                  fontSize: 12.sp,
+                  fontSize: Adaptive.sp(context, 12),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -459,14 +459,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 children: [
                   Text(
                     '• ',
-                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 13.sp),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 13)),
                   ),
                   Expanded(
                     child: Text(
                       '$s',
                       style: TextStyle(
                         color: AppColors.onSurface,
-                        fontSize: 13.sp,
+                        fontSize: Adaptive.sp(context, 13),
                         height: 1.5,
                       ),
                     ),
@@ -489,14 +489,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               : '-',
           style: TextStyle(
             color: AppColors.onSurface,
-            fontSize: 16.sp,
+            fontSize: Adaptive.sp(context, 16),
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: 12.sp),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 12)),
         ),
       ],
     );
@@ -523,7 +523,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 '${h.resourceScore!.round()}',
                 style: TextStyle(
                   color: _scoreColor(h.resourceScore!),
-                  fontSize: 12.sp,
+                  fontSize: Adaptive.sp(context, 12),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -532,14 +532,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
           Expanded(
             child: Text(
               h.summary ?? '无点评内容',
-              style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: 13.sp),
+              style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: Adaptive.sp(context, 13)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             _fmtDate(h.evaluatedAt),
-            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: 12.sp),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: Adaptive.sp(context, 12)),
           ),
         ],
       ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/utils/adaptive.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
@@ -62,8 +62,8 @@ class PrimaryButton extends StatelessWidget {
       child: Container(
         width: isFullWidth ? double.infinity : null,
         padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.buttonPaddingHorizontal.w,
-          vertical: AppSpacing.buttonPaddingVertical.h,
+          horizontal: Adaptive.w(context, AppSpacing.buttonPaddingHorizontal),
+          vertical: Adaptive.h(context, AppSpacing.buttonPaddingVertical),
         ),
         decoration: BoxDecoration(
           color: isEnabled 
@@ -85,8 +85,8 @@ class PrimaryButton extends StatelessWidget {
           children: [
             if (isLoading)
               SizedBox(
-                width: 18.w,
-                height: 18.w,
+                width: Adaptive.w(context, 18),
+                height: Adaptive.w(context, 18),
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
@@ -95,7 +95,7 @@ class PrimaryButton extends StatelessWidget {
                 ),
               )
             else if (icon != null)
-              Icon(icon, size: 20.w, color: textColor ?? Colors.white),
+              Icon(icon, size: Adaptive.w(context, 20), color: textColor ?? Colors.white),
             
             if ((isLoading || icon != null) && text.isNotEmpty)
               SizedBox(width: AppSpacing.sm),
@@ -105,7 +105,7 @@ class PrimaryButton extends StatelessWidget {
                 child: Text(
                   text,
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                     color: textColor ?? Colors.white,
                   ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 /// 段落内单词信息
 class _ParagraphWord {
@@ -382,10 +382,10 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
 
           return Container(
             key: word.key,
-            padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 2), vertical: Adaptive.h(context, 2)),
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(3.r),
+              borderRadius: BorderRadius.circular(Adaptive.r(context, 3)),
               border: isTtsHighlight
                   ? Border.all(
                       color: widget.colorScheme.primary.withValues(alpha: 0.4),
@@ -396,7 +396,7 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
             child: Text(
               word.text,
               style: TextStyle(
-                fontSize: widget.fontSize.sp,
+                fontSize: Adaptive.sp(context, widget.fontSize),
                 color: textColor,
                 fontWeight: widget.fontWeight ?? FontWeight.w500,
                 height: 1.6,

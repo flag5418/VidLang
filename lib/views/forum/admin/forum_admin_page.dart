@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../providers/forum_admin_providers.dart';
 import '../../../widgets/common/loading_widget.dart';
 import '../../../widgets/common/error_widget.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class ForumAdminPage extends ConsumerStatefulWidget {
   const ForumAdminPage({Key? key}) : super(key: key);
@@ -43,7 +43,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.lock, size: 64, color: AppColors.onSurfaceVariant),
+                  Icon(AppIcons.lock, size: 64, color: AppColors.onSurfaceVariant),
                   SizedBox(height: 16),
                   Text('您没有管理员权限'),
                 ],
@@ -132,7 +132,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle, size: 64, color: AppColors.success),
+                Icon(AppIcons.checkCircle, size: 64, color: AppColors.success),
                 SizedBox(height: 16),
                 Text('所有帖子已审核完成'),
               ],
@@ -141,14 +141,14 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
         }
 
         return ListView.builder(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(Adaptive.w(context, 16)),
           itemCount: posts.length,
           itemBuilder: (context, index) {
             final post = posts[index];
             return Card(
-              margin: EdgeInsets.only(bottom: 12.h),
+              margin: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
               child: Padding(
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(Adaptive.w(context, 16)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -158,7 +158,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           child: Text(
                             post.title,
                             style: TextStyle(
-                              fontSize: 16.sp,
+                              fontSize: Adaptive.sp(context, 16),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -166,29 +166,29 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                         Chip(
                           label: Text(
                             post.postType,
-                            style: TextStyle(fontSize: 10.sp),
+                            style: TextStyle(fontSize: Adaptive.sp(context, 10)),
                           ),
                           backgroundColor: _getPostTypeColor(post.postType),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: Adaptive.h(context, 8)),
                     Text(
                       post.content,
                       style: TextStyle(
-                        fontSize: 14.sp,
+                        fontSize: Adaptive.sp(context, 14),
                         color: AppColors.textSecondary,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: Adaptive.h(context, 12)),
                     Row(
                       children: [
                         Text(
                           '作者: ${post.authorName}',
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: Adaptive.sp(context, 12),
                             color: AppColors.onSurfaceVariant,
                           ),
                         ),
@@ -197,7 +197,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           onPressed: () => _rejectPost(post.id),
                           child: const Text('拒绝'),
                         ),
-                        SizedBox(width: 8.w),
+                        SizedBox(width: Adaptive.w(context, 8)),
                         ElevatedButton(
                           onPressed: () => _approvePost(post.id),
                           child: const Text('通过'),
@@ -229,7 +229,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle, size: 64, color: AppColors.success),
+                Icon(AppIcons.checkCircle, size: 64, color: AppColors.success),
                 SizedBox(height: 16),
                 Text('所有评论已审核完成'),
               ],
@@ -238,37 +238,37 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
         }
 
         return ListView.builder(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(Adaptive.w(context, 16)),
           itemCount: comments.length,
           itemBuilder: (context, index) {
             final comment = comments[index];
             return Card(
-              margin: EdgeInsets.only(bottom: 12.h),
+              margin: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
               child: Padding(
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(Adaptive.w(context, 16)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '帖子: ${comment.postTitle}',
                       style: TextStyle(
-                        fontSize: 14.sp,
+                        fontSize: Adaptive.sp(context, 14),
                         fontWeight: FontWeight.w500,
                         color: AppColors.primary,
                       ),
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: Adaptive.h(context, 8)),
                     Text(
                       comment.content,
-                      style: TextStyle(fontSize: 14.sp),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 14)),
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: Adaptive.h(context, 12)),
                     Row(
                       children: [
                         Text(
                           '评论者: ${comment.userName}',
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: Adaptive.sp(context, 12),
                             color: AppColors.onSurfaceVariant,
                           ),
                         ),
@@ -277,7 +277,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           onPressed: () => _rejectComment(comment.id),
                           child: const Text('拒绝'),
                         ),
-                        SizedBox(width: 8.w),
+                        SizedBox(width: Adaptive.w(context, 8)),
                         ElevatedButton(
                           onPressed: () => _approveComment(comment.id),
                           child: const Text('通过'),
@@ -304,7 +304,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people, size: 64, color: AppColors.onSurfaceVariant),
+          Icon(AppIcons.people, size: 64, color: AppColors.onSurfaceVariant),
           SizedBox(height: 16),
           Text('用户管理功能开发中'),
         ],
@@ -317,7 +317,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.feedback, size: 64, color: AppColors.onSurfaceVariant),
+          Icon(AppIcons.feedback, size: 64, color: AppColors.onSurfaceVariant),
           SizedBox(height: 16),
           Text('反馈管理功能开发中'),
         ],
@@ -330,16 +330,16 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
     
     return statsAsync.when(
       data: (stats) => Padding(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(Adaptive.w(context, 16)),
         child: GridView.count(
           crossAxisCount: 2,
-          crossAxisSpacing: 16.w,
-          mainAxisSpacing: 16.h,
+          crossAxisSpacing: Adaptive.w(context, 16),
+          mainAxisSpacing: Adaptive.h(context, 16),
           children: [
-            _buildStatCard('总帖子数', stats['total_posts']?.toString() ?? '0', Icons.article),
-            _buildStatCard('总评论数', stats['total_comments']?.toString() ?? '0', Icons.comment),
-            _buildStatCard('注册用户', stats['total_users']?.toString() ?? '0', Icons.people),
-            _buildStatCard('本周活跃', stats['active_users_week']?.toString() ?? '0', Icons.trending_up),
+            _buildStatCard('总帖子数', stats['total_posts']?.toString() ?? '0', AppIcons.article),
+            _buildStatCard('总评论数', stats['total_comments']?.toString() ?? '0', AppIcons.comment),
+            _buildStatCard('注册用户', stats['total_users']?.toString() ?? '0', AppIcons.people),
+            _buildStatCard('本周活跃', stats['active_users_week']?.toString() ?? '0', AppIcons.trendingUp),
           ],
         ),
       ),
@@ -354,16 +354,16 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
   Widget _buildStatCard(String title, String value, IconData icon) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(Adaptive.w(context, 16)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32.sp, color: Theme.of(context).primaryColor),
-            SizedBox(height: 8.h),
+            Icon(icon, size: Adaptive.sp(context, 32), color: Theme.of(context).primaryColor),
+            SizedBox(height: Adaptive.h(context, 8)),
             Text(
               value,
               style: TextStyle(
-                fontSize: 24.sp,
+                fontSize: Adaptive.sp(context, 24),
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).primaryColor,
               ),
@@ -371,7 +371,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
             Text(
               title,
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: Adaptive.sp(context, 14),
                 color: AppColors.textSecondary,
               ),
             ),

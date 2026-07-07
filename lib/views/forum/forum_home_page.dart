@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../models/forum/forum_post.dart';
 import '../../services/forum/forum_service.dart';
 import '../../providers/forum_providers.dart';
@@ -8,6 +7,7 @@ import '../../widgets/common/loading_widget.dart';
 import '../../widgets/common/error_widget.dart';
 import 'forum_create_post_page.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class ForumHomePage extends ConsumerStatefulWidget {
   const ForumHomePage({Key? key}) : super(key: key);
@@ -46,7 +46,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         foregroundColor: AppColors.textPrimary,
         elevation: 1,
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(120.h),
+          preferredSize: Size.fromHeight(Adaptive.h(context, 120)),
           child: Container(
             color: AppColors.surface,
             child: Column(
@@ -79,7 +79,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         onPressed: () => _navigateToCreatePost(),
         backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(
-          Icons.add,
+          AppIcons.add,
           color: AppColors.surface,
         ),
       ),
@@ -88,18 +88,18 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
 
   Widget _buildSearchBar() {
     return Container(
-      margin: EdgeInsets.all(16.w),
+      margin: EdgeInsets.all(Adaptive.w(context, 16)),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: '搜索帖子、用户或标签...',
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.r),
+            borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
           ),
           filled: true,
           fillColor: AppColors.lightBackground,
           suffixIcon: IconButton(
-            icon: const Icon(Icons.clear),
+            icon: const Icon(AppIcons.clear),
             onPressed: () {
               setState(() {
                 _searchQuery = '';
@@ -127,44 +127,44 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       unselectedLabelColor: AppColors.onSurfaceVariant,
       indicatorColor: Theme.of(context).primaryColor,
       indicatorSize: TabBarIndicatorSize.tab,
-      labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
       tabs: tabs.map((tab) => Tab(text: tab)).toList(),
     );
   }
 
   Widget _buildQuickActions() {
     return Container(
-      height: 60.h,
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      height: Adaptive.h(context, 60),
+      margin: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 8)),
       child: Row(
         children: [
           Expanded(
             child: _buildQuickActionButton(
-              icon: Icons.video_library,
+              icon: AppIcons.movie,
               label: '分享视频',
               onTap: () => _navigateToCreatePost('resource', 'video'),
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: Adaptive.w(context, 8)),
           Expanded(
             child: _buildQuickActionButton(
-              icon: Icons.audio_file,
+              icon: AppIcons.audioFile,
               label: '分享音频',
               onTap: () => _navigateToCreatePost('resource', 'audio'),
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: Adaptive.w(context, 8)),
           Expanded(
             child: _buildQuickActionButton(
-              icon: Icons.chat,
+              icon: AppIcons.chat,
               label: '学习讨论',
               onTap: () => _navigateToCreatePost('discussion'),
             ),
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: Adaptive.w(context, 8)),
           Expanded(
             child: _buildQuickActionButton(
-              icon: Icons.help_outline,
+              icon: AppIcons.help,
               label: '求助问答',
               onTap: () => _navigateToCreatePost('help'),
             ),
@@ -182,10 +182,10 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8.h),
+        padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8.r),
+          borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
           border: Border.all(color: AppColors.borderLight!),
         ),
         child: Column(
@@ -193,14 +193,14 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           children: [
             Icon(
               icon,
-              size: 20.sp,
+              size: Adaptive.sp(context, 20),
               color: Theme.of(context).primaryColor,
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: Adaptive.h(context, 4)),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10.sp,
+                fontSize: Adaptive.sp(context, 10),
                 color: AppColors.textSecondary,
               ),
             ),
@@ -231,9 +231,9 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
             )));
           },
           child: ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 8)),
             itemCount: posts.length,
-            separatorBuilder: (context, index) => SizedBox(height: 8.h),
+            separatorBuilder: (context, index) => SizedBox(height: Adaptive.h(context, 8)),
             itemBuilder: (context, index) {
               return _buildPostCard(posts[index]);
             },
@@ -260,23 +260,23 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     switch (category) {
       case 'resources':
         message = '暂无资源分享';
-        icon = Icons.video_library;
+        icon = AppIcons.movie;
         break;
       case 'discussion':
         message = '暂无学习讨论';
-        icon = Icons.chat;
+        icon = AppIcons.chat;
         break;
       case 'feedback':
         message = '暂无反馈建议';
-        icon = Icons.feedback;
+        icon = AppIcons.feedback;
         break;
       case 'help':
         message = '暂无求助内容';
-        icon = Icons.help_outline;
+        icon = AppIcons.help;
         break;
       default:
         message = '暂无帖子内容';
-        icon = Icons.forum;
+        icon = AppIcons.forum;
     }
 
     return Center(
@@ -285,18 +285,18 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         children: [
           Icon(
             icon,
-            size: 80.sp,
+            size: Adaptive.sp(context, 80),
             color: AppColors.onSurfaceVariant,
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: Adaptive.h(context, 16)),
           Text(
             message,
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: Adaptive.sp(context, 16),
               color: AppColors.onSurfaceVariant,
             ),
           ),
-          SizedBox(height: 24.h),
+          SizedBox(height: Adaptive.h(context, 24)),
           ElevatedButton(
             onPressed: () => _navigateToCreatePost(category),
             child: const Text('发布第一个帖子'),
@@ -310,7 +310,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
         boxShadow: [
           BoxShadow(
             color: AppColors.textPrimary.withValues(alpha: 0.05),
@@ -323,20 +323,20 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _navigateToPostDetail(post),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
           child: Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(Adaptive.w(context, 16)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPostHeader(post),
-                SizedBox(height: 12.h),
+                SizedBox(height: Adaptive.h(context, 12)),
                 _buildPostContent(post),
                 if (post.resourceType != null) ...[
-                  SizedBox(height: 12.h),
+                  SizedBox(height: Adaptive.h(context, 12)),
                   _buildResourceInfo(post),
                 ],
-                SizedBox(height: 12.h),
+                SizedBox(height: Adaptive.h(context, 12)),
                 _buildPostFooter(post),
               ],
             ),
@@ -350,18 +350,18 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     return Row(
       children: [
         CircleAvatar(
-          radius: 16.r,
+          radius: Adaptive.r(context, 16),
           backgroundColor: Theme.of(context).primaryColor,
           child: Text(
             post.authorName?.substring(0, 1) ?? 'U',
             style: TextStyle(
               color: AppColors.surface,
-              fontSize: 14.sp,
+              fontSize: Adaptive.sp(context, 14),
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: Adaptive.w(context, 8)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,24 +371,24 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                   Text(
                     post.authorName ?? '未知用户',
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: Adaptive.sp(context, 14),
                       fontWeight: FontWeight.w500,
                       color: AppColors.textPrimary,
                     ),
                   ),
                   if (post.isPinned) ...[
-                    SizedBox(width: 8.w),
+                    SizedBox(width: Adaptive.w(context, 8)),
                     Icon(
-                      Icons.push_pin,
-                      size: 14.sp,
+                      AppIcons.pushPin,
+                      size: Adaptive.sp(context, 14),
                       color: AppColors.warning,
                     ),
                   ],
                   if (post.isFeatured) ...[
-                    SizedBox(width: 4.w),
+                    SizedBox(width: Adaptive.w(context, 4)),
                     Icon(
-                      Icons.star,
-                      size: 14.sp,
+                      AppIcons.star,
+                      size: Adaptive.sp(context, 14),
                       color: AppColors.warning,
                     ),
                   ],
@@ -397,7 +397,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
               Text(
                 _formatTime(post.createdAt),
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: Adaptive.sp(context, 12),
                   color: AppColors.onSurfaceVariant,
                 ),
               ),
@@ -436,15 +436,15 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 8), vertical: Adaptive.h(context, 2)),
       decoration: BoxDecoration(
         color: tagColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
       ),
       child: Text(
         tagText,
         style: TextStyle(
-          fontSize: 10.sp,
+          fontSize: Adaptive.sp(context, 10),
           color: tagColor,
           fontWeight: FontWeight.w500,
         ),
@@ -459,18 +459,18 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         Text(
           post.title,
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: Adaptive.sp(context, 16),
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: Adaptive.h(context, 8)),
         Text(
           post.summary ?? post.content,
           style: TextStyle(
-            fontSize: 14.sp,
+            fontSize: Adaptive.sp(context, 14),
             color: AppColors.textSecondary,
             height: 1.4,
           ),
@@ -478,21 +478,21 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           overflow: TextOverflow.ellipsis,
         ),
         if (post.tags.isNotEmpty) ...[
-          SizedBox(height: 8.h),
+          SizedBox(height: Adaptive.h(context, 8)),
           Wrap(
-            spacing: 6.w,
-            runSpacing: 4.h,
+            spacing: Adaptive.w(context, 6),
+            runSpacing: Adaptive.h(context, 4),
             children: post.tags.take(3).map((tag) {
               return Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 6), vertical: Adaptive.h(context, 2)),
                 decoration: BoxDecoration(
                   color: AppColors.borderLight,
-                  borderRadius: BorderRadius.circular(3.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 3)),
                 ),
                 child: Text(
                   '#$tag',
                   style: TextStyle(
-                    fontSize: 10.sp,
+                    fontSize: Adaptive.sp(context, 10),
                     color: AppColors.onSurfaceVariant,
                   ),
                 ),
@@ -510,27 +510,27 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     
     switch (post.resourceType) {
       case 'video':
-        resourceIcon = Icons.video_library;
+        resourceIcon = AppIcons.movie;
         resourceLabel = '视频资源';
         break;
       case 'audio':
-        resourceIcon = Icons.audio_file;
+        resourceIcon = AppIcons.audioFile;
         resourceLabel = '音频资源';
         break;
       case 'article':
-        resourceIcon = Icons.article;
+        resourceIcon = AppIcons.article;
         resourceLabel = '文章资源';
         break;
       default:
-        resourceIcon = Icons.link;
+        resourceIcon = AppIcons.link;
         resourceLabel = '其他资源';
     }
 
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 12)),
       decoration: BoxDecoration(
         color: Theme.of(context).primaryColor.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
         border: Border.all(
           color: Theme.of(context).primaryColor.withOpacity(0.2),
         ),
@@ -539,10 +539,10 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         children: [
           Icon(
             resourceIcon,
-            size: 16.sp,
+            size: Adaptive.sp(context, 16),
             color: Theme.of(context).primaryColor,
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: Adaptive.w(context, 8)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -550,7 +550,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                 Text(
                   resourceLabel,
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: Adaptive.sp(context, 12),
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor,
                   ),
@@ -559,7 +559,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
                   Text(
                     post.resourceDescription!,
                     style: TextStyle(
-                      fontSize: 11.sp,
+                      fontSize: Adaptive.sp(context, 11),
                       color: AppColors.onSurfaceVariant,
                     ),
                     maxLines: 1,
@@ -577,29 +577,29 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     return Row(
       children: [
         _buildFooterButton(
-          icon: Icons.visibility,
+          icon: AppIcons.visibility,
           count: post.viewCount,
           label: '浏览',
           onTap: null,
         ),
-        SizedBox(width: 16.w),
+        SizedBox(width: Adaptive.w(context, 16)),
         _buildFooterButton(
-          icon: Icons.favorite,
+          icon: AppIcons.favorite,
           count: post.likeCount,
           label: '点赞',
           onTap: () => _handleLike(post),
           isActive: post.isLikedByCurrentUser,
         ),
-        SizedBox(width: 16.w),
+        SizedBox(width: Adaptive.w(context, 16)),
         _buildFooterButton(
-          icon: Icons.comment,
+          icon: AppIcons.chat,
           count: post.commentCount,
           label: '评论',
           onTap: () => _navigateToPostDetail(post, focusComment: true),
         ),
         const Spacer(),
         _buildFooterButton(
-          icon: Icons.bookmark,
+          icon: AppIcons.bookmarkFill,
           count: 0,
           label: '收藏',
           onTap: () => _handleFavorite(post),
@@ -629,15 +629,15 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         children: [
           Icon(
             icon,
-            size: 16.sp,
+            size: Adaptive.sp(context, 16),
             color: color,
           ),
           if (showCount) ...[
-            SizedBox(width: 4.w),
+            SizedBox(width: Adaptive.w(context, 4)),
             Text(
               count > 0 ? count.toString() : label,
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: Adaptive.sp(context, 12),
                 color: color,
               ),
             ),

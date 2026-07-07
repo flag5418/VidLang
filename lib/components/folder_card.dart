@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
@@ -17,6 +16,7 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_radius.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class _FolderInfo {
   final int count;
@@ -66,7 +66,7 @@ class _FolderCardState extends State<FolderCard> {
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeOut,
         child: Container(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(Adaptive.w(context, 16)),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(AppRadius.card),
@@ -90,11 +90,11 @@ class _FolderCardState extends State<FolderCard> {
                       const Spacer(),
                       Text(
                         widget.folder.name,
-                        style: TextStyle(fontSize: 16.sp, height: 1.4, fontWeight: FontWeight.w600, color: titleColor),
+                        style: TextStyle(fontSize: Adaptive.sp(context, 16), height: 1.4, fontWeight: FontWeight.w600, color: titleColor),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: Adaptive.h(context, 8)),
                       _buildBottomRow(subtitleColor, info?.currentTitle),
                     ],
                   );
@@ -140,11 +140,11 @@ class _FolderCardState extends State<FolderCard> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: 14.sp, color: typeColor),
-            SizedBox(width: 4.w),
+            Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: Adaptive.sp(context, 14), color: typeColor),
+            SizedBox(width: Adaptive.w(context, 4)),
             Text(
               _folderTypeLabel(),
-              style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w500, color: metaColor, letterSpacing: 0.2),
+              style: TextStyle(fontSize: Adaptive.sp(context, 11), fontWeight: FontWeight.w500, color: metaColor, letterSpacing: 0.2),
             ),
           ],
         ),
@@ -153,14 +153,14 @@ class _FolderCardState extends State<FolderCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 4.w,
-                height: 4.w,
+                width: Adaptive.w(context, 4),
+                height: Adaptive.w(context, 4),
                 decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: Adaptive.w(context, 4)),
               Text(
                 '$count${ResourceIcons.unitLabel(widget.folder.folderType.name)}',
-                style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w500, color: metaColor),
+                style: TextStyle(fontSize: Adaptive.sp(context, 11), fontWeight: FontWeight.w500, color: metaColor),
               ),
             ],
           ),
@@ -183,11 +183,11 @@ class _FolderCardState extends State<FolderCard> {
     if (currentTitle == null || currentTitle.isEmpty) {
       return Row(
         children: [
-          Icon(Icons.play_circle_outline_rounded, size: 14.sp, color: subtitleColor.withValues(alpha: 0.5)),
-          SizedBox(width: 4.w),
+          Icon(AppIcons.playCircleOutline, size: Adaptive.sp(context, 14), color: subtitleColor.withValues(alpha: 0.5)),
+          SizedBox(width: Adaptive.w(context, 4)),
           Text(
             '暂无最近内容',
-            style: TextStyle(fontSize: 11.sp, color: subtitleColor.withValues(alpha: 0.5), fontWeight: FontWeight.w400),
+            style: TextStyle(fontSize: Adaptive.sp(context, 11), color: subtitleColor.withValues(alpha: 0.5), fontWeight: FontWeight.w400),
           ),
         ],
       );
@@ -195,12 +195,12 @@ class _FolderCardState extends State<FolderCard> {
 
     return Row(
       children: [
-        Icon(Icons.play_circle_filled_rounded, size: 14.sp, color: subtitleColor.withValues(alpha: 0.8)),
-        SizedBox(width: 4.w),
+        Icon(AppIcons.playCircleFill, size: Adaptive.sp(context, 14), color: subtitleColor.withValues(alpha: 0.8)),
+        SizedBox(width: Adaptive.w(context, 4)),
         Expanded(
           child: Text(
             currentTitle,
-            style: TextStyle(fontSize: 12.sp, color: subtitleColor, fontWeight: FontWeight.w400),
+            style: TextStyle(fontSize: Adaptive.sp(context, 12), color: subtitleColor, fontWeight: FontWeight.w400),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

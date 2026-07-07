@@ -7,7 +7,6 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/services/app_keys_service.dart';
@@ -18,6 +17,8 @@ import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -63,11 +64,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       items: [
         TDActionSheetItem(
           label: '相册',
-          icon: Icon(Icons.photo_library_rounded, size: 22.sp),
+          icon: Icon(AppIcons.photoLibrary, size: Adaptive.sp(context, 22)),
         ),
         TDActionSheetItem(
           label: '拍照',
-          icon: Icon(Icons.camera_alt_rounded, size: 22.sp),
+          icon: Icon(AppIcons.cameraAlt, size: Adaptive.sp(context, 22)),
         ),
       ],
       onSelected: (item, _) {
@@ -141,7 +142,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         title: Text(
           '编辑资料',
           style: TextStyle(
-            fontSize: 18.sp,
+            fontSize: Adaptive.sp(context, 18),
             fontWeight: FontWeight.w600,
             color: cs.onSurface,
           ),
@@ -150,7 +151,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: cs.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: cs.onSurface, size: 20),
+          icon: Icon(AppIcons.arrowBackIos, color: cs.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -168,7 +169,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _buildInfoCard(
               label: '昵称',
               value: nickname,
-              icon: Icons.edit_outlined,
+              icon: AppIcons.edit,
               onTap: _editNickname,
               cs: cs,
             ),
@@ -177,7 +178,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _buildInfoCard(
               label: '登录名',
               value: user?.username ?? '',
-              icon: Icons.alternate_email_rounded,
+              icon: AppIcons.alternateEmail,
               cs: cs,
             ),
           ],
@@ -191,19 +192,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return ClipOval(
         child: Image.file(
           _avatarFile!,
-          width: 44.w,
-          height: 44.w,
+          width: Adaptive.w(context, 44),
+          height: Adaptive.w(context, 44),
           fit: BoxFit.cover,
         ),
       );
     }
     return CircleAvatar(
-      radius: 22.r,
+      radius: Adaptive.r(context, 22),
       backgroundColor: cs.primary.withValues(alpha: 0.12),
       child: Text(
         initial,
         style: TextStyle(
-          fontSize: 18.sp,
+          fontSize: Adaptive.sp(context, 18),
           fontWeight: FontWeight.bold,
           color: cs.primary,
         ),
@@ -223,15 +224,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         children: [
           // 左侧图标 + 标签
           Container(
-            width: 40.w,
-            height: 40.w,
+            width: Adaptive.w(context, 40),
+            height: Adaptive.w(context, 40),
             decoration: BoxDecoration(
               color: cs.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
             ),
             child: Icon(
-              Icons.photo_camera_rounded,
-              size: 20.sp,
+              AppIcons.photoCamera,
+              size: Adaptive.sp(context, 20),
               color: cs.primary,
             ),
           ),
@@ -244,26 +245,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Text(
                   '头像',
                   style: TextStyle(
-                    fontSize: 16.sp,
+                    fontSize: Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                     color: cs.onSurface,
                   ),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: Adaptive.h(context, 2)),
                 Text(
                   '点击更换头像',
-                  style: TextStyle(fontSize: 12.sp, color: cs.onSurfaceVariant),
+                  style: TextStyle(fontSize: Adaptive.sp(context, 12), color: cs.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           // 右侧头像预览
           _buildAvatar(cs, initial),
-          SizedBox(width: 6.w),
+          SizedBox(width: Adaptive.w(context, 6)),
           Icon(
-            Icons.chevron_right_rounded,
-            size: 20.sp,
-            color: cs.outline.withValues(alpha: 0.5),
+            AppIcons.chevronRight,
+              size: Adaptive.sp(context, 20),
+              color: cs.outline.withValues(alpha: 0.5),
           ),
         ],
       ),
@@ -293,15 +294,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 36.w,
-                height: 36.w,
+                width: Adaptive.w(context, 36),
+                height: Adaptive.w(context, 36),
                 decoration: BoxDecoration(
                   color: cs.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
                 ),
                 child: Icon(
                   icon,
-                  size: 18.sp,
+                  size: Adaptive.sp(context, 18),
                   color: cs.primary.withValues(alpha: 0.8),
                 ),
               ),
@@ -309,7 +310,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: Adaptive.sp(context, 16),
                   fontWeight: FontWeight.w500,
                   color: cs.onSurface,
                 ),
@@ -329,16 +330,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                     style: TextStyle(
-                      fontSize: 15.sp,
+                      fontSize: Adaptive.sp(context, 15),
                       color: interactive ? cs.onSurface : cs.onSurfaceVariant,
                     ),
                   ),
                 ),
               if (interactive) ...[
-                SizedBox(width: 6.w),
+                SizedBox(width: Adaptive.w(context, 6)),
                 Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20.sp,
+                  AppIcons.chevronRight,
+                  size: Adaptive.sp(context, 20),
                   color: cs.outline.withValues(alpha: 0.5),
                 ),
               ],

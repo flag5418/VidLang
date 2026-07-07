@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/utils/adaptive.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
+import '../../theme/theme.dart';
 
 /// 徽章组件
 /// 
@@ -35,8 +36,8 @@ class Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: 8.w,
-        vertical: 6.h,
+        horizontal: Adaptive.w(context, 8),
+        vertical: Adaptive.h(context, 6),
       ),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surfaceSecondaryLight,
@@ -46,15 +47,15 @@ class Badge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null)
-            Icon(icon, size: 14.w, color: textColor ?? AppColors.textSecondary),
+            Icon(icon, size: Adaptive.w(context, 14), color: textColor ?? AppColors.textSecondary),
           
           if (icon != null)
-            SizedBox(width: 4.w),
+            SizedBox(width: Adaptive.w(context, 4)),
           
           Text(
             text,
             style: TextStyle(
-              fontSize: 10.sp,
+              fontSize: Adaptive.sp(context, 10),
               fontWeight: FontWeight.w500,
               color: textColor ?? AppColors.textSecondary,
             ),
@@ -79,7 +80,7 @@ class SuccessBadge extends StatelessWidget {
       text: text,
       backgroundColor: AppColors.primaryBrandLight,
       textColor: AppColors.primaryBrandDark,
-      icon: Icons.check_circle_outline,
+      icon: AppIcons.checkCircleOutline,
     );
   }
 }
@@ -96,7 +97,7 @@ class WarningBadge extends StatelessWidget {
       text: text,
       backgroundColor: const Color(0xFFFEF3C7),
       textColor: const Color(0xFFD97706),
-      icon: Icons.warning_amber_outlined,
+      icon: AppIcons.warning,
     );
   }
 }
@@ -113,7 +114,7 @@ class ErrorBadge extends StatelessWidget {
       text: text,
       backgroundColor: const Color(0xFFFEE2E2),
       textColor: AppColors.error,
-      icon: Icons.error_outline,
+      icon: AppIcons.error,
     );
   }
 }
@@ -130,7 +131,7 @@ class InfoBadge extends StatelessWidget {
       text: text,
       backgroundColor: const Color(0xFFDBEAFE),
       textColor: AppColors.info,
-      icon: Icons.info_outline,
+      icon: AppIcons.info,
     );
   }
 }

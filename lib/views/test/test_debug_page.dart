@@ -387,7 +387,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
         title: const Text('AI 出题调试'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(AppIcons.delete),
             tooltip: '清空日志',
             onPressed: _clearLog,
           ),
@@ -579,7 +579,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.play_arrow),
+                  : const Icon(AppIcons.play),
               label: Text(_loading ? '正在测试...' : '🚀 开始测试出题'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),

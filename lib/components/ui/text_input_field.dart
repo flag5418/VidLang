@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/utils/adaptive.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
@@ -106,7 +106,7 @@ class _TextInputFieldState extends State<TextInputField> {
             child: Text(
               widget.label!,
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: Adaptive.sp(context, 14),
                 fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
@@ -122,17 +122,17 @@ class _TextInputFieldState extends State<TextInputField> {
           readOnly: widget.readOnly,
           onChanged: widget.onChanged,
           onSubmitted: widget.onSubmitted,
-          style: TextStyle(fontSize: 16.sp, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: Adaptive.sp(context, 16), color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: TextStyle(
-              fontSize: 16.sp,
+              fontSize: Adaptive.sp(context, 16),
               color: AppColors.textTertiary,
             ),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(
                     widget.prefixIcon,
-                    size: 22.w,
+                    size: Adaptive.w(context, 22),
                     color: AppColors.textTertiary,
                   )
                 : null,
@@ -140,7 +140,7 @@ class _TextInputFieldState extends State<TextInputField> {
                 ? IconButton(
                     icon: Icon(
                       widget.suffixIcon,
-                      size: 22.w,
+                      size: Adaptive.w(context, 22),
                       color: AppColors.textTertiary,
                     ),
                     onPressed: widget.onSuffixTap,
@@ -178,12 +178,11 @@ class _TextInputFieldState extends State<TextInputField> {
             ),
 
             contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.inputPadding.w,
-              vertical:
-                  (widget.maxLines > 1
-                          ? AppSpacing.md
-                          : AppSpacing.inputPadding)
-                      .h,
+              horizontal: Adaptive.w(context, AppSpacing.inputPadding),
+              vertical: Adaptive.h(context,
+                  widget.maxLines > 1
+                      ? AppSpacing.md
+                      : AppSpacing.inputPadding),
             ),
           ),
           // 键盘类型优化

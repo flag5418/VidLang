@@ -13,6 +13,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .header{padding:10px 18px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
 .header h1{font-size:18px;font-weight:700;color:var(--text);letter-spacing:.5px}
 .header .sub{font-size:11px;color:var(--text2);margin-top:1px}
+
+/* Upload status bar */
+.upload-status-bar{display:none;padding:8px 18px;background:var(--accent-bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.upload-status-bar.active{display:block}
+.upload-status-content{display:flex;align-items:center;gap:10px}
+.upload-status-icon{width:16px;height:16px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.upload-status-text{flex:1;font-size:12px;color:var(--text2)}
+.upload-status-text strong{color:var(--text);font-weight:500}
+.upload-status-progress{font-size:11px;color:var(--accent);white-space:nowrap}
+.upload-progress-bar{height:2px;background:var(--border);border-radius:1px;margin-top:6px;overflow:hidden}
+.upload-progress-fill{height:100%;background:var(--accent);border-radius:1px;transition:width .3s ease;width:0%}
 /* Main */
 .main{display:flex;flex:1;overflow:hidden}
 /* Sidebar */
@@ -127,6 +139,17 @@ tr.selected td{background:var(--accent-bg3)}
   <div class="sub">WiFi 传输</div>
 </div>
 
+<div class="upload-status-bar" id="uploadStatusBar">
+  <div class="upload-status-content">
+    <div class="upload-status-icon"></div>
+    <div class="upload-status-text" id="uploadStatusText">正在上传...</div>
+    <div class="upload-status-progress" id="uploadStatusProgress">0%</div>
+  </div>
+  <div class="upload-progress-bar">
+    <div class="upload-progress-fill" id="uploadProgressFill"></div>
+  </div>
+</div>
+
 <div class="main">
   <!-- Sidebar -->
   <div class="sidebar">
@@ -188,6 +211,12 @@ let currentResources = [];  // resources in current folder
 let selectedCodes = new Set();
 let contextTarget = null;   // {type, code} for context menu
 
+// Upload state
+let isUploading = false;
+let uploadingCount = 0;
+let uploadingTotal = 0;
+let uploadingFileName = '';
+
 const CATEGORIES = [
   {type:'video', label:'视频', icon:'<svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>', exts:['.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], subExts:['.srt','.ass','.ssa','.vtt'], uploadLabel:'mp4 / mov / avi / mkv … 字幕：srt / ass / vtt'},
   {type:'music', label:'音频', icon:'<svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>', exts:['.mp3','.wav','.m4a','.aac','.flac','.ogg','.wma','.mp4','.mov','.avi','.mkv','.webm','.flv','.wmv'], subExts:['.lrc','.srt','.ass','.ssa','.vtt'], uploadLabel:'mp3 / wav / m4a / mp4 / mov … 字幕：lrc / srt / ass / vtt'},
@@ -202,6 +231,59 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 function baseUrl(){ return window.location.origin; }
+
+// ===== Upload Status =====
+function updateUploadStatus(){
+  const statusBar=document.getElementById('uploadStatusBar');
+  const statusText=document.getElementById('uploadStatusText');
+  const statusProgress=document.getElementById('uploadStatusProgress');
+  const progressFill=document.getElementById('uploadProgressFill');
+  
+  if(!isUploading || uploadingTotal===0){
+    statusBar.classList.remove('active');
+    return;
+  }
+  
+  statusBar.classList.add('active');
+  const percent=Math.round((uploadingCount/uploadingTotal)*100);
+  statusText.innerHTML=`正在上传 <strong>${escHtml(uploadingFileName)}</strong> (${uploadingCount}/${uploadingTotal})`;
+  statusProgress.textContent=percent+'%';
+  progressFill.style.width=percent+'%';
+}
+
+function startUpload(fileName,total){
+  isUploading=true;
+  uploadingCount=0;
+  uploadingTotal=total;
+  uploadingFileName=fileName;
+  updateUploadStatus();
+  
+  // Disable folder switching during upload
+  document.querySelectorAll('.folder-item').forEach(el=>{
+    el.style.pointerEvents='none';
+    el.style.opacity='0.5';
+  });
+}
+
+function updateUploadProgress(fileName,count){
+  uploadingFileName=fileName;
+  uploadingCount=count;
+  updateUploadStatus();
+}
+
+function finishUpload(){
+  isUploading=false;
+  uploadingCount=0;
+  uploadingTotal=0;
+  uploadingFileName='';
+  updateUploadStatus();
+  
+  // Re-enable folder switching
+  document.querySelectorAll('.folder-item').forEach(el=>{
+    el.style.pointerEvents='';
+    el.style.opacity='';
+  });
+}
 
 // ===== API =====
 async function api(path,options={}){
@@ -279,6 +361,7 @@ function renderTree(){
 
 // ===== Select Folder =====
 function selectFolder(folder){
+  if(isUploading){alert('文件正在上传中，请等待完成后再切换');return}
   currentFolder=folder;
   selectedCodes.clear();
   renderTree();
@@ -427,39 +510,77 @@ async function handleFiles(fileList){
   const cat=getCategory(currentFolder.folderType);
   const files=Array.from(fileList);
 
+  // Count total files to upload
+  let totalFiles=0;
   if(currentFolder.folderType==='article'){
     for(const f of files){
       const ext='.'+f.name.split('.').pop().toLowerCase();
-      if(!cat.exts.includes(ext)){alert('文章文件夹仅支持：'+cat.uploadLabel);continue}
+      if(cat.exts.includes(ext)) totalFiles++;
+    }
+  }else{
+    const subExts=cat.subExts||[];
+    for(const f of files){
+      const ext='.'+f.name.split('.').pop().toLowerCase();
+      if(subExts.includes(ext)){
+        // Check if it has a matching video
+        const hasMatchingVideo=files.some(vf=>{
+          const vExt='.'+vf.name.split('.').pop().toLowerCase();
+          return cat.exts.includes(vExt) && findMatchingSubtitle(vf.name,[f],subExts);
+        });
+        if(!hasMatchingVideo) totalFiles++;
+      }else if(cat.exts.includes(ext)){
+        totalFiles++;
+      }
+    }
+  }
+  
+  if(totalFiles===0){alert('没有可上传的文件');return}
+  
+  // Start upload status
+  startUpload(files[0]?.name||'上传中',totalFiles);
+  let uploadedCount=0;
+
+  if(currentFolder.folderType==='article'){
+    for(const f of files){
+      const ext='.'+f.name.split('.').pop().toLowerCase();
+      if(!cat.exts.includes(ext)){continue}
+      updateUploadProgress(f.name,uploadedCount);
       const text=await f.text();
       await uploadArticleContent(f.name,text);
+      uploadedCount++;
+      updateUploadProgress(f.name,uploadedCount);
     }
+    finishUpload();
     await loadResources(currentFolder);
     renderTable();
     return;
   }
 
   // Video / Audio upload
-  const subExts = cat.subExts || [];
-  const videoFiles = [];
-  const subtitleFiles = [];
+  const subExts=cat.subExts||[];
+  const videoFiles=[];
+  const subtitleFiles=[];
   for(const f of files){
     const ext='.'+f.name.split('.').pop().toLowerCase();
-    if(subExts.includes(ext)){ subtitleFiles.push(f); continue; }
-    if(!cat.exts.includes(ext)) continue;
+    if(subExts.includes(ext)){subtitleFiles.push(f);continue}
+    if(!cat.exts.includes(ext))continue;
     videoFiles.push(f);
   }
   // Upload videos and auto-match subtitles
   for(const vf of videoFiles){
-    const result = await uploadFile(vf);
+    updateUploadProgress(vf.name,uploadedCount);
+    const result=await uploadFile(vf);
     // Find matching subtitle file by stem (e.g. ceshi6.mp4 → ceshi6.en.srt)
-    if(result && result.code && subtitleFiles.length > 0){
-      const matchedSub = findMatchingSubtitle(vf.name, subtitleFiles, subExts);
+    if(result&&result.code&&subtitleFiles.length>0){
+      const matchedSub=findMatchingSubtitle(vf.name,subtitleFiles,subExts);
       if(matchedSub){
-        await uploadSubtitleDirect(result.code, matchedSub);
+        await uploadSubtitleDirect(result.code,matchedSub);
       }
     }
+    uploadedCount++;
+    updateUploadProgress(vf.name,uploadedCount);
   }
+  finishUpload();
   await loadResources(currentFolder);
   renderTable();
 }
@@ -470,13 +591,20 @@ async function uploadFile(file){
     xhr.open('PUT',baseUrl()+'/api/folders/'+currentFolder.code+'/upload?filename='+encodeURIComponent(file.name),true);
     xhr.upload.onprogress=e=>{
       if(e.lengthComputable){
-        document.getElementById('uploadText').textContent=`上传中 ${file.name} (${Math.round(e.loaded/e.lengthComputable*100)}%)`;
+        const filePercent=Math.round(e.loaded/e.lengthComputable*100);
+        document.getElementById('uploadText').textContent=`上传中 ${file.name} (${filePercent}%)`;
+        // Update status bar with file-level progress
+        if(isUploading){
+          const overallPercent=Math.round(((uploadingCount+e.loaded/e.lengthComputable)/uploadingTotal)*100);
+          document.getElementById('uploadStatusProgress').textContent=overallPercent+'%';
+          document.getElementById('uploadProgressFill').style.width=overallPercent+'%';
+        }
       }
     };
     xhr.onload=()=>{
       document.getElementById('uploadText').textContent='点击选择文件 或 拖拽到此处';
       if(xhr.status>=200&&xhr.status<300){
-        try{ const d=JSON.parse(xhr.responseText); resolve(d.data||d); }catch(_){ resolve(null); }
+        try{const d=JSON.parse(xhr.responseText);resolve(d.data||d)}catch(_){resolve(null)}
       }else reject(new Error('上传失败'));
     };
     xhr.onerror=()=>reject(new Error('上传失败'));

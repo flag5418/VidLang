@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/theme.dart';
 import '../services/evaluation_service.dart';
 import '../models/evaluation_models.dart';
 import 'evaluation_content_widgets.dart';
@@ -106,7 +107,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
       child: Row(
         children: [
           Icon(
-            Icons.record_voice_over,
+            AppIcons.recordVoiceOver,
             color: theme.primaryColor,
             size: 24,
           ),
@@ -138,7 +139,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
           const SizedBox(width: 8),
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close),
+            icon: const Icon(AppIcons.close),
             iconSize: 24,
             color: theme.primaryColor,
           ),
@@ -265,7 +266,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
           Row(
             children: [
               Icon(
-                Icons.volume_up,
+                AppIcons.volumeUp,
                 color: theme.primaryColor,
                 size: 20,
               ),
@@ -302,7 +303,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
                 child: IconButton(
                   onPressed: _toggleRecording,
                   icon: Icon(
-                    _isRecording ? Icons.stop : Icons.mic,
+                    _isRecording ? AppIcons.stop : AppIcons.mic,
                     color: Colors.white,
                     size: 20,
                   ),
@@ -316,32 +317,32 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
          children: [
                 _buildControlButton(
-                  icon: Icons.stop,
-                  label: '停止',
+icon: AppIcons.stop,
+                    label: '停止',
                   onPressed: _isRecording ? _stopRecording : null,
                   theme: theme,
                 ),
                 _buildControlButton(
-                  icon: Icons.refresh,
-                  label: '重录',
+icon: AppIcons.refresh,
+                    label: '重录',
                   onPressed: _currentResult != null ? _resetRecording : null,
                   theme: theme,
                 ),
                 _buildControlButton(
-                  icon: Icons.play_arrow,
-                  label: '回放',
+icon: AppIcons.play,
+                    label: '回放',
                   onPressed: _currentResult != null ? _playRecording : null,
                   theme: theme,
                 ),
                 _buildControlButton(
-                  icon: Icons.save,
-                  label: '保存',
+icon: AppIcons.save,
+                    label: '保存',
                   onPressed: _currentResult != null ? _saveRecording : null,
                   theme: theme,
                 ),
                 if (widget.mode != EvaluationMode.freeSTT)
                   _buildControlButton(
-                    icon: Icons.analytics,
+                    icon: AppIcons.analytics,
                     label: '详情',
                     onPressed: _currentResult != null ? _showDetails : null,
                     theme: theme,

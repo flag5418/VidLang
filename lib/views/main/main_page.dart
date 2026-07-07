@@ -2,11 +2,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
 import 'package:vidlang/views/home/home_page.dart';
@@ -174,23 +174,23 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
         children: [
           // 左侧边栏
           Container(
-            width: 220.0.w,
+            width: Adaptive.w(context, 220.0),
             color: colors.surface,
             child: Column(
               children: [
-                SizedBox(height: MediaQuery.of(context).padding.top + 20.0.h),
+                SizedBox(height: MediaQuery.of(context).padding.top + Adaptive.h(context, 20.0)),
                 // 品牌区
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.0.w),
+                  padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 20.0)),
                   child: Row(
                     children: [
-                      Icon(Icons.school_rounded,
-                          size: 28.0.sp, color: colors.primary),
-                      SizedBox(width: 10.0.w),
+                      Icon(AppIcons.schoolFill,
+                          size: Adaptive.sp(context, 28.0), color: colors.primary),
+                      SizedBox(width: Adaptive.w(context, 10.0)),
                       Text(
                         'VidLang',
                         style: TextStyle(
-                          fontSize: 22.0.sp,
+                          fontSize: Adaptive.sp(context, 22.0),
                           fontWeight: FontWeight.w800,
                           color: colors.textPrimary,
                         ),
@@ -198,7 +198,7 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
                     ],
                   ),
                 ),
-                SizedBox(height: 32.0.h),
+                SizedBox(height: Adaptive.h(context, 32.0)),
                 // 导航项
                 Expanded(
                   child: ListView(
@@ -311,7 +311,7 @@ class _IpadNavItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 2.0.h),
+        margin: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12.0), vertical: Adaptive.h(context, 2.0)),
         decoration: BoxDecoration(
           color: isActive ? activeColor.withValues(alpha: 0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(12.0),
@@ -333,21 +333,21 @@ class _IpadNavItem extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 16.0.w,
-                    vertical: 12.0.h,
+                    horizontal: Adaptive.w(context, 16.0),
+                    vertical: Adaptive.h(context, 14.0),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         isActive ? item.activeIcon : item.icon,
-                        size: 22.0,
+                        size: Adaptive.icon(context, 24.0),
                         color: isActive ? activeColor : inactiveColor,
                       ),
-                      SizedBox(width: 12.0.w),
+                      SizedBox(width: Adaptive.w(context, 12.0)),
                       Text(
                         item.label,
                         style: TextStyle(
-                          fontSize: 15.0.sp,
+                          fontSize: Adaptive.sp(context, 16.0),
                           fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                           color: isActive ? activeColor : colors.textSecondary,
                         ),

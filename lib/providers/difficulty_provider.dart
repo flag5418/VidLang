@@ -12,6 +12,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/services/settings_service.dart';
+import 'package:vidlang/theme/theme.dart';
 
 /// 学习难度等级
 enum DifficultyLevel {
@@ -57,15 +58,15 @@ enum DifficultyLevel {
   IconData get icon {
     switch (this) {
       case DifficultyLevel.beginner:
-        return Icons.looks_one;
+        return AppIcons.looksOne;
       case DifficultyLevel.elementary:
-        return Icons.looks_two;
+        return AppIcons.looksTwo;
       case DifficultyLevel.intermediate:
-        return Icons.looks_3;
+        return AppIcons.looksThree;
       case DifficultyLevel.advanced:
-        return Icons.looks_4;
+        return AppIcons.looksFour;
       case DifficultyLevel.professional:
-        return Icons.looks_5;
+        return AppIcons.looksFive;
     }
   }
 

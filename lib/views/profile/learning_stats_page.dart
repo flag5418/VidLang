@@ -9,9 +9,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 // ─── 荣誉徽章定义 ───
 class _BadgeDef {
@@ -23,14 +23,14 @@ class _BadgeDef {
 }
 
 const List<_BadgeDef> _badges = [
-  _BadgeDef('初次学习', Icons.play_circle_outline, '完成第一次学习', '完成任意资源的学习记录'),
-  _BadgeDef('连续7天', Icons.local_fire_department, '连续学习 7 天', '连续 7 天都有学习记录'),
-  _BadgeDef('学习达人', Icons.emoji_events, '累计学习 30 天', '累计学习天数达到 30 天'),
-  _BadgeDef('百时战士', Icons.shield, '累计学习 100 小时', '总学习时长超过 100 小时'),
-  _BadgeDef('全栈学者', Icons.language, '三类资源各学完 5 个', '视频、音频、文章各完成 5 个资源'),
-  _BadgeDef('词库达人', Icons.book, '收藏 100 个单词', '单词本收藏数量达到 100 个'),
-  _BadgeDef('完播王者', Icons.check_circle, '完整播放 50 次', '完整播放次数累计达到 50 次'),
-  _BadgeDef('自我超越', Icons.trending_up, '综合评分达到 80', '综合评分达到 80 分'),
+  _BadgeDef('初次学习', AppIcons.playCircleOutline, '完成第一次学习', '完成任意资源的学习记录'),
+  _BadgeDef('连续7天', AppIcons.localFireDepartment, '连续学习 7 天', '连续 7 天都有学习记录'),
+  _BadgeDef('学习达人', AppIcons.emojiEvents, '累计学习 30 天', '累计学习天数达到 30 天'),
+  _BadgeDef('百时战士', AppIcons.shield, '累计学习 100 小时', '总学习时长超过 100 小时'),
+  _BadgeDef('全栈学者', AppIcons.language, '三类资源各学完 5 个', '视频、音频、文章各完成 5 个资源'),
+  _BadgeDef('词库达人', AppIcons.book, '收藏 100 个单词', '单词本收藏数量达到 100 个'),
+  _BadgeDef('完播王者', AppIcons.checkCircle, '完整播放 50 次', '完整播放次数累计达到 50 次'),
+  _BadgeDef('自我超越', AppIcons.trendingUp, '综合评分达到 80', '综合评分达到 80 分'),
 ];
 
 class LearningStatsPage extends StatefulWidget {
@@ -96,31 +96,31 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         backgroundColor: colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: colorScheme.onSurface, size: 20),
+          icon: Icon(AppIcons.arrowBackIos, color: colorScheme.onSurface, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           '学习统计',
-          style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: Adaptive.sp(context, 17), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
         ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(AppSpacing.md.w),
+              padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHonorWall(colorScheme),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: Adaptive.h(context, 24)),
                   _buildOverview(colorScheme),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: Adaptive.h(context, 24)),
                   _buildCategoryDetails(colorScheme),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: Adaptive.h(context, 24)),
                   _buildWeeklyTrend(colorScheme),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: Adaptive.h(context, 24)),
                   _buildAiSuggestion(colorScheme),
-                  SizedBox(height: 32.h),
+                  SizedBox(height: Adaptive.h(context, 32)),
                 ],
               ),
             ),
@@ -133,14 +133,14 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('荣誉墙', Icons.emoji_events, colorScheme),
-        SizedBox(height: 12.h),
+        _sectionTitle('荣誉墙', AppIcons.emojiEvents, colorScheme),
+        SizedBox(height: Adaptive.h(context, 12)),
         SizedBox(
-          height: 100.h,
+          height: Adaptive.h(context, 100),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: _badges.length,
-            separatorBuilder: (_, _) => SizedBox(width: 16.w),
+            separatorBuilder: (_, _) => SizedBox(width: Adaptive.w(context, 16)),
             itemBuilder: (context, index) {
               final badge = _badges[index];
               return _badgeItem(badge, colorScheme);
@@ -155,28 +155,28 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return GestureDetector(
       onTap: () => _showBadgeDetail(badge),
       child: SizedBox(
-        width: 72.w,
+        width: Adaptive.w(context, 72),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 56.w,
-              height: 56.w,
+              width: Adaptive.w(context, 56),
+              height: Adaptive.w(context, 56),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: colorScheme.surface,
                 boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
                 border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 1),
               ),
-              child: Icon(badge.icon, size: 26.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+              child: Icon(badge.icon, size: Adaptive.sp(context, 26), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: Adaptive.h(context, 6)),
             Text(
               badge.name,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
+              style: TextStyle(fontSize: Adaptive.sp(context, 12), fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
             ),
           ],
         ),
@@ -191,66 +191,66 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
       backgroundColor: Colors.transparent,
       builder: (_) {
         return Container(
-          padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, MediaQuery.of(context).padding.bottom + 24.h),
+          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 16), Adaptive.w(context, 24), MediaQuery.of(context).padding.bottom + Adaptive.h(context, 24)),
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 24))),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 40.w,
-                height: 4.h,
-                margin: EdgeInsets.only(bottom: 24.h),
-                decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2.r)),
+                width: Adaptive.w(context, 40),
+                height: Adaptive.h(context, 4),
+                margin: EdgeInsets.only(bottom: Adaptive.h(context, 24)),
+                decoration: BoxDecoration(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(Adaptive.r(context, 2))),
               ),
               Container(
-                width: 64.w,
-                height: 64.w,
+                width: Adaptive.w(context, 64),
+                height: Adaptive.w(context, 64),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colorScheme.surface,
                   boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))],
                   border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.2), width: 1),
                 ),
-                child: Icon(badge.icon, size: 30.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                child: Icon(badge.icon, size: Adaptive.sp(context, 30), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: Adaptive.h(context, 16)),
               Text(
                 badge.name,
-                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                style: TextStyle(fontSize: Adaptive.sp(context, 20), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
               ),
-              SizedBox(height: 8.h),
+              SizedBox(height: Adaptive.h(context, 8)),
               Text(
                 badge.description,
-                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant),
               ),
-              SizedBox(height: 24.h),
+              SizedBox(height: Adaptive.h(context, 24)),
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 12)),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
                   color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, size: 16.sp, color: colorScheme.onSurfaceVariant),
-                    SizedBox(width: 8.w),
+                    Icon(AppIcons.info, size: Adaptive.sp(context, 16), color: colorScheme.onSurfaceVariant),
+                    SizedBox(width: Adaptive.w(context, 8)),
                     Expanded(
                       child: Text(
                         '解锁条件：${badge.condition}',
-                        style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                        style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: Adaptive.h(context, 16)),
               Text(
                 '尚未解锁',
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
               ),
             ],
           ),
@@ -288,21 +288,21 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('总览数据', Icons.dashboard, colorScheme),
-        SizedBox(height: 12.h),
+        _sectionTitle('总览数据', AppIcons.dashboard, colorScheme),
+        SizedBox(height: Adaptive.h(context, 12)),
         Row(
           children: [
-            _overviewCard('累计学习天数', '${ov.totalDays}', '天', Icons.calendar_today, colorScheme),
-            SizedBox(width: 10.w),
-            _overviewCard('总学习时长', durationText, '', Icons.timer, colorScheme),
+            _overviewCard('累计学习天数', '${ov.totalDays}', '天', AppIcons.calendarToday, colorScheme),
+            SizedBox(width: Adaptive.w(context, 10)),
+            _overviewCard('总学习时长', durationText, '', AppIcons.timer, colorScheme),
           ],
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: Adaptive.h(context, 10)),
         Row(
           children: [
-            _overviewCard('已学资源数', '${ov.learnedResources}', '个', Icons.play_circle_outline, colorScheme),
-            SizedBox(width: 10.w),
-            _overviewCard('综合评分', ov.compositeScore.toStringAsFixed(0), gradeLabel, Icons.auto_awesome, colorScheme, valueColor: gradeColor),
+            _overviewCard('已学资源数', '${ov.learnedResources}', '个', AppIcons.playCircleOutline, colorScheme),
+            SizedBox(width: Adaptive.w(context, 10)),
+            _overviewCard('综合评分', ov.compositeScore.toStringAsFixed(0), gradeLabel, AppIcons.autoAwesome, colorScheme, valueColor: gradeColor),
           ],
         ),
       ],
@@ -312,9 +312,9 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
   Widget _overviewCard(String label, String value, String suffix, IconData icon, ColorScheme colorScheme, {Color? valueColor}) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(Adaptive.w(context, 16)),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
           color: colorScheme.surface,
           boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
           border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
@@ -323,38 +323,38 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(8.w),
+              padding: EdgeInsets.all(Adaptive.w(context, 8)),
               decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
-              child: Icon(icon, size: 20.w, color: colorScheme.primary),
+              child: Icon(icon, size: Adaptive.w(context, 20), color: colorScheme.primary),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: Adaptive.h(context, 16)),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: Text(
                     value,
-                    style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.bold, color: valueColor ?? colorScheme.onSurface, height: 1.1),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 26), fontWeight: FontWeight.bold, color: valueColor ?? colorScheme.onSurface, height: 1.1),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (suffix.isNotEmpty) ...[
-                  SizedBox(width: 4.w),
+                  SizedBox(width: Adaptive.w(context, 4)),
                   Padding(
-                    padding: EdgeInsets.only(bottom: 2.h),
+                    padding: EdgeInsets.only(bottom: Adaptive.h(context, 2)),
                     child: Text(
                       suffix,
-                      style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
               ],
             ),
-            SizedBox(height: 6.h),
+            SizedBox(height: Adaptive.h(context, 6)),
             Text(
               label,
-              style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
+              style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
             ),
           ],
         ),
@@ -370,11 +370,11 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('分类详情', Icons.category, colorScheme),
-        SizedBox(height: 12.h),
+        _sectionTitle('分类详情', AppIcons.category, colorScheme),
+        SizedBox(height: Adaptive.h(context, 12)),
         ..._typeStats.map(
           (ts) => Padding(
-            padding: EdgeInsets.only(bottom: 10.h),
+            padding: EdgeInsets.only(bottom: Adaptive.h(context, 10)),
             child: _typeCard(ts, colorScheme),
           ),
         ),
@@ -389,15 +389,15 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     final durationText = ts.totalDurationSeconds >= 3600 ? '$durationHours小时$durationMins分钟' : '$durationMins分钟';
 
     final iconData = ts.icon == 'video_library'
-        ? Icons.video_library_rounded
+        ? AppIcons.movie
         : ts.icon == 'music_note'
-        ? Icons.music_note_rounded
-        : Icons.article_rounded;
+        ? AppIcons.musicNote
+        : AppIcons.articleRound;
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
         color: colorScheme.surface,
         boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
@@ -408,46 +408,46 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10.r)),
-                child: Icon(iconData, size: 20.w, color: colorScheme.primary),
+                padding: EdgeInsets.all(Adaptive.w(context, 8)),
+                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(Adaptive.r(context, 10))),
+                child: Icon(iconData, size: Adaptive.w(context, 20), color: colorScheme.primary),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: Adaptive.w(context, 12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       ts.label,
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                     ),
-                    SizedBox(height: 2.h),
+                    SizedBox(height: Adaptive.h(context, 2)),
                     Text(
                       '已完成 ${ts.learned} / 共 ${ts.total}',
-                      style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: Adaptive.h(context, 16)),
           // 进度条
           ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
+            borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
             child: LinearProgressIndicator(
               value: progress,
-              minHeight: 6.h,
+              minHeight: Adaptive.h(context, 6),
               backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.3),
               valueColor: AlwaysStoppedAnimation(colorScheme.primary),
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: Adaptive.h(context, 16)),
           Row(
             children: [
-              _typeStatChip(Icons.timer_outlined, durationText, colorScheme),
-              SizedBox(width: 16.w),
-              _typeStatChip(Icons.access_time_rounded, ts.lastStudyTime != null ? _formatTimeAgo(ts.lastStudyTime!) : '暂无', colorScheme),
+              _typeStatChip(AppIcons.timer, durationText, colorScheme),
+              SizedBox(width: Adaptive.w(context, 16)),
+              _typeStatChip(AppIcons.accessTime, ts.lastStudyTime != null ? _formatTimeAgo(ts.lastStudyTime!) : '暂无', colorScheme),
             ],
           ),
         ],
@@ -459,11 +459,11 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14.sp, color: colorScheme.onSurfaceVariant),
-        SizedBox(width: 4.w),
+        Icon(icon, size: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant),
+        SizedBox(width: Adaptive.w(context, 4)),
         Text(
           text,
-          style: TextStyle(fontSize: 12.sp, color: colorScheme.onSurfaceVariant),
+          style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -495,12 +495,12 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('学习趋势（近7天）', Icons.show_chart_rounded, colorScheme),
-        SizedBox(height: 12.h),
+        _sectionTitle('学习趋势（近7天）', AppIcons.showChart, colorScheme),
+        SizedBox(height: Adaptive.h(context, 12)),
         Container(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(Adaptive.w(context, 16)),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14.r),
+            borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
             color: colorScheme.surface,
             boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
             border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
@@ -509,19 +509,19 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
             children: [
               // 柱状图
               SizedBox(
-                height: 140.h, // 增加高度容纳文字和柱子
+                height: Adaptive.h(context, 140), // 增加高度容纳文字和柱子
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: _weeklyTrend.map((t) {
                     final ratio = maxMinutes > 0 ? t.minutes / maxMinutes : 0.0;
-                    final barHeight = (80.h * ratio).clamp(4.h, 80.h); // 缩小柱子最大高度以留出空间
+                    final barHeight = (Adaptive.h(context, 80) * ratio).clamp(Adaptive.h(context, 4), Adaptive.h(context, 80)); // 缩小柱子最大高度以留出空间
                     // 从日期中提取星期
                     final dateStr = t.date.substring(5); // MM-DD
                     final weekday = _getWeekdayLabel(t.date);
 
                     return Expanded(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w),
+                        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 3)),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -531,12 +531,12 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                                 '${t.minutes}',
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: colorScheme.primary),
                               ),
-                              SizedBox(height: 4.h),
+                              SizedBox(height: Adaptive.h(context, 4)),
                             ],
                             Container(
                               height: barHeight,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(4.r)),
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(Adaptive.r(context, 4))),
                                 gradient: t.minutes > 0
                                     ? LinearGradient(
                                         begin: Alignment.bottomCenter,
@@ -547,9 +547,9 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                                 color: t.minutes > 0 ? null : colorScheme.outlineVariant.withValues(alpha: 0.2),
                               ),
                             ),
-                            SizedBox(height: 6.h),
+                            SizedBox(height: Adaptive.h(context, 6)),
                             Text(weekday, style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant)),
-                            SizedBox(height: 2.h),
+                            SizedBox(height: Adaptive.h(context, 2)),
                             Text(dateStr, style: TextStyle(fontSize: 9, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
                           ],
                         ),
@@ -558,20 +558,20 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                   }).toList(),
                 ),
               ),
-              SizedBox(height: 12.h),
+              SizedBox(height: Adaptive.h(context, 12)),
               Divider(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-              SizedBox(height: 8.h),
+              SizedBox(height: Adaptive.h(context, 8)),
               // 汇总行
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '本周总计',
-                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
                   ),
                   Text(
                     '${_weeklyTrend.fold<int>(0, (s, t) => s + t.minutes)} 分钟',
-                    style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                   ),
                 ],
               ),
@@ -595,14 +595,14 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('AI 学习建议', Icons.psychology_rounded, colorScheme),
-        SizedBox(height: 12.h),
+        _sectionTitle('AI 学习建议', AppIcons.psychology, colorScheme),
+        SizedBox(height: Adaptive.h(context, 12)),
         if (_aiLoading)
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 32.h),
+            padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 32)),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14.r),
+              borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
               color: colorScheme.surface,
               boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))],
               border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
@@ -612,21 +612,21 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         else if (_aiSuggestions.isEmpty)
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(20.w),
+            padding: EdgeInsets.all(Adaptive.w(context, 20)),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14.r),
+              borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
               color: colorScheme.surface,
               boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))],
               border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
             ),
             child: Column(
               children: [
-                Icon(Icons.lightbulb_outline_rounded, size: 36.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-                SizedBox(height: 12.h),
+                Icon(AppIcons.lightbulbOutline, size: Adaptive.sp(context, 36), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                SizedBox(height: Adaptive.h(context, 12)),
                 Text(
                   '继续学习后这里将显示个性化建议',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                  style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                 ),
               ],
             ),
@@ -640,10 +640,10 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
   Widget _aiSuggestionCard(AiSuggestion suggestion, ColorScheme colorScheme) {
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(16.w),
+      margin: EdgeInsets.only(bottom: Adaptive.h(context, 10)),
+      padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
         color: colorScheme.surface,
         boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         border: Border.all(color: colorScheme.primary.withValues(alpha: 0.12), width: 0.5),
@@ -652,40 +652,40 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(10.w),
+            padding: EdgeInsets.all(Adaptive.w(context, 10)),
             decoration: BoxDecoration(
               color: colorScheme.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(suggestion.icon, size: 22.sp, color: colorScheme.primary),
+            child: Icon(suggestion.icon, size: Adaptive.sp(context, 22), color: colorScheme.primary),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: Adaptive.w(context, 12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   suggestion.title,
-                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                  style: TextStyle(fontSize: Adaptive.sp(context, 15), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: Adaptive.h(context, 4)),
                 Text(
                   suggestion.description,
-                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant, height: 1.4),
+                  style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant, height: 1.4),
                 ),
                 if (suggestion.actionText != null) ...[
-                  SizedBox(height: 10.h),
+                  SizedBox(height: Adaptive.h(context, 10)),
                   GestureDetector(
                     onTap: () => _handleSuggestionAction(suggestion),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 14), vertical: Adaptive.h(context, 7)),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.r),
+                        borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
                         color: colorScheme.primary.withValues(alpha: 0.1),
                       ),
                       child: Text(
                         suggestion.actionText!,
-                        style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
+                        style: TextStyle(fontSize: Adaptive.sp(context, 12), fontWeight: FontWeight.w600, color: colorScheme.primary),
                       ),
                     ),
                   ),
@@ -709,11 +709,11 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
   Widget _sectionTitle(String title, IconData icon, ColorScheme colorScheme) {
     return Row(
       children: [
-        Icon(icon, size: 18.sp, color: colorScheme.primary),
-        SizedBox(width: 6.w),
+        Icon(icon, size: Adaptive.sp(context, 18), color: colorScheme.primary),
+        SizedBox(width: Adaptive.w(context, 6)),
         Text(
           title,
-          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+          style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
         ),
       ],
     );

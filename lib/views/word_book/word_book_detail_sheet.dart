@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class WordBookDetailSheet extends StatelessWidget {
   final WordBook word;
@@ -30,29 +30,29 @@ class WordBookDetailSheet extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+        padding: EdgeInsets.fromLTRB(Adaptive.w(context, 16), Adaptive.h(context, 12), Adaptive.w(context, 16), Adaptive.h(context, 16)),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
-                  width: 40.w,
-                  height: 4.h,
+                  width: Adaptive.w(context, 40),
+                  height: Adaptive.h(context, 4),
                   decoration: BoxDecoration(
                     color: colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(999.r),
+                    borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
                   ),
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: Adaptive.h(context, 16)),
               Row(
                 children: [
                   Expanded(
                     child: Text(
                       word.word,
                       style: TextStyle(
-                        fontSize: 26.sp,
+                        fontSize: Adaptive.sp(context, 26),
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onSurface,
                       ),
@@ -61,122 +61,122 @@ class WordBookDetailSheet extends StatelessWidget {
                   if (onDelete != null)
                     IconButton(
                       onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline),
+                      icon: const Icon(AppIcons.delete),
                     ),
                 ],
               ),
               if ((word.phoneticUk ?? word.phoneticUs)?.isNotEmpty ?? false)
                 Text(
                   '/${word.phoneticUk ?? word.phoneticUs}/',
-                  style: TextStyle(fontSize: 15.sp, color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: Adaptive.sp(context, 15), color: colorScheme.onSurfaceVariant),
                 ),
-              SizedBox(height: 16.h),
+              SizedBox(height: Adaptive.h(context, 16)),
               if (definitions.isNotEmpty) ...[
                 _buildSectionTitle(context, '释义'),
                 ...definitions.map(
                   (definition) => Padding(
-                    padding: EdgeInsets.only(bottom: 8.h),
+                    padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
                     child: Text(
                       '${definition.partOfSpeech != null ? '${definition.partOfSpeech}. ' : ''}${definition.meaning}',
-                      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurface),
                     ),
                   ),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: Adaptive.h(context, 8)),
               ],
               if (definitions.any((d) => d.example != null && d.example!.isNotEmpty)) ...[
                 _buildDivider(context),
                 _buildSectionTitle(context, '例句'),
                 ...definitions.where((d) => d.example != null && d.example!.isNotEmpty).map(
                   (definition) => Padding(
-                    padding: EdgeInsets.only(bottom: 8.h),
+                    padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
                     child: Text(
                       '• ${definition.example}',
-                      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurface),
                     ),
                   ),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: Adaptive.h(context, 8)),
               ],
               if (morphology.isNotEmpty) ...[
                 _buildDivider(context),
                 _buildSectionTitle(context, '词形变化'),
                 ...morphology.entries.map(
                   (entry) => Padding(
-                    padding: EdgeInsets.only(bottom: 6.h),
+                    padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
                     child: Text(
                       '${_morphologyLabel(entry.key)}: ${entry.value}',
-                      style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                      style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurface),
                     ),
                   ),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: Adaptive.h(context, 8)),
               ],
               if ((word.mnemonic ?? '').isNotEmpty) ...[
                 _buildDivider(context),
                 _buildSectionTitle(context, '助记'),
                 Text(
                   word.mnemonic!,
-                  style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                  style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurface),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: Adaptive.h(context, 8)),
               ],
               if (word.contextSentence?.isNotEmpty ?? false) ...[
                 _buildDivider(context),
                 _buildSectionTitle(context, '来源上下文'),
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(12.r),
+                  padding: EdgeInsets.all(Adaptive.r(context, 12)),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(14.r),
+                    borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
                   ),
                   child: Text(
                     word.contextSentence!,
-                    style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurface),
                   ),
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: Adaptive.h(context, 12)),
               ],
               if ((word.sourceTitle ?? '').isNotEmpty)
                 Padding(
-                  padding: EdgeInsets.only(bottom: 12.h),
+                  padding: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
                   child: Text(
                     '来源：${word.sourceTitle}',
-                    style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
                   ),
                 ),
               if (tags.isNotEmpty) ...[
                 _buildDivider(context),
                 _buildSectionTitle(context, '标签'),
                 Wrap(
-                  spacing: 8.w,
-                  runSpacing: 8.h,
+                  spacing: Adaptive.w(context, 8),
+                  runSpacing: Adaptive.h(context, 8),
                   children: tags
                       .map(
                         (tag) => Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                          padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 5)),
                           decoration: BoxDecoration(
                             color: colorScheme.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999.r),
+                            borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
                           ),
                           child: Text(
                             tag.name,
-                            style: TextStyle(fontSize: 12.sp, color: colorScheme.primary),
+                            style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.primary),
                           ),
                         ),
                       )
                       .toList(),
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: Adaptive.h(context, 12)),
               ],
               _buildDivider(context),
               _buildSectionTitle(context, '学习记录'),
               Text(
                 '复习 ${word.reviewCount} 次 · 正确率 $accuracy%',
-                style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant),
+                style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
               ),
-              SizedBox(height: 18.h),
+              SizedBox(height: Adaptive.h(context, 18)),
               Row(
                 children: [
                   Expanded(
@@ -185,7 +185,7 @@ class WordBookDetailSheet extends StatelessWidget {
                       child: const Text('不认识'),
                     ),
                   ),
-                  SizedBox(width: 12.w),
+                  SizedBox(width: Adaptive.w(context, 12)),
                   Expanded(
                     child: FilledButton(
                       onPressed: onRecognized,
@@ -204,11 +204,11 @@ class WordBookDetailSheet extends StatelessWidget {
   Widget _buildSectionTitle(BuildContext context, String title) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 14.sp,
+          fontSize: Adaptive.sp(context, 14),
           fontWeight: FontWeight.w700,
           color: colorScheme.onSurface,
         ),
@@ -219,7 +219,7 @@ class WordBookDetailSheet extends StatelessWidget {
   Widget _buildDivider(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+      padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 12)),
       child: Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
     );
   }

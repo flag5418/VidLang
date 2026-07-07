@@ -9,7 +9,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
@@ -21,6 +20,7 @@ import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
@@ -242,7 +242,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.search_rounded,
+                    child: Icon(AppIcons.search,
                         size: 20, color: colors.textSecondary),
                   ),
                 ),
@@ -254,7 +254,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.person, size: 20, color: Colors.white),
+                  child: const Icon(AppIcons.person, size: 20, color: Colors.white),
                 ),
               ],
             ),
@@ -343,7 +343,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.play_circle_filled,
+                  const Icon(AppIcons.playCircleFill,
                       size: 18, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(
@@ -500,7 +500,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(
             children: [
-              Icon(Icons.folder_open_outlined,
+              Icon(AppIcons.folderOpen,
                   size: 48, color: colors.textWeak),
               const SizedBox(height: 12),
               Text(
@@ -592,10 +592,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _gridPlaceholder(
       AppColorsData colors, Color typeColor, VideoFolder folder) {
     final icon = folder.folderType == FolderContentType.music
-        ? Icons.music_note
+        ? AppIcons.musicNote
         : folder.folderType == FolderContentType.article
-            ? Icons.menu_book
-            : Icons.movie_outlined;
+            ? AppIcons.menuBook
+            : AppIcons.movie;
     return Container(
       color: typeColor.withValues(alpha: 0.08),
       child: Center(
@@ -635,7 +635,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     // 品牌
                     Row(
                       children: [
-                        Icon(Icons.school_rounded,
+                        Icon(AppIcons.schoolFill,
                             size: Adaptive.sp(ctx, 36),
                             color: colors.primary),
                         SizedBox(width: Adaptive.w(ctx, 12)),
@@ -669,13 +669,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                     SizedBox(height: Adaptive.h(ctx, 32)),
                     // 快速入口
                     _buildIpadQuickEntry(
-                        'video', '视频', Icons.movie_outlined, colors),
+                        'video', '视频', AppIcons.movie, colors),
                     SizedBox(height: Adaptive.h(ctx, 20)),
                     _buildIpadQuickEntry(
-                        'music', '音频', Icons.music_note_outlined, colors),
+                        'music', '音频', AppIcons.musicNote, colors),
                     SizedBox(height: Adaptive.h(ctx, 20)),
                     _buildIpadQuickEntry('article', '文章',
-                        Icons.menu_book_outlined, colors),
+                        AppIcons.menuBook, colors),
                   ],
                 ),
               ),
@@ -744,7 +744,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
             SizedBox(width: Adaptive.w(ctx, 4)),
-            Icon(Icons.chevron_right,
+            Icon(AppIcons.chevronRight,
                 size: Adaptive.sp(ctx, 18), color: colors.textWeak),
           ],
         ),
@@ -763,7 +763,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(
             children: [
-              Icon(Icons.folder_open_outlined,
+              Icon(AppIcons.folderOpen,
                   size: 48, color: colors.textWeak),
               const SizedBox(height: 12),
               Text('暂无内容',

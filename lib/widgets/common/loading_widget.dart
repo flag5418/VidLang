@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -25,11 +25,11 @@ class LoadingWidget extends StatelessWidget {
             color: color ?? Theme.of(context).primaryColor,
           ),
           if (message != null) ...[
-            SizedBox(height: 16.h),
+            SizedBox(height: Adaptive.h(context, 16)),
             Text(
               message!,
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: Adaptive.sp(context, 14),
                 color: TDTheme.of(context).fontGyColor3,
               ),
             ),

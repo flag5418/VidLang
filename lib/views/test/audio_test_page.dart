@@ -460,7 +460,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.play_arrow),
+                        : const Icon(AppIcons.play),
                     label: Text(_isTtsSynthesizing ? '合成中...' : '流式合成'),
                   ),
                 ),
@@ -468,7 +468,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isTtsSynthesizing ? null : _testTtsFile,
-                    icon: const Icon(Icons.save),
+                    icon: const Icon(AppIcons.save),
                     label: const Text('文件合成'),
                   ),
                 ),
@@ -514,7 +514,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.mic),
+                        : const Icon(AppIcons.mic),
                     label: Text(_isShengtongConnecting ? '连接中...' : '测试 WS'),
                   ),
                 ),
@@ -522,7 +522,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isShengtongConnecting ? null : () => _testShengtongConnect(useWss: true),
-                    icon: const Icon(Icons.lock),
+                    icon: const Icon(AppIcons.lock),
                     label: const Text('测试 WSS'),
                   ),
                 ),
@@ -539,7 +539,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.http),
+                    : const Icon(AppIcons.http),
                 label: Text(_isShengtongHttpTesting ? 'HTTP 评测中...' : '测试 HTTP 评测'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.warning,
@@ -552,7 +552,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _testShengtongSig,
-                icon: const Icon(Icons.security),
+                icon: const Icon(AppIcons.security),
                 label: const Text('验证 sig 算法'),
               ),
             ),

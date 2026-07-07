@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 
 /// 全局异常处理器
@@ -209,7 +210,7 @@ class GlobalErrorHandler {
           content: Row(
             children: [
               Icon(
-                severity == ErrorSeverity.error ? Icons.error_outline : Icons.warning_amber_rounded,
+                severity == ErrorSeverity.error ? AppIcons.error : AppIcons.warning,
                 color: Colors.white,
                 size: 20,
               ),

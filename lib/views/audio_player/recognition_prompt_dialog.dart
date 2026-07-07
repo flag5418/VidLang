@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 class RecognitionPromptDialog extends StatelessWidget {
   final String audioType;
@@ -33,29 +33,29 @@ class RecognitionPromptDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isMusic ? Icons.lyrics_outlined : Icons.subtitles_outlined,
+              isMusic ? AppIcons.lyrics : AppIcons.subtitlesOutline,
               color: cs.primary,
               size: 36,
             ),
             const SizedBox(height: 12),
             Text(
               isMusic ? '暂无歌词' : '暂无字幕',
-              style: TextStyle(color: cs.onSurface, fontSize: 16.sp, fontWeight: FontWeight.w600),
+              style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               isMusic
                   ? '可以选择搜索歌词或手动导入LRC文件'
                   : '可以选择AI识别音频内容或手动导入字幕文件',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.sp),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: Adaptive.sp(context, 12)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            _actionBtn(matchLabel, Icons.auto_awesome_outlined, cs.primary, onSmartMatch, cs),
+            _actionBtn(matchLabel, AppIcons.autoAwesome, cs.primary, onSmartMatch, cs),
             const SizedBox(height: 10),
-            _actionBtn('手动导入', Icons.upload_file_outlined, cs.secondary, onManualImport, cs),
+            _actionBtn('手动导入', AppIcons.upload, cs.secondary, onManualImport, cs),
             const SizedBox(height: 10),
-            _actionBtn('先欣赏吧', Icons.headphones_outlined, cs.onSurfaceVariant, onAppreciate, cs),
+            _actionBtn('先欣赏吧', AppIcons.headphones, cs.onSurfaceVariant, onAppreciate, cs),
           ],
         ),
       ),
@@ -81,7 +81,7 @@ class RecognitionPromptDialog extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(color: color, fontSize: 14.sp, fontWeight: FontWeight.w500),
+                style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500),
               ),
             ],
           ),

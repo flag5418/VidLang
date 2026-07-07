@@ -9,7 +9,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
@@ -19,6 +18,8 @@ import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:vidlang/components/article_hero_card.dart';
 import 'package:vidlang/components/article_item_card.dart';
+import 'package:vidlang/components/audio_hero_card.dart';
+import 'package:vidlang/components/audio_item_card.dart';
 import 'package:vidlang/components/main_video_card.dart';
 import 'package:vidlang/components/playback_settings_sheet.dart';
 import 'package:vidlang/components/video_card.dart';
@@ -48,6 +49,7 @@ import 'package:vidlang/views/files/wifi_transfer_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 import 'package:vidlang/views/test/test_page.dart';
+import 'package:vidlang/utils/adaptive.dart';
 
 /// 文件夹详情页面
 class FolderDetailPage extends ConsumerStatefulWidget {
@@ -183,16 +185,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             children: [
               Material(
                 color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(20.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(20.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
                   onTap: () => Navigator.pop(context),
                   child: SizedBox(
-                    width: 40.r,
-                    height: 40.r,
+                    width: Adaptive.r(context, 40),
+                    height: Adaptive.r(context, 40),
                     child: Icon(
-                      Icons.arrow_back,
-                      size: 18.sp,
+                      AppIcons.arrowBack,
+                      size: Adaptive.sp(context, 18),
                       color: colorScheme.onSurface,
                     ),
                   ),
@@ -203,7 +205,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: AppTypography.fontSizeLarge.sp,
+                    fontSize: Adaptive.sp(context, AppTypography.fontSizeLarge),
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
@@ -219,16 +221,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             if (folderType != FolderContentType.article)
               Material(
                 color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(20.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(20.r),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
                   onTap: _showSettings,
                   child: SizedBox(
-                    width: 40.r,
-                    height: 40.r,
+                    width: Adaptive.r(context, 40),
+                    height: Adaptive.r(context, 40),
                     child: Icon(
-                      Icons.settings,
-                      size: 18.sp,
+                      AppIcons.settings,
+                      size: Adaptive.sp(context, 18),
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -246,13 +248,13 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               elevation: 8,
               child: Material(
                 color: colorScheme.primary,
-                borderRadius: BorderRadius.circular(20.r),
+                borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
                 child: SizedBox(
-                  width: 40.r,
-                  height: 40.r,
-                  child: Icon(
-                    Icons.add,
-                    size: 18.sp,
+                  width: Adaptive.r(context, 40),
+                  height: Adaptive.r(context, 40),
+                    child: Icon(
+                      AppIcons.add,
+                    size: Adaptive.sp(context, 18),
                     color: colorScheme.onPrimary,
                   ),
                 ),
@@ -265,8 +267,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   PopupMenuItem(
                     value: 'import',
                     child: _popupMenuItem(
-                      Icons.add_circle_outline,
-                      '选择导入（可多选）',
+                        AppIcons.add,
+                        '选择导入（可多选）',
                       colorScheme,
                     ),
                   ),
@@ -274,7 +276,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     PopupMenuItem(
                       value: 'importFolder',
                       child: _popupMenuItem(
-                        Icons.folder_open,
+                        AppIcons.folderOpen,
                         '导入文件夹（全部）',
                         colorScheme,
                       ),
@@ -283,7 +285,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   PopupMenuItem(
                     value: 'wifi',
                     child: _popupMenuItem(
-                      Icons.wifi_rounded,
+                      AppIcons.wifi,
                       'WiFi 导入',
                       colorScheme,
                     ),
@@ -291,7 +293,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   PopupMenuItem(
                     value: 'rename',
                     child: _popupMenuItem(
-                      Icons.edit_outlined,
+                      AppIcons.edit,
                       '重命名',
                       colorScheme,
                     ),
@@ -300,7 +302,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     PopupMenuItem(
                       value: 'test',
                       child: _popupMenuItem(
-                        Icons.quiz_outlined,
+                        AppIcons.quiz,
                         '综合测试',
                         colorScheme,
                       ),
@@ -309,7 +311,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     PopupMenuItem(
                       value: 'aiConversation',
                       child: _popupMenuItem(
-                        Icons.forum_outlined,
+                        AppIcons.forum,
                         'AI 对话',
                         colorScheme,
                       ),
@@ -318,7 +320,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   PopupMenuItem(
                     value: 'deleteAll',
                     child: _popupMenuItem(
-                      Icons.delete_forever_rounded,
+                      AppIcons.delete,
                       '全部删除',
                       colorScheme,
                     ),
@@ -337,31 +339,49 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     FolderContentType folderType,
   ) {
     final icon = folderType == FolderContentType.video
-        ? Icons.videocam
+        ? AppIcons.movie
         : folderType == FolderContentType.article
-        ? Icons.article
-        : Icons.headphones;
+        ? AppIcons.article
+        : AppIcons.headphones;
 
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-          ),
-          SizedBox(height: AppSpacing.md),
-          Text(
-            '暂无${_typeLabel(folderType)}',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Text(
-            '点击 + 导入资源',
-            style: TextStyle(fontSize: 13.sp, color: colorScheme.outline),
-          ),
-        ],
+      child: Container(
+        margin: EdgeInsets.all(Adaptive.w(context, 24)),
+        padding: EdgeInsets.symmetric(
+          horizontal: Adaptive.w(context, 32),
+          vertical: Adaptive.h(context, 32),
+        ),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(Adaptive.w(context, 20)),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.08),
+              ),
+              child: Icon(
+                icon,
+                size: Adaptive.sp(context, 48),
+                color: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.6),
+              ),
+            ),
+            SizedBox(height: Adaptive.h(context, 20)),
+            Text(
+              '暂无${_typeLabel(folderType)}',
+              style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant),
+            ),
+            SizedBox(height: Adaptive.h(context, 8)),
+            Text(
+              '点击 + 导入资源',
+              style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.outline),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -372,7 +392,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.error_outline,
+            AppIcons.error,
             size: 56,
             color: colorScheme.error.withValues(alpha: 0.8),
           ),
@@ -380,7 +400,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           Text(
             '加载失败',
             style: TextStyle(
-              fontSize: 18.sp,
+              fontSize: Adaptive.sp(context, 18),
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -392,7 +412,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: Adaptive.sp(context, 13),
                 color: colorScheme.onSurfaceVariant,
               ),
               maxLines: 4,
@@ -416,6 +436,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Widget _buildContent(FileState state, FolderContentType folderType) {
     if (folderType == FolderContentType.article) {
       return _buildArticleList(state);
+    }
+    if (folderType == FolderContentType.music) {
+      return _buildAudioList(state);
     }
     return _buildVideoList(state);
   }
@@ -565,6 +588,51 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
   }
 
+  Widget _buildAudioList(FileState state) {
+    final crossAxisCount = 2;
+    final gridSpacing = 12.0;
+    final mainVideo =
+        state.currentVideo ??
+        (state.videos.isNotEmpty ? state.videos.first : null);
+    final gridVideos = mainVideo == null
+        ? state.videos
+        : state.videos.where((v) => v.code != mainVideo.code).toList();
+
+    return ListView(
+      children: [
+        if (mainVideo != null)
+          AudioHeroCard(
+            video: mainVideo,
+            onPlay: () => _playVideo(mainVideo),
+            onRename: () => _showVideoRenameDialog(mainVideo),
+            onDelete: () => _confirmDeleteVideo(mainVideo),
+          ),
+        if (mainVideo != null) SizedBox(height: AppSpacing.md),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: gridSpacing,
+            mainAxisSpacing: gridSpacing,
+            childAspectRatio: 4 / 3,
+          ),
+          itemCount: gridVideos.length,
+          itemBuilder: (context, index) {
+            final video = gridVideos[index];
+            return AudioItemCard(
+              video: video,
+              onTap: () => _playVideo(video),
+              onRename: () => _showVideoRenameDialog(video),
+              onDelete: () => _confirmDeleteVideo(video),
+            );
+          },
+        ),
+        SizedBox(height: AppSpacing.md),
+      ],
+    );
+  }
+
   Future<void> _playVideo(dynamic video) async {
     final code = video.code;
     if (code == null || code.isEmpty) return;
@@ -591,11 +659,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Widget _popupMenuItem(IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: 20.sp, color: cs.onSurfaceVariant),
+        Icon(icon, size: Adaptive.sp(context, 20), color: cs.onSurfaceVariant),
         SizedBox(width: 10),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: 14.sp),
+          style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 14)),
         ),
       ],
     );
@@ -1150,81 +1218,45 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     return dot > 0 ? filePath.substring(dot).toLowerCase() : '';
   }
 
-  /// 重命名当前文件夹 — 使用 TDesign TDInputDialog
+  /// 重命名当前文件夹 — 使用 AppInputDialog（支持 iPad 自适应）
   Future<void> _showRenameDialog() async {
     final folder = ref.read(fileProvider).currentFolder;
     if (folder == null) return;
 
-    final controller = TextEditingController(text: folder.name);
-    showGeneralDialog(
-      context: context,
-      pageBuilder: (buildContext, animation, secondaryAnimation) {
-        return TDInputDialog(
-          textEditingController: controller,
-          title: '重命名',
-          content: '请输入新的文件夹名称',
-          hintText: folder.name,
-          leftBtn: TDDialogButtonOptions(
-            title: '取消',
-            action: () => Navigator.pop(buildContext),
-          ),
-          rightBtn: TDDialogButtonOptions(
-            title: '保存',
-            action: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(buildContext);
-              try {
-                folder.name = name;
-                await DatabaseService.update(folder);
-                await ref
-                    .read(fileProvider.notifier)
-                    .loadVideos(widget.folderCode);
-              } catch (e) {
-                _showMessage('重命名失败: $e', theme: MessageTheme.error);
-              }
-            },
-          ),
-        );
-      },
+    final result = await AppInputDialog.show(
+      context,
+      title: '重命名',
+      hintText: folder.name,
+      initialValue: folder.name,
+      confirmText: '保存',
     );
+    if (result == null || result.isEmpty) return;
+    try {
+      folder.name = result;
+      await DatabaseService.update(folder);
+      await ref.read(fileProvider.notifier).loadVideos(widget.folderCode);
+    } catch (e) {
+      _showMessage('重命名失败: $e', theme: MessageTheme.error);
+    }
   }
 
   /// 综合测试（针对当前资源集所有资源）
-  /// 视频重命名 — 使用 TDesign TDInputDialog
+  /// 视频重命名 — 使用 AppInputDialog（支持 iPad 自适应）
   Future<void> _showVideoRenameDialog(dynamic video) async {
-    final controller = TextEditingController(text: video.name ?? '');
-    showGeneralDialog(
-      context: context,
-      pageBuilder: (buildContext, animation, secondaryAnimation) {
-        return TDInputDialog(
-          textEditingController: controller,
-          title: '重命名视频',
-          content: '请输入新的视频名称',
-          hintText: video.name ?? '',
-          leftBtn: TDDialogButtonOptions(
-            title: '取消',
-            action: () => Navigator.pop(buildContext),
-          ),
-          rightBtn: TDDialogButtonOptions(
-            title: '保存',
-            action: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(buildContext);
-              try {
-                await ref
-                    .read(fileProvider.notifier)
-                    .renameVideo(video.code ?? '', name);
-                _showMessage('重命名成功');
-              } catch (e) {
-                _showMessage('重命名失败: $e', theme: MessageTheme.error);
-              }
-            },
-          ),
-        );
-      },
+    final result = await AppInputDialog.show(
+      context,
+      title: '重命名视频',
+      hintText: video.name ?? '',
+      initialValue: video.name ?? '',
+      confirmText: '保存',
     );
+    if (result == null || result.isEmpty) return;
+    try {
+      await ref.read(fileProvider.notifier).renameVideo(video.code ?? '', result);
+      _showMessage('重命名成功');
+    } catch (e) {
+      _showMessage('重命名失败: $e', theme: MessageTheme.error);
+    }
   }
 
   /// 为视频导入字幕文件
@@ -1393,37 +1425,21 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     AppToast.show(context, content, type: type);
   }
 
-  /// 文章重命名 — 使用 TDesign TDInputDialog
+  /// 文章重命名 — 使用 AppInputDialog（支持 iPad 自适应）
   Future<void> _showArticleRenameDialog(Article article) async {
-    final controller = TextEditingController(text: article.title);
-    showGeneralDialog(
-      context: context,
-      pageBuilder: (buildContext, animation, secondaryAnimation) {
-        return TDInputDialog(
-          textEditingController: controller,
-          title: '重命名文章',
-          content: '请输入新的文章名称',
-          hintText: article.title,
-          leftBtn: TDDialogButtonOptions(
-            title: '取消',
-            action: () => Navigator.pop(buildContext),
-          ),
-          rightBtn: TDDialogButtonOptions(
-            title: '确定',
-            action: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(buildContext);
-              try {
-                article.title = name;
-                await DatabaseService.update(article);
-                if (mounted) setState(() {});
-              } catch (_) {}
-            },
-          ),
-        );
-      },
+    final result = await AppInputDialog.show(
+      context,
+      title: '重命名文章',
+      hintText: article.title,
+      initialValue: article.title,
+      confirmText: '确定',
     );
+    if (result == null || result.isEmpty) return;
+    try {
+      article.title = result;
+      await DatabaseService.update(article);
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   Future<void> _confirmDeleteArticle(Article article) async {
