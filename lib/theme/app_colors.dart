@@ -48,35 +48,35 @@ class AppColorsData {
   });
 
   static const light = AppColorsData(
-    background:   Color(0xFFFAFAF9),
+    background:   Color(0xFFF8FAFC),
     surface:      Color(0xFFFFFFFF),
-    textPrimary:  Color(0xFF1C1C1E),
-    textSecondary: Color(0xFF8E8E93),
-    textWeak:     Color(0xFFC7C7CC),
-    border:       Color(0xFFE5E5E5),
-    primary:      Color(0xFF4284FC),
-    primaryDark:  Color(0xFF3367D6),
-    error:        Color(0xFFFF3B30),
-    warning:      Color(0xFFFF9500),
-    videoType:    Color(0xFF4284FC),
-    articleType:  Color(0xFFFF8E53),
-    audioType:    Color(0xFFA855F7),
+    textPrimary:  Color(0xFF0F172A),
+    textSecondary: Color(0xFF475569),
+    textWeak:     Color(0xFF94A3B8),
+    border:       Color(0xFFE2E8F0),
+    primary:      Color(0xFF3B6EFF),
+    primaryDark:  Color(0xFF2563EB),
+    error:        Color(0xFFEF4444),
+    warning:      Color(0xFFF59E0B),
+    videoType:    Color(0xFF3B6EFF),
+    articleType:  Color(0xFFF97316),
+    audioType:    Color(0xFF8B5CF6),
   );
 
   static const dark = AppColorsData(
-    background:   Color(0xFF0D0D0D),
-    surface:      Color(0xFF1C1C1E),
-    textPrimary:  Color(0xFFF5F5F7),
-    textSecondary: Color(0xFF98989D),
-    textWeak:     Color(0xFF48484A),
-    border:       Color(0xFF38383A),
-    primary:      Color(0xFF4284FC),
-    primaryDark:  Color(0xFF3367D6),
-    error:        Color(0xFFFF453A),
-    warning:      Color(0xFFFF9F0A),
-    videoType:    Color(0xFF5B9FFF),
-    articleType:  Color(0xFFFF9F6B),
-    audioType:    Color(0xFFC084FC),
+    background:   Color(0xFF09090B),
+    surface:      Color(0xFF18181B),
+    textPrimary:  Color(0xFFFAFAFA),
+    textSecondary: Color(0xFFA1A1AA),
+    textWeak:     Color(0xFF52525B),
+    border:       Color(0xFF27272A),
+    primary:      Color(0xFF60A5FA),
+    primaryDark:  Color(0xFF3B82F6),
+    error:        Color(0xFFF87171),
+    warning:      Color(0xFFFBBF24),
+    videoType:    Color(0xFF60A5FA),
+    articleType:  Color(0xFFFB923C),
+    audioType:    Color(0xFFA78BFA),
   );
 }
 
@@ -95,46 +95,46 @@ class AppColors {
   AppColors._();
 
   // ─── 品牌色 ────────────────────────────────────
-  static const Color primaryBrand       = Color(0xFF4284FC);
-  static const Color primaryBrandLight  = Color(0xFFDCFCE7);
-  static const Color primaryBrandDark   = Color(0xFF3367D6);
+  static const Color primaryBrand       = Color(0xFF3B6EFF);
+  static const Color primaryBrandLight  = Color(0xFFDBEAFE);
+  static const Color primaryBrandDark   = Color(0xFF2563EB);
 
   // ─── 语义色 ────────────────────────────────────
   static const Color info    = Color(0xFF3B82F6);
-  static const Color error   = Color(0xFFFF3B30);
-  static const Color success = Color(0xFF30D158);
-  static const Color warning = Color(0xFFFF9500);
+  static const Color error   = Color(0xFFEF4444);
+  static const Color success = Color(0xFF22C55E);
+  static const Color warning = Color(0xFFF59E0B);
 
   // ─── 中性色（亮色）──────────────────────────────
-  static const Color textPrimary    = Color(0xFF1C1C1E);
-  static const Color textSecondary  = Color(0xFF8E8E93);
-  static const Color textTertiary   = Color(0xFFC7C7CC);
-  static const Color textDisabled   = Color(0xFFD4D4D8);
+  static const Color textPrimary    = Color(0xFF0F172A);
+  static const Color textSecondary  = Color(0xFF475569);
+  static const Color textTertiary   = Color(0xFF94A3B8);
+  static const Color textDisabled   = Color(0xFFCBD5E1);
 
-  static const Color backgroundLight         = Color(0xFFFAFAF9);
+  static const Color backgroundLight         = Color(0xFFF8FAFC);
   static const Color surfaceLight            = Color(0xFFFFFFFF);
-  static const Color surfaceSecondaryLight   = Color(0xFFF4F4F5);
+  static const Color surfaceSecondaryLight   = Color(0xFFF1F5F9);
 
-  static const Color borderLight       = Color(0xFFE5E5E5);
-  static const Color borderLightLight  = Color(0xFFF4F4F5);
+  static const Color borderLight       = Color(0xFFE2E8F0);
+  static const Color borderLightLight  = Color(0xFFF1F5F9);
 
   // ─── 中性色（暗色）──────────────────────────────
-  static const Color backgroundDark          = Color(0xFF0D0D0D);
-  static const Color surfaceDark             = Color(0xFF1C1C1E);
-  static const Color surfaceSecondaryDark    = Color(0xFF2C2C2E);
+  static const Color backgroundDark          = Color(0xFF09090B);
+  static const Color surfaceDark             = Color(0xFF18181B);
+  static const Color surfaceSecondaryDark    = Color(0xFF27272A);
 
-  static const Color borderDark = Color(0xFF38383A);
+  static const Color borderDark = Color(0xFF27272A);
 
   // ─── 向后兼容层：背景层级 ──────────────────────
   static const Color background      = Color(0xFF000000);
-  static const Color surface         = Color(0xFF121212);
-  static const Color surfaceElevated = Color(0xFF1E1E1E);
-  static const Color surfaceHighest  = Color(0xFF2C2C2C);
+  static const Color surface         = Color(0xFF0F0F11);
+  static const Color surfaceElevated = Color(0xFF1A1A1D);
+  static const Color surfaceHighest  = Color(0xFF27272A);
 
   static const Color lightBackground      = backgroundLight;
   static const Color lightSurface         = surfaceLight;
   static const Color lightSurfaceElevated = surfaceSecondaryLight;
-  static const Color lightSurfaceHighest  = Color(0xFFF5F6FC);
+  static const Color lightSurfaceHighest  = Color(0xFFEFF6FF);
 
   static Color getBgLayer({required Brightness brightness}) =>
       brightness == Brightness.dark ? surface : lightSurface;
@@ -149,8 +149,8 @@ class AppColors {
 
   // ─── 向后兼容层：前景/文字色 ──────────────────
   static const Color onSurface          = Color(0xFFFFFFFF);
-  static const Color onSurfaceVariant   = Color(0xFF999999);
-  static const Color onSurfaceDisabled  = Color(0xFF555555);
+  static const Color onSurfaceVariant   = Color(0xFFA1A1AA);
+  static const Color onSurfaceDisabled  = Color(0xFF71717A);
 
   static const Color lightOnSurface         = textPrimary;
   static const Color lightOnSurfaceVariant  = textSecondary;
@@ -165,25 +165,25 @@ class AppColors {
       brightness == Brightness.dark ? outline : borderLight;
 
   // ─── 强调色（向后兼容蓝橙）────────────────────
-  static const Color primary        = Color(0xFF4284FC);
-  static const Color secondary      = Color(0xFF3367D6);
-  static const Color primaryContainer = Color(0xFF166534);
+  static const Color primary        = Color(0xFF3B6EFF);
+  static const Color secondary      = Color(0xFF2563EB);
+  static const Color primaryContainer = Color(0xFFDBEAFE);
   static const Color onPrimary      = Color(0xFFFFFFFF);
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF4284FC), Color(0xFF3367D6)],
+    colors: [Color(0xFF3B6EFF), Color(0xFF2563EB)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
   static const LinearGradient primaryGradientReverse = LinearGradient(
-    colors: [Color(0xFF3367D6), Color(0xFF4284FC)],
+    colors: [Color(0xFF2563EB), Color(0xFF3B6EFF)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
   static const RadialGradient primaryRadialGradient = RadialGradient(
-    colors: [Color(0x4C4284FC), Color(0x004284FC)],
+    colors: [Color(0x4C3B6EFF), Color(0x003B6EFF)],
     stops: [0.0, 1.0],
   );
 
@@ -204,20 +204,20 @@ class AppColors {
   // ─── 播放器专用 ─────────────────────────────────
   static const Color playerOverlayGradient      = Color(0xCC000000);
   static const Color playerButtonDim            = Color(0x1AFFFFFF);
-  static const Color playerButtonActive         = Color(0xFF4284FC);
+  static const Color playerButtonActive         = Color(0xFF3B6EFF);
   static const Color playerButtonInactive       = Color(0x33FFFFFF);
-  static const Color playerButtonDisabledText   = Color(0xFF555555);
+  static const Color playerButtonDisabledText   = Color(0xFF71717A);
   static const Color playerProgressBuffered     = Color(0x33FFFFFF);
   static const Color playerProgressInactive     = Color(0x1AFFFFFF);
   static const Color playerProgressActive       = Color(0xFFFFFFFF);
   static const Color playerPopupBackground      = Color(0xF0101010);
-  static const Color playerTimerChipColor       = Color(0xFF4284FC);
+  static const Color playerTimerChipColor       = Color(0xFF3B6EFF);
   static const Color playerSubtitleBg           = Color(0x99000000);
   static const Color playerSubtitleTranslate    = Color(0xFFFFE082);
 
   // ─── 图标/导航 ──────────────────────────────────
-  static const Color iconDefault = Color(0xFF8A8A8A);
-  static const Color iconActive  = Color(0xFF4284FC);
+  static const Color iconDefault = Color(0xFF94A3B8);
+  static const Color iconActive  = Color(0xFF3B6EFF);
 
   // ─── ColorScheme（TDesign / Material3 兼容）────
   static ColorScheme get darkColorScheme => const ColorScheme(
@@ -231,9 +231,9 @@ class AppColors {
         onSurface: onSurface,
         surfaceContainerHighest: surfaceHighest,
         onSurfaceVariant: onSurfaceVariant,
-        surfaceContainerLow: Color(0xFF1A1A1A),
-        surfaceContainer: Color(0xFF222222),
-        surfaceContainerHigh: Color(0xFF2C2C2C),
+        surfaceContainerLow: Color(0xFF141414),
+        surfaceContainer: Color(0xFF1E1E1E),
+        surfaceContainerHigh: Color(0xFF27272A),
         outline: outline,
         outlineVariant: outlineVariant,
         error: error,
@@ -241,25 +241,25 @@ class AppColors {
         shadow: Color(0x00000000),
       );
 
-  static const Color lightIconDefault = Color(0xFF888888);
-  static const Color lightIconActive  = Color(0xFF4284FC);
+  static const Color lightIconDefault = Color(0xFF94A3B8);
+  static const Color lightIconActive  = Color(0xFF3B6EFF);
 
   static ColorScheme get lightColorScheme => const ColorScheme(
         brightness: Brightness.light,
         primary: primary,
         onPrimary: Color(0xFFFFFFFF),
-        primaryContainer: Color(0xFFDCFCE7),
+        primaryContainer: Color(0xFFDBEAFE),
         secondary: secondary,
         onSecondary: Color(0xFFFFFFFF),
         surface: lightSurface,
         onSurface: lightOnSurface,
         surfaceContainerHighest: lightSurfaceHighest,
         onSurfaceVariant: lightOnSurfaceVariant,
-        surfaceContainerLow: Color(0xFFFAFAFA),
-        surfaceContainer: Color(0xFFF5F5F5),
-        surfaceContainerHigh: Color(0xFFEEEEEE),
-        outline: Color(0xFFDDDDDD),
-        outlineVariant: Color(0xFFCCCCCC),
+        surfaceContainerLow: Color(0xFFF8FAFC),
+        surfaceContainer: Color(0xFFF1F5F9),
+        surfaceContainerHigh: Color(0xFFE2E8F0),
+        outline: Color(0xFFCBD5E1),
+        outlineVariant: Color(0xFF94A3B8),
         error: error,
         onError: Color(0xFFFFFFFF),
         shadow: Color(0x00000000),
@@ -271,9 +271,9 @@ class AppColors {
   static const Color surfaceTertiary = Color(0xFF363636);
 
   // ─── 三类资源类型色 ──────────────────────────────
-  static const Color videoColor   = Color(0xFF4284FC);
-  static const Color articleColor = Color(0xFFFF8E53);
-  static const Color audioColor   = Color(0xFFA855F7);
+  static const Color videoColor   = Color(0xFF3B6EFF);
+  static const Color articleColor = Color(0xFFF97316);
+  static const Color audioColor   = Color(0xFF8B5CF6);
 
   static Color videoCardBg(Brightness brightness) =>
       videoColor.withValues(alpha: brightness == Brightness.dark ? 0.20 : 0.12);
