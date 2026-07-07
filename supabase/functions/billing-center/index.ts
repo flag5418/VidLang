@@ -34,40 +34,72 @@ function addDays(date: Date, days: number): Date {
   return next
 }
 
-function actionMeta(ruleCode: string): { key: string; label: string } {
+function startOfWeek(day?: string): Date {
+  const base = startOfDay(day)
+  const dayOfWeek = base.getUTCDay()
+  base.setUTCDate(base.getUTCDate() - dayOfWeek)
+  return base
+}
+
+function startOfMonth(day?: string): Date {
+  const base = startOfDay(day)
+  base.setUTCDate(1)
+  return base
+}
+
+function startOfThreeMonths(day?: string): Date {
+  const base = startOfDay(day)
+  base.setUTCDate(base.getUTCDate() - 90)
+  return base
+}
+
+function actionMeta(ruleCode: string): { key: string; label: string; category: string } {
   if (ruleCode.startsWith('ai_conversation')) {
-    return { key: 'ai_conversation', label: 'AI 对话' }
+    return { key: 'ai_conversation', label: 'AI 对话', category: 'conversation' }
   }
   if (ruleCode === 'st_pron_score') {
-    return { key: 'st_pron_score', label: '跟读评分' }
+    return { key: 'st_pron_score', label: '跟读评分', category: 'evaluate' }
   }
   if (ruleCode === 'ai_test_plan') {
-    return { key: 'ai_test_plan', label: 'AI 出题' }
+    return { key: 'ai_test_plan', label: 'AI 出题', category: 'evaluate' }
   }
   if (ruleCode === 'ai_definition') {
-    return { key: 'ai_definition', label: 'AI 释义' }
+    return { key: 'ai_definition', label: 'AI 释义', category: 'lookup' }
+  }
+  if (ruleCode === 'ai_word_link') {
+    return { key: 'ai_word_link', label: 'AI 词联', category: 'lookup' }
   }
   if (ruleCode === 'ai_translate' || ruleCode === 'ai_translate_conversation') {
-    return { key: 'ai_translate', label: 'AI 翻译' }
+    return { key: 'ai_translate', label: 'AI 翻译', category: 'translate' }
   }
   if (ruleCode === 'ai_tts') {
-    return { key: 'ai_tts', label: 'AI 朗读' }
+    return { key: 'ai_tts', label: 'AI 朗读', category: 'tts' }
   }
-  return { key: ruleCode, label: ruleCode }
+  if (ruleCode === 'ai_evaluate') {
+    return { key: 'ai_evaluate', label: 'AI 评测', category: 'evaluate' }
+  }
+  return { key: ruleCode, label: ruleCode, category: 'other' }
+}
+
+function categoryLabel(category: string): string {
+  switch (category) {
+    case 'translate': return '翻译'
+    case 'tts': return 'AI 发音'
+    case 'conversation': return 'AI 对话'
+    case 'lookup': return '智能查词'
+    case 'evaluate': return '评测与测试'
+    default: return '其他'
+  }
 }
 
 function resourceLabel(resourceType: string): string {
   switch (resourceType) {
-    case 'video':
-      return '视频'
-    case 'music':
-      return '音频'
-    case 'article':
-      return '文章'
-    case 'word_book':
-      return '生词本'
-    default:
-      return '未分类'
+    case 'video': return '视频'
+    case 'music': return '音频'
+    case 'article': return '文章'
+    case 'word_book': return '生词本'
+    case 'test': return '测试'
+    default: return '未分类'
   }
 }
 
@@ -83,9 +115,10 @@ function normalizeResourceType(meta: Record<string, any>): string {
 
 function normalizeEvent(row: any, ruleMap: Map<string, any>) {
   const meta = typeof row.meta === 'object' && row.meta ? row.meta : {}
-  const action = meta.action_key && meta.action_label
+  const metaAction = meta.action_key && meta.action_label
     ? { key: String(meta.action_key), label: String(meta.action_label) }
     : actionMeta(String(row.rule_code ?? ''))
+  const category = actionMeta(String(row.rule_code ?? '')).category
   const resourceType = normalizeResourceType(meta)
   const rule = ruleMap.get(String(row.rule_code ?? ''))
   return {
@@ -97,8 +130,10 @@ function normalizeEvent(row: any, ruleMap: Map<string, any>) {
     day: String(row.created_at ?? '').slice(0, 10),
     scene: String(row.scene ?? ''),
     entry: String(row.entry ?? ''),
-    action_key: action.key,
-    action_label: action.label,
+    action_key: metaAction.key,
+    action_label: metaAction.label,
+    category,
+    category_label: categoryLabel(category),
     resource_type: resourceType,
     resource_label: resourceLabel(resourceType),
     resource_code: String(meta.resource_code ?? meta.video_code ?? meta.source_code ?? ''),
@@ -143,6 +178,30 @@ async function loadEvents(userId: string, from: Date, to: Date) {
   return data ?? []
 }
 
+function parseTimeRange(body: any, defaultDay?: string): { from: Date; to: Date; label: string } {
+  const mode = String(body.time_mode ?? 'day')
+  const day = String(body.day ?? defaultDay ?? toDayString(new Date()))
+  
+  switch (mode) {
+    case 'week':
+      return { from: startOfWeek(day), to: addDays(startOfDay(day), 1), label: '本周' }
+    case 'month':
+      return { from: startOfMonth(day), to: addDays(startOfDay(day), 1), label: '本月' }
+    case 'three_months':
+      return { from: startOfThreeMonths(day), to: addDays(startOfDay(day), 1), label: '近三月' }
+    case 'custom': {
+      const fromStr = String(body.from ?? '').slice(0, 10)
+      const toStr = String(body.to ?? '').slice(0, 10)
+      const from = fromStr ? startOfDay(fromStr) : startOfDay(day)
+      const to = toStr ? addDays(startOfDay(toStr), 1) : addDays(startOfDay(day), 1)
+      return { from, to, label: `${fromStr || day} ~ ${toStr || day}` }
+    }
+    case 'day':
+    default:
+      return { from: startOfDay(day), to: addDays(startOfDay(day), 1), label: day }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -159,22 +218,18 @@ Deno.serve(async (req: Request) => {
 
     const body = (await req.json().catch(() => ({}))) as any
     const op = String(body.op ?? 'overview')
-    const day = String(body.day ?? toDayString(new Date()))
+    const timeRange = parseTimeRange(body)
     const trendDays = Math.max(3, Math.min(30, Number(body.trend_days ?? 7)))
 
-    const dayStart = startOfDay(day)
-    const dayEnd = addDays(dayStart, 1)
-    const trendStart = addDays(dayStart, -(trendDays - 1))
     const ruleMap = await loadRuleMap()
 
     if (op === 'overview') {
-      const events = (await loadEvents(userId, trendStart, dayEnd)).map((e) =>
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to)).map((e) =>
         normalizeEvent(e, ruleMap)
       )
-      const todayEvents = events.filter((e) => e.day === day)
 
       const actionMap = new Map<string, any>()
-      for (const e of todayEvents) {
+      for (const e of events) {
         const key = e.action_key
         const current = actionMap.get(key) ?? {
           key,
@@ -188,7 +243,7 @@ Deno.serve(async (req: Request) => {
       }
 
       const resourceMap = new Map<string, any>()
-      for (const e of todayEvents) {
+      for (const e of events) {
         const key = e.resource_type
         const current = resourceMap.get(key) ?? {
           key,
@@ -201,12 +256,17 @@ Deno.serve(async (req: Request) => {
         resourceMap.set(key, current)
       }
 
+      // 计算趋势（按时间范围的起始日期开始）
       const trendMap = new Map<string, number>()
-      for (let i = 0; i < trendDays; i++) {
-        trendMap.set(toDayString(addDays(trendStart, i)), 0)
+      const dayCount = Math.ceil((timeRange.to.getTime() - timeRange.from.getTime()) / (24 * 60 * 60 * 1000))
+      for (let i = 0; i < Math.min(dayCount, trendDays); i++) {
+        trendMap.set(toDayString(addDays(timeRange.from, i)), 0)
       }
       for (const e of events) {
-        trendMap.set(e.day, (trendMap.get(e.day) ?? 0) + e.cost_cny)
+        const dayStr = e.day
+        if (trendMap.has(dayStr)) {
+          trendMap.set(dayStr, (trendMap.get(dayStr) ?? 0) + e.cost_cny)
+        }
       }
 
       const rules = Array.from(ruleMap.values())
@@ -221,8 +281,9 @@ Deno.serve(async (req: Request) => {
 
       return json({
         ok: true,
-        day,
-        day_total: todayEvents.reduce((sum, e) => sum + e.cost_cny, 0),
+        time_label: timeRange.label,
+        total_cost: events.reduce((sum, e) => sum + e.cost_cny, 0),
+        total_count: events.length,
         trend: Array.from(trendMap.entries()).map(([date, total]) => ({
           date,
           total,
@@ -233,18 +294,252 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    if (op === 'by_category') {
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to)).map((e) =>
+        normalizeEvent(e, ruleMap)
+      )
+
+      const categoryMap = new Map<string, any>()
+      for (const e of events) {
+        const key = e.category
+        const current = categoryMap.get(key) ?? {
+          category: key,
+          name_zh: categoryLabel(key),
+          total_cost_cny: 0,
+          total_count: 0,
+          by_rule: new Map<string, any>(),
+          by_source: new Map<string, any>(),
+        }
+        current.total_cost_cny += e.cost_cny
+        current.total_count += 1
+
+        // 按规则聚合
+        const ruleKey = e.rule_code
+        const ruleCurrent = current.by_rule.get(ruleKey) ?? {
+          rule_code: e.rule_code,
+          name_zh: e.rule_name,
+          cost_cny: 0,
+          count: 0,
+        }
+        ruleCurrent.cost_cny += e.cost_cny
+        ruleCurrent.count += 1
+        current.by_rule.set(ruleKey, ruleCurrent)
+
+        // 按资源聚合
+        if (e.resource_code) {
+          const sourceKey = `${e.resource_type}:${e.resource_code}`
+          const sourceCurrent = current.by_source.get(sourceKey) ?? {
+            source_type: e.resource_type,
+            source_code: e.resource_code,
+            source_title: e.resource_title,
+            cost_cny: 0,
+            count: 0,
+          }
+          sourceCurrent.cost_cny += e.cost_cny
+          sourceCurrent.count += 1
+          current.by_source.set(sourceKey, sourceCurrent)
+        }
+
+        categoryMap.set(key, current)
+      }
+
+      // 转换 Map 为 Array
+      const categories = Array.from(categoryMap.values()).map(c => ({
+        ...c,
+        by_rule: Array.from(c.by_rule.values()).sort((a: any, b: any) => b.cost_cny - a.cost_cny),
+        by_source: Array.from(c.by_source.values()).sort((a: any, b: any) => b.cost_cny - a.cost_cny),
+      })).sort((a, b) => b.total_cost_cny - a.total_cost_cny)
+
+      return json({
+        ok: true,
+        time_label: timeRange.label,
+        total_cost: events.reduce((sum, e) => sum + e.cost_cny, 0),
+        total_count: events.length,
+        categories,
+      })
+    }
+
+    if (op === 'category_detail') {
+      const category = String(body.category ?? '').trim()
+      if (!category) {
+        return json({ ok: false, error: 'missing_category' }, 400)
+      }
+
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to))
+        .map((e) => normalizeEvent(e, ruleMap))
+        .filter((e) => e.category === category)
+
+      const ruleMap2 = new Map<string, any>()
+      for (const e of events) {
+        const key = e.rule_code
+        const current = ruleMap2.get(key) ?? {
+          rule_code: e.rule_code,
+          name_zh: e.rule_name,
+          cost_cny: 0,
+          count: 0,
+        }
+        current.cost_cny += e.cost_cny
+        current.count += 1
+        ruleMap2.set(key, current)
+      }
+
+      // 按资源聚合
+      const sourceMap = new Map<string, any>()
+      for (const e of events) {
+        if (e.resource_code) {
+          const key = `${e.resource_type}:${e.resource_code}`
+          const current = sourceMap.get(key) ?? {
+            source_type: e.resource_type,
+            source_code: e.resource_code,
+            source_title: e.resource_title,
+            cost_cny: 0,
+            count: 0,
+          }
+          current.cost_cny += e.cost_cny
+          current.count += 1
+          sourceMap.set(key, current)
+        }
+      }
+
+      // 按日聚合
+      const dailyMap = new Map<string, { date: string; cost_cny: number; count: number }>()
+      for (const e of events) {
+        const day = e.day
+        const current = dailyMap.get(day) ?? { date: day, cost_cny: 0, count: 0 }
+        current.cost_cny += e.cost_cny
+        current.count += 1
+        dailyMap.set(day, current)
+      }
+
+      return json({
+        ok: true,
+        time_label: timeRange.label,
+        category,
+        name_zh: categoryLabel(category),
+        total_cost_cny: events.reduce((sum, e) => sum + e.cost_cny, 0),
+        total_count: events.length,
+        by_rule: Array.from(ruleMap2.values()).sort((a, b) => b.cost_cny - a.cost_cny),
+        by_source: Array.from(sourceMap.values()).sort((a, b) => b.cost_cny - a.cost_cny),
+        daily: Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
+      })
+    }
+
+    if (op === 'by_source') {
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to)).map((e) =>
+        normalizeEvent(e, ruleMap)
+      )
+
+      const sourceTypeMap = new Map<string, any>()
+      let unknownCost = 0
+
+      for (const e of events) {
+        if (!e.resource_code) {
+          unknownCost += e.cost_cny
+          continue
+        }
+
+        const sourceTypeKey = e.resource_type
+        let sourceTypeGroup = sourceTypeMap.get(sourceTypeKey)
+        if (!sourceTypeGroup) {
+          sourceTypeGroup = {
+            source_type: sourceTypeKey,
+            source_type_zh: resourceLabel(sourceTypeKey),
+            items: new Map<string, any>(),
+            subtotal_cny: 0,
+          }
+          sourceTypeMap.set(sourceTypeKey, sourceTypeGroup)
+        }
+
+        const sourceKey = e.resource_code
+        const current = sourceTypeGroup.items.get(sourceKey) ?? {
+          source_code: e.resource_code,
+          source_title: e.resource_title || '未命名资源',
+          cost_cny: 0,
+          count: 0,
+        }
+        current.cost_cny += e.cost_cny
+        current.count += 1
+        sourceTypeGroup.items.set(sourceKey, current)
+        sourceTypeGroup.subtotal_cny += e.cost_cny
+      }
+
+      // 转换 Map 为 Array
+      const sources = Array.from(sourceTypeMap.values()).map(s => ({
+        ...s,
+        items: Array.from(s.items.values()).sort((a: any, b: any) => b.cost_cny - a.cost_cny),
+      })).sort((a, b) => b.subtotal_cny - a.subtotal_cny)
+
+      return json({
+        ok: true,
+        time_label: timeRange.label,
+        total_cost: events.reduce((sum, e) => sum + e.cost_cny, 0),
+        total_count: events.length,
+        sources,
+        unknown_source_cost_cny: unknownCost,
+      })
+    }
+
+    if (op === 'source_detail') {
+      const sourceType = String(body.source_type ?? '').trim()
+      const sourceCode = String(body.source_code ?? '').trim()
+      if (!sourceType || !sourceCode) {
+        return json({ ok: false, error: 'missing_source_filters' }, 400)
+      }
+
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to))
+        .map((e) => normalizeEvent(e, ruleMap))
+        .filter((e) => e.resource_type === sourceType && e.resource_code === sourceCode)
+
+      // 按功能分类聚合
+      const categoryMap = new Map<string, any>()
+      for (const e of events) {
+        const key = e.category
+        const current = categoryMap.get(key) ?? {
+          category: key,
+          name_zh: categoryLabel(key),
+          cost_cny: 0,
+          count: 0,
+        }
+        current.cost_cny += e.cost_cny
+        current.count += 1
+        categoryMap.set(key, current)
+      }
+
+      // 按日聚合
+      const dailyMap = new Map<string, { date: string; cost_cny: number; count: number }>()
+      for (const e of events) {
+        const day = e.day
+        const current = dailyMap.get(day) ?? { date: day, cost_cny: 0, count: 0 }
+        current.cost_cny += e.cost_cny
+        current.count += 1
+        dailyMap.set(day, current)
+      }
+
+      return json({
+        ok: true,
+        time_label: timeRange.label,
+        source_type: sourceType,
+        source_code: sourceCode,
+        source_title: events[0]?.resource_title || '未命名资源',
+        total_cost_cny: events.reduce((sum, e) => sum + e.cost_cny, 0),
+        total_count: events.length,
+        by_category: Array.from(categoryMap.values()).sort((a, b) => b.cost_cny - a.cost_cny),
+        daily: Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date)),
+      })
+    }
+
     if (op === 'action_details') {
       const actionKey = String(body.action_key ?? '').trim()
       if (!actionKey) {
         return json({ ok: false, error: 'missing_action_key' }, 400)
       }
-      const events = (await loadEvents(userId, dayStart, dayEnd))
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to))
         .map((e) => normalizeEvent(e, ruleMap))
         .filter((e) => e.action_key === actionKey)
       const total = events.reduce((sum, e) => sum + e.cost_cny, 0)
       return json({
         ok: true,
-        day,
+        time_label: timeRange.label,
         action: {
           key: actionKey,
           label: events[0]?.action_label ?? actionMeta(actionKey).label,
@@ -261,7 +556,7 @@ Deno.serve(async (req: Request) => {
       if (!resourceType) {
         return json({ ok: false, error: 'missing_resource_type' }, 400)
       }
-      let events = (await loadEvents(userId, dayStart, dayEnd))
+      let events = (await loadEvents(userId, timeRange.from, timeRange.to))
         .map((e) => normalizeEvent(e, ruleMap))
         .filter((e) => e.resource_type === resourceType)
       if (search.length > 0) {
@@ -301,7 +596,7 @@ Deno.serve(async (req: Request) => {
 
       return json({
         ok: true,
-        day,
+        time_label: timeRange.label,
         resource_type: resourceType,
         resource_label: resourceLabel(resourceType),
         summary: {
@@ -319,7 +614,7 @@ Deno.serve(async (req: Request) => {
       if (!resourceType || !resourceCode) {
         return json({ ok: false, error: 'missing_resource_filters' }, 400)
       }
-      const events = (await loadEvents(userId, dayStart, dayEnd))
+      const events = (await loadEvents(userId, timeRange.from, timeRange.to))
         .map((e) => normalizeEvent(e, ruleMap))
         .filter(
           (e) =>
@@ -327,7 +622,7 @@ Deno.serve(async (req: Request) => {
         )
       return json({
         ok: true,
-        day,
+        time_label: timeRange.label,
         resource: {
           resource_type: resourceType,
           resource_label: resourceLabel(resourceType),

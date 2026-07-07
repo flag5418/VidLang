@@ -646,7 +646,7 @@ class FilePickerService {
         '[IMPORT_SUBTITLE][DONE] videoCode=$videoCode subtitleFile=$subtitlePath '
         'parsed=${subtitles.length} inserted=$subtitlesInserted participles=$participlesInserted',
       );
-      await ConversationService.uploadSubtitlesToCloud(videoCode);
+      await ConversationService.uploadSubtitlesToCloud(videoCode, folderCode: folderCode);
       return _SubtitleImportStats(
         subtitlesInserted: subtitlesInserted,
         participlesInserted: participlesInserted,

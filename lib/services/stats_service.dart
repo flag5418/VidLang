@@ -1,5 +1,5 @@
-import 'dart:developer';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/word_book.dart';
@@ -424,6 +424,79 @@ class StatsService {
       return [];
     }
   }
+
+  // ════════════════════════════════════════════════
+  //  AI 学习建议
+  // ════════════════════════════════════════════════
+
+  /// 获取 AI 学习建议（本地规则兜底，后续可接入 AI）
+  static Future<List<AiSuggestion>> getAiLearningSuggestions() async {
+    try {
+      final overview = await getDetailOverview();
+      final streakDays = await calculateStreakDays();
+
+      if (overview.totalDurationSeconds < 60 && overview.learnedResources < 1) {
+        return _localRuleSuggestions(streakDays);
+      }
+
+      // TODO: 接入 ai-proxy Edge Function 获取个性化建议
+      // 暂时使用本地规则
+      return _localRuleSuggestions(streakDays);
+    } catch (e) {
+      debugPrint('[StatsService] AI suggestions failed: $e');
+      return _localRuleSuggestions(0);
+    }
+  }
+
+  static List<AiSuggestion> _localRuleSuggestions(int streakDays) {
+    final suggestions = <AiSuggestion>[];
+
+    if (streakDays >= 7) {
+      suggestions.add(AiSuggestion(
+        title: '保持节奏',
+        description:
+            '已连续学习 $streakDays 天！继续保持每天学习的习惯，效果会越来越明显。',
+        icon: Icons.local_fire_department,
+      ));
+    } else if (streakDays >= 3) {
+      suggestions.add(AiSuggestion(
+        title: '再坚持一下',
+        description:
+            '连续 ${streakDays} 天了，再坚持 ${(7 - streakDays)} 天即可解锁「连续7天」成就！',
+        actionText: '今日目标',
+        icon: Icons.flag,
+      ));
+    } else {
+      suggestions.add(AiSuggestion(
+        title: '开始每日学习',
+        description: '每天只需 15 分钟，坚持一周就能看到明显进步。',
+        actionText: '开始学习',
+        icon: Icons.play_circle_outline,
+      ));
+    }
+
+    suggestions.add(AiSuggestion(
+      title: '多样化学习',
+      description:
+          '尝试结合视频、音频和文章多种资源类型，全面提升听说读写能力。',
+      icon: Icons.dashboard,
+    ));
+
+    suggestions.add(AiSuggestion(
+      title: '定期复习',
+      description: '使用生词本复习功能巩固已学单词，间隔重复记忆效果最佳。',
+      icon: Icons.refresh,
+    ));
+
+    return suggestions;
+  }
+
+  static String _fmtDuration(int seconds) {
+    if (seconds >= 3600) {
+      return '${seconds ~/ 3600}h${(seconds % 3600) ~/ 60}m';
+    }
+    return '${(seconds ~/ 60)}m';
+  }
 }
 
 // ─── 详情页数据类 ───
@@ -480,4 +553,26 @@ class _TypeAggregation {
   final Set<String> resources = {};
   int totalDuration = 0;
   DateTime lastStudy = DateTime(2000);
+}
+
+/// AI 学习建议数据模型
+class AiSuggestion {
+  /// 建议标题
+  final String title;
+
+  /// 建议描述
+  final String description;
+
+  /// 建议图标
+  final IconData icon;
+
+  /// 操作按钮文字（可选）
+  final String? actionText;
+
+  const AiSuggestion({
+    required this.title,
+    required this.description,
+    required this.icon,
+    this.actionText,
+  });
 }

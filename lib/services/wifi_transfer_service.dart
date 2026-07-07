@@ -883,7 +883,7 @@ class WifiTransferService extends ChangeNotifier {
 
     // Upload to cloud for AI question generation
     try {
-      await ConversationService.uploadArticleContentToCloud(article.code!);
+      await ConversationService.uploadArticleContentToCloud(article.code!, folderCode: folderCode);
     } catch (_) {}
 
     notifyListeners();

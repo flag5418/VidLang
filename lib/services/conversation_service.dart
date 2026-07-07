@@ -258,6 +258,38 @@ class ConversationService {
     }
   }
 
+  /// 删除云端字幕（单个资源）
+  ///
+  /// 设计文档 §8.1: { op: 'delete', video_code: 'xxx' }
+  static Future<void> deleteCloudSubtitles(String videoCode) async {
+    try {
+      AuthService.instance.ensureActiveSession();
+      final client = sb.Supabase.instance.client;
+      await client.functions.invoke('subtitle-storage', body: {
+        'op': 'delete',
+        'video_code': videoCode,
+      });
+    } catch (e) {
+      dev.log('deleteCloudSubtitles failed: $e', name: 'ConversationService');
+    }
+  }
+
+  /// 删除云端字幕（整个文件夹下所有资源）
+  ///
+  /// 设计文档 §8.1: { op: 'delete_folder', folder_code: 'xxx' }
+  static Future<void> deleteCloudFolderSubtitles(String folderCode) async {
+    try {
+      AuthService.instance.ensureActiveSession();
+      final client = sb.Supabase.instance.client;
+      await client.functions.invoke('subtitle-storage', body: {
+        'op': 'delete_folder',
+        'folder_code': folderCode,
+      });
+    } catch (e) {
+      dev.log('deleteCloudFolderSubtitles failed: $e', name: 'ConversationService');
+    }
+  }
+
   static Future<void> settleSession({
     required String conversationId,
     required int turnCount,

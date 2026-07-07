@@ -94,16 +94,18 @@ class BillingRuleItem {
 }
 
 class BillingOverview {
-  final String day;
-  final double dayTotal;
+  final String timeLabel;
+  final double totalCost;
+  final int totalCount;
   final List<BillingTrendPoint> trend;
   final List<BillingSummaryItem> actionSummary;
   final List<BillingSummaryItem> resourceSummary;
   final List<BillingRuleItem> pricingRules;
 
   const BillingOverview({
-    required this.day,
-    required this.dayTotal,
+    required this.timeLabel,
+    required this.totalCost,
+    required this.totalCount,
     required this.trend,
     required this.actionSummary,
     required this.resourceSummary,
@@ -112,8 +114,9 @@ class BillingOverview {
 
   factory BillingOverview.fromJson(Map<String, dynamic> json) {
     return BillingOverview(
-      day: json['day'] as String? ?? '',
-      dayTotal: _toDouble(json['day_total']) ?? 0,
+      timeLabel: json['time_label'] as String? ?? '',
+      totalCost: _toDouble(json['total_cost']) ?? 0,
+      totalCount: _toInt(json['total_count']) ?? 0,
       trend: ((json['trend'] as List?) ?? const [])
           .whereType<Map>()
           .map((e) => BillingTrendPoint.fromJson(Map<String, dynamic>.from(e)))
@@ -137,6 +140,14 @@ class BillingOverview {
     if (value == null) return null;
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
     return null;
   }
 }
@@ -347,3 +358,488 @@ class BillingResourceDetails {
     return null;
   }
 }
+
+/// 按功能分类聚合 - 规则项
+class BillingCategoryRuleItem {
+  final String ruleCode;
+  final String nameZh;
+  final double costCny;
+  final int count;
+
+  const BillingCategoryRuleItem({
+    required this.ruleCode,
+    required this.nameZh,
+    required this.costCny,
+    required this.count,
+  });
+
+  factory BillingCategoryRuleItem.fromJson(Map<String, dynamic> json) {
+    return BillingCategoryRuleItem(
+      ruleCode: json['rule_code'] as String? ?? '',
+      nameZh: json['name_zh'] as String? ?? '',
+      costCny: _toDouble(json['cost_cny'] ?? json['cost']) ?? 0,
+      count: _toInt(json['count']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 按功能分类聚合 - 资源项
+class BillingCategorySourceItem {
+  final String sourceType;
+  final String sourceCode;
+  final String sourceTitle;
+  final double costCny;
+  final int count;
+
+  const BillingCategorySourceItem({
+    required this.sourceType,
+    required this.sourceCode,
+    required this.sourceTitle,
+    required this.costCny,
+    required this.count,
+  });
+
+  factory BillingCategorySourceItem.fromJson(Map<String, dynamic> json) {
+    return BillingCategorySourceItem(
+      sourceType: json['source_type'] as String? ?? '',
+      sourceCode: json['source_code'] as String? ?? '',
+      sourceTitle: json['source_title'] as String? ?? '',
+      costCny: _toDouble(json['cost_cny'] ?? json['cost']) ?? 0,
+      count: _toInt(json['count']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 按功能分类聚合 - 分类项
+class BillingCategoryItem {
+  final String category;
+  final String nameZh;
+  final double totalCostCny;
+  final int totalCount;
+  final List<BillingCategoryRuleItem> byRule;
+  final List<BillingCategorySourceItem> bySource;
+
+  const BillingCategoryItem({
+    required this.category,
+    required this.nameZh,
+    required this.totalCostCny,
+    required this.totalCount,
+    required this.byRule,
+    required this.bySource,
+  });
+
+  factory BillingCategoryItem.fromJson(Map<String, dynamic> json) {
+    return BillingCategoryItem(
+      category: json['category'] as String? ?? '',
+      nameZh: json['name_zh'] as String? ?? '',
+      totalCostCny: _toDouble(json['total_cost_cny'] ?? json['total']) ?? 0,
+      totalCount: _toInt(json['total_count'] ?? json['count']) ?? 0,
+      byRule: ((json['by_rule'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingCategoryRuleItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      bySource: ((json['by_source'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingCategorySourceItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 按功能分类聚合响应
+class BillingByCategoryResponse {
+  final String timeLabel;
+  final double totalCost;
+  final int totalCount;
+  final List<BillingCategoryItem> categories;
+
+  const BillingByCategoryResponse({
+    required this.timeLabel,
+    required this.totalCost,
+    required this.totalCount,
+    required this.categories,
+  });
+
+  factory BillingByCategoryResponse.fromJson(Map<String, dynamic> json) {
+    return BillingByCategoryResponse(
+      timeLabel: json['time_label'] as String? ?? '',
+      totalCost: _toDouble(json['total_cost']) ?? 0,
+      totalCount: _toInt(json['total_count']) ?? 0,
+      categories: ((json['categories'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingCategoryItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 单功能详情 - 日聚合
+class BillingDailyItem {
+  final String date;
+  final double costCny;
+  final int count;
+
+  const BillingDailyItem({
+    required this.date,
+    required this.costCny,
+    required this.count,
+  });
+
+  factory BillingDailyItem.fromJson(Map<String, dynamic> json) {
+    return BillingDailyItem(
+      date: json['date'] as String? ?? '',
+      costCny: _toDouble(json['cost_cny'] ?? json['cost']) ?? 0,
+      count: _toInt(json['count']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 单功能详情响应
+class BillingCategoryDetailResponse {
+  final String timeLabel;
+  final String category;
+  final String nameZh;
+  final double totalCostCny;
+  final int totalCount;
+  final List<BillingCategoryRuleItem> byRule;
+  final List<BillingCategorySourceItem> bySource;
+  final List<BillingDailyItem> daily;
+
+  const BillingCategoryDetailResponse({
+    required this.timeLabel,
+    required this.category,
+    required this.nameZh,
+    required this.totalCostCny,
+    required this.totalCount,
+    required this.byRule,
+    required this.bySource,
+    required this.daily,
+  });
+
+  factory BillingCategoryDetailResponse.fromJson(Map<String, dynamic> json) {
+    return BillingCategoryDetailResponse(
+      timeLabel: json['time_label'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      nameZh: json['name_zh'] as String? ?? '',
+      totalCostCny: _toDouble(json['total_cost_cny'] ?? json['total']) ?? 0,
+      totalCount: _toInt(json['total_count'] ?? json['count']) ?? 0,
+      byRule: ((json['by_rule'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingCategoryRuleItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      bySource: ((json['by_source'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingCategorySourceItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      daily: ((json['daily'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingDailyItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 按资源聚合 - 资源项
+class BillingSourceItem {
+  final String sourceCode;
+  final String sourceTitle;
+  final double costCny;
+  final int count;
+
+  const BillingSourceItem({
+    required this.sourceCode,
+    required this.sourceTitle,
+    required this.costCny,
+    required this.count,
+  });
+
+  factory BillingSourceItem.fromJson(Map<String, dynamic> json) {
+    return BillingSourceItem(
+      sourceCode: json['source_code'] as String? ?? '',
+      sourceTitle: json['source_title'] as String? ?? '未命名资源',
+      costCny: _toDouble(json['cost_cny'] ?? json['cost']) ?? 0,
+      count: _toInt(json['count']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 按资源聚合 - 资源类型组
+class BillingSourceTypeGroup {
+  final String sourceType;
+  final String sourceTypeZh;
+  final List<BillingSourceItem> items;
+  final double subtotalCny;
+
+  const BillingSourceTypeGroup({
+    required this.sourceType,
+    required this.sourceTypeZh,
+    required this.items,
+    required this.subtotalCny,
+  });
+
+  factory BillingSourceTypeGroup.fromJson(Map<String, dynamic> json) {
+    return BillingSourceTypeGroup(
+      sourceType: json['source_type'] as String? ?? '',
+      sourceTypeZh: json['source_type_zh'] as String? ?? '',
+      items: ((json['items'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingSourceItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      subtotalCny: _toDouble(json['subtotal_cny']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+}
+
+/// 按资源聚合响应
+class BillingBySourceResponse {
+  final String timeLabel;
+  final double totalCost;
+  final int totalCount;
+  final List<BillingSourceTypeGroup> sources;
+  final double unknownSourceCostCny;
+
+  const BillingBySourceResponse({
+    required this.timeLabel,
+    required this.totalCost,
+    required this.totalCount,
+    required this.sources,
+    required this.unknownSourceCostCny,
+  });
+
+  factory BillingBySourceResponse.fromJson(Map<String, dynamic> json) {
+    return BillingBySourceResponse(
+      timeLabel: json['time_label'] as String? ?? '',
+      totalCost: _toDouble(json['total_cost']) ?? 0,
+      totalCount: _toInt(json['total_count']) ?? 0,
+      sources: ((json['sources'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingSourceTypeGroup.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      unknownSourceCostCny: _toDouble(json['unknown_source_cost_cny']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 单资源详情 - 功能分类聚合
+class BillingSourceCategoryItem {
+  final String category;
+  final String nameZh;
+  final double costCny;
+  final int count;
+
+  const BillingSourceCategoryItem({
+    required this.category,
+    required this.nameZh,
+    required this.costCny,
+    required this.count,
+  });
+
+  factory BillingSourceCategoryItem.fromJson(Map<String, dynamic> json) {
+    return BillingSourceCategoryItem(
+      category: json['category'] as String? ?? '',
+      nameZh: json['name_zh'] as String? ?? '',
+      costCny: _toDouble(json['cost_cny'] ?? json['cost']) ?? 0,
+      count: _toInt(json['count']) ?? 0,
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+
+/// 单资源详情响应
+class BillingSourceDetailResponse {
+  final String timeLabel;
+  final String sourceType;
+  final String sourceCode;
+  final String sourceTitle;
+  final double totalCostCny;
+  final int totalCount;
+  final List<BillingSourceCategoryItem> byCategory;
+  final List<BillingDailyItem> daily;
+
+  const BillingSourceDetailResponse({
+    required this.timeLabel,
+    required this.sourceType,
+    required this.sourceCode,
+    required this.sourceTitle,
+    required this.totalCostCny,
+    required this.totalCount,
+    required this.byCategory,
+    required this.daily,
+  });
+
+  factory BillingSourceDetailResponse.fromJson(Map<String, dynamic> json) {
+    return BillingSourceDetailResponse(
+      timeLabel: json['time_label'] as String? ?? '',
+      sourceType: json['source_type'] as String? ?? '',
+      sourceCode: json['source_code'] as String? ?? '',
+      sourceTitle: json['source_title'] as String? ?? '未命名资源',
+      totalCostCny: _toDouble(json['total_cost_cny'] ?? json['total']) ?? 0,
+      totalCount: _toInt(json['total_count'] ?? json['count']) ?? 0,
+      byCategory: ((json['by_category'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingSourceCategoryItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+      daily: ((json['daily'] as List?) ?? const [])
+          .whereType<Map>()
+          .map((e) => BillingDailyItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+}
+

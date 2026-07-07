@@ -16,6 +16,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/app_keys_service.dart';
+import 'package:vidlang/services/billing_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/providers/difficulty_provider.dart';
@@ -26,13 +27,13 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/services/tts_service.dart';
-import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_page.dart';
+import 'package:vidlang/views/profile/billing_rules_page.dart';
 import 'package:vidlang/views/profile/edit_profile_page.dart';
 import 'package:vidlang/views/profile/learning_stats_page.dart';
+import 'package:vidlang/views/profile/topup_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
-import 'package:vidlang/views/settings/model_settings_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/components/ui/outlined_card.dart';
 
@@ -62,6 +63,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   SummaryStats _summaryStats = const SummaryStats();
   int _wifiPort = 9999;
   String _ttsCacheLabel = '加载中...';
+  double _todayCost = 0;
 
   @override
   void initState() {
@@ -71,6 +73,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _loadWifiPort();
     _loadTtsCacheInfo();
     _refreshBalance(); // 进入页面时刷新最新余额
+    _loadTodayCost(); // 加载今日消费
   }
 
   Future<void> _checkUser() async {
@@ -156,6 +159,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   title: 'TTS 缓存管理',
                   subtitle: _ttsCacheLabel,
                   onTap: () => _showTtsCacheDialog(),
+                ),
+                _SettingItem(
+                  icon: Icons.receipt_long_outlined,
+                  title: '消费明细',
+                  subtitle: '查看今日消费',
+                  onTap: () => _navigateToBillingPage(),
+                ),
+                _SettingItem(
+                  icon: Icons.rule_outlined,
+                  title: '计费规则',
+                  subtitle: '查看各项AI功能费用',
+                  onTap: () => _navigateToBillingRulesPage(),
                 ),
                 if (_isSupabaseUser)
                   _SettingItem(
@@ -317,97 +332,150 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               : colorScheme.primary.withValues(alpha: 0.15),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(
-            isPremium ? Icons.workspace_premium : Icons.person_outline,
-            color: isPremium ? Colors.amber : colorScheme.primary,
-            size: 22.w,
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isPremium ? '收费模式' : '免费模式',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  isPremium
-                      ? '余额：¥${subState.balance.toStringAsFixed(2)}'
-                      : '使用基础功能，不产生费用',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isPremium) ...[
-            GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  '充值',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.amber,
-                  ),
+          Row(
+            children: [
+              Icon(
+                isPremium ? Icons.workspace_premium : Icons.person_outline,
+                color: isPremium ? Colors.amber : colorScheme.primary,
+                size: 22.w,
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isPremium ? '收费模式' : '免费模式',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      isPremium
+                          ? '余额：¥${subState.balance.toStringAsFixed(2)}'
+                          : '使用基础功能，不产生费用',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            SizedBox(width: 12.w),
-          ],
-          // Toggle switch
-          GestureDetector(
-            onTap: () async {
-              await ref
-                  .read(subscriptionProvider.notifier)
-                  .setMode(
-                    isPremium
-                        ? SubscriptionMode.free
-                        : SubscriptionMode.premium,
-                  );
-            },
-            child: Container(
-              width: 50.w,
-              height: 28.h,
-              padding: EdgeInsets.all(2.w),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14.r),
-                color: isPremium
-                    ? Colors.amber
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-              ),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                alignment: isPremium
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+              // Toggle switch
+              GestureDetector(
+                onTap: () async {
+                  await ref
+                      .read(subscriptionProvider.notifier)
+                      .setMode(
+                        isPremium
+                            ? SubscriptionMode.free
+                            : SubscriptionMode.premium,
+                      );
+                },
                 child: Container(
-                  width: 24.w,
-                  height: 24.w,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
+                  width: 50.w,
+                  height: 28.h,
+                  padding: EdgeInsets.all(2.w),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14.r),
+                    color: isPremium
+                        ? Colors.amber
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
+                  child: AnimatedAlign(
+                    duration: const Duration(milliseconds: 200),
+                    alignment: isPremium
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: Container(
+                      width: 24.w,
+                      height: 24.w,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
+          // 付费模式下额外显示今日消费和充值按钮
+          if (isPremium) ...[
+            SizedBox(height: 12.h),
+            Container(
+              padding: EdgeInsets.only(top: 12.h),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  // 今日消费
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _navigateToBillingPage,
+                      child: Row(
+                        children: [
+                          Text(
+                            '今日消费',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            '¥${_todayCost.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 16.sp,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // 充值按钮
+                  GestureDetector(
+                    onTap: _navigateToTopupPage,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        '充值',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -717,13 +785,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  void _navigateToModelSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ModelSettingsPage()),
-    );
-  }
-
   void _navigateToBillingPage() {
     Navigator.push(
       context,
@@ -731,6 +792,24 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     ).then((_) {
       if (!mounted) return;
     });
+  }
+
+  void _navigateToTopupPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TopupPage()),
+    ).then((_) {
+      if (!mounted) return;
+      _refreshBalance();
+      _loadTodayCost();
+    });
+  }
+
+  void _navigateToBillingRulesPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const BillingRulesPage()),
+    );
   }
 
   void _showThemePicker() async {
@@ -797,8 +876,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               if (port != null && port >= 1024 && port <= 65535) {
                 await SettingsService.setWifiPort(port);
                 if (mounted) setState(() => _wifiPort = port);
-                Navigator.pop(buildContext);
-              } else {
+                if (mounted) Navigator.pop(buildContext);
+              } else if (mounted) {
                 ScaffoldMessenger.of(buildContext).showSnackBar(
                   const SnackBar(content: Text('端口号需在 1024-65535 之间')),
                 );
@@ -814,7 +893,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Future<void> _loadTtsCacheInfo() async {
     try {
-      final size = await SettingsService.getTtsCacheSize();
+      await SettingsService.getTtsCacheSize();
       final stats = await TtsService().getCacheStats();
       if (mounted) {
         setState(() {
@@ -987,6 +1066,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             await TtsService().clearCache();
                             if (!mounted) return;
                             Navigator.pop(buildContext);
+                            if (!mounted) return;
                             setState(() => _ttsCacheLabel = '0 条缓存 · 0KB');
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('TTS 缓存已清除')),
@@ -1027,6 +1107,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             await SettingsService.setTtsCacheSize(newSize);
                             if (!mounted) return;
                             Navigator.pop(buildContext);
+                            if (!mounted) return;
                             setState(() {
                               _ttsCacheLabel =
                                   '${stats.count} 条缓存 · ${stats.sizeLabel}';
@@ -1097,6 +1178,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   /// 刷新余额（从 Supabase user_wallet 拉取最新值）
   Future<void> _refreshBalance() async {
     await ref.read(subscriptionProvider.notifier).refreshBalance();
+  }
+
+  /// 加载今日消费
+  Future<void> _loadTodayCost() async {
+    try {
+      final overview = await BillingService.fetchOverview();
+      if (mounted) {
+        setState(() => _todayCost = overview.totalCost);
+      }
+    } catch (_) {
+      // 静默失败
+    }
   }
 }
 

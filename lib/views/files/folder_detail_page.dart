@@ -3,6 +3,7 @@
 /// 展示文件夹内的资源列表，适配视频/文章/音频3类资源。
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -620,6 +621,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           .read(fileProvider.notifier)
           .deleteFolder(folder.code!);
       if (result == null && mounted) {
+        // P1-2: 同步清理云端字幕
+        unawaited(ConversationService.deleteCloudFolderSubtitles(folder.code!));
         Navigator.pop(context);
       } else if (result != null) {
         _showMessage('删除失败: $result');
@@ -887,7 +890,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
     // Upload to cloud for AI question generation
     try {
-      await ConversationService.uploadArticleContentToCloud(articleCode);
+      await ConversationService.uploadArticleContentToCloud(articleCode, folderCode: folderCode);
     } catch (_) {}
   }
 
@@ -1057,7 +1060,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           await DatabaseService.update(videos.first);
         }
       }
-      await ConversationService.uploadSubtitlesToCloud(videoCode);
+      await ConversationService.uploadSubtitlesToCloud(videoCode, folderCode: widget.folderCode);
       return;
     }
 
@@ -1121,7 +1124,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       await DatabaseService.insert(s);
     }
 
-    await ConversationService.uploadSubtitlesToCloud(videoCode);
+    await ConversationService.uploadSubtitlesToCloud(videoCode, folderCode: widget.folderCode);
   }
 
   /// SRT 时间格式转毫秒
@@ -1261,6 +1264,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     if (confirmed == true && mounted) {
       try {
         await ref.read(fileProvider.notifier).deleteVideo(video.code ?? '');
+        // P1-2: 同步清理云端字幕
+        unawaited(ConversationService.deleteCloudSubtitles(video.code ?? ''));
         _showMessage('删除成功');
       } catch (e) {
         _showMessage('删除失败: $e');
@@ -1433,6 +1438,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     if (confirmed == true && mounted) {
       article.isDeleted = true;
       await DatabaseService.update(article);
+      // P1-2: 同步清理云端文章内容
+      unawaited(ConversationService.deleteCloudSubtitles(article.code!));
       setState(() => _articles.removeWhere((a) => a.code == article.code));
     }
   }

@@ -267,7 +267,13 @@ class AudioRecognitionService {
       await DatabaseService.update(video);
     }
 
-    unawaited(ConversationService.uploadSubtitlesToCloud(videoCode));
+    // v2.0: 从 VideoInfo 查询 folderCode 用于云端按文件夹组织存储
+    String? fc;
+    try {
+      final vids = await DatabaseService.findByCondition(() => VideoInfo(), where: 'code = ? AND is_deleted = 0', whereArgs: [videoCode], limit: 1);
+      if (vids.isNotEmpty) fc = vids.first.folderCode;
+    } catch (_) {}
+    unawaited(ConversationService.uploadSubtitlesToCloud(videoCode, folderCode: fc));
   }
 
   static Future<void> saveLyricsResultToDb({

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
+import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/utils/adaptive.dart';
@@ -19,7 +20,7 @@ class MainPage extends ConsumerStatefulWidget {
   ConsumerState<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMixin {
+class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
   late AnimationController _animationController;
   int _currentPage = 0;
@@ -33,16 +34,26 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    WidgetsBinding.instance.addObserver(this); // P1: 注册生命周期监听
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkModelStatus();
+      // P1: 启动时恢复崩溃/Kill 的未完成学习记录
+      LearningStatsService.recoverCrashedSessions();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // P1: 移除生命周期监听
     _pageController.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  /// P1: App 生命周期变化 → 结束活跃学习会话
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    LearningStatsService.instance.handleAppLifecycleChanged(state);
   }
 
   Future<void> _checkModelStatus() async {
@@ -64,11 +75,16 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
 
   void _onTabTapped(int index) {
     if (_currentPage == index) return;
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOutCubic,
-    );
+    _currentPage = index;
+    final ipad = isIPad(context);
+    // iPad 布局使用 IndexedStack，不需要 PageController
+    if (!ipad) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+    }
     ref.read(navigationIndexProvider.notifier).setIndex(index);
   }
 

@@ -183,6 +183,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
     if (mounted) setState(() => _folderVideosOverride = fv);
   }
 
+  /// v2.0: 从当前 VideoInfo 获取 folderCode（用于云端字幕上传）
+  String? _resolveFolderCode() {
+    final notifier = ref.read(playerEngineProvider.notifier);
+    return notifier.currentVideo?.folderCode;
+  }
+
   /// 检查并初始化翻译（借鉴视频播放器方案）
   Future<void> _checkAndInitializeTranslation(
     PlayerEngineNotifier notifier,
@@ -404,7 +410,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               .reloadSubtitles(widget.videoCode);
           if (mounted) setState(() {});
           unawaited(
-            ConversationService.uploadSubtitlesToCloud(widget.videoCode),
+            ConversationService.uploadSubtitlesToCloud(widget.videoCode, folderCode: _resolveFolderCode()),
           );
         } else {
           _showRecognitionFailed();
@@ -428,7 +434,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               .reloadSubtitles(widget.videoCode);
           if (mounted) setState(() {});
           unawaited(
-            ConversationService.uploadSubtitlesToCloud(widget.videoCode),
+            ConversationService.uploadSubtitlesToCloud(widget.videoCode, folderCode: _resolveFolderCode()),
           );
         } else {
           _showRecognitionFailed();

@@ -79,7 +79,7 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
 
       // Upload to cloud for AI question generation
       try {
-        await ConversationService.uploadArticleContentToCloud(articleCode);
+        await ConversationService.uploadArticleContentToCloud(articleCode, folderCode: parsed.article.folderCode);
       } catch (_) {}
 
       if (!mounted) return;

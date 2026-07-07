@@ -6,8 +6,11 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/conversation_message.dart';
+import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/qwen_realtime_service.dart';
 
 /// 对话状态数据
@@ -256,6 +259,9 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
     await _playerCompleteSubscription?.cancel();
     _playerCompleteSubscription = null;
 
+    // 保存对话记录到本地数据库
+    await _saveConversationRecord();
+
     // 结算
     if (_session != null) {
       await ConversationService.settleSession(
@@ -269,6 +275,238 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
     }
 
     state = state.copyWith(state: ConversationState.disconnected);
+  }
+
+  /// 将当前对话保存到本地数据库
+  Future<void> _saveConversationRecord() async {
+    // 只在有实际对话内容时保存
+    if (state.messages.isEmpty) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final difficulty = prefs.getString('app_difficulty_level') ?? 'intermediate';
+
+      // 序列化消息列表
+      final messagesData = state.messages.map((m) => {
+        'id': m.id,
+        'role': m.role.name,
+        'text': m.text,
+        'translation': m.translation,
+        'timestamp': m.timestamp.toIso8601String(),
+      }).toList();
+
+      // 取第一条消息作为预览
+      String? preview;
+      if (state.messages.isNotEmpty) {
+        final firstMsg = state.messages.first;
+        preview = firstMsg.text.length > 50
+            ? '${firstMsg.text.substring(0, 50)}...'
+            : firstMsg.text;
+      }
+
+      final record = ConversationRecord()
+        ..sourceType = _sourceType ?? ''
+        ..sourceCode = _sourceCode ?? ''
+        ..sourceTitle = _sourceTitle
+        ..voice = _session?.voice ?? 'Ethan'
+        ..difficulty = difficulty
+        ..turnCount = state.turnCount
+        ..durationSeconds = state.duration.inSeconds
+        ..remoteConversationId = _session?.conversationId
+        ..messagesJson = jsonEncode(messagesData)
+        ..firstMessagePreview = preview
+        ..status = state.state == ConversationState.error ? 'error' : 'completed';
+
+      await record.save();
+    } catch (e) {
+      print('保存对话记录失败: $e');
+    }
+  }
+
+  /// 查询对话历史记录
+  static Future<List<ConversationRecord>> getConversationHistory({
+    String? sourceType,
+    String? sourceCode,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    String? where;
+    List<Object?> whereArgs = [];
+
+    if (sourceType != null && sourceCode != null) {
+      where = 'source_type = ? AND source_code = ? AND is_deleted = 0';
+      whereArgs = [sourceType, sourceCode];
+    } else if (sourceType != null) {
+      where = 'source_type = ? AND is_deleted = 0';
+      whereArgs = [sourceType];
+    } else {
+      where = 'is_deleted = 0';
+    }
+
+    return DatabaseService.findByCondition<ConversationRecord>(
+      () => ConversationRecord(),
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'created_at DESC',
+      limit: limit,
+      offset: offset,
+    );
+  }
+
+  /// 获取单条对话记录的详情（含解析后的消息）
+  static Future<ConversationRecord?> getRecordDetail(String code) async {
+    final db = await DatabaseService.database;
+    final entity = ConversationRecord();
+    final userCode = await DatabaseService.getCurrentUserCode();
+    String whereClause = 'code = ? AND is_deleted = 0';
+    List<Object?> whereArgs = [code];
+    if (userCode != null) {
+      whereClause += ' AND user_code = ?';
+      whereArgs.add(userCode);
+    }
+    final maps = await db.query(
+      entity.tableName,
+      where: whereClause,
+      whereArgs: whereArgs,
+    );
+    if (maps.isNotEmpty) {
+      return entity.fromMap(maps.first) as ConversationRecord;
+    }
+    return null;
+  }
+
+  /// 删除对话记录
+  static Future<bool> deleteConversationRecord(String code) async {
+    try {
+      final record = await getRecordDetail(code);
+      if (record != null) {
+        await record.softDelete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('删除对话记录失败: $e');
+      return false;
+    }
+  }
+
+  /// 从历史记录恢复对话上下文
+  /// 
+  /// 基于之前的对话记录创建新会话，并加载历史消息作为上下文
+  Future<void> resumeFromRecord(ConversationRecord record, {String voice = 'Ethan'}) async {
+    if (state.state == ConversationState.connecting) return;
+
+    // 解析历史消息
+    final messagesData = record.parsedMessages;
+    final restoredMessages = messagesData.map((m) {
+      final role = m['role'] == 'ai' ? MessageRole.ai : MessageRole.user;
+      return ConversationMessage(
+        id: m['id'] as String?,
+        role: role,
+        text: m['text'] as String? ?? '',
+        translation: m['translation'] as String?,
+        timestamp: m['timestamp'] != null 
+            ? DateTime.tryParse(m['timestamp'] as String) 
+            : null,
+      );
+    }).toList();
+
+    state = state.copyWith(
+      state: ConversationState.connecting,
+      messages: restoredMessages,
+      errorMessage: null,
+      sourceTitle: record.sourceTitle,
+      turnCount: record.turnCount,
+      duration: Duration(seconds: record.durationSeconds),
+    );
+
+    try {
+      _sourceType = record.sourceType;
+      _sourceCode = record.sourceCode;
+      _sourceTitle = record.sourceTitle;
+      
+      // 创建新的会话（使用相同的来源）
+      _session = await ConversationService.createSession(
+        sourceType: record.sourceType, 
+        sourceCode: record.sourceCode, 
+        voice: voice, 
+        difficulty: record.difficulty,
+        difficultyInstructions: _getDifficultyInstructions(record.difficulty),
+      );
+
+      // 建立 WebSocket 连接
+      _realtimeService = QwenRealtimeService();
+      await _realtimeService!.connect(wsUrl: _session!.wsUrl, apiKey: _session!.apiKey);
+
+      // 构建包含历史上下文的 instructions
+      final contextInstructions = _buildContextInstructions(record);
+      
+      // 配置会话（注入历史上下文）
+      _realtimeService!.updateSession(
+        instructions: contextInstructions, 
+        voice: _session!.voice,
+        difficulty: record.difficulty,
+      );
+
+      // 监听事件
+      _eventSubscription = _realtimeService!.events.listen(_handleEvent);
+
+      // 触发 AI 继续对话（基于上下文）
+      await Future.delayed(const Duration(milliseconds: 500));
+      _realtimeService!.initiateResponse();
+
+      // 初始化音频设备
+      _recorder = AudioRecorder();
+      _audioPlayer = AudioPlayer();
+      _playerCompleteSubscription = _audioPlayer!.onPlayerComplete.listen((_) {
+        _isPlaying = false;
+        if (_audioBuffer.isNotEmpty) {
+          _playAudioBuffer();
+        }
+      });
+
+      // 启动计时器
+      _sessionStartTime = DateTime.now();
+      _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (_sessionStartTime != null) {
+          state = state.copyWith(duration: DateTime.now().difference(_sessionStartTime!));
+        }
+      });
+
+      state = state.copyWith(state: ConversationState.listening);
+    } catch (e) {
+      state = state.copyWith(state: ConversationState.error, errorMessage: e.toString());
+    }
+  }
+
+  /// 构建包含历史对话上下文的 instructions
+  /// 将之前的对话摘要附加到系统指令中，让 AI 能够延续话题
+  String _buildContextInstructions(ConversationRecord record) {
+    final baseInstructions = _session?.instructions ?? '';
+    
+    // 构建对话摘要
+    final messagesData = record.parsedMessages;
+    final buffer = StringBuffer();
+    buffer.writeln('## Previous Conversation Context');
+    buffer.writeln('The student has previously discussed the following topic. Continue the conversation naturally based on this context.');
+    buffer.writeln('');
+    
+    // 只取最近 N 轮对话作为上下文（避免过长）
+    final maxContextTurns = 10;
+    final recentMessages = messagesData.length > maxContextTurns * 2
+        ? messagesData.sublist(messagesData.length - maxContextTurns * 2)
+        : messagesData;
+    
+    for (final msg in recentMessages) {
+      final role = msg['role'] == 'ai' ? 'Tutor' : 'Student';
+      final text = msg['text'] as String? ?? '';
+      buffer.writeln('$role: $text');
+    }
+    
+    buffer.writeln('');
+    buffer.writeln('Please respond naturally to continue this conversation. You may ask a follow-up question or provide feedback on the previous discussion.');
+    
+    return '$baseInstructions\n\n${buffer.toString()}';
   }
 
   @override

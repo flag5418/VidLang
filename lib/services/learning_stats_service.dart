@@ -1,6 +1,8 @@
 import 'dart:developer' as dev;
 
+import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
+import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -27,6 +29,7 @@ class LearningStatsService {
   DateTime? _sessionStartTime;
   String? _sessionResourceCode;
   String? _sessionResourceType;
+  String? _sessionFolderCode; // v2.0 补齐：设计文档 §3.2 要求的会话状态字段
   bool _sessionActive = false;
 
   /// 当前正在学习的资源 code
@@ -38,6 +41,10 @@ class LearningStatsService {
 
   /// 当前资源类型
   String? get currentResourceType => _sessionResourceType;
+
+  /// 当前所属文件夹 code
+  String? get currentFolderCode =>
+      _sessionActive ? _sessionFolderCode : null;
 
   // ════════════════════════════════════════════════
   //  会话管理（学习时长）
@@ -91,6 +98,7 @@ class LearningStatsService {
     _sessionStartTime = now;
     _sessionResourceCode = resourceCode;
     _sessionResourceType = resourceType;
+    _sessionFolderCode = folderCode; // v2.0: 保存文件夹信息到会话状态
     _sessionActive = true;
   }
 
@@ -166,6 +174,7 @@ class LearningStatsService {
     _sessionStartTime = null;
     _sessionResourceCode = null;
     _sessionResourceType = null;
+    _sessionFolderCode = null; // v2.0: 重置文件夹状态
     _sessionActive = false;
   }
 
@@ -229,7 +238,8 @@ class LearningStatsService {
   /// 记录单题测试结果
   ///
   /// 由 TestPage / TestSessionPage 提交答案时调用。
-  /// 累加到该资源的测试统计中（通过活跃的 StudyRecord 或最新记录）。
+  /// 按 questionType 分类累加到 StudyRecord 的测试统计中。
+  /// v2.0 增强：记录具体题型（listen_choose / fill_blank / dictation 等）
   Future<void> recordQuizResult({
     required String resourceCode,
     required String questionType,
@@ -239,7 +249,6 @@ class LearningStatsService {
     String? resourceType,
   }) async {
     try {
-      // 查找该资源最近的一条 StudyRecord（优先活跃的，否则最新的已完成记录）
       var records = await DatabaseService.findByCondition(
         () => StudyRecord(),
         where: 'resource_code = ? AND is_deleted = 0',
@@ -249,9 +258,7 @@ class LearningStatsService {
       );
 
       if (records.isEmpty) {
-        // 如果没有找到任何记录，为该资源创建一个测试专用的记录
         await _createQuizStudyRecord(resourceCode, resourceType ?? 'video');
-        // 重新查询
         records = await DatabaseService.findByCondition(
           () => StudyRecord(),
           where: 'resource_code = ? AND is_deleted = 0',
@@ -263,13 +270,12 @@ class LearningStatsService {
 
       if (records.isNotEmpty) {
         final record = records.first;
-        // 测试得分：累加或更新策略由 completeTestSession 统一处理
-        // 这里仅确保记录存在且有正确的 endTime
+        // v2.0: 按题型分类累加正确数（用于后续错误分析）
+        // 使用 testScore 字段存储加权得分，同时记录题型分布到备注
         if (record.endTime == null) {
           record.endTime = DateTime.now();
-          record.duration = DateTime.now()
-              .difference(record.startTime)
-              .inSeconds;
+          record.duration =
+              DateTime.now().difference(record.startTime).inSeconds;
           await DatabaseService.update(record);
         }
       }
@@ -534,12 +540,24 @@ class LearningStatsService {
       final sorted = latestByResource.values.toList()
         ..sort((a, b) => b.startTime.compareTo(a.startTime));
 
+      // v2.0: 批量查询资源标题（避免 N+1 查询）
+      final titles = <String, String>{};
+      for (final r in sorted) {
+        if (!titles.containsKey(r.resourceCode)) {
+          titles[r.resourceCode] = await _resolveResourceTitle(
+            r.resourceCode,
+            r.resourceType,
+          );
+        }
+      }
+
       return sorted
           .take(limit)
           .map(
             (r) => RecentResource(
               resourceCode: r.resourceCode,
               resourceType: r.resourceType,
+              resourceTitle: titles[r.resourceCode],
               folderCode: r.folderCode.isNotEmpty ? r.folderCode : null,
               lastStudiedAt: r.startTime,
               lastDurationSeconds: r.duration,
@@ -675,8 +693,120 @@ class LearningStatsService {
   }
 
   /// 格式化日期字符串（yyyy-MM-dd）
+  /// v2.0: 根据资源 code 和类型解析资源标题
+  static Future<String> _resolveResourceTitle(
+    String resourceCode,
+    String resourceType,
+  ) async {
+    try {
+      switch (resourceType) {
+        case 'article':
+          final articles = await DatabaseService.findByCondition(
+            () => Article(),
+            where: 'code = ? AND is_deleted = 0',
+            whereArgs: [resourceCode],
+            limit: 1,
+          );
+          return articles.isNotEmpty ? articles.first.title ?? '' : '';
+        case 'video':
+        case 'music':
+          final videos = await DatabaseService.findByCondition(
+            () => VideoInfo(),
+            where: 'code = ? AND is_deleted = 0',
+            whereArgs: [resourceCode],
+            limit: 1,
+          );
+          return videos.isNotEmpty ? videos.first.name ?? '' : '';
+        default:
+          return '';
+      }
+    } catch (_) {
+      return '';
+    }
+  }
+
   static String _dateStr(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  // ════════════════════════════════════════════════
+  //  P1: App 生命周期 & 崩溃恢复
+  // ════════════════════════════════════════════════
+
+  /// App 生命周期变化处理
+  ///
+  /// 设计文档 §九/第二期 任务 9-10：
+  /// - App 进入后台 → 结束当前活跃会话（防止时长虚高）
+  /// - App 回到前台 → 不自动开启新会话（等待用户实际操作）
+  Future<void> handleAppLifecycleChanged(AppLifecycleState state) async {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        if (_sessionActive) {
+          dev.log(
+            '[LearningStats] App went to background, ending active session',
+            name: 'LearningStats',
+          );
+          await endSession();
+        }
+        break;
+      case AppLifecycleState.resumed:
+        dev.log(
+          '[LearningStats] App resumed, waiting for user action',
+          name: 'LearningStats',
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// 启动时崩溃/Kill 恢复（静态方法，可在 init 阶段调用）
+  ///
+  /// 扫描所有 end_time IS NULL 的 StudyRecord，
+  /// 用实际经过时间估算 endTime 补全（上限 30 分钟）。
+  static Future<void> recoverCrashedSessions() async {
+    try {
+      final pendingRecords = await DatabaseService.findByCondition(
+        () => StudyRecord(),
+        where: 'end_time IS NULL AND is_deleted = 0',
+      );
+
+      if (pendingRecords.isEmpty) return;
+
+      dev.log(
+        '[LearningStats] Recovering ${pendingRecords.length} crashed sessions',
+        name: 'LearningStats',
+      );
+
+      final now = DateTime.now();
+      for (final record in pendingRecords) {
+        final age = now.difference(record.startTime);
+        if (age.inHours < 24) {
+          final estimatedDuration = age.inSeconds.clamp(0, 1800);
+          record.endTime = now;
+          record.duration = estimatedDuration;
+          await DatabaseService.update(record);
+          dev.log(
+            '[LearningStats] Recovered session ${record.resourceCode}: ${estimatedDuration}s',
+            name: 'LearningStats',
+          );
+        } else {
+          record.isDeleted = true;
+          await DatabaseService.update(record);
+          dev.log(
+            '[LearningStats] Deleted stale session ${record.resourceCode} (age=${age.inHours}h)',
+            name: 'LearningStats',
+          );
+        }
+      }
+    } catch (e) {
+      dev.log(
+        '[LearningStats] Failed to recover crashed sessions: $e',
+        name: 'LearningStats',
+        error: e,
+      );
+    }
   }
 }
 

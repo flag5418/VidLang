@@ -44,6 +44,8 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
   DetailOverview? _overview;
   List<TypeStats> _typeStats = [];
   List<DailyTrend> _weeklyTrend = [];
+  List<AiSuggestion> _aiSuggestions = [];
+  bool _aiLoading = true;
   bool _loading = true;
 
   @override
@@ -62,9 +64,25 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         _weeklyTrend = results[2] as List<DailyTrend>;
         _loading = false;
       });
+      // 异步加载 AI 建议（不阻塞主界面）
+      _loadAiSuggestions();
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadAiSuggestions() async {
+    try {
+      final suggestions = await StatsService.getAiLearningSuggestions();
+      if (!mounted) return;
+      setState(() {
+        _aiSuggestions = suggestions;
+        _aiLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _aiLoading = false);
     }
   }
 
@@ -579,33 +597,111 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
       children: [
         _sectionTitle('AI 学习建议', Icons.psychology_rounded, colorScheme),
         SizedBox(height: 12.h),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(20.w),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14.r),
-            color: colorScheme.surface,
-            boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))],
-            border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
-                child: Icon(Icons.auto_awesome_rounded, size: 28.sp, color: colorScheme.primary),
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                '更多学习数据累积后，AI 将为你生成个性化学习建议',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.9), height: 1.5),
-              ),
-            ],
-          ),
-        ),
+        if (_aiLoading)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 32.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14.r),
+              color: colorScheme.surface,
+              boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))],
+              border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
+            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary)),
+          )
+        else if (_aiSuggestions.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14.r),
+              color: colorScheme.surface,
+              boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))],
+              border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.lightbulb_outline_rounded, size: 36.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                SizedBox(height: 12.h),
+                Text(
+                  '继续学习后这里将显示个性化建议',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14.sp, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                ),
+              ],
+            ),
+          )
+        else
+          ..._aiSuggestions.map((s) => _aiSuggestionCard(s, colorScheme)),
       ],
     );
+  }
+
+  Widget _aiSuggestionCard(AiSuggestion suggestion, ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14.r),
+        color: colorScheme.surface,
+        boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.12), width: 0.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(suggestion.icon, size: 22.sp, color: colorScheme.primary),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  suggestion.title,
+                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  suggestion.description,
+                  style: TextStyle(fontSize: 13.sp, color: colorScheme.onSurfaceVariant, height: 1.4),
+                ),
+                if (suggestion.actionText != null) ...[
+                  SizedBox(height: 10.h),
+                  GestureDetector(
+                    onTap: () => _handleSuggestionAction(suggestion),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.r),
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                      ),
+                      child: Text(
+                        suggestion.actionText!,
+                        style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: colorScheme.primary),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleSuggestionAction(AiSuggestion suggestion) {
+    // TODO: 根据建议类型跳转到对应页面或执行操作
+    // 例如：'开始学习' -> 首页推荐资源；'今日目标' -> 显示今日目标弹窗
+    debugPrint('[LearningStats] AI suggestion action: ${suggestion.title}');
   }
 
   // ─── 通用组件 ───

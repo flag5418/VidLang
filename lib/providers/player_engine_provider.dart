@@ -188,11 +188,10 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
   // 正在播放的句子索引，用于单句暂停精确控制
 
   // 学习记录相关
-  bool _studyRecordCreated = false;
-  String? _studyResourceCode;
-  Timer? _articleTimer;
+bool _studyRecordCreated = false;
+String? _studyResourceCode;
 
-  bool _slowToFastActive = false;
+bool _slowToFastActive = false;
   bool _slowToFastTransitioning = false;
   int _slowToFastStep = 0;
   int _slowStartMs = 0;
@@ -807,11 +806,9 @@ class PlayerEngineNotifier extends StateNotifier<PlayerEngineState> {
 
   Future<void> disposePlayer() async {
     if (_closed) return;
-    _shutdownTimer?.cancel();
-    _shutdownTimer = null;
-    _articleTimer?.cancel();
-    _articleTimer = null;
-    for (final s in _subs) {
+_shutdownTimer?.cancel();
+  _shutdownTimer = null;
+  for (final s in _subs) {
       await s.cancel();
     }
     _subs.clear();

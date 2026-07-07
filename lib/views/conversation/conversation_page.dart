@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/views/conversation/conversation_history_page.dart';
 
 /// AI 英语口语对话页面
 class ConversationPage extends ConsumerStatefulWidget {
@@ -153,21 +152,14 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       ConversationStateData convState, AppColorsData colors) {
     return GestureDetector(
       onTap: () {
-        TDActionSheet(
+        Navigator.push(
           context,
-          description: '对话历史',
-          items: [
-            TDActionSheetItem(
-              label: '查看历史对话',
-              icon: Icon(Icons.history, color: colors.primary),
+          MaterialPageRoute(
+            builder: (context) => ConversationHistoryPage(
+              sourceType: widget.sourceType,
+              sourceCode: widget.sourceCode,
             ),
-          ],
-          onSelected: (item, _) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('对话历史功能开发中...')),
-            );
-          },
-          visible: true,
+          ),
         );
       },
       child: Container(
