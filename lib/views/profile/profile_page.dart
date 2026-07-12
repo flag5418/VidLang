@@ -1218,9 +1218,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Navigator.pop(buildContext);
                             if (!mounted) return;
                             setState(() => _ttsCacheLabel = '0 条缓存 · 0KB');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('TTS 缓存已清除')),
-                            );
+                            AppToast.show(context, 'TTS 缓存已清除', type: ToastType.success);
                           },
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
@@ -1254,11 +1252,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             if (newSize == null ||
                                 newSize < 5 ||
                                 newSize > 200) {
-                              ScaffoldMessenger.of(buildContext).showSnackBar(
-                                const SnackBar(
-                                  content: Text('请输入 5-200 之间的数字'),
-                                ),
-                              );
+                              AppToast.show(buildContext, '请输入 5-200 之间的数字', type: ToastType.warning);
                               return;
                             }
                             await SettingsService.setTtsCacheSize(newSize);
@@ -1269,9 +1263,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               _ttsCacheLabel =
                                   '${stats.count} 条缓存 · ${stats.sizeLabel}';
                             });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('已设置为 $newSize 条')),
-                            );
+                            AppToast.show(context, '已设置为 $newSize 条', type: ToastType.success);
                           },
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.symmetric(

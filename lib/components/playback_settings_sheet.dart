@@ -2,7 +2,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/playback_settings.dart';
-import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// 片头/片尾/封面截图设置底部面板
@@ -33,11 +32,8 @@ class PlaybackSettingsSheet extends StatefulWidget {
           top: Radius.circular(AppRadius.bottomSheet),
         ),
       ),
-      builder: (ctx) => PlaybackSettingsSheet(
-        initial: initial,
-        onSave: onSave,
-        title: title,
-      ),
+      builder: (ctx) =>
+          PlaybackSettingsSheet(initial: initial, onSave: onSave, title: title),
     );
   }
 
@@ -63,12 +59,12 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
   }
 
   PlaybackSettings get _settings => PlaybackSettings(
-        skipOpening: _skipOpening,
-        skipOpeningDuration: _openingSec,
-        skipEnding: _skipEnding,
-        skipEndingDuration: _endingSec,
-        thumbnailTime: _thumbnailSec,
-      );
+    skipOpening: _skipOpening,
+    skipOpeningDuration: _openingSec,
+    skipEnding: _skipEnding,
+    skipEndingDuration: _endingSec,
+    thumbnailTime: _thumbnailSec,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -86,10 +82,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            widget.title,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
           SizedBox(height: AppSpacing.md),
           _switchRow(
             colorScheme,
@@ -97,14 +90,26 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
             _skipOpening,
             (v) => setState(() => _skipOpening = v),
           ),
-          if (_skipOpening) _secondsRow(colorScheme, '片头时长（秒）', _openingSec, (v) => setState(() => _openingSec = v)),
+          if (_skipOpening)
+            _secondsRow(
+              colorScheme,
+              '片头时长（秒）',
+              _openingSec,
+              (v) => setState(() => _openingSec = v),
+            ),
           _switchRow(
             colorScheme,
             '跳过片尾',
             _skipEnding,
             (v) => setState(() => _skipEnding = v),
           ),
-          if (_skipEnding) _secondsRow(colorScheme, '片尾时长（秒）', _endingSec, (v) => setState(() => _endingSec = v)),
+          if (_skipEnding)
+            _secondsRow(
+              colorScheme,
+              '片尾时长（秒）',
+              _endingSec,
+              (v) => setState(() => _endingSec = v),
+            ),
           _secondsRow(
             colorScheme,
             '封面截图时间（秒）',
@@ -153,7 +158,9 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ),
           IconButton(
             icon: const Icon(AppIcons.remove, size: 20),
             onPressed: value > min ? () => onChanged(value - 1) : null,

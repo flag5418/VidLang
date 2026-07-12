@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
@@ -443,10 +442,7 @@ void main() {
 
       const resources = ['a', 'b', 'c', 'd'];
       for (final r in resources) {
-        await service.beginSession(
-          resourceCode: r,
-          resourceType: 'video',
-        );
+        await service.beginSession(resourceCode: r, resourceType: 'video');
       }
 
       expect(service.currentResourceCode, equals('d'));

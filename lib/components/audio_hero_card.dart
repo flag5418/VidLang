@@ -11,9 +11,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_spacing.dart';
-import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -181,12 +178,19 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
                 SizedBox(height: Adaptive.h(context, 2)),
                 Row(
                   children: [
-                    const Icon(AppIcons.schedule, size: 10, color: Colors.white70),
+                    const Icon(
+                      AppIcons.schedule,
+                      size: 10,
+                      color: Colors.white70,
+                    ),
                     SizedBox(width: Adaptive.w(context, 4)),
                     Text(
                       '${widget.video.currentPositionString} / ${widget.video.durationString}',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, AppTypography.fontSizeXSmall),
+                        fontSize: Adaptive.sp(
+                          context,
+                          AppTypography.fontSizeXSmall,
+                        ),
                         color: Colors.white70,
                         fontWeight: FontWeight.w500,
                       ),
@@ -207,7 +211,10 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
                     child: Text(
                       '已播放 ${(progress * 100).round()}%',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, AppTypography.fontSizeXSmall),
+                        fontSize: Adaptive.sp(
+                          context,
+                          AppTypography.fontSizeXSmall,
+                        ),
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
                       ),
@@ -269,7 +276,9 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
         width: Adaptive.r(context, 28),
         height: Adaptive.r(context, 28),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Adaptive.r(context, AppRadius.sm)),
+          borderRadius: BorderRadius.circular(
+            Adaptive.r(context, AppRadius.sm),
+          ),
           color: Colors.black.withValues(alpha: 0.65),
         ),
         child: Icon(
@@ -288,12 +297,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
           const PopupMenuDivider(height: 1),
           PopupMenuItem(
             value: 'delete',
-            child: _menuRow(
-              context,
-              AppIcons.delete,
-              '删除',
-              colorScheme,
-            ),
+            child: _menuRow(context, AppIcons.delete, '删除', colorScheme),
           ),
         ],
       ],

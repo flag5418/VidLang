@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/providers/test_provider.dart';
 import 'package:vidlang/services/shengtong_http_evaluator.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 逐题作答页面
 class TestSessionPage extends ConsumerStatefulWidget {
@@ -131,9 +132,7 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
         setState(() {
           _pronScore = null;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('评测失败: $e')));
+        AppToast.show(context, '评测失败: $e', type: ToastType.error);
       }
     } finally {
       // 清理临时文件

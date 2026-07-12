@@ -55,8 +55,7 @@ class AiEvaluationService {
           }
         }
       } catch (e) {
-        dev.log('⚠️ 获取历史摘要失败（非致命）: $e',
-            name: 'AiEvaluationService');
+        dev.log('⚠️ 获取历史摘要失败（非致命）: $e', name: 'AiEvaluationService');
       }
 
       // 2. 构建 AI 分析参数
@@ -74,13 +73,12 @@ class AiEvaluationService {
           'resource_title': resourceTitle,
           'ref_text': refText ?? evaluationResult.refText ?? '',
           'language': language ?? 'en',
-          if (historySummary != null) 'history_summary': historySummary,
+          'history_summary': ?historySummary,
         },
       );
 
       if (result['ok'] != true) {
-        dev.log('❌ AI 分析失败: ${result['error']}',
-            name: 'AiEvaluationService');
+        dev.log('❌ AI 分析失败: ${result['error']}', name: 'AiEvaluationService');
         return null;
       }
 
@@ -120,12 +118,15 @@ class AiAnalysisResult {
   factory AiAnalysisResult.fromJson(Map<String, dynamic> json) {
     return AiAnalysisResult(
       analysis: json['analysis'] as String? ?? '',
-      suggestions: (json['suggestions'] as List<dynamic>?)?.cast<String>() ?? [],
-      focusAreas: (json['focus_areas'] as List<dynamic>?)
+      suggestions:
+          (json['suggestions'] as List<dynamic>?)?.cast<String>() ?? [],
+      focusAreas:
+          (json['focus_areas'] as List<dynamic>?)
               ?.map((e) => FocusArea.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      practiceWords: (json['practice_words'] as List<dynamic>?)
+      practiceWords:
+          (json['practice_words'] as List<dynamic>?)
               ?.map((e) => PracticeWord.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -133,11 +134,11 @@ class AiAnalysisResult {
   }
 
   Map<String, dynamic> toJson() => {
-        'analysis': analysis,
-        'suggestions': suggestions,
-        'focus_areas': focusAreas.map((e) => e.toJson()).toList(),
-        'practice_words': practiceWords.map((e) => e.toJson()).toList(),
-      };
+    'analysis': analysis,
+    'suggestions': suggestions,
+    'focus_areas': focusAreas.map((e) => e.toJson()).toList(),
+    'practice_words': practiceWords.map((e) => e.toJson()).toList(),
+  };
 }
 
 /// 重点练习区域
@@ -154,10 +155,7 @@ class FocusArea {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'area': area,
-        'priority': priority,
-      };
+  Map<String, dynamic> toJson() => {'area': area, 'priority': priority};
 }
 
 /// 建议练习的单词
@@ -174,8 +172,5 @@ class PracticeWord {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'word': word,
-        'reason': reason,
-      };
+  Map<String, dynamic> toJson() => {'word': word, 'reason': reason};
 }

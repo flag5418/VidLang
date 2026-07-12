@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/local_model_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
@@ -20,7 +19,8 @@ class MainPage extends ConsumerStatefulWidget {
   ConsumerState<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _MainPageState extends ConsumerState<MainPage>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
   late AnimationController _animationController;
   int _currentPage = 0;
@@ -94,9 +94,7 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
     final ipad = isIPad(context);
 
     final pages = [
-      HomePage(
-        onNavigateToTab: () => _onTabTapped(1),
-      ),
+      HomePage(onNavigateToTab: () => _onTabTapped(1)),
       const FileListPage(),
       const CollectionPage(),
       const ProfilePage(),
@@ -178,14 +176,23 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
             color: colors.surface,
             child: Column(
               children: [
-                SizedBox(height: MediaQuery.of(context).padding.top + Adaptive.h(context, 20.0)),
+                SizedBox(
+                  height:
+                      MediaQuery.of(context).padding.top +
+                      Adaptive.h(context, 20.0),
+                ),
                 // 品牌区
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 20.0)),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Adaptive.w(context, 20.0),
+                  ),
                   child: Row(
                     children: [
-                      Icon(AppIcons.schoolFill,
-                          size: Adaptive.sp(context, 28.0), color: colors.primary),
+                      Icon(
+                        AppIcons.schoolFill,
+                        size: Adaptive.sp(context, 28.0),
+                        color: colors.primary,
+                      ),
                       SizedBox(width: Adaptive.w(context, 10.0)),
                       Text(
                         'VidLang',
@@ -218,16 +225,10 @@ class _MainPageState extends ConsumerState<MainPage> with TickerProviderStateMix
             ),
           ),
           // 分割线
-          Container(
-            width: 0.5,
-            color: colors.border,
-          ),
+          Container(width: 0.5, color: colors.border),
           // 右侧内容区
           Expanded(
-            child: IndexedStack(
-              index: currentIndex,
-              children: pages,
-            ),
+            child: IndexedStack(index: currentIndex, children: pages),
           ),
         ],
       ),
@@ -311,9 +312,14 @@ class _IpadNavItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12.0), vertical: Adaptive.h(context, 2.0)),
+        margin: EdgeInsets.symmetric(
+          horizontal: Adaptive.w(context, 12.0),
+          vertical: Adaptive.h(context, 2.0),
+        ),
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withValues(alpha: 0.08) : Colors.transparent,
+          color: isActive
+              ? activeColor.withValues(alpha: 0.08)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12.0),
         ),
         child: IntrinsicHeight(
@@ -348,7 +354,9 @@ class _IpadNavItem extends StatelessWidget {
                         item.label,
                         style: TextStyle(
                           fontSize: Adaptive.sp(context, 16.0),
-                          fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isActive
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                           color: isActive ? activeColor : colors.textSecondary,
                         ),
                       ),

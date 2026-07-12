@@ -200,7 +200,9 @@ void main() {
       expect(validated.first['type'], equals('reorder'));
 
       // 模拟降级兜底：如果 validated 为空但 allItems 有非选择题，保留非选择题
-      final nonChoiceItems = allItems.where((item) => !_isChoiceQuestion(item)).toList();
+      final nonChoiceItems = allItems
+          .where((item) => !_isChoiceQuestion(item))
+          .toList();
       if (validated.isEmpty && allItems.isNotEmpty) {
         expect(nonChoiceItems.isNotEmpty, isTrue);
       }
@@ -223,7 +225,9 @@ void main() {
         return r1 == null && r2 == null;
       }).toList();
 
-      final nonChoiceItems = allItems.where((item) => !_isChoiceQuestion(item)).toList();
+      final nonChoiceItems = allItems
+          .where((item) => !_isChoiceQuestion(item))
+          .toList();
 
       // 没有非选择题可以降级
       expect(validated.isEmpty, isTrue);
@@ -257,9 +261,7 @@ void main() {
         'video_code': 'video_xyz',
         'source_type': 'resource',
         'difficulty': 'intermediate',
-        'config': {
-          'spelling_count': 2,
-        },
+        'config': {'spelling_count': 2},
       };
 
       expect(requestBody['video_code'], isNotNull);
@@ -343,7 +345,9 @@ String? _validateR3(Map<String, dynamic> item) {
   if (!_isChoiceQuestion(item)) return null;
   final options = item['options'] as List?;
   if (options == null || options.isEmpty) return null;
-  final normalized = options.map((o) => o.toString().toLowerCase().trim()).toList();
+  final normalized = options
+      .map((o) => o.toString().toLowerCase().trim())
+      .toList();
   final unique = normalized.toSet();
   if (unique.length != options.length) {
     return 'R3 Violation: Duplicate options found';
@@ -355,7 +359,9 @@ String? _validateR5(Map<String, dynamic> item) {
   if (!_isChoiceQuestion(item)) return null;
   final options = item['options'] as List?;
   if (options == null || options.length < 2) return null;
-  final lengths = options.map((o) => o.toString().replaceAll(RegExp(r'\s'), '').length).toList();
+  final lengths = options
+      .map((o) => o.toString().replaceAll(RegExp(r'\s'), '').length)
+      .toList();
   final minLen = lengths.reduce((a, b) => a < b ? a : b);
   final maxLen = lengths.reduce((a, b) => a > b ? a : b);
   if (minLen > 0 && maxLen / minLen > 3) {
@@ -386,10 +392,17 @@ int _levenshteinDistance(String a, String b) {
   if (a.isEmpty) return b.length;
   if (b.isEmpty) return a.length;
 
-  final matrix = List.generate(b.length + 1, (i) => List<int>.filled(a.length + 1, 0));
+  final matrix = List.generate(
+    b.length + 1,
+    (i) => List<int>.filled(a.length + 1, 0),
+  );
 
-  for (var i = 0; i <= b.length; i++) matrix[i][0] = i;
-  for (var j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (var i = 0; i <= b.length; i++) {
+    matrix[i][0] = i;
+  }
+  for (var j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
 
   for (var i = 1; i <= b.length; i++) {
     for (var j = 1; j <= a.length; j++) {

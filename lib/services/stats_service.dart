@@ -73,12 +73,17 @@ class StatsService {
   StatsService._();
 
   /// 获取指定类型的最近文件夹（最多3个）
-  static Future<List<VideoFolder>> getRecentFolders(String folderType, {int limit = 3}) async {
+  static Future<List<VideoFolder>> getRecentFolders(
+    String folderType, {
+    int limit = 3,
+  }) async {
     final rows = await DatabaseService.findByCondition(
       () => VideoFolder(),
-      where: "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != '' AND folder_type = ?",
+      where:
+          "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != '' AND folder_type = ?",
       whereArgs: [folderType],
-      orderBy: 'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
+      orderBy:
+          'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
       limit: limit,
     );
 
@@ -155,10 +160,7 @@ class StatsService {
     final records = await DatabaseService.findByCondition(
       () => StudyRecord(),
       where: "is_deleted = 0 AND date >= ? AND date < ?",
-      whereArgs: [
-        '${todayStr}T00:00:00',
-        '${todayStr}T23:59:59',
-      ],
+      whereArgs: ['${todayStr}T00:00:00', '${todayStr}T23:59:59'],
     );
 
     int total = 0;
@@ -184,7 +186,11 @@ class StatsService {
   /// 获取今日学习资源数（不重复）
   static Future<int> getResourceCount() async {
     final today = DateTime.now();
-    final todayStr = DateTime(today.year, today.month, today.day).toIso8601String().substring(0, 10);
+    final todayStr = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toIso8601String().substring(0, 10);
 
     final records = await DatabaseService.findByCondition(
       () => StudyRecord(),
@@ -216,9 +222,15 @@ class StatsService {
 
     // 视频/音频/文章文件夹总数
     final counts = await Future.wait([
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0",
+      ),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0",
+      ),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0",
+      ),
     ]);
 
     final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;
@@ -281,7 +293,8 @@ class StatsService {
       where: 'is_deleted = 0',
     );
 
-    final int totalResources = summary.videoTotal + summary.audioTotal + summary.articleTotal;
+    final int totalResources =
+        summary.videoTotal + summary.audioTotal + summary.articleTotal;
 
     // 综合评分计算
     final double dayScore = (totalDays / 30).clamp(0.0, 1.0) * 100;
@@ -290,7 +303,11 @@ class StatsService {
         : 0.0;
     final double streakScore = (streakDays / 7).clamp(0.0, 1.0) * 100;
     final double wordScore = (totalWordCount / 100).clamp(0.0, 1.0) * 100;
-    final double compositeScore = dayScore * 0.3 + completionScore * 0.3 + streakScore * 0.2 + wordScore * 0.2;
+    final double compositeScore =
+        dayScore * 0.3 +
+        completionScore * 0.3 +
+        streakScore * 0.2 +
+        wordScore * 0.2;
 
     return DetailOverview(
       totalDays: totalDays,
@@ -309,9 +326,15 @@ class StatsService {
 
     // 获取各类总数
     final counts = await Future.wait([
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0",
+      ),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0",
+      ),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0",
+      ),
     ]);
 
     final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;
@@ -387,17 +410,17 @@ class StatsService {
       final d = today.subtract(Duration(days: i));
       final dateStr = d.toIso8601String().substring(0, 10);
       final seconds = dateMap[dateStr] ?? 0;
-      result.add(DailyTrend(
-        date: dateStr,
-        minutes: seconds ~/ 60,
-      ));
+      result.add(DailyTrend(date: dateStr, minutes: seconds ~/ 60));
     }
 
     return result;
   }
+
   /// 获取近 N 条学习记录对应的文件夹（去重，按最后播放/学习时间排序）
   /// 包含视频、音频（通过 last_play_date）和文章（通过 last_study_date）
-  static Future<List<VideoFolder>> getRecentLearningFolders({int limit = 8}) async {
+  static Future<List<VideoFolder>> getRecentLearningFolders({
+    int limit = 8,
+  }) async {
     // 使用 UNION 查询同时涵盖 video/music 和 article 文件夹
     const sql = '''
       SELECT vf.* FROM video_folder vf
@@ -453,41 +476,49 @@ class StatsService {
     final suggestions = <AiSuggestion>[];
 
     if (streakDays >= 7) {
-      suggestions.add(AiSuggestion(
-        title: '保持节奏',
-        description:
-            '已连续学习 $streakDays 天！继续保持每天学习的习惯，效果会越来越明显。',
-        icon: AppIcons.localFireDepartment,
-      ));
+      suggestions.add(
+        AiSuggestion(
+          title: '保持节奏',
+          description: '已连续学习 $streakDays 天！继续保持每天学习的习惯，效果会越来越明显。',
+          icon: AppIcons.localFireDepartment,
+        ),
+      );
     } else if (streakDays >= 3) {
-      suggestions.add(AiSuggestion(
-        title: '再坚持一下',
-        description:
-            '连续 ${streakDays} 天了，再坚持 ${(7 - streakDays)} 天即可解锁「连续7天」成就！',
-        actionText: '今日目标',
-        icon: AppIcons.flag,
-      ));
+      suggestions.add(
+        AiSuggestion(
+          title: '再坚持一下',
+          description:
+              '连续 $streakDays 天了，再坚持 ${(7 - streakDays)} 天即可解锁「连续7天」成就！',
+          actionText: '今日目标',
+          icon: AppIcons.flag,
+        ),
+      );
     } else {
-      suggestions.add(AiSuggestion(
-        title: '开始每日学习',
-        description: '每天只需 15 分钟，坚持一周就能看到明显进步。',
-        actionText: '开始学习',
-        icon: AppIcons.playCircleOutline,
-      ));
+      suggestions.add(
+        AiSuggestion(
+          title: '开始每日学习',
+          description: '每天只需 15 分钟，坚持一周就能看到明显进步。',
+          actionText: '开始学习',
+          icon: AppIcons.playCircleOutline,
+        ),
+      );
     }
 
-    suggestions.add(AiSuggestion(
-      title: '多样化学习',
-      description:
-          '尝试结合视频、音频和文章多种资源类型，全面提升听说读写能力。',
-      icon: AppIcons.dashboard,
-    ));
+    suggestions.add(
+      AiSuggestion(
+        title: '多样化学习',
+        description: '尝试结合视频、音频和文章多种资源类型，全面提升听说读写能力。',
+        icon: AppIcons.dashboard,
+      ),
+    );
 
-    suggestions.add(AiSuggestion(
-      title: '定期复习',
-      description: '使用生词本复习功能巩固已学单词，间隔重复记忆效果最佳。',
-      icon: AppIcons.refresh,
-    ));
+    suggestions.add(
+      AiSuggestion(
+        title: '定期复习',
+        description: '使用生词本复习功能巩固已学单词，间隔重复记忆效果最佳。',
+        icon: AppIcons.refresh,
+      ),
+    );
 
     return suggestions;
   }
@@ -543,10 +574,7 @@ class DailyTrend {
   final String date;
   final int minutes;
 
-  const DailyTrend({
-    required this.date,
-    this.minutes = 0,
-  });
+  const DailyTrend({required this.date, this.minutes = 0});
 }
 
 /// 内部聚合辅助

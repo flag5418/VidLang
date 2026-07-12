@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_detail.dart';
@@ -289,13 +290,8 @@ class _WordCardState extends ConsumerState<WordCard> {
           if (ok) _saved = false;
         });
         if (ok) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('已取消收藏'),
-              duration: const Duration(seconds: 1),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+          TDToast.showText('已取消收藏', context: context);
         }
         return;
       }
@@ -331,13 +327,8 @@ class _WordCardState extends ConsumerState<WordCard> {
         if (ok) _saved = true;
       });
       if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已收藏「${widget.word}」'),
-            duration: const Duration(seconds: 1),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+        TDToast.showSuccess('已收藏「${widget.word}」', context: context);
       }
     } catch (_) {
       if (mounted) setState(() => _saving = false);

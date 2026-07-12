@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/conversation/conversation_history_page.dart';
@@ -32,7 +30,9 @@ class ConversationPage extends ConsumerStatefulWidget {
 class _ConversationPageState extends ConsumerState<ConversationPage>
     with TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  bool _isHoldingRecord = false;
+
+  /// 录音开始时间（用于显示录音时长）
+  DateTime? _recordingStartTime;
 
   // 思考中动画控制器（3 个跳跃圆点）
   late final AnimationController _thinkingController;
@@ -58,7 +58,9 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(conversationProvider.notifier).startConversation(
+      ref
+          .read(conversationProvider.notifier)
+          .startConversation(
             sourceType: widget.sourceType,
             sourceCode: widget.sourceCode,
             sourceTitle: widget.sourceTitle,
@@ -129,7 +131,11 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       backgroundColor: colors.background,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(AppIcons.arrowBackIosNew, color: colors.textSecondary, size: 20),
+        icon: Icon(
+          AppIcons.arrowBackIosNew,
+          color: colors.textSecondary,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
@@ -150,7 +156,9 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
   }
 
   Widget _buildConversationListButton(
-      ConversationStateData convState, AppColorsData colors) {
+    ConversationStateData convState,
+    AppColorsData colors,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -169,7 +177,11 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           color: colors.textWeak.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(AppIcons.formatListBulleted, size: 18, color: colors.textSecondary),
+        child: Icon(
+          AppIcons.formatListBulleted,
+          size: 18,
+          color: colors.textSecondary,
+        ),
       ),
     );
   }
@@ -179,13 +191,16 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     AppColorsData colors,
     AppTextStylesData textStyles,
   ) {
-    // 连接中
+    // 连接中（使用 TDesign TDLoading）
     if (convState.state == ConversationState.connecting) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: colors.primary),
+            TDLoading(
+              size: TDLoadingSize.medium,
+              icon: TDLoadingIcon.circle,
+            ),
             const SizedBox(height: 12),
             Text(
               '正在连接 AI 助手...',
@@ -214,7 +229,9 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: () {
-                  ref.read(conversationProvider.notifier).startConversation(
+                  ref
+                      .read(conversationProvider.notifier)
+                      .startConversation(
                         sourceType: widget.sourceType,
                         sourceCode: widget.sourceCode,
                         sourceTitle: widget.sourceTitle,
@@ -234,7 +251,8 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     }
 
     // 空态 - 引导开始练习
-    if (convState.messages.isEmpty && convState.userTranscriptionPreview == null) {
+    if (convState.messages.isEmpty &&
+        convState.userTranscriptionPreview == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -248,8 +266,11 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                   color: colors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(AppIcons.chatBubbleOutline,
-                    size: 36, color: colors.primary),
+                child: Icon(
+                  AppIcons.chatBubbleOutline,
+                  size: 36,
+                  color: colors.primary,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -282,14 +303,17 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: convState.messages.length +
+      itemCount:
+          convState.messages.length +
           (convState.userTranscriptionPreview != null ? 1 : 0) +
           (convState.state == ConversationState.processing ? 1 : 0),
       itemBuilder: (context, index) {
         // 语音预览
         if (index < (convState.userTranscriptionPreview != null ? 1 : 0)) {
           return _buildTranscriptionPreview(
-              convState.userTranscriptionPreview!, colors);
+            convState.userTranscriptionPreview!,
+            colors,
+          );
         }
 
         final adjustedIndex =
@@ -304,7 +328,9 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         if (adjustedIndex < convState.messages.length) {
           final msg = convState.messages[adjustedIndex];
           final showDateSep = _shouldShowDateSeparator(
-              convState.messages, adjustedIndex);
+            convState.messages,
+            adjustedIndex,
+          );
           return Column(
             children: [
               if (showDateSep) _buildDateSeparator(msg.timestamp, colors),
@@ -318,8 +344,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
   }
 
   /// 判断是否需要在当前消息前显示日期分隔线
-  bool _shouldShowDateSeparator(
-      List<ConversationMessage> messages, int index) {
+  bool _shouldShowDateSeparator(List<ConversationMessage> messages, int index) {
     if (index == 0) return true;
     final current = messages[index].timestamp;
     final previous = messages[index - 1].timestamp;
@@ -356,10 +381,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: colors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 12, color: colors.textSecondary),
             ),
           ),
           Expanded(child: Container(height: 0.5, color: colors.border)),
@@ -381,8 +403,9 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment: isAi
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.end,
         children: [
           if (isAi) ...[
             // AI 头像
@@ -408,8 +431,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
             // AI 气泡
             Flexible(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F3F6),
                   borderRadius: borderRadius,
@@ -452,8 +477,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
             const SizedBox(width: 48),
             Flexible(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: colors.primary.withValues(alpha: 0.1),
                   borderRadius: borderRadius,
@@ -478,8 +505,11 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                 color: colors.textWeak.withValues(alpha: 0.3),
                 shape: BoxShape.circle,
               ),
-              child: Icon(AppIcons.person,
-                  size: 18, color: colors.textSecondary),
+              child: Icon(
+                AppIcons.person,
+                size: 18,
+                color: colors.textSecondary,
+              ),
             ),
           ],
         ],
@@ -522,10 +552,8 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           mainAxisSize: MainAxisSize.min,
           children: List.generate(3, (i) {
             final offset = _dotAnimations[i].value;
-            final translateY = -4.0 *
-                (offset < 0.5
-                    ? (offset * 2)
-                    : ((1 - offset) * 2));
+            final translateY =
+                -4.0 * (offset < 0.5 ? (offset * 2) : ((1 - offset) * 2));
             return Padding(
               padding: EdgeInsets.symmetric(horizontal: 2),
               child: Transform.translate(
@@ -606,9 +634,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       ),
       decoration: BoxDecoration(
         color: colors.background,
-        border: Border(
-          top: BorderSide(color: colors.border, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: colors.border, width: 0.5)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -621,7 +647,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     );
   }
 
-  Widget _buildStatusBar(ConversationStateData convState, AppColorsData colors) {
+  Widget _buildStatusBar(
+    ConversationStateData convState,
+    AppColorsData colors,
+  ) {
     String statusText;
     Color statusColor;
 
@@ -693,7 +722,8 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     AppTextStylesData textStyles,
     bool isPad,
   ) {
-    final isDisabled = convState.state == ConversationState.connecting ||
+    final isDisabled =
+        convState.state == ConversationState.connecting ||
         convState.state == ConversationState.error ||
         convState.state == ConversationState.disconnected;
 
@@ -715,7 +745,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           // 中间输入提示
           Expanded(
             child: Text(
-              _isHoldingRecord ? '正在录制...' : '按住左侧按钮说话',
+              _getInputHintText(convState),
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: textStyles.body.fontSize,
@@ -756,52 +786,86 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     bool isDisabled,
     bool isPad,
   ) {
+    final isRecording = convState.state == ConversationState.listening;
+
     return GestureDetector(
-      onTapDown: isDisabled
-          ? null
-          : (_) {
-              setState(() => _isHoldingRecord = true);
-              ref.read(conversationProvider.notifier).startRecording();
-            },
-      onTapUp: isDisabled
-          ? null
-          : (_) {
-              setState(() => _isHoldingRecord = false);
-              ref.read(conversationProvider.notifier).stopRecording();
-            },
-      onTapCancel: isDisabled
+      onTap: isDisabled
           ? null
           : () {
-              setState(() => _isHoldingRecord = false);
-              ref.read(conversationProvider.notifier).stopRecording();
+              if (isRecording) {
+                // 再次点击 → 停止录音并发送
+                _recordingStartTime = null;
+                ref.read(conversationProvider.notifier).stopRecording();
+              } else {
+                // 点击 → 开始录音
+                _recordingStartTime = DateTime.now();
+                ref.read(conversationProvider.notifier).startRecording();
+              }
             },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: Adaptive.w(context, 44),
         height: Adaptive.w(context, 44),
         decoration: BoxDecoration(
-          color: _isHoldingRecord
-              ? colors.primary
+          color: isRecording
+              ? colors
+                    .error // 录音中：红色背景
               : (isDisabled
-                  ? colors.textWeak.withValues(alpha: 0.1)
-                  : colors.primary.withValues(alpha: 0.1)),
+                    ? colors.textWeak.withValues(alpha: 0.1)
+                    : colors.primary.withValues(alpha: 0.1)),
           shape: BoxShape.circle,
           border: Border.all(
-            color: _isHoldingRecord
-                ? colors.primary
-                : (isDisabled ? colors.border : colors.primary.withValues(alpha: 0.3)),
+            color: isRecording
+                ? colors.error
+                : (isDisabled
+                      ? colors.border
+                      : colors.primary.withValues(alpha: 0.3)),
             width: 1.5,
           ),
         ),
-        child: Icon(
-          AppIcons.mic,
-          color: _isHoldingRecord
-              ? Colors.white
-              : (isDisabled ? colors.textWeak : colors.primary),
-          size: Adaptive.sp(context, 22),
-        ),
+        child: isRecording
+            // 录音中：停止图标 + 可选时长
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    AppIcons.stop,
+                    color: Colors.white,
+                    size: Adaptive.sp(context, 16),
+                  ),
+                  if (_recordingStartTime != null)
+                    Text(
+                      _formatRecordingShortDuration(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: Adaptive.sp(context, 7),
+                      ),
+                    ),
+                ],
+              )
+            : Icon(
+                AppIcons.mic,
+                color: isDisabled ? colors.textWeak : colors.primary,
+                size: Adaptive.sp(context, 22),
+              ),
       ),
     );
+  }
+
+  /// 获取输入区域提示文字
+  String _getInputHintText(ConversationStateData convState) {
+    if (convState.state == ConversationState.listening) {
+      return '点击左侧按钮停止录音';
+    }
+    return '点击左侧按钮开始说话';
+  }
+
+  /// 格式化录音时长（简短格式，用于按钮内显示）
+  String _formatRecordingShortDuration() {
+    if (_recordingStartTime == null) return '0:00';
+    final elapsed = DateTime.now().difference(_recordingStartTime!);
+    final secs = elapsed.inSeconds.remainder(60);
+    return '${elapsed.inMinutes}:$secs'.padLeft(4, '0');
   }
 
   String _formatDuration(Duration d) {

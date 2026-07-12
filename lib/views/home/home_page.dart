@@ -16,6 +16,7 @@ import 'package:vidlang/services/stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
+import 'package:vidlang/views/growth/learning_history_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -205,17 +206,47 @@ class _HomePageState extends ConsumerState<HomePage> {
           // 资源中心（固定区域）
           _buildResourceSection(colorScheme, brightness, surfaceColor),
           SizedBox(height: Adaptive.h(context, 14)),
-          // 最近学习标题（固定区域）
-          Padding(
-            padding: EdgeInsets.only(left: Adaptive.w(context, 4)),
-            child: Text(
-              '最近学习',
-              style: TextStyle(
-                fontSize: Adaptive.sp(context, 16),
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurface,
+          // 最近学习标题 + 查看更多（固定区域）
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(left: Adaptive.w(context, 4)),
+                child: Text(
+                  '最近学习',
+                  style: TextStyle(
+                    fontSize: Adaptive.sp(context, 16),
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
               ),
-            ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LearningHistoryPage()),
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '查看更多',
+                      style: TextStyle(
+                        fontSize: Adaptive.sp(context, 13),
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    Icon(
+                      AppIcons.chevronRight,
+                      size: Adaptive.sp(context, 16),
+                      color: colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           SizedBox(height: Adaptive.h(context, 10)),
           // 最近学习列表（可滚动区域，占据剩余空间）

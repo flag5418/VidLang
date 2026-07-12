@@ -4,7 +4,7 @@ import 'package:vidlang/theme/theme.dart';
 
 /// 评测功能演示组件 - 可直接在应用中使用
 class EvaluationDemo extends StatelessWidget {
-  const EvaluationDemo({Key? key}) : super(key: key);
+  const EvaluationDemo({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,11 +18,7 @@ class EvaluationDemo extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              AppIcons.recordVoiceOver,
-              size: 80,
-              color: Colors.green,
-            ),
+            Icon(AppIcons.recordVoiceOver, size: 80, color: Colors.green),
             const SizedBox(height: 24),
             Text(
               'VidLang 跟读评测系统',
@@ -43,7 +39,7 @@ class EvaluationDemo extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
-            
+
             // 开始测试按钮
             ElevatedButton.icon(
               onPressed: () {
@@ -59,14 +55,17 @@ class EvaluationDemo extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // 功能特色
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 40),
@@ -86,26 +85,14 @@ class EvaluationDemo extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildFeatureItem(
-                    AppIcons.micNone,
-                    '免费STT识别',
-                    '基础语音识别和对比',
-                  ),
-                  _buildFeatureItem(
-                    AppIcons.textFields,
-                    '单词精听',
-                    '音素级精准发音分析',
-                  ),
+                  _buildFeatureItem(AppIcons.micNone, '免费STT识别', '基础语音识别和对比'),
+                  _buildFeatureItem(AppIcons.textFields, '单词精听', '音素级精准发音分析'),
                   _buildFeatureItem(
                     AppIcons.chatBubbleOutline,
                     '句子评测',
                     '流利度、准确度、完整度',
                   ),
-                  _buildFeatureItem(
-                    AppIcons.article,
-                    '段落流畅度',
-                    '长文本连贯性分析',
-                  ),
+                  _buildFeatureItem(AppIcons.article, '段落流畅度', '长文本连贯性分析'),
                 ],
               ),
             ),
@@ -127,11 +114,7 @@ class EvaluationDemo extends StatelessWidget {
               color: Colors.green,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 16,
-            ),
+            child: Icon(icon, color: Colors.white, size: 16),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -148,10 +131,7 @@ class EvaluationDemo extends StatelessWidget {
                 ),
                 Text(
                   description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -164,16 +144,18 @@ class EvaluationDemo extends StatelessWidget {
 
 /// 在播放器中集成评测功能的示例
 class PlayerWithEvaluationDemo extends StatefulWidget {
-  const PlayerWithEvaluationDemo({Key? key}) : super(key: key);
+  const PlayerWithEvaluationDemo({super.key});
 
   @override
-  State<PlayerWithEvaluationDemo> createState() => _PlayerWithEvaluationDemoState();
+  State<PlayerWithEvaluationDemo> createState() =>
+      _PlayerWithEvaluationDemoState();
 }
 
 class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
   // 模拟当前播放的字幕文本
-  final String _currentSubtitle = 'This is an example sentence for pronunciation practice.';
-  
+  final String _currentSubtitle =
+      'This is an example sentence for pronunciation practice.';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,7 +177,7 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
               ),
             ),
           ),
-          
+
           // 字幕显示区域
           Container(
             padding: const EdgeInsets.all(16),
@@ -203,26 +185,20 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
               children: [
                 Text(
                   '当前字幕',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _currentSubtitle,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(fontSize: 16, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
-          
+
           const Spacer(),
-          
+
           // 播放控制和评测按钮
           Container(
             padding: const EdgeInsets.all(16),
@@ -237,7 +213,7 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                 ),
                 IconButton(
                   onPressed: () {},
-              icon: const Icon(AppIcons.play),
+                  icon: const Icon(AppIcons.play),
                   iconSize: 48,
                   color: Colors.blue,
                 ),
@@ -246,7 +222,7 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                   icon: const Icon(AppIcons.skipNext),
                   iconSize: 32,
                 ),
-                
+
                 // 评测功能按钮
                 Container(
                   margin: const EdgeInsets.only(left: 20),
@@ -254,7 +230,7 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                     onPressed: () {
                       // 在实际应用中，这里应该调用:
                       // showPronunciationEvaluation(context, text: _currentSubtitle);
-                      
+
                       // 临时演示用测试页面
                       Navigator.push(
                         context,
@@ -268,7 +244,10 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),

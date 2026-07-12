@@ -13,10 +13,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_spacing.dart';
-import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -79,7 +75,8 @@ class _VideoCardState extends State<VideoCard> {
               _buildMoreButton(context, colors),
               if (widget.isCurrentPlaying)
                 _buildPlayingBadge(context, colors, textStyles),
-              if (widget.isCurrentPlaying) _buildCurrentIndicator(context, colors),
+              if (widget.isCurrentPlaying)
+                _buildCurrentIndicator(context, colors),
             ],
           ),
         ),
@@ -88,7 +85,8 @@ class _VideoCardState extends State<VideoCard> {
   }
 
   Widget _buildThumbnail(BuildContext context, AppColorsData colors) {
-    final cover = (widget.video.currentCover != null &&
+    final cover =
+        (widget.video.currentCover != null &&
             widget.video.currentCover!.isNotEmpty)
         ? widget.video.currentCover
         : widget.video.cover;
@@ -290,7 +288,7 @@ class _VideoCardState extends State<VideoCard> {
           final items = <PopupMenuEntry<String>>[
             PopupMenuItem(
               value: 'rename',
-              child:               _menuRow(context, AppIcons.edit, '重命名', colors),
+              child: _menuRow(context, AppIcons.edit, '重命名', colors),
             ),
           ];
           if (!widget.video.hasSubtitles && widget.onImportSubtitle != null) {
@@ -318,12 +316,7 @@ class _VideoCardState extends State<VideoCard> {
             items.add(
               PopupMenuItem(
                 value: 'unitTest',
-                child: _menuRow(
-                  context,
-                  AppIcons.quiz,
-                  '单元测试',
-                  colors,
-                ),
+                child: _menuRow(context, AppIcons.quiz, '单元测试', colors),
               ),
             );
           }
@@ -349,11 +342,7 @@ class _VideoCardState extends State<VideoCard> {
     final isPad = Adaptive.of(context);
     return Row(
       children: [
-        Icon(
-          icon,
-          size: Adaptive.sp(context, 18),
-          color: colors.textSecondary,
-        ),
+        Icon(icon, size: Adaptive.sp(context, 18), color: colors.textSecondary),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
@@ -405,10 +394,7 @@ class _VideoCardState extends State<VideoCard> {
   }
 
   /// 当前播放态底部品牌绿色指示线（3pt 高，宽度约 40%）
-  Widget _buildCurrentIndicator(
-    BuildContext context,
-    AppColorsData colors,
-  ) {
+  Widget _buildCurrentIndicator(BuildContext context, AppColorsData colors) {
     return Positioned(
       bottom: 0,
       left: 0,

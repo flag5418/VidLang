@@ -6,6 +6,7 @@ import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// AI 释义测试工具
 ///
@@ -114,71 +115,62 @@ class AiTestTool {
     return RegExp(r'[\u4e00-\u9fff]').hasMatch(text);
   }
 
-  /// 显示测试结果弹窗
+  /// 显示测试结果弹窗 — 使用 AppConfirmDialog (TDesign 规范，支持 contentWidget)
   static void _showResults(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('AI 释义测试结果'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _results.length,
-            itemBuilder: (ctx, i) {
-              final r = _results[i];
-              return ListTile(
-                dense: true,
-                title: Text(
-                  '${r['mode']} - ${r['word']}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: r['success'] == true ? Colors.green : Colors.red,
-                  ),
+    AppConfirmDialog.show(
+      context,
+      title: 'AI 释义测试结果',
+      content: '',
+      confirmText: '复制并关闭',
+      cancelText: '关闭',
+      contentWidget: SizedBox(
+        width: double.maxFinite,
+        height: 300,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: _results.length,
+          itemBuilder: (ctx, i) {
+            final r = _results[i];
+            return ListTile(
+              dense: true,
+              title: Text(
+                '${r['mode']} - ${r['word']}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: r['success'] == true ? Colors.green : Colors.red,
                 ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('耗时: ${r['elapsedMs']}ms | 来源: ${r['source']}'),
-                    Text('中文: ${r['firstChineseMeaning']}'),
-                    if (r['error'] != null)
-                      Text('错误: ${r['error']}', style: const TextStyle(color: Colors.red)),
-                  ],
-                ),
-              );
-            },
-          ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('耗时: ${r['elapsedMs']}ms | 来源: ${r['source']}'),
+                  Text('中文: ${r['firstChineseMeaning']}'),
+                  if (r['error'] != null)
+                    Text('错误: ${r['error']}', style: const TextStyle(color: Colors.red)),
+                ],
+              ),
+            );
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // 复制结果到剪贴板
-              final buffer = StringBuffer();
-              buffer.writeln('AI 释义测试结果');
-              buffer.writeln('═══════════════════════');
-              for (final r in _results) {
-                buffer.writeln('模式: ${r['mode']}');
-                buffer.writeln('单词: ${r['word']}');
-                buffer.writeln('耗时: ${r['elapsedMs']}ms');
-                buffer.writeln('成功: ${r['success']}');
-                buffer.writeln('来源: ${r['source']}');
-                buffer.writeln('中文: ${r['firstChineseMeaning']}');
-                if (r['error'] != null) buffer.writeln('错误: ${r['error']}');
-                buffer.writeln('───────────────────────');
-              }
-              Clipboard.setData(ClipboardData(text: buffer.toString()));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('结果已复制到剪贴板')),
-              );
-            },
-            child: const Text('复制结果'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
       ),
+      onConfirm: () {
+        // 复制结果到剪贴板
+        final buffer = StringBuffer();
+        buffer.writeln('AI 释义测试结果');
+        buffer.writeln('═══════════════════════');
+        for (final r in _results) {
+          buffer.writeln('模式: ${r['mode']}');
+          buffer.writeln('单词: ${r['word']}');
+          buffer.writeln('耗时: ${r['elapsedMs']}ms');
+          buffer.writeln('成功: ${r['success']}');
+          buffer.writeln('来源: ${r['source']}');
+          buffer.writeln('中文: ${r['firstChineseMeaning']}');
+          if (r['error'] != null) buffer.writeln('错误: ${r['error']}');
+          buffer.writeln('───────────────────────');
+        }
+        Clipboard.setData(ClipboardData(text: buffer.toString()));
+        AppToast.show(context, '结果已复制到剪贴板', type: ToastType.success);
+      },
     );
   }
 

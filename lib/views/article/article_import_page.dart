@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/article_parser.dart';
 import 'package:vidlang/services/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -34,11 +35,12 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
     final content = _contentController.text.trim();
 
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请输入文章标题')));
+      // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+      TDToast.showText('请输入文章标题', context: context);
       return;
     }
     if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('请粘贴文章正文')));
+      TDToast.showText('请粘贴文章正文', context: context);
       return;
     }
 
@@ -91,7 +93,8 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
     } catch (e) {
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('导入失败: $e')));
+        // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+        TDToast.showFail('导入失败: $e', context: context);
       }
     }
   }
@@ -181,24 +184,15 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
           SafeArea(
             child: Padding(
               padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
+              // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
               child: SizedBox(
                 width: double.infinity,
                 height: Adaptive.h(context, 50),
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _importArticle,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: context.colors.primary,
-                    foregroundColor: context.colors.surface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 12))),
-                    disabledBackgroundColor: context.colors.primary.withValues(alpha: 0.5),
-                  ),
-                  child: _isSaving
-                      ? SizedBox(
-                          width: Adaptive.w(context, 20),
-                          height: Adaptive.w(context, 20),
-                          child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.surface),
-                        )
-                      : Text('导入并打开', style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600)),
+                child: TDButton(
+                  text: _isSaving ? '' : '导入并打开',
+                  onTap: _isSaving ? null : _importArticle,
+                  type: TDButtonType.fill,
+                  theme: TDButtonTheme.primary,
                 ),
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/topup_config.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
@@ -7,6 +8,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/topup_history_page.dart';
 import 'package:vidlang/views/profile/billing_rules_page.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 class TopupPage extends ConsumerStatefulWidget {
   const TopupPage({super.key});
@@ -328,15 +330,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
       width: double.infinity,
       height: Adaptive.h(context, 48),
       child: FilledButton(
-        onPressed: () {
-          // TODO: 后续对接 IAP 支付
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('充值功能即将上线，敬请期待'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        onPressed: () => _showTopupConfirmDialog(selectedOption, colorScheme),
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
@@ -348,6 +342,73 @@ class _TopupPageState extends ConsumerState<TopupPage> {
         ),
       ),
     );
+  }
+
+  /// 充值确认弹窗 — 使用 AppConfirmDialog (TDesign 规范)
+  Future<void> _showTopupConfirmDialog(TopupConfig option, ColorScheme colorScheme) async {
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: '确认充值',
+      content: '您即将充值以下金额：',
+      confirmText: '确认支付',
+      cancelText: '取消',
+      contentWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: Adaptive.h(context, 12)),
+          Container(
+            padding: EdgeInsets.all(Adaptive.w(context, 16)),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '¥${option.originalAmount.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: Adaptive.sp(context, 24),
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                if (option.bonusAmount > 0) ...[
+                  SizedBox(width: Adaptive.w(context, 8)),
+                  Text(
+                    '→ 到账 ¥${option.actualAmount.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 14),
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (option.bonusAmount > 0) ...[
+            SizedBox(height: Adaptive.h(context, 8)),
+            Center(
+              child: Text(
+                '赠送 ¥${option.bonusAmount.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  color: Colors.green.shade600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    // 用户确认后执行充值
+    if (confirmed == true && mounted) {
+      // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+      TDToast.showText('充值功能即将上线，敬请期待', context: context);
+    }
   }
 
   Widget _buildBottomEntries(ColorScheme colorScheme) {

@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 
 /// 启动页面组件
 class SplashScreen extends StatelessWidget {
@@ -94,17 +95,15 @@ class SplashScreen extends StatelessWidget {
 
               const Spacer(flex: 2),
 
-              // 底部加载指示器
+              // 底部加载指示器（使用 TDesign TDLoading）
               Padding(
                 padding: const EdgeInsets.only(bottom: 60),
                 child: SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      colorScheme.primary.withValues(alpha: 0.6),
-                    ),
+                  child: TDLoading(
+                    size: TDLoadingSize.small,
+                    icon: TDLoadingIcon.circle,
                   ),
                 ),
               ),

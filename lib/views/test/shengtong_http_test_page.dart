@@ -21,10 +21,12 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
   static const String _testAppKey = '17827042090007b7';
   static const String _testSecretKey = '074713c03b62c75d1bee970dab2706ea';
 
-  final TextEditingController _refTextController =
-      TextEditingController(text: 'Hello world');
-  final TextEditingController _coreTypeController =
-      TextEditingController(text: 'sent.eval');
+  final TextEditingController _refTextController = TextEditingController(
+    text: 'Hello world',
+  );
+  final TextEditingController _coreTypeController = TextEditingController(
+    text: 'sent.eval',
+  );
 
   String _log = '';
   bool _isLoading = false;
@@ -209,7 +211,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.borderLight!),
+                border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _log.isEmpty ? '日志将显示在这里...' : _log,

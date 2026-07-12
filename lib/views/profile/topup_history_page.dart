@@ -107,7 +107,10 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('充值明细', style: TextStyle(fontSize: Adaptive.sp(context, 16))),
+        title: Text(
+          '充值明细',
+          style: TextStyle(fontSize: Adaptive.sp(context, 16)),
+        ),
       ),
       body: FutureBuilder<List<TopupRecord>>(
         future: _future,
@@ -140,7 +143,9 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
                 // 充值记录列表
                 _buildSectionTitle('充值记录', colorScheme),
                 SizedBox(height: Adaptive.h(context, 12)),
-                ...records.map((record) => _buildRecordItem(colorScheme, record)),
+                ...records.map(
+                  (record) => _buildRecordItem(colorScheme, record),
+                ),
               ],
             ),
           );
@@ -232,7 +237,7 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
                 ),
                 SizedBox(height: Adaptive.h(context, 4)),
                 Text(
-                  '$formattedTime',
+                  formattedTime,
                   style: TextStyle(
                     fontSize: Adaptive.sp(context, 12),
                     color: colorScheme.onSurfaceVariant,
@@ -254,13 +259,16 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
               ),
               SizedBox(height: Adaptive.h(context, 4)),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 8), vertical: Adaptive.h(context, 2)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: Adaptive.w(context, 8),
+                  vertical: Adaptive.h(context, 2),
+                ),
                 decoration: BoxDecoration(
                   color: record.status == 'success'
                       ? Colors.green.withValues(alpha: 0.12)
                       : record.status == 'failed'
-                          ? colorScheme.error.withValues(alpha: 0.12)
-                          : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ? colorScheme.error.withValues(alpha: 0.12)
+                      : colorScheme.outlineVariant.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
                 ),
                 child: Text(
@@ -270,8 +278,8 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
                     color: record.status == 'success'
                         ? Colors.green
                         : record.status == 'failed'
-                            ? colorScheme.error
-                            : colorScheme.onSurfaceVariant,
+                        ? colorScheme.error
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -312,7 +320,11 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(AppIcons.error, size: Adaptive.sp(context, 48), color: colorScheme.error),
+            Icon(
+              AppIcons.error,
+              size: Adaptive.sp(context, 48),
+              color: colorScheme.error,
+            ),
             SizedBox(height: Adaptive.h(context, 12)),
             Text(
               message,

@@ -26,9 +26,9 @@ class ForumService {
           queryParameters: {
             'page': page.toString(),
             'limit': limit.toString(),
-            if (category != null) 'category': category,
-            if (type != null) 'type': type,
-            if (search != null) 'search': search,
+            'category': ?category,
+            'type': ?type,
+            'search': ?search,
           },
         ),
         headers: {
@@ -42,7 +42,7 @@ class ForumService {
         final posts = (data['data'] as List)
             .map((item) => ForumPost.fromJson(item))
             .toList();
-        
+
         return PaginatedResponse<ForumPost>(
           data: posts,
           pagination: PaginationInfo.fromJson(data['pagination']),
@@ -107,7 +107,7 @@ class ForumService {
         final posts = (data['data'] as List)
             .map((item) => ForumPost.fromJson(item))
             .toList();
-        
+
         return PaginatedResponse<ForumPost>(
           data: posts,
           pagination: PaginationInfo.fromJson(data['pagination']),
@@ -192,10 +192,10 @@ class ForumService {
           'content': content,
           'category_id': categoryId,
           'post_type': postType,
-          if (resourceType != null) 'resource_type': resourceType,
-          if (resourceUrl != null) 'resource_url': resourceUrl,
-          if (resourceDescription != null) 'resource_description': resourceDescription,
-          if (tags != null) 'tags': tags,
+          'resource_type': ?resourceType,
+          'resource_url': ?resourceUrl,
+          'resource_description': ?resourceDescription,
+          'tags': ?tags,
         }),
       );
 
@@ -231,7 +231,7 @@ class ForumService {
           'title': title,
           'content': content,
           'category_id': categoryId,
-          if (tags != null) 'tags': tags,
+          'tags': ?tags,
         }),
       );
 
@@ -251,9 +251,9 @@ class ForumService {
     try {
       final token = _supabase.auth.currentSession?.accessToken;
       final response = await http.delete(
-        Uri.parse('$baseUrl/forum-service/post').replace(
-          queryParameters: {'id': id.toString()},
-        ),
+        Uri.parse(
+          '$baseUrl/forum-service/post',
+        ).replace(queryParameters: {'id': id.toString()}),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -272,7 +272,7 @@ class ForumService {
   Future<void> toggleLike(int postId) async {
     try {
       final token = _supabase.auth.currentSession?.accessToken;
-      
+
       // 首先检查是否已经点赞
       final likeData = await _supabase
           .from('forum_likes')
@@ -284,15 +284,15 @@ class ForumService {
       if (likeData != null) {
         // 取消点赞
         final response = await http.delete(
-          Uri.parse('$baseUrl/forum-service/like-post').replace(
-            queryParameters: {'id': postId.toString()},
-          ),
+          Uri.parse(
+            '$baseUrl/forum-service/like-post',
+          ).replace(queryParameters: {'id': postId.toString()}),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
         );
-        
+
         if (response.statusCode != 200) {
           throw Exception('取消点赞失败: ${response.statusCode}');
         }
@@ -306,7 +306,7 @@ class ForumService {
           },
           body: json.encode({'post_id': postId}),
         );
-        
+
         if (response.statusCode != 200) {
           throw Exception('点赞失败: ${response.statusCode}');
         }
@@ -320,7 +320,7 @@ class ForumService {
   Future<void> toggleFavorite(int postId) async {
     try {
       final token = _supabase.auth.currentSession?.accessToken;
-      
+
       // 首先检查是否已经收藏
       final favoriteData = await _supabase
           .from('user_favorites')
@@ -332,15 +332,15 @@ class ForumService {
       if (favoriteData != null) {
         // 取消收藏
         final response = await http.delete(
-          Uri.parse('$baseUrl/forum-service/favorite').replace(
-            queryParameters: {'id': postId.toString()},
-          ),
+          Uri.parse(
+            '$baseUrl/forum-service/favorite',
+          ).replace(queryParameters: {'id': postId.toString()}),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
         );
-        
+
         if (response.statusCode != 200) {
           throw Exception('取消收藏失败: ${response.statusCode}');
         }
@@ -354,7 +354,7 @@ class ForumService {
           },
           body: json.encode({'post_id': postId}),
         );
-        
+
         if (response.statusCode != 200) {
           throw Exception('收藏失败: ${response.statusCode}');
         }
@@ -441,9 +441,7 @@ class ForumService {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'notification_ids': notificationIds,
-        }),
+        body: json.encode({'notification_ids': notificationIds}),
       );
 
       if (response.statusCode != 200) {
@@ -459,7 +457,7 @@ class ForumService {
     try {
       // 增加浏览量
       await _supabase.rpc('increment_view_count', params: {'post_id': id});
-      
+
       final response = await _supabase
           .from('forum_posts')
           .select('''
@@ -483,10 +481,7 @@ class PaginatedResponse<T> {
   final List<T> data;
   final PaginationInfo pagination;
 
-  PaginatedResponse({
-    required this.data,
-    required this.pagination,
-  });
+  PaginatedResponse({required this.data, required this.pagination});
 }
 
 // 分页信息类

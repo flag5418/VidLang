@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/components/folder_card.dart';
@@ -401,7 +402,8 @@ class _FileListPageState extends ConsumerState<FileListPage> {
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+    TDToast.showText(message, context: context);
   }
 
   void _showSnackBarWithAction(String message, String actionLabel, VoidCallback onAction) {

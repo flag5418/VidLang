@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -141,10 +139,7 @@ void main() {
       );
 
       // 查询未删除的记录
-      final active = await db.query(
-        'subtitles',
-        where: 'is_deleted = 0',
-      );
+      final active = await db.query('subtitles', where: 'is_deleted = 0');
 
       expect(active.length, equals(3));
       expect(active.every((r) => r['is_deleted'] == 0), isTrue);
@@ -185,10 +180,7 @@ void main() {
       });
 
       // 验证批量删除结果
-      final active = await db.query(
-        'subtitles',
-        where: 'is_deleted = 0',
-      );
+      final active = await db.query('subtitles', where: 'is_deleted = 0');
 
       expect(active.length, equals(5));
     });
@@ -197,11 +189,7 @@ void main() {
       final now = DateTime.now().toIso8601String();
       final count = await db.update(
         'subtitles',
-        {
-          'is_deleted': 1,
-          'deleted_at': now,
-          'deleted_by': 'test-user',
-        },
+        {'is_deleted': 1, 'deleted_at': now, 'deleted_by': 'test-user'},
         where: 'code = ?',
         whereArgs: ['non-existent-code'],
       );
@@ -274,7 +262,9 @@ void main() {
       await db.close();
       final dbPath = await getDatabasesPath();
       try {
-        await deleteDatabase(p.join(dbPath, 'subtitle_delete_concurrent_test.db'));
+        await deleteDatabase(
+          p.join(dbPath, 'subtitle_delete_concurrent_test.db'),
+        );
       } catch (_) {}
     });
 
@@ -282,7 +272,11 @@ void main() {
       final errors = <Object>[];
 
       // 并发删除 video-A 和 video-B 的字幕
-      Future<void> deleteVideoSubtitles(String videoCode, int start, int count) async {
+      Future<void> deleteVideoSubtitles(
+        String videoCode,
+        int start,
+        int count,
+      ) async {
         await writeLock.synchronized(() async {
           try {
             final now = DateTime.now().toIso8601String();
@@ -336,11 +330,7 @@ void main() {
             for (var i = start; i < start + count; i++) {
               await db.update(
                 'subtitles',
-                {
-                  'is_deleted': 1,
-                  'deleted_at': now,
-                  'deleted_by': 'test-user',
-                },
+                {'is_deleted': 1, 'deleted_at': now, 'deleted_by': 'test-user'},
                 where: 'code = ?',
                 whereArgs: ['sub-concurrent-$i'],
               );
@@ -397,11 +387,7 @@ void main() {
       Future<void> reader() async {
         for (var i = 0; i < 50; i++) {
           try {
-            await db.query(
-              'subtitles',
-              where: 'is_deleted = 0',
-              limit: 10,
-            );
+            await db.query('subtitles', where: 'is_deleted = 0', limit: 10);
           } catch (e) {
             errors.add(e);
           }
@@ -416,11 +402,7 @@ void main() {
             for (var i = start; i < start + count; i++) {
               await db.update(
                 'subtitles',
-                {
-                  'is_deleted': 1,
-                  'deleted_at': now,
-                  'updated_at': now,
-                },
+                {'is_deleted': 1, 'deleted_at': now, 'updated_at': now},
                 where: 'code = ?',
                 whereArgs: ['sub-concurrent-$i'],
               );
@@ -432,11 +414,7 @@ void main() {
       }
 
       // 同时读写
-      await Future.wait([
-        reader(),
-        writer(0, 50),
-        writer(50, 50),
-      ]);
+      await Future.wait([reader(), writer(0, 50), writer(50, 50)]);
 
       try {
         final rows = await db.rawQuery('PRAGMA quick_check(1)');
@@ -522,7 +500,9 @@ void main() {
 
       // 验证插入成功
       final countBefore = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0'),
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0',
+        ),
       );
       expect(countBefore, equals(500));
 
@@ -551,7 +531,9 @@ void main() {
 
       // 验证软删除结果
       final countAfter = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0'),
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0',
+        ),
       );
       expect(countAfter, equals(0));
 
@@ -580,11 +562,7 @@ void main() {
         for (var i = 0; i < 100; i++) {
           batch.update(
             'subtitles',
-            {
-              'is_deleted': 1,
-              'deleted_at': now,
-              'deleted_by': 'test-user',
-            },
+            {'is_deleted': 1, 'deleted_at': now, 'deleted_by': 'test-user'},
             where: 'code = ?',
             whereArgs: ['sub-reinsert-$i'],
           );
@@ -606,7 +584,9 @@ void main() {
 
       // 验证新数据插入成功
       final countNew = Sqflite.firstIntValue(
-        await db.rawQuery("SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0 AND code LIKE 'sub-reinsert-new-%'"),
+        await db.rawQuery(
+          "SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0 AND code LIKE 'sub-reinsert-new-%'",
+        ),
       );
       expect(countNew, equals(50));
     });
@@ -715,16 +695,13 @@ void main() {
     });
 
     test('锁争用错误不应被识别为损坏', () {
-      final lockErrors = [
-        'database is locked',
-        'busy',
-        'SQLITE_BUSY',
-      ];
+      final lockErrors = ['database is locked', 'busy', 'SQLITE_BUSY'];
 
       for (final error in lockErrors) {
         final s = error.toLowerCase();
         // 锁争用错误应该被排除
-        final isLockError = s.contains('database is locked') || s.contains('busy');
+        final isLockError =
+            s.contains('database is locked') || s.contains('busy');
         expect(isLockError, isTrue, reason: '应识别为锁争用: $error');
       }
     });
@@ -848,11 +825,7 @@ void main() {
           // 软删除视频本身
           batch.update(
             'video_info',
-            {
-              'is_deleted': 1,
-              'deleted_at': now,
-              'updated_at': now,
-            },
+            {'is_deleted': 1, 'deleted_at': now, 'updated_at': now},
             where: 'code = ?',
             whereArgs: ['video-cascade-001'],
           );
@@ -914,22 +887,14 @@ void main() {
 
               batch.update(
                 'subtitles',
-                {
-                  'is_deleted': 1,
-                  'deleted_at': now,
-                  'deleted_by': 'test-user',
-                },
+                {'is_deleted': 1, 'deleted_at': now, 'deleted_by': 'test-user'},
                 where: 'video_code = ?',
                 whereArgs: [videoCode],
               );
 
               batch.update(
                 'video_info',
-                {
-                  'is_deleted': 1,
-                  'deleted_at': now,
-                  'updated_at': now,
-                },
+                {'is_deleted': 1, 'deleted_at': now, 'updated_at': now},
                 where: 'code = ?',
                 whereArgs: [videoCode],
               );
@@ -1078,7 +1043,9 @@ void main() {
 
       // 验证删除完成
       final countAfter = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0'),
+        await db.rawQuery(
+          'SELECT COUNT(*) FROM subtitles WHERE is_deleted = 0',
+        ),
       );
       expect(countAfter, equals(0));
 
@@ -1087,8 +1054,11 @@ void main() {
       expect(rows.first.values.first, equals('ok'));
 
       // 性能应该在合理范围内（10秒内完成）
-      expect(stopwatch.elapsedMilliseconds, lessThan(10000),
-          reason: '批量删除 1000 条记录应在 10 秒内完成');
+      expect(
+        stopwatch.elapsedMilliseconds,
+        lessThan(10000),
+        reason: '批量删除 1000 条记录应在 10 秒内完成',
+      );
     });
   });
 
@@ -1166,7 +1136,9 @@ void main() {
       await db.close();
       final dbPath = await getDatabasesPath();
       try {
-        await deleteDatabase(p.join(dbPath, 'subtitle_delete_production_test.db'));
+        await deleteDatabase(
+          p.join(dbPath, 'subtitle_delete_production_test.db'),
+        );
       } catch (_) {}
     });
 
@@ -1405,10 +1377,7 @@ void main() {
 
             await db.update(
               'video_info',
-              {
-                'is_deleted': 1,
-                'deleted_at': DateTime.now().toIso8601String(),
-              },
+              {'is_deleted': 1, 'deleted_at': DateTime.now().toIso8601String()},
               where: 'code = ?',
               whereArgs: [videoCode],
             );
@@ -1420,8 +1389,7 @@ void main() {
 
       // 同时发起 10 个删除任务
       await Future.wait([
-        for (var v = 0; v < 10; v++)
-          concurrentDelete('video-high-$v'),
+        for (var v = 0; v < 10; v++) concurrentDelete('video-high-$v'),
       ]);
 
       // 验证数据库完整性

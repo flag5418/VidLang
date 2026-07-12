@@ -37,7 +37,10 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
 
   Future<void> _autoDiagnoseAndFix() async {
     if (_isRunning) return;
-    setState(() { _isRunning = true; _logs.clear(); });
+    setState(() {
+      _isRunning = true;
+      _logs.clear();
+    });
 
     try {
       _log('🚀 启动自动诊断与修复流程');
@@ -123,7 +126,9 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
         await db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
       } catch (e) {
         _printLog?.call('  [L1] TRUNCATE 失败，尝试 PASSIVE: $e');
-        try { await db.execute('PRAGMA wal_checkpoint(PASSIVE)'); } catch (_) {}
+        try {
+          await db.execute('PRAGMA wal_checkpoint(PASSIVE)');
+        } catch (_) {}
       }
 
       await db.close();
@@ -133,7 +138,9 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       for (final s in ['-wal', '-shm']) {
         try {
           final f = File('$dbPath$s');
-          if (await f.exists()) { await f.delete(); }
+          if (await f.exists()) {
+            await f.delete();
+          }
         } catch (_) {}
       }
       await Future.delayed(const Duration(milliseconds: 100));
@@ -142,12 +149,16 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       final vDb = await openDatabase(dbPath, readOnly: true);
       final r = await vDb.rawQuery('PRAGMA integrity_check;');
       await vDb.close();
-      final ok = r.isNotEmpty && r.first.values.first?.toString().toLowerCase() == 'ok';
+      final ok =
+          r.isNotEmpty &&
+          r.first.values.first?.toString().toLowerCase() == 'ok';
       _printLog?.call('  [L1] integrity_check: ${ok ? "OK ✅" : "FAILED ❌"}');
       return ok;
     } catch (e) {
       _printLog?.call('  [L1] 异常: $e');
-      try { await db?.close(); } catch (_) {}
+      try {
+        await db?.close();
+      } catch (_) {}
       return false;
     }
   }
@@ -156,7 +167,8 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
   static Future<bool> _tryExportRepair(String dbPath) async {
     Database? db;
     try {
-      final exportPath = '$dbPath.export-${DateTime.now().millisecondsSinceEpoch}';
+      final exportPath =
+          '$dbPath.export-${DateTime.now().millisecondsSinceEpoch}';
       _printLog?.call('  [L2] 尝试导出数据到 $exportPath ...');
 
       db = await openDatabase(dbPath, readOnly: true);
@@ -175,18 +187,27 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
         // 创建表
         try {
           final createSql = sql.replaceFirst(
-            RegExp(r'CREATE TABLE\s+' + RegExp.escape(name), caseSensitive: false),
+            RegExp(
+              r'CREATE TABLE\s+' + RegExp.escape(name),
+              caseSensitive: false,
+            ),
             'CREATE TABLE newdb.$name',
           );
           await db.execute(createSql);
         } catch (_) {
-          try { await db.execute('CREATE TABLE IF NOT EXISTS newdb.$name AS SELECT * FROM main.$name WHERE 0'); } catch (_) {}
+          try {
+            await db.execute(
+              'CREATE TABLE IF NOT EXISTS newdb.$name AS SELECT * FROM main.$name WHERE 0',
+            );
+          } catch (_) {}
         }
 
         // 复制数据
         try {
           await db.execute('INSERT INTO newdb.$name SELECT * FROM main.$name');
-          final cnt = await db.rawQuery('SELECT COUNT(*) as c FROM newdb.$name');
+          final cnt = await db.rawQuery(
+            'SELECT COUNT(*) as c FROM newdb.$name',
+          );
           totalRows += (cnt.first['c'] as int? ?? 0);
         } catch (_) {}
       }
@@ -198,26 +219,36 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
         // 用导出的文件替换原文件
         _printLog?.call('  [L2] 成功导出 $totalRows 行，替换原文件...');
         for (final s in ['', '-wal', '-shm']) {
-          try { await File('$dbPath$s').delete(); } catch (_) {}
+          try {
+            await File('$dbPath$s').delete();
+          } catch (_) {}
         }
         await File(exportPath).copy(dbPath);
-        try { await File(exportPath).delete(); } catch (_) {}
+        try {
+          await File(exportPath).delete();
+        } catch (_) {}
 
         // 验证
         final vDb = await openDatabase(dbPath, readOnly: true);
         final r = await vDb.rawQuery('PRAGMA integrity_check;');
         await vDb.close();
-        final ok = r.isNotEmpty && r.first.values.first?.toString().toLowerCase() == 'ok';
+        final ok =
+            r.isNotEmpty &&
+            r.first.values.first?.toString().toLowerCase() == 'ok';
         _printLog?.call('  [L2] 替换后 integrity: ${ok ? "OK ✅" : "FAILED ❌"}');
         return ok;
       }
 
       _printLog?.call('  [L2] 导出了 0 行数据');
-      try { await File(exportPath).delete(); } catch (_) {};
+      try {
+        await File(exportPath).delete();
+      } catch (_) {}
       return false;
     } catch (e) {
       _printLog?.call('  [L2] 异常: $e');
-      try { await db?.close(); } catch (_) {}
+      try {
+        await db?.close();
+      } catch (_) {}
       return false;
     }
   }
@@ -238,12 +269,16 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
         final f = e.$2;
         if (await f.exists()) {
           final s = await f.stat();
-          _log('  ${e.$1}: ${(s.size / 1024).toStringAsFixed(1)}KB  ${s.modified.toString().substring(5, 16)}');
+          _log(
+            '  ${e.$1}: ${(s.size / 1024).toStringAsFixed(1)}KB  ${s.modified.toString().substring(5, 16)}',
+          );
         } else {
           _log('  ${e.$1}: 不存在');
         }
       }
-    } catch (e) { _log('  ❌ $e'); }
+    } catch (e) {
+      _log('  ❌ $e');
+    }
     return true;
   }
 
@@ -257,10 +292,14 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       final sw = Stopwatch()..start();
       final rows = await db.rawQuery('PRAGMA integrity_check;');
       sw.stop();
-      final result = rows.isNotEmpty ? rows.first.values.first?.toString() ?? '' : '(empty)';
+      final result = rows.isNotEmpty
+          ? rows.first.values.first?.toString() ?? ''
+          : '(empty)';
       final ok = result.toLowerCase() == 'ok';
 
-      _log('  integrity_check: ${ok ? "✅ OK" : "❌ $result"} (${sw.elapsedMilliseconds}ms)');
+      _log(
+        '  integrity_check: ${ok ? "✅ OK" : "❌ $result"} (${sw.elapsedMilliseconds}ms)',
+      );
 
       if (!ok && rows.length > 1) {
         for (int i = 1; i < rows.length && i < 5; i++) {
@@ -270,8 +309,12 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
 
       // quick_check
       final qRows = await db.rawQuery('PRAGMA quick_check;');
-      final qResult = qRows.isNotEmpty ? qRows.first.values.first?.toString() ?? '' : '';
-      _log('  quick_check: ${qResult.toLowerCase() == 'ok' ? "✅ OK" : "❌ $qResult"}');
+      final qResult = qRows.isNotEmpty
+          ? qRows.first.values.first?.toString() ?? ''
+          : '';
+      _log(
+        '  quick_check: ${qResult.toLowerCase() == 'ok' ? "✅ OK" : "❌ $qResult"}',
+      );
 
       // 页面信息
       final pg = await db.rawQuery('PRAGMA page_count;');
@@ -290,15 +333,26 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
     _log('');
     _log('═══ 3. 表统计 ═══');
     for (final t in [
-      'video_folder', 'video_info', 'subtitles', 'participle',
-      'article', 'article_chapter', 'article_paragraph', 'article_sentence',
-      'config', 'error_log', 'study_record', 'word_book',
+      'video_folder',
+      'video_info',
+      'subtitles',
+      'participle',
+      'article',
+      'article_chapter',
+      'article_paragraph',
+      'article_sentence',
+      'config',
+      'error_log',
+      'study_record',
+      'word_book',
     ]) {
       try {
         final total = await _getCount(t);
         final del = await _getCount(t, where: 'is_deleted = 1');
         _log('  $t: $total (已删:$del)');
-      } catch (e) { _log('  $t: ❌ $e'); }
+      } catch (e) {
+        _log('  $t: ❌ $e');
+      }
     }
   }
 
@@ -306,8 +360,15 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
     _log('');
     _log('═══ 4. SoftDelete 测试 ═══');
     try {
-      final subs = await DatabaseService.findByCondition(() => Subtitles(), where: 'is_deleted = 0', limit: 1);
-      if (subs.isEmpty) { _log('  ⚠️ 无 subtitles 记录'); return; }
+      final subs = await DatabaseService.findByCondition(
+        () => Subtitles(),
+        where: 'is_deleted = 0',
+        limit: 1,
+      );
+      if (subs.isEmpty) {
+        _log('  ⚠️ 无 subtitles 记录');
+        return;
+      }
 
       final s = subs.first;
       _log('  测试 id=${s.id} code=${s.code}');
@@ -318,7 +379,9 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       _log('  ✅ 成功 (${sw.elapsedMilliseconds}ms)');
 
       // 恢复
-      s.isDeleted = false; s.deletedAt = null; s.deletedBy = null;
+      s.isDeleted = false;
+      s.deletedAt = null;
+      s.deletedBy = null;
       await DatabaseService.update(s);
       _log('  ✅ 已撤销测试删除');
     } on DatabaseException catch (e) {
@@ -334,21 +397,37 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
     _log('═══ 5. 级联删除分析 ═══');
     try {
       final folders = await DatabaseService.findByCondition(
-        () => VideoFolder(), where: 'is_deleted = 0', orderBy: 'created_at DESC', limit: 3,
+        () => VideoFolder(),
+        where: 'is_deleted = 0',
+        orderBy: 'created_at DESC',
+        limit: 3,
       );
       for (final f in folders) {
         final videos = await DatabaseService.findByCondition(
-          () => VideoInfo(), where: 'folder_code = ? AND is_deleted = 0', whereArgs: [f.code],
+          () => VideoInfo(),
+          where: 'folder_code = ? AND is_deleted = 0',
+          whereArgs: [f.code],
         );
         int sCount = 0, pCount = 0;
         for (final v in videos) {
-          final vc = v.code ?? ''; if (vc.isEmpty) continue;
-          sCount += await _getCount('subtitles', where: 'video_code = "$vc" AND is_deleted = 0');
-          pCount += await _getCount('participle', where: 'video_code = "$vc" AND is_deleted = 0');
+          final vc = v.code ?? '';
+          if (vc.isEmpty) continue;
+          sCount += await _getCount(
+            'subtitles',
+            where: 'video_code = "$vc" AND is_deleted = 0',
+          );
+          pCount += await _getCount(
+            'participle',
+            where: 'video_code = "$vc" AND is_deleted = 0',
+          );
         }
-        _log('  📁 "${f.name}"(${f.folderType.name}): ${videos.length}资源 $sCount字幕 $pCount分词 → 删除需${videos.length+sCount+pCount+1}次写操作');
+        _log(
+          '  📁 "${f.name}"(${f.folderType.name}): ${videos.length}资源 $sCount字幕 $pCount分词 → 删除需${videos.length + sCount + pCount + 1}次写操作',
+        );
       }
-    } catch (e) { _log('  ❌ $e'); }
+    } catch (e) {
+      _log('  ❌ $e');
+    }
   }
 
   Future<void> _forceRebuild() async {
@@ -359,16 +438,22 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       final ts = DateTime.now().millisecondsSinceEpoch;
       // 备份
       for (final s in ['', '-wal', '-shm']) {
-        try { await File('$p$s').copy('$p.backup-$ts.db$s'); } catch (_) {}
+        try {
+          await File('$p$s').copy('$p.backup-$ts.db$s');
+        } catch (_) {}
       }
       _log('  已备份');
       // 删除
       for (final s in ['', '-wal', '-shm']) {
-        try { await File('$p$s').delete(); } catch (_) {}
+        try {
+          await File('$p$s').delete();
+        } catch (_) {}
       }
       _log('  已删除');
       _log('  ✅ 请重启应用自动重建');
-    } catch (e) { _log('  ❌ $e'); }
+    } catch (e) {
+      _log('  ❌ $e');
+    }
   }
 
   // ==================== 工具 ====================
@@ -381,7 +466,9 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
 
   static Future<int> _getCount(String table, {String? where}) async {
     final db = await DatabaseService.database;
-    final sql = where != null ? 'SELECT COUNT(*) as c FROM $table WHERE $where' : 'SELECT COUNT(*) as c FROM $table';
+    final sql = where != null
+        ? 'SELECT COUNT(*) as c FROM $table WHERE $where'
+        : 'SELECT COUNT(*) as c FROM $table';
     final r = await db.rawQuery(sql);
     return (r.first['c'] as int?) ?? 0;
   }
@@ -399,7 +486,11 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
         title: const Text('数据库诊断与修复'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(icon: const Icon(AppIcons.deleteSweep), onPressed: () => setState(() => _logs.clear()), tooltip: '清空'),
+          IconButton(
+            icon: const Icon(AppIcons.deleteSweep),
+            onPressed: () => setState(() => _logs.clear()),
+            tooltip: '清空',
+          ),
         ],
       ),
       body: Column(
@@ -413,7 +504,14 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                   child: FilledButton.icon(
                     onPressed: _isRunning ? null : _autoDiagnoseAndFix,
                     icon: _isRunning
-                        ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : const Icon(AppIcons.autoFixHigh),
                     label: Text(_isRunning ? '自动修复中...' : '🚀 一键诊断+自动修复'),
                   ),
@@ -440,7 +538,9 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                     Expanded(
                       child: FilledButton.tonal(
                         onPressed: _isRunning ? null : _forceRebuild,
-                        style: FilledButton.styleFrom(foregroundColor: Colors.red),
+                        style: FilledButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
                         child: const Text('⚠️ 强制重建'),
                       ),
                     ),
@@ -467,10 +567,21 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                       Color color = Colors.black87;
                       if (l.contains('❌')) color = Colors.red[700]!;
                       if (l.contains('✅')) color = Colors.green[700]!;
-                      if (l.contains('⚠️') || l.contains('🔧') || l.contains('💡')) color = Colors.orange[700]!;
+                      if (l.contains('⚠️') ||
+                          l.contains('🔧') ||
+                          l.contains('💡'))
+                        color = Colors.orange[700]!;
                       if (l.contains('🚀')) color = Colors.blue[700]!;
                       if (l.contains('📁')) color = Colors.purple[700]!;
-                      return SelectableText(l, style: TextStyle(color: color, fontSize: 12, fontFamily: 'monospace', height: 1.4));
+                      return SelectableText(
+                        l,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          height: 1.4,
+                        ),
+                      );
                     },
                   ),
           ),

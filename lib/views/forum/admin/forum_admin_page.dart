@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import '../../../providers/forum_admin_providers.dart';
 import '../../../widgets/common/loading_widget.dart';
 import '../../../widgets/common/error_widget.dart';
@@ -7,7 +8,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
 class ForumAdminPage extends ConsumerStatefulWidget {
-  const ForumAdminPage({Key? key}) : super(key: key);
+  const ForumAdminPage({super.key});
 
   @override
   ConsumerState<ForumAdminPage> createState() => _ForumAdminPageState();
@@ -33,7 +34,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
   Widget build(BuildContext context) {
     // 检查管理员权限
     final adminStatus = ref.watch(adminAuthProvider);
-    
+
     return adminStatus.when(
       data: (isAdmin) {
         if (!isAdmin) {
@@ -43,7 +44,11 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(AppIcons.lock, size: 64, color: AppColors.onSurfaceVariant),
+                  Icon(
+                    AppIcons.lock,
+                    size: 64,
+                    color: AppColors.onSurfaceVariant,
+                  ),
                   SizedBox(height: 16),
                   Text('您没有管理员权限'),
                 ],
@@ -82,9 +87,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
           ),
         );
       },
-      loading: () => const Scaffold(
-        body: LoadingWidget(message: '验证管理员权限...'),
-      ),
+      loading: () => const Scaffold(body: LoadingWidget(message: '验证管理员权限...')),
       error: (error, stack) => Scaffold(
         body: ErrorDisplayWidget(
           error: '权限验证失败: $error',
@@ -111,10 +114,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
           ),
           Expanded(
             child: TabBarView(
-              children: [
-                _buildPendingPostsList(),
-                _buildPendingCommentsList(),
-              ],
+              children: [_buildPendingPostsList(), _buildPendingCommentsList()],
             ),
           ),
         ],
@@ -124,7 +124,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
 
   Widget _buildPendingPostsList() {
     final pendingPostsAsync = ref.watch(pendingPostsProvider);
-    
+
     return pendingPostsAsync.when(
       data: (posts) {
         if (posts.isEmpty) {
@@ -166,7 +166,9 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                         Chip(
                           label: Text(
                             post.postType,
-                            style: TextStyle(fontSize: Adaptive.sp(context, 10)),
+                            style: TextStyle(
+                              fontSize: Adaptive.sp(context, 10),
+                            ),
                           ),
                           backgroundColor: _getPostTypeColor(post.postType),
                         ),
@@ -193,14 +195,19 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           ),
                         ),
                         const Spacer(),
-                        TextButton(
-                          onPressed: () => _rejectPost(post.id),
-                          child: const Text('拒绝'),
+                        // ✅ TDesign 规范：使用 TDButton 替换 TextButton/ElevatedButton
+                        TDButton(
+                          text: '拒绝',
+                          onTap: () => _rejectPost(post.id),
+                          type: TDButtonType.text,
+                          theme: TDButtonTheme.defaultTheme,
                         ),
                         SizedBox(width: Adaptive.w(context, 8)),
-                        ElevatedButton(
-                          onPressed: () => _approvePost(post.id),
-                          child: const Text('通过'),
+                        TDButton(
+                          text: '通过',
+                          onTap: () => _approvePost(post.id),
+                          type: TDButtonType.fill,
+                          theme: TDButtonTheme.primary,
                         ),
                       ],
                     ),
@@ -221,7 +228,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
 
   Widget _buildPendingCommentsList() {
     final pendingCommentsAsync = ref.watch(pendingCommentsProvider);
-    
+
     return pendingCommentsAsync.when(
       data: (comments) {
         if (comments.isEmpty) {
@@ -273,14 +280,19 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
                           ),
                         ),
                         const Spacer(),
-                        TextButton(
-                          onPressed: () => _rejectComment(comment.id),
-                          child: const Text('拒绝'),
+                        // ✅ TDesign 规范：使用 TDButton 替换 TextButton/ElevatedButton
+                        TDButton(
+                          text: '拒绝',
+                          onTap: () => _rejectComment(comment.id),
+                          type: TDButtonType.text,
+                          theme: TDButtonTheme.defaultTheme,
                         ),
                         SizedBox(width: Adaptive.w(context, 8)),
-                        ElevatedButton(
-                          onPressed: () => _approveComment(comment.id),
-                          child: const Text('通过'),
+                        TDButton(
+                          text: '通过',
+                          onTap: () => _approveComment(comment.id),
+                          type: TDButtonType.fill,
+                          theme: TDButtonTheme.primary,
                         ),
                       ],
                     ),
@@ -327,7 +339,7 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
 
   Widget _buildStatisticsTab() {
     final statsAsync = ref.watch(forumStatsProvider);
-    
+
     return statsAsync.when(
       data: (stats) => Padding(
         padding: EdgeInsets.all(Adaptive.w(context, 16)),
@@ -336,10 +348,26 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
           crossAxisSpacing: Adaptive.w(context, 16),
           mainAxisSpacing: Adaptive.h(context, 16),
           children: [
-            _buildStatCard('总帖子数', stats['total_posts']?.toString() ?? '0', AppIcons.article),
-            _buildStatCard('总评论数', stats['total_comments']?.toString() ?? '0', AppIcons.comment),
-            _buildStatCard('注册用户', stats['total_users']?.toString() ?? '0', AppIcons.people),
-            _buildStatCard('本周活跃', stats['active_users_week']?.toString() ?? '0', AppIcons.trendingUp),
+            _buildStatCard(
+              '总帖子数',
+              stats['total_posts']?.toString() ?? '0',
+              AppIcons.article,
+            ),
+            _buildStatCard(
+              '总评论数',
+              stats['total_comments']?.toString() ?? '0',
+              AppIcons.comment,
+            ),
+            _buildStatCard(
+              '注册用户',
+              stats['total_users']?.toString() ?? '0',
+              AppIcons.people,
+            ),
+            _buildStatCard(
+              '本周活跃',
+              stats['active_users_week']?.toString() ?? '0',
+              AppIcons.trendingUp,
+            ),
           ],
         ),
       ),
@@ -358,7 +386,11 @@ class _ForumAdminPageState extends ConsumerState<ForumAdminPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: Adaptive.sp(context, 32), color: Theme.of(context).primaryColor),
+            Icon(
+              icon,
+              size: Adaptive.sp(context, 32),
+              color: Theme.of(context).primaryColor,
+            ),
             SizedBox(height: Adaptive.h(context, 8)),
             Text(
               value,

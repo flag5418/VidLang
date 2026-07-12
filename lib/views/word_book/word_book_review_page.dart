@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/services/word_book_service.dart';
-import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -106,7 +105,11 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
         backgroundColor: cs.surface,
         title: Text(
           '复习中 · 剩余 ${_remaining.length} 词',
-          style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600, color: cs.onSurface),
+          style: TextStyle(
+            fontSize: Adaptive.sp(context, 16),
+            fontWeight: FontWeight.w600,
+            color: cs.onSurface,
+          ),
         ),
         actions: [
           IconButton(
@@ -117,14 +120,15 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
       ),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 16), Adaptive.w(context, 24), Adaptive.h(context, 16)),
+          padding: EdgeInsets.fromLTRB(
+            Adaptive.w(context, 24),
+            Adaptive.h(context, 16),
+            Adaptive.w(context, 24),
+            Adaptive.h(context, 16),
+          ),
           child: Column(
             children: [
-              Expanded(
-                child: Center(
-                  child: _buildCard(cs),
-                ),
-              ),
+              Expanded(child: Center(child: _buildCard(cs))),
               SizedBox(height: Adaptive.h(context, 24)),
               Row(
                 children: [
@@ -137,15 +141,28 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                           foregroundColor: cs.error,
                           side: BorderSide(color: cs.error),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(Adaptive.r(context, 24)),
+                            borderRadius: BorderRadius.circular(
+                              Adaptive.r(context, 24),
+                            ),
                           ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('不认识', style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w600)),
-                            Text('留在生词本',
-                                style: TextStyle(fontSize: Adaptive.sp(context, 13), color: cs.error.withValues(alpha: 0.7))),
+                            Text(
+                              '不认识',
+                              style: TextStyle(
+                                fontSize: Adaptive.sp(context, 14),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '留在生词本',
+                              style: TextStyle(
+                                fontSize: Adaptive.sp(context, 13),
+                                color: cs.error.withValues(alpha: 0.7),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -161,15 +178,28 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                           backgroundColor: cs.primary,
                           foregroundColor: cs.onPrimary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(Adaptive.r(context, 24)),
+                            borderRadius: BorderRadius.circular(
+                              Adaptive.r(context, 24),
+                            ),
                           ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('认识', style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w600)),
-                            Text('移入已掌握',
-                                style: TextStyle(fontSize: Adaptive.sp(context, 13), color: cs.onPrimary.withValues(alpha: 0.7))),
+                            Text(
+                              '认识',
+                              style: TextStyle(
+                                fontSize: Adaptive.sp(context, 14),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '移入已掌握',
+                              style: TextStyle(
+                                fontSize: Adaptive.sp(context, 13),
+                                color: cs.onPrimary.withValues(alpha: 0.7),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -236,23 +266,39 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
               ),
             ),
             SizedBox(height: Adaptive.h(context, 8)),
-            if ((_currentWord.phoneticUk ?? _currentWord.phoneticUs)?.isNotEmpty ?? false)
+            if ((_currentWord.phoneticUk ?? _currentWord.phoneticUs)
+                    ?.isNotEmpty ??
+                false)
               Text(
                 '/${_currentWord.phoneticUk ?? _currentWord.phoneticUs}/',
-                style: TextStyle(fontSize: Adaptive.sp(context, 16), color: cs.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 16),
+                  color: cs.onSurfaceVariant,
+                ),
               ),
             SizedBox(height: Adaptive.h(context, 16)),
-            Icon(AppIcons.volumeUp, size: Adaptive.sp(context, 32), color: cs.primary),
+            Icon(
+              AppIcons.volumeUp,
+              size: Adaptive.sp(context, 32),
+              color: cs.primary,
+            ),
             SizedBox(height: Adaptive.h(context, 24)),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 24), vertical: Adaptive.h(context, 12)),
+              padding: EdgeInsets.symmetric(
+                horizontal: Adaptive.w(context, 24),
+                vertical: Adaptive.h(context, 12),
+              ),
               decoration: BoxDecoration(
                 color: cs.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
               ),
               child: Text(
                 '点击显示释义',
-                style: TextStyle(fontSize: Adaptive.sp(context, 14), color: cs.primary, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 14),
+                  color: cs.primary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -262,8 +308,12 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
   }
 
   Widget _buildBack(ColorScheme cs) {
-    final definitions = WordBookService.parseDefinitions(_currentWord.definitionsJson);
-    final morphology = WordBookService.parseMorphology(_currentWord.morphologyJson);
+    final definitions = WordBookService.parseDefinitions(
+      _currentWord.definitionsJson,
+    );
+    final morphology = WordBookService.parseMorphology(
+      _currentWord.morphologyJson,
+    );
 
     return Container(
       width: Adaptive.w(context, 311),
@@ -287,59 +337,112 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
             Center(
               child: Text(
                 _currentWord.word,
-                style: TextStyle(fontSize: Adaptive.sp(context, 22), fontWeight: FontWeight.w700, color: cs.onSurface),
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 22),
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
+                ),
               ),
             ),
-            if ((_currentWord.phoneticUk ?? _currentWord.phoneticUs)?.isNotEmpty ?? false) ...[
+            if ((_currentWord.phoneticUk ?? _currentWord.phoneticUs)
+                    ?.isNotEmpty ??
+                false) ...[
               SizedBox(height: Adaptive.h(context, 4)),
               Center(
                 child: Text(
                   '/${_currentWord.phoneticUk ?? _currentWord.phoneticUs}/',
-                  style: TextStyle(fontSize: Adaptive.sp(context, 14), color: cs.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: Adaptive.sp(context, 14),
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
             if (definitions.isNotEmpty) ...[
               SizedBox(height: Adaptive.h(context, 16)),
-              ...definitions.map((d) => Padding(
-                    padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
-                    child: Text(
-                      '${d.partOfSpeech != null ? '${d.partOfSpeech}. ' : ''}${d.meaning}',
-                      style: TextStyle(fontSize: Adaptive.sp(context, 14), color: cs.onSurface),
+              ...definitions.map(
+                (d) => Padding(
+                  padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
+                  child: Text(
+                    '${d.partOfSpeech != null ? '${d.partOfSpeech}. ' : ''}${d.meaning}',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 14),
+                      color: cs.onSurface,
                     ),
-                  )),
+                  ),
+                ),
+              ),
             ],
-            if (definitions.any((d) => d.example != null && d.example!.isNotEmpty)) ...[
+            if (definitions.any(
+              (d) => d.example != null && d.example!.isNotEmpty,
+            )) ...[
               SizedBox(height: Adaptive.h(context, 12)),
-              Text('例句',
-                  style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w600, color: cs.primary)),
+              Text(
+                '例句',
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                ),
+              ),
               SizedBox(height: Adaptive.h(context, 4)),
               ...definitions
                   .where((d) => d.example != null && d.example!.isNotEmpty)
-                  .map((d) => Padding(
-                        padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
-                        child: Text('• ${d.example}',
-                            style: TextStyle(fontSize: Adaptive.sp(context, 13), color: cs.onSurface)),
-                      )),
+                  .map(
+                    (d) => Padding(
+                      padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
+                      child: Text(
+                        '• ${d.example}',
+                        style: TextStyle(
+                          fontSize: Adaptive.sp(context, 13),
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
             ],
             if (morphology.isNotEmpty) ...[
               SizedBox(height: Adaptive.h(context, 12)),
-              Text('词形变化',
-                  style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w600, color: cs.primary)),
+              Text(
+                '词形变化',
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                ),
+              ),
               SizedBox(height: Adaptive.h(context, 4)),
-              ...morphology.entries.map((e) => Padding(
-                    padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
-                    child: Text('${e.key}: ${e.value}',
-                        style: TextStyle(fontSize: Adaptive.sp(context, 13), color: cs.onSurface)),
-                  )),
+              ...morphology.entries.map(
+                (e) => Padding(
+                  padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
+                  child: Text(
+                    '${e.key}: ${e.value}',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 13),
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+              ),
             ],
             if ((_currentWord.mnemonic ?? '').isNotEmpty) ...[
               SizedBox(height: Adaptive.h(context, 12)),
-              Text('助记',
-                  style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w600, color: cs.primary)),
+              Text(
+                '助记',
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  fontWeight: FontWeight.w600,
+                  color: cs.primary,
+                ),
+              ),
               SizedBox(height: Adaptive.h(context, 4)),
-              Text(_currentWord.mnemonic!,
-                  style: TextStyle(fontSize: Adaptive.sp(context, 13), color: cs.onSurface)),
+              Text(
+                _currentWord.mnemonic!,
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  color: cs.onSurface,
+                ),
+              ),
             ],
           ],
         ),

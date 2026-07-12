@@ -370,7 +370,8 @@ class FileNotifier extends StateNotifier<FileState> {
         // 同一分类内名称唯一；不同分类允许同名
         final duplicated = await DatabaseService.findByCondition(
           () => VideoFolder(),
-          where: 'name = ? AND folder_type = ? AND code != ? AND is_deleted = 0',
+          where:
+              'name = ? AND folder_type = ? AND code != ? AND is_deleted = 0',
           whereArgs: [newName, folder.folderType.name, code],
           limit: 1,
         );
@@ -462,7 +463,7 @@ class FileNotifier extends StateNotifier<FileState> {
         // 批量标记所有子资源为已删除状态（ai-test-plan 综合测试时会跳过）
         final deletedVideoCodes = videos
             .map((v) => v.code)
-            .where((c) => c != null && c!.isNotEmpty)
+            .where((c) => c != null && c.isNotEmpty)
             .cast<String>()
             .toList();
         if (deletedVideoCodes.isNotEmpty) {

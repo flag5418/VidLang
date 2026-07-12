@@ -257,6 +257,7 @@ class _TestPageState extends State<TestPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('综合测试', style: TextStyle(fontSize: Adaptive.sp(context, 16))),
       ),
@@ -419,9 +420,9 @@ class _TestPageState extends State<TestPage> {
           Container(
             padding: EdgeInsets.fromLTRB(Adaptive.w(context, 16), Adaptive.h(context, 8), Adaptive.w(context, 16), Adaptive.h(context, 16)),
             decoration: BoxDecoration(
-              color: colorScheme.surface,
+              color: Colors.white,
               border: Border(
-                top: BorderSide(color: colorScheme.outlineVariant),
+                top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
               ),
             ),
             child: Column(
@@ -533,22 +534,12 @@ class _QuestionTypeCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 14)),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHigh : AppColors.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.03),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-        border: isDark
-            ? Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-              )
-            : null,
+        color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.2 : 0.3),
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
@@ -910,6 +901,7 @@ class _TestRunPageState extends State<_TestRunPage> {
     final answered = _index + (_submitted ? 1 : 0);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           '测试：${widget.videoTitle}',
@@ -961,39 +953,73 @@ class _TestRunPageState extends State<_TestRunPage> {
                 ),
               ),
             SizedBox(height: Adaptive.h(context, 12)),
-            SizedBox(
-              height: Adaptive.h(context, 48),
-              child: Row(
+            // 底部操作栏
+            Container(
+              padding: EdgeInsets.fromLTRB(Adaptive.w(context, 4), Adaptive.h(context, 12), Adaptive.w(context, 4), Adaptive.h(context, 12)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _submitted || _canSubmit() ? _goNext : null,
-                      child: Text(
-                        _index >= total - 1 ? '完成' : '下一题',
-                        style: TextStyle(fontSize: Adaptive.sp(context, 14)),
-                      ),
+                  SizedBox(
+                    height: Adaptive.h(context, 46),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _submitted || _canSubmit() ? _goNext : null,
+                            icon: Icon(AppIcons.chevronRight, size: Adaptive.sp(context, 16)),
+                            label: Text(
+                              _index >= total - 1 ? '完成' : '下一题',
+                              style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: colorScheme.primary,
+                              side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.4)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 10))),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: Adaptive.w(context, 12)),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            onPressed: _canSubmit() ? _submit : null,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _submitted ? colorScheme.surfaceContainerHighest : colorScheme.primary,
+                              foregroundColor: _submitted ? colorScheme.onSurfaceVariant : Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 10))),
+                            ),
+                            child: Text(
+                              _submitted ? '已提交' : '提交',
+                              style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: Adaptive.w(context, 12)),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _canSubmit() ? _submit : null,
-                      child: Text(
-                        _submitted ? '已提交' : '提交',
-                        style: TextStyle(fontSize: Adaptive.sp(context, 14)),
+                  SizedBox(height: Adaptive.h(context, 8)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(AppIcons.quiz, size: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
+                      SizedBox(width: Adaptive.w(context, 4)),
+                      Text(
+                        '当前得分：$_correct / $answered',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: Adaptive.sp(context, 12),
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
-              ),
-            ),
-            SizedBox(height: Adaptive.h(context, 12)),
-            Text(
-              '当前得分：$_correct / $answered',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: Adaptive.sp(context, 12),
-                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -1053,23 +1079,12 @@ class _TestRunPageState extends State<_TestRunPage> {
     return Container(
       padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHigh : colorScheme.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
-        border: isDark
-            ? null
-            : Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                width: 0.5,
-              ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: AppColors.textPrimary.withValues(alpha: 0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
+        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.2 : 0.3),
+          width: 0.5,
+        ),
       ),
       child: child,
     );
@@ -1146,24 +1161,38 @@ class _TestRunPageState extends State<_TestRunPage> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 onPressed: _reorderSelected.isEmpty || _submitted
                     ? null
                     : () => setState(() {
                         _reorderSelected.removeLast();
                       }),
-                child: Text('撤销', style: TextStyle(fontSize: Adaptive.sp(context, 13))),
+                icon: Icon(AppIcons.backspace, size: Adaptive.sp(context, 14)),
+                label: Text('撤销', style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 8))),
+                  padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+                ),
               ),
             ),
             SizedBox(width: Adaptive.w(context, 12)),
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 onPressed: _submitted
                     ? null
                     : () => setState(() {
                         _reorderSelected.clear();
                       }),
-                child: Text('清空', style: TextStyle(fontSize: Adaptive.sp(context, 13))),
+                icon: Icon(AppIcons.delete, size: Adaptive.sp(context, 14)),
+                label: Text('清空', style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 8))),
+                  padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+                ),
               ),
             ),
           ],
@@ -1198,20 +1227,14 @@ class _TestRunPageState extends State<_TestRunPage> {
                         vertical: Adaptive.h(context, 8),
                       ),
                       decoration: BoxDecoration(
-                        color: colorScheme.surface,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
                         border: Border.all(
                           color: colorScheme.outlineVariant.withValues(
-                            alpha: 0.5,
+                            alpha: 0.3,
                           ),
+                          width: 0.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.textPrimary.withValues(alpha: 0.02),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
                       child: Text(
                         w,
@@ -1282,13 +1305,13 @@ class _TestRunPageState extends State<_TestRunPage> {
                       ? colorScheme.error.withValues(alpha: 0.1)
                       : (isCorrect
                             ? AppColors.success.withValues(alpha: 0.1)
-                            : colorScheme.surface);
+                            : Colors.white);
                   Color border = isWrong
                       ? colorScheme.error.withValues(alpha: 0.3)
                       : (isCorrect
                             ? AppColors.success.withValues(alpha: 0.3)
                             : colorScheme.outlineVariant.withValues(
-                                alpha: 0.5,
+                                alpha: 0.3,
                               ));
                   Color textCol = isWrong
                       ? colorScheme.error
@@ -2025,9 +2048,7 @@ class _TestRunPageState extends State<_TestRunPage> {
     final hasPermission = await _pronRecorder.hasPermission();
     if (!hasPermission) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
+        AppToast.show(context, '需要麦克风权限才能跟读', type: ToastType.warning);
       }
       return;
     }
@@ -2213,9 +2234,7 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
           _pronState = 'idle';
           _pronScore = null;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('评分失败: $e')));
+        AppToast.show(context, '评分失败: $e', type: ToastType.error);
       }
     }
   }
@@ -2251,20 +2270,20 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
     } else if (selected) {
       bg = colorScheme.primary.withValues(alpha: 0.08);
       border = colorScheme.primary.withValues(alpha: 0.3);
-    } else {
-      bg = colorScheme.surface;
-      border = colorScheme.outlineVariant.withValues(alpha: 0.5);
-    }
+} else {
+  bg = Colors.white;
+  border = colorScheme.outlineVariant.withValues(alpha: 0.3);
+}
 
-    return GestureDetector(
-      onTap: _submitted ? null : () => setState(() => _mcqSelected = i),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12), vertical: Adaptive.h(context, 12)),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-          border: Border.all(color: border),
-        ),
+return GestureDetector(
+onTap: _submitted ? null : () => setState(() => _mcqSelected = i),
+child: Container(
+padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12), vertical: Adaptive.h(context, 12)),
+decoration: BoxDecoration(
+color: bg,
+borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+border: Border.all(color: border, width: 0.5),
+),
         child: Row(
           children: [
             Container(

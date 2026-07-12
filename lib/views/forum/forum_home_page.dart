@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import '../../models/forum/forum_post.dart';
 import '../../services/forum/forum_service.dart';
 import '../../providers/forum_providers.dart';
@@ -10,7 +11,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
 class ForumHomePage extends ConsumerStatefulWidget {
-  const ForumHomePage({Key? key}) : super(key: key);
+  const ForumHomePage({super.key});
 
   @override
   ConsumerState<ForumHomePage> createState() => _ForumHomePageState();
@@ -19,7 +20,7 @@ class ForumHomePage extends ConsumerStatefulWidget {
 class _ForumHomePageState extends ConsumerState<ForumHomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _selectedCategory = 'all';
+  final String _selectedCategory = 'all';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -49,12 +50,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
           preferredSize: Size.fromHeight(Adaptive.h(context, 120)),
           child: Container(
             color: AppColors.surface,
-            child: Column(
-              children: [
-                _buildSearchBar(),
-                _buildCategoryTabs(),
-              ],
-            ),
+            child: Column(children: [_buildSearchBar(), _buildCategoryTabs()]),
           ),
         ),
       ),
@@ -78,10 +74,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToCreatePost(),
         backgroundColor: Theme.of(context).primaryColor,
-        child: const Icon(
-          AppIcons.add,
-          color: AppColors.surface,
-        ),
+        child: const Icon(AppIcons.add, color: AppColors.surface),
       ),
     );
   }
@@ -119,7 +112,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
 
   Widget _buildCategoryTabs() {
     final tabs = ['全部', '资源分享', '学习讨论', '反馈建议', '学习互助'];
-    
+
     return TabBar(
       controller: _tabController,
       isScrollable: true,
@@ -127,7 +120,10 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       unselectedLabelColor: AppColors.onSurfaceVariant,
       indicatorColor: Theme.of(context).primaryColor,
       indicatorSize: TabBarIndicatorSize.tab,
-      labelStyle: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
+      labelStyle: TextStyle(
+        fontSize: Adaptive.sp(context, 14),
+        fontWeight: FontWeight.w500,
+      ),
       tabs: tabs.map((tab) => Tab(text: tab)).toList(),
     );
   }
@@ -135,7 +131,10 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   Widget _buildQuickActions() {
     return Container(
       height: Adaptive.h(context, 60),
-      margin: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 8)),
+      margin: EdgeInsets.symmetric(
+        horizontal: Adaptive.w(context, 16),
+        vertical: Adaptive.h(context, 8),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -186,7 +185,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
-          border: Border.all(color: AppColors.borderLight!),
+          border: Border.all(color: AppColors.borderLight),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -211,10 +210,14 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   }
 
   Widget _buildPostList(String category) {
-    final postsAsync = ref.watch(forumPostsProvider(ForumPostsParams(
-      category: category == 'all' ? null : category,
-      search: _searchQuery.isEmpty ? null : _searchQuery,
-    )));
+    final postsAsync = ref.watch(
+      forumPostsProvider(
+        ForumPostsParams(
+          category: category == 'all' ? null : category,
+          search: _searchQuery.isEmpty ? null : _searchQuery,
+        ),
+      ),
+    );
 
     return postsAsync.when(
       data: (postsResponse) {
@@ -222,18 +225,26 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
         if (posts.isEmpty) {
           return _buildEmptyState(category);
         }
-        
+
         return RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(forumPostsProvider(ForumPostsParams(
-              category: category == 'all' ? null : category,
-              search: _searchQuery.isEmpty ? null : _searchQuery,
-            )));
+            ref.invalidate(
+              forumPostsProvider(
+                ForumPostsParams(
+                  category: category == 'all' ? null : category,
+                  search: _searchQuery.isEmpty ? null : _searchQuery,
+                ),
+              ),
+            );
           },
           child: ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 8)),
+            padding: EdgeInsets.symmetric(
+              horizontal: Adaptive.w(context, 16),
+              vertical: Adaptive.h(context, 8),
+            ),
             itemCount: posts.length,
-            separatorBuilder: (context, index) => SizedBox(height: Adaptive.h(context, 8)),
+            separatorBuilder: (context, index) =>
+                SizedBox(height: Adaptive.h(context, 8)),
             itemBuilder: (context, index) {
               return _buildPostCard(posts[index]);
             },
@@ -244,10 +255,14 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       error: (error, stack) => ErrorDisplayWidget(
         error: error.toString(),
         onRetry: () {
-          ref.invalidate(forumPostsProvider(ForumPostsParams(
-            category: category == 'all' ? null : category,
-            search: _searchQuery.isEmpty ? null : _searchQuery,
-          )));
+          ref.invalidate(
+            forumPostsProvider(
+              ForumPostsParams(
+                category: category == 'all' ? null : category,
+                search: _searchQuery.isEmpty ? null : _searchQuery,
+              ),
+            ),
+          );
         },
       ),
     );
@@ -256,7 +271,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   Widget _buildEmptyState(String category) {
     String message;
     IconData icon;
-    
+
     switch (category) {
       case 'resources':
         message = '暂无资源分享';
@@ -297,9 +312,12 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
             ),
           ),
           SizedBox(height: Adaptive.h(context, 24)),
-          ElevatedButton(
-            onPressed: () => _navigateToCreatePost(category),
-            child: const Text('发布第一个帖子'),
+          // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
+          TDButton(
+            text: '发布第一个帖子',
+            onTap: () => _navigateToCreatePost(category),
+            type: TDButtonType.fill,
+            theme: TDButtonTheme.primary,
           ),
         ],
       ),
@@ -412,7 +430,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   Widget _buildCategoryTag(ForumPost post) {
     Color tagColor;
     String tagText;
-    
+
     switch (post.postType) {
       case 'resource':
         tagColor = Theme.of(context).primaryColor;
@@ -436,9 +454,12 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 8), vertical: Adaptive.h(context, 2)),
+      padding: EdgeInsets.symmetric(
+        horizontal: Adaptive.w(context, 8),
+        vertical: Adaptive.h(context, 2),
+      ),
       decoration: BoxDecoration(
-        color: tagColor.withOpacity(0.1),
+        color: tagColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
       ),
       child: Text(
@@ -484,7 +505,10 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
             runSpacing: Adaptive.h(context, 4),
             children: post.tags.take(3).map((tag) {
               return Container(
-                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 6), vertical: Adaptive.h(context, 2)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: Adaptive.w(context, 6),
+                  vertical: Adaptive.h(context, 2),
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.borderLight,
                   borderRadius: BorderRadius.circular(Adaptive.r(context, 3)),
@@ -507,7 +531,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
   Widget _buildResourceInfo(ForumPost post) {
     IconData resourceIcon;
     String resourceLabel;
-    
+
     switch (post.resourceType) {
       case 'video':
         resourceIcon = AppIcons.movie;
@@ -529,10 +553,10 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     return Container(
       padding: EdgeInsets.all(Adaptive.w(context, 12)),
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withOpacity(0.05),
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.2),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -627,11 +651,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: Adaptive.sp(context, 16),
-            color: color,
-          ),
+          Icon(icon, size: Adaptive.sp(context, 16), color: color),
           if (showCount) ...[
             SizedBox(width: Adaptive.w(context, 4)),
             Text(
@@ -647,17 +667,17 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     );
   }
 
-void _navigateToCreatePost([String? postType, String? resourceType]) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => ForumCreatePostPage(
-        initialPostType: postType,
-        initialResourceType: resourceType,
+  void _navigateToCreatePost([String? postType, String? resourceType]) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ForumCreatePostPage(
+          initialPostType: postType,
+          initialResourceType: resourceType,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   void _navigateToPostDetail(ForumPost post, {bool focusComment = false}) {
     // TODO: 导航到帖子详情页面

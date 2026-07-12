@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pcm_player/flutter_pcm_player.dart';
@@ -22,7 +21,8 @@ import 'package:vidlang/services/app_keys_service.dart';
 /// API Key 从 Supabase app_settings 表动态查询，不硬编码在客户端。
 class DashScopeTtsService {
   static DashScopeTtsService? _instance;
-  static DashScopeTtsService get instance => _instance ??= DashScopeTtsService._();
+  static DashScopeTtsService get instance =>
+      _instance ??= DashScopeTtsService._();
   DashScopeTtsService._();
 
   // ─── 配置 ──────────────────────────────────
@@ -56,9 +56,9 @@ class DashScopeTtsService {
   bool _isPlaying = false;
 
   /// 音频参数（根据 DashScope 文档）
-  static const int _pcmSampleRate = 24000;  // qwen3-tts-flash 默认 24kHz
-  static const int _pcmChannels = 1;        // 单声道
-  static const PCMType _pcmType = PCMType.pcm16;  // 16-bit PCM
+  static const int _pcmSampleRate = 24000; // qwen3-tts-flash 默认 24kHz
+  static const int _pcmChannels = 1; // 单声道
+  static const PCMType _pcmType = PCMType.pcm16; // 16-bit PCM
 
   // ─── 流式播放接口（使用 flutter_pcm_player）───────────────────
 
@@ -85,7 +85,9 @@ class DashScopeTtsService {
     }
 
     final resolvedVoice = englishVoices[voice] ?? voice;
-    _log('⏳ 开始流式 TTS 合成 | voice=$resolvedVoice | format=wav | text="${_truncate(text, 40)}"');
+    _log(
+      '⏳ 开始流式 TTS 合成 | voice=$resolvedVoice | format=wav | text="${_truncate(text, 40)}"',
+    );
 
     // 2. 初始化 PCM 播放器
     await _initPcmPlayer();
@@ -117,15 +119,15 @@ class DashScopeTtsService {
           'voice': resolvedVoice,
           'language_type': 'Auto',
         },
-        'parameters': {
-          'sample_rate': _pcmSampleRate,
-        },
+        'parameters': {'sample_rate': _pcmSampleRate},
       });
       request.add(utf8.encode(body));
       _log('📤 发送请求: model=$_model, voice=$resolvedVoice, format=pcm');
 
       // 4. 获取响应
-      final response = await request.close().timeout(const Duration(seconds: 30));
+      final response = await request.close().timeout(
+        const Duration(seconds: 30),
+      );
       if (response.statusCode != 200) {
         final errorBody = await response.transform(utf8.decoder).join();
         _log('❌ HTTP 错误 ${response.statusCode}: $errorBody');
@@ -191,13 +193,13 @@ class DashScopeTtsService {
 
               if (audioBase64 != null && audioBase64.isNotEmpty) {
                 final rawBytes = base64Decode(audioBase64);
-                
+
                 // 首块数据：检查并跳过 WAV 头（如果存在）
-                final pcmBytes = isFirstAudioChunk 
-                    ? _skipWavHeaderIfPresent(rawBytes) 
+                final pcmBytes = isFirstAudioChunk
+                    ? _skipWavHeaderIfPresent(rawBytes)
                     : rawBytes;
                 isFirstAudioChunk = false;
-                
+
                 if (pcmBytes.isEmpty) continue;
 
                 // 实时喂入 PCM 播放器
@@ -234,8 +236,8 @@ class DashScopeTtsService {
                   }
                   if (audioBase64 != null && audioBase64.isNotEmpty) {
                     final rawBytes = base64Decode(audioBase64);
-                    final pcmBytes = isFirstAudioChunk 
-                        ? _skipWavHeaderIfPresent(rawBytes) 
+                    final pcmBytes = isFirstAudioChunk
+                        ? _skipWavHeaderIfPresent(rawBytes)
                         : rawBytes;
                     if (pcmBytes.isNotEmpty) {
                       _feedPcmData(pcmBytes);
@@ -249,22 +251,24 @@ class DashScopeTtsService {
           }
 
           sw.stop();
-          _log('✅ 流式合成完成 (${sw.elapsedMilliseconds}ms): $chunkCount 个分片, 共 ${(totalBytes / 1024).toStringAsFixed(1)}KB');
-          
+          _log(
+            '✅ 流式合成完成 (${sw.elapsedMilliseconds}ms): $chunkCount 个分片, 共 ${(totalBytes / 1024).toStringAsFixed(1)}KB',
+          );
+
           // 计算音频时长，延迟释放和回调，确保播放完成
           // PCM 16-bit, 单声道, 24000Hz
           // 每毫秒数据量 = 24000 * 1 * 2 / 1000 = 48 bytes/ms
           const int bytesPerMs = 48; // 24000 * 1 * 2 / 1000
           final int audioDurationMs = totalBytes ~/ bytesPerMs;
           final int safeDelayMs = audioDurationMs + 200; // 加 200ms 缓冲
-          
+
           _log('⏳ 等待音频播放完成 (${safeDelayMs}ms)...');
-          
+
           Future.delayed(Duration(milliseconds: safeDelayMs), () {
             _releasePcmPlayer();
             onComplete?.call();
           });
-          
+
           if (!completer.isCompleted) completer.complete();
         },
         onError: (e) {
@@ -302,22 +306,24 @@ class DashScopeTtsService {
   Future<void> _initPcmPlayer() async {
     // 释放之前的播放器
     await _releasePcmPlayer();
-    
+
     _pcmPlayer = FlutterPcmPlayer();
     await _pcmPlayer!.initialize(
       nChannels: _pcmChannels,
       sampleRate: _pcmSampleRate,
       pcmType: _pcmType,
     );
-    
+
     // 设置最大音量
     await _pcmPlayer!.setVolume(1.0);
-    
+
     // 设置全局音频会话（iOS 需要，避免与录音冲突）
     await FlutterPcmPlayer.setGlobalAudioSession();
-    
+
     _isPlaying = true;
-    _log('🎵 PCM 播放器初始化: ${_pcmSampleRate}Hz, ${_pcmChannels}ch, ${_pcmType.name}, volume=1.0');
+    _log(
+      '🎵 PCM 播放器初始化: ${_pcmSampleRate}Hz, ${_pcmChannels}ch, ${_pcmType.name}, volume=1.0',
+    );
   }
 
   /// 喂入 PCM 数据
@@ -326,7 +332,7 @@ class DashScopeTtsService {
     try {
       // 先 feed 数据到缓冲区
       await _pcmPlayer!.feed(data);
-      
+
       // 首次喂入数据后开始播放（如果还没开始）
       if (_pcmPlayer!.playState == PlayState.stopped) {
         _log('▶️ 首次收到音频数据，启动播放');
@@ -393,7 +399,10 @@ class DashScopeTtsService {
     }
 
     // 合并所有音频分片
-    final totalLength = audioChunks.fold<int>(0, (sum, chunk) => sum + chunk.length);
+    final totalLength = audioChunks.fold<int>(
+      0,
+      (sum, chunk) => sum + chunk.length,
+    );
     final combined = Uint8List(totalLength);
     var offset = 0;
     for (final chunk in audioChunks) {
@@ -407,7 +416,9 @@ class DashScopeTtsService {
     file.writeAsBytesSync(combined);
 
     sw.stop();
-    _log('☁️ [TTS] ✅ 保存成功 (${sw.elapsedMilliseconds}ms): ${(combined.length / 1024).toStringAsFixed(1)}KB → ${outputPath.split('/').last}');
+    _log(
+      '☁️ [TTS] ✅ 保存成功 (${sw.elapsedMilliseconds}ms): ${(combined.length / 1024).toStringAsFixed(1)}KB → ${outputPath.split('/').last}',
+    );
     return outputPath;
   }
 
@@ -430,7 +441,7 @@ class DashScopeTtsService {
     }
 
     final resolvedVoice = englishVoices[voice] ?? voice;
-    
+
     HttpClient? client;
     StreamSubscription? subscription;
     bool isCancelled = false;
@@ -454,10 +465,7 @@ class DashScopeTtsService {
           'voice': resolvedVoice,
           'language_type': 'English',
         },
-        'parameters': {
-          'sample_rate': sampleRate,
-          'format': format,
-        },
+        'parameters': {'sample_rate': sampleRate, 'format': format},
       });
       request.add(utf8.encode(body));
 
@@ -518,8 +526,8 @@ class DashScopeTtsService {
 
               if (audioBase64 != null && audioBase64.isNotEmpty) {
                 final rawBytes = base64Decode(audioBase64);
-                final bytes = isFirstAudioChunk 
-                    ? _skipWavHeaderIfPresent(rawBytes) 
+                final bytes = isFirstAudioChunk
+                    ? _skipWavHeaderIfPresent(rawBytes)
                     : rawBytes;
                 isFirstAudioChunk = false;
                 if (bytes.isNotEmpty) {
@@ -541,11 +549,14 @@ class DashScopeTtsService {
         cancelOnError: true,
       );
 
-      await completer.future.timeout(timeout, onTimeout: () {
-        onError('合成超时');
-        subscription?.cancel();
-      });
-      
+      await completer.future.timeout(
+        timeout,
+        onTimeout: () {
+          onError('合成超时');
+          subscription?.cancel();
+        },
+      );
+
       onComplete();
     } catch (e) {
       onError(e.toString());
@@ -560,17 +571,23 @@ class DashScopeTtsService {
   /// 阿里音频块有时首块是完整 WAV，需剥离 44 字节头再按 PCM 处理
   Uint8List _skipWavHeaderIfPresent(Uint8List bytes) {
     if (bytes.length < 12) return bytes;
-    
-    final isRiff = bytes[0] == 0x52 && bytes[1] == 0x49 && 
-                   bytes[2] == 0x46 && bytes[3] == 0x46;
-    final isWave = bytes[8] == 0x57 && bytes[9] == 0x41 && 
-                   bytes[10] == 0x56 && bytes[11] == 0x45;
-    
+
+    final isRiff =
+        bytes[0] == 0x52 &&
+        bytes[1] == 0x49 &&
+        bytes[2] == 0x46 &&
+        bytes[3] == 0x46;
+    final isWave =
+        bytes[8] == 0x57 &&
+        bytes[9] == 0x41 &&
+        bytes[10] == 0x56 &&
+        bytes[11] == 0x45;
+
     if (isRiff && isWave) {
       if (bytes.length <= 44) return Uint8List(0);
       return Uint8List.fromList(bytes.sublist(44));
     }
-    
+
     return bytes;
   }
 

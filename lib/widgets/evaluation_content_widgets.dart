@@ -10,26 +10,21 @@ abstract class EvaluationContentWidget extends StatefulWidget {
   final Function(EvaluationResult) onResultUpdate;
 
   const EvaluationContentWidget({
-    Key? key,
+    super.key,
     required this.text,
     required this.evaluationService,
     required this.onResultUpdate,
-  }) : super(key: key);
+  });
 }
 
 /// 原生STT内容组件（免费模式）
 class NativeSTTContent extends EvaluationContentWidget {
   const NativeSTTContent({
-    Key? key,
+    super.key,
     required String referenceText,
-    required EvaluationService evaluationService,
-    required Function(EvaluationResult) onResultUpdate,
-  }) : super(
-          key: key,
-          text: referenceText,
-          evaluationService: evaluationService,
-          onResultUpdate: onResultUpdate,
-        );
+    required super.evaluationService,
+    required super.onResultUpdate,
+  }) : super(text: referenceText);
 
   @override
   State<NativeSTTContent> createState() => _NativeSTTContentState();
@@ -54,11 +49,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                AppIcons.mic,
-                size: 16,
-                color: Colors.blue.shade600,
-              ),
+              Icon(AppIcons.mic, size: 16, color: Colors.blue.shade600),
               const SizedBox(width: 4),
               Text(
                 '免费语音识别',
@@ -72,7 +63,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // 文本显示区域
         Expanded(
           child: Container(
@@ -84,7 +75,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
                   // 原始文本
                   _buildOriginalText(),
                   const SizedBox(height: 16),
-                  
+
                   // 识别结果或使用提示
                   if (_currentResult != null)
                     _buildRecognitionResult()
@@ -95,14 +86,12 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
             ),
           ),
         ),
-        
+
         // 处理状态
         if (_isProcessing)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
       ],
     );
@@ -183,7 +172,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
             ],
           ),
           const SizedBox(height: 8),
-          
+
           // 单词级颜色显示
           Wrap(
             alignment: WrapAlignment.start,
@@ -192,15 +181,15 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
               return Container(
                 margin: const EdgeInsets.only(right: 4, bottom: 4),
                 child: Text(
-                  eval.word + ' ',
+                  '${eval.word} ',
                   style: TextStyle(
                     fontSize: 16,
                     height: 1.6,
                     fontWeight: FontWeight.w600,
                     color: eval.displayColor,
-                    decoration: eval.shouldUnderline 
-                      ? TextDecoration.underline 
-                      : null,
+                    decoration: eval.shouldUnderline
+                        ? TextDecoration.underline
+                        : null,
                     decorationStyle: TextDecorationStyle.wavy,
                     decorationColor: eval.displayColor,
                   ),
@@ -223,18 +212,11 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
       ),
       child: Column(
         children: [
-          Icon(
-            AppIcons.keyboardVoice,
-            size: 32,
-            color: Colors.grey.shade500,
-          ),
+          Icon(AppIcons.keyboardVoice, size: 32, color: Colors.grey.shade500),
           const SizedBox(height: 8),
           Text(
             '点击下方录音按钮开始语音识别',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
         ],
@@ -245,7 +227,7 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
   // 处理录音完成后的评测
   Future<void> _handleRecordingComplete() async {
     if (_isProcessing) return;
-    
+
     setState(() {
       _isProcessing = true;
     });
@@ -255,11 +237,11 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
         referenceText: widget.text,
         mode: EvaluationMode.freeSTT,
       );
-      
+
       setState(() {
         _currentResult = result;
       });
-      
+
       widget.onResultUpdate(result);
     } catch (e) {
       debugPrint('STT评测失败: $e');
@@ -274,16 +256,11 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
 /// 单词评测内容组件
 class WordEvaluationContent extends EvaluationContentWidget {
   const WordEvaluationContent({
-    Key? key,
+    super.key,
     required String word,
-    required EvaluationService evaluationService,
-    required Function(EvaluationResult) onResultUpdate,
-  }) : super(
-          key: key,
-          text: word,
-          evaluationService: evaluationService,
-          onResultUpdate: onResultUpdate,
-        );
+    required super.evaluationService,
+    required super.onResultUpdate,
+  }) : super(text: word);
 
   @override
   State<WordEvaluationContent> createState() => _WordEvaluationContentState();
@@ -291,7 +268,7 @@ class WordEvaluationContent extends EvaluationContentWidget {
 
 class _WordEvaluationContentState extends State<WordEvaluationContent> {
   EvaluationResult? _currentResult;
-  bool _isProcessing = false;
+  final bool _isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -307,11 +284,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                AppIcons.textFields,
-                size: 16,
-                color: Colors.green.shade600,
-              ),
+              Icon(AppIcons.textFields, size: 16, color: Colors.green.shade600),
               const SizedBox(width: 4),
               Text(
                 '单词精准发音',
@@ -341,7 +314,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // 单词显示
         Container(
           padding: const EdgeInsets.all(20),
@@ -380,21 +353,19 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // 评测结果或提示
         Expanded(
-          child: _currentResult != null 
-            ? _buildWordAnalysis() 
-            : _buildWordPrompt(),
+          child: _currentResult != null
+              ? _buildWordAnalysis()
+              : _buildWordPrompt(),
         ),
-        
+
         // 处理状态
         if (_isProcessing)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
       ],
     );
@@ -402,7 +373,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
 
   Widget _buildWordAnalysis() {
     final eval = _currentResult!.wordEvaluations.first;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -417,10 +388,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
             children: [
               Text(
                 '发音得分: ',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade700,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
               ),
               Text(
                 '${eval.score.toInt()}%',
@@ -433,7 +401,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // 音素级分析
           Text(
             '音素分析',
@@ -444,7 +412,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // 显示实际音素评分
           _buildPhonemesAnalysis(eval),
         ],
@@ -455,7 +423,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
   Widget _buildPhonemesAnalysis(WordEvaluation eval) {
     // 尝试从 phonemeBreakdown 解析或生成模拟数据
     List<Map<String, dynamic>> phonemes = [];
-    
+
     if (eval.phonemeBreakdown != null && eval.phonemeBreakdown!.isNotEmpty) {
       // 解析现有的音素数据
       try {
@@ -465,9 +433,15 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
         for (int i = 0; i < word.length; i++) {
           final char = word[i];
           if (char.contains(RegExp(r'[aeiou]'))) {
-            phonemes.add({'phoneme': char, 'score': (eval.score * 0.9).toInt() + (i * 2)});
+            phonemes.add({
+              'phoneme': char,
+              'score': (eval.score * 0.9).toInt() + (i * 2),
+            });
           } else if (char.contains(RegExp(r'[bcdfghjklmnpqrstvwxyz]'))) {
-            phonemes.add({'phoneme': char, 'score': (eval.score * 0.95).toInt() + (i * 3)});
+            phonemes.add({
+              'phoneme': char,
+              'score': (eval.score * 0.95).toInt() + (i * 3),
+            });
           }
         }
       } catch (e) {
@@ -478,18 +452,17 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
       // 生成音节模拟数据
       phonemes = _generateSyllableMock(eval.word, eval.score.toInt());
     }
-    
+
     return Wrap(
       alignment: WrapAlignment.center,
-      children: phonemes.map((p) => _buildPhonemeChip(
-        p['phoneme'], 
-        p['score']
-      )).toList(),
+      children: phonemes
+          .map((p) => _buildPhonemeChip(p['phoneme'], p['score']))
+          .toList(),
     );
   }
 
   List<Map<String, dynamic>> _generateMockPhonemes(String word, int baseScore) {
-    // 根据单词生成模拟音素 
+    // 根据单词生成模拟音素
     final phonemeMap = {
       'a': ['æ', 'eɪ', 'ɑː'],
       'e': ['ɛ', 'iː'],
@@ -504,13 +477,13 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
       'sh': ['ʃ'],
       'ng': ['ŋ'],
     };
-    
+
     List<Map<String, dynamic>> result = [];
     int position = 0;
-    
+
     while (position < word.length) {
       String phoneme = '';
-      
+
       // 检查双字符音素
       if (position < word.length - 1) {
         final twoChar = word.substring(position, position + 2);
@@ -527,38 +500,38 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
         phoneme = phonemeMap[oneChar]?.first ?? oneChar;
         position++;
       }
-      
+
       final score = (baseScore * 0.8 + (position * 5)).clamp(40, 100).toInt();
       result.add({'phoneme': phoneme, 'score': score});
     }
-    
+
     return result;
   }
-  
+
   List<Map<String, dynamic>> _generateSyllableMock(String word, int baseScore) {
     // 简单的音节分割和评分
     List<Map<String, dynamic>> syllables = [];
     final vowels = RegExp(r'[aeiouAEIOU]');
-    
+
     // 按音节分割单词 (简化版本)
     int sylCount = word.split(vowels).where((s) => s.isNotEmpty).length;
     if (sylCount == 0) sylCount = 1;
-    
+
     for (int i = 0; i < sylCount; i++) {
       final score = (baseScore * 0.9 + (i * 3)).clamp(50, 100).toInt();
-      syllables.add({
-        'phoneme': 's${i + 1}', 
-        'score': score
-      });
+      syllables.add({'phoneme': 's${i + 1}', 'score': score});
     }
-    
+
     return syllables;
   }
 
   Widget _buildPhonemeChip(String phoneme, int score) {
-    final color = score >= 80 ? Colors.green :
-                  score >= 60 ? Colors.orange : Colors.red;
-    
+    final color = score >= 80
+        ? Colors.green
+        : score >= 60
+        ? Colors.orange
+        : Colors.red;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -577,13 +550,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
               color: color,
             ),
           ),
-          Text(
-            '$score%',
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-            ),
-          ),
+          Text('$score%', style: TextStyle(fontSize: 10, color: color)),
         ],
       ),
     );
@@ -600,11 +567,7 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            AppIcons.headphones,
-            size: 48,
-            color: Colors.grey.shade500,
-          ),
+          Icon(AppIcons.headphones, size: 48, color: Colors.grey.shade500),
           const SizedBox(height: 16),
           Text(
             '专业单词发音评测',
@@ -633,24 +596,20 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
 /// 句子评测内容组件
 class SentenceEvaluationContent extends EvaluationContentWidget {
   const SentenceEvaluationContent({
-    Key? key,
+    super.key,
     required String sentence,
-    required EvaluationService evaluationService,
-    required Function(EvaluationResult) onResultUpdate,
-  }) : super(
-          key: key,
-          text: sentence,
-          evaluationService: evaluationService,
-          onResultUpdate: onResultUpdate,
-        );
+    required super.evaluationService,
+    required super.onResultUpdate,
+  }) : super(text: sentence);
 
   @override
-  State<SentenceEvaluationContent> createState() => _SentenceEvaluationContentState();
+  State<SentenceEvaluationContent> createState() =>
+      _SentenceEvaluationContentState();
 }
 
 class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
   EvaluationResult? _currentResult;
-  bool _isProcessing = false;
+  final bool _isProcessing = false;
   bool _showDetailedView = false;
 
   @override
@@ -701,16 +660,16 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // 内容区域
         Expanded(
           child: _currentResult != null
-            ? _showDetailedView 
-              ? _buildDetailedAnalysis()
-              : _buildSimpleAnalysis()
-            : _buildPrompt(),
+              ? _showDetailedView
+                    ? _buildDetailedAnalysis()
+                    : _buildSimpleAnalysis()
+              : _buildPrompt(),
         ),
-        
+
         // 详情切换按钮
         if (_currentResult != null)
           Padding(
@@ -731,14 +690,12 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
               ),
             ),
           ),
-        
+
         // 处理状态
         if (_isProcessing)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
       ],
     );
@@ -780,14 +737,11 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
             ),
             child: Text(
               widget.text,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-              ),
+              style: const TextStyle(fontSize: 14, height: 1.5),
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // 快速分析指标
           Row(
             children: [
@@ -800,7 +754,10 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildSimpleMetric('完整度', _currentResult!.completenessScore),
+                child: _buildSimpleMetric(
+                  '完整度',
+                  _currentResult!.completenessScore,
+                ),
               ),
             ],
           ),
@@ -840,17 +797,26 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // 各维度详细得分
-                _buildDetailedMetric('流利度', _currentResult!.fluencyScore, 
-                    '语速自然，停顿合理'),
-                _buildDetailedMetric('准确度', _currentResult!.accuracyScore, 
-                    '发音清晰，音素准确'),
-                _buildDetailedMetric('完整度', _currentResult!.completenessScore, 
-                    '完整性较好，个别音节需要加强'),
-                
+                _buildDetailedMetric(
+                  '流利度',
+                  _currentResult!.fluencyScore,
+                  '语速自然，停顿合理',
+                ),
+                _buildDetailedMetric(
+                  '准确度',
+                  _currentResult!.accuracyScore,
+                  '发音清晰，音素准确',
+                ),
+                _buildDetailedMetric(
+                  '完整度',
+                  _currentResult!.completenessScore,
+                  '完整性较好，个别音节需要加强',
+                ),
+
                 const Divider(height: 24),
-                
+
                 // 逐词分析
                 Text(
                   '单词分析',
@@ -861,14 +827,17 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                
+
                 Wrap(
                   children: _currentResult!.wordEvaluations.map((eval) {
                     return GestureDetector(
                       onTap: () => _showWordDetail(context, eval),
                       child: Container(
                         margin: const EdgeInsets.only(right: 6, bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: eval.displayColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
@@ -908,9 +877,12 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
   }
 
   Widget _buildSimpleMetric(String label, double score) {
-    final color = score >= 80 ? Colors.green : 
-                  score >= 60 ? Colors.orange : Colors.red;
-    
+    final color = score >= 80
+        ? Colors.green
+        : score >= 60
+        ? Colors.orange
+        : Colors.red;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -942,21 +914,21 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
   }
 
   Widget _buildDetailedMetric(String label, double score, String description) {
-    final color = score >= 80 ? Colors.green : 
-                  score >= 60 ? Colors.orange : Colors.red;
-    
+    final color = score >= 80
+        ? Colors.green
+        : score >= 60
+        ? Colors.orange
+        : Colors.red;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(
+          SizedBox(
             width: 60,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
             ),
           ),
           Expanded(
@@ -968,7 +940,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
             ),
           ),
           const SizedBox(width: 12),
-          Container(
+          SizedBox(
             width: 40,
             child: Text(
               '${score.toInt()}%',
@@ -995,11 +967,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            AppIcons.analytics,
-            size: 48,
-            color: Colors.grey.shade500,
-          ),
+          Icon(AppIcons.analytics, size: 48, color: Colors.grey.shade500),
           const SizedBox(height: 16),
           Text(
             '专业句子评测',
@@ -1023,14 +991,12 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
       ),
     );
   }
-  
+
   void _showWordDetail(BuildContext context, WordEvaluation eval) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Container(
           width: 320,
           padding: const EdgeInsets.all(16),
@@ -1065,7 +1031,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // 单词显示
               Container(
                 width: double.infinity,
@@ -1097,7 +1063,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // 音素分析
               Text(
                 '音素分析',
@@ -1108,10 +1074,10 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                 ),
               ),
               const SizedBox(height: 8),
-              
+
               // 简化音素显示
               _buildSimplePhonemeDisplay(eval),
-              
+
               // 建议（如果有）
               if (eval.suggestion != null && eval.suggestion!.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -1133,10 +1099,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                   ),
                   child: Text(
                     eval.suggestion!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade700,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
                   ),
                 ),
               ],
@@ -1146,16 +1109,21 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
       ),
     );
   }
-  
+
   Widget _buildSimplePhonemeDisplay(WordEvaluation eval) {
     // 简化的音素显示
     return Wrap(
       alignment: WrapAlignment.center,
       children: eval.word.toLowerCase().split('').map((char) {
-        final score = (eval.score * 0.9 + (eval.word.indexOf(char) * 3)).clamp(50, 100).toInt();
-        final color = score >= 80 ? Colors.green : 
-                      score >= 60 ? Colors.orange : Colors.red;
-        
+        final score = (eval.score * 0.9 + (eval.word.indexOf(char) * 3))
+            .clamp(50, 100)
+            .toInt();
+        final color = score >= 80
+            ? Colors.green
+            : score >= 60
+            ? Colors.orange
+            : Colors.red;
+
         return Container(
           margin: const EdgeInsets.all(2),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1174,13 +1142,7 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                   color: color,
                 ),
               ),
-              Text(
-                '$score%',
-                style: TextStyle(
-                  fontSize: 8,
-                  color: color,
-                ),
-              ),
+              Text('$score%', style: TextStyle(fontSize: 8, color: color)),
             ],
           ),
         );
@@ -1192,24 +1154,21 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
 /// 段落评测内容组件
 class ParagraphEvaluationContent extends EvaluationContentWidget {
   const ParagraphEvaluationContent({
-    Key? key,
-    required String text,
-    required EvaluationService evaluationService,
-    required Function(EvaluationResult) onResultUpdate,
-  }) : super(
-          key: key,
-          text: text,
-          evaluationService: evaluationService,
-          onResultUpdate: onResultUpdate,
-        );
+    super.key,
+    required super.text,
+    required super.evaluationService,
+    required super.onResultUpdate,
+  });
 
   @override
-  State<ParagraphEvaluationContent> createState() => _ParagraphEvaluationContentState();
+  State<ParagraphEvaluationContent> createState() =>
+      _ParagraphEvaluationContentState();
 }
 
-class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent> {
+class _ParagraphEvaluationContentState
+    extends State<ParagraphEvaluationContent> {
   EvaluationResult? _currentResult;
-  bool _isProcessing = false;
+  final bool _isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1225,11 +1184,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                AppIcons.article,
-                size: 16,
-                color: Colors.purple.shade600,
-              ),
+              Icon(AppIcons.article, size: 16, color: Colors.purple.shade600),
               const SizedBox(width: 4),
               Text(
                 '段落流畅度评测',
@@ -1259,21 +1214,19 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // 内容区域
         Expanded(
           child: _currentResult != null
-            ? _buildParagraphAnalysis()
-            : _buildPrompt(),
+              ? _buildParagraphAnalysis()
+              : _buildPrompt(),
         ),
-        
+
         // 处理状态
         if (_isProcessing)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
       ],
     );
@@ -1303,10 +1256,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
               children: [
                 Text(
                   '段落流畅度: ',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
                 ),
                 Text(
                   '${_currentResult!.overallScore.toInt()}%',
@@ -1319,7 +1269,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
               ],
             ),
             const SizedBox(height: 20),
-            
+
             // 段落特性分析
             Text(
               '段落特性分析',
@@ -1330,15 +1280,11 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
               ),
             ),
             const SizedBox(height: 12),
-            
-            _buildParagraphMetric('整体连贯性', 0.85, 
-                '句子间连接自然，逻辑清晰'),
-            _buildParagraphMetric('语速稳定性', 0.78, 
-                '语速基本稳定，偶尔波动'),
-            _buildParagraphMetric('长句处理', 0.72, 
-                '长句发音需要适当放慢'),
-            _buildParagraphMetric('重点强调', 0.88, 
-                '语调和重音运用良好'),
+
+            _buildParagraphMetric('整体连贯性', 0.85, '句子间连接自然，逻辑清晰'),
+            _buildParagraphMetric('语速稳定性', 0.78, '语速基本稳定，偶尔波动'),
+            _buildParagraphMetric('长句处理', 0.72, '长句发音需要适当放慢'),
+            _buildParagraphMetric('重点强调', 0.88, '语调和重音运用良好'),
           ],
         ),
       ),
@@ -1347,9 +1293,12 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
 
   Widget _buildParagraphMetric(String label, double ratio, String description) {
     final score = (ratio * 100);
-    final color = score >= 80 ? Colors.green : 
-                  score >= 60 ? Colors.orange : Colors.red;
-    
+    final color = score >= 80
+        ? Colors.green
+        : score >= 60
+        ? Colors.orange
+        : Colors.red;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -1386,10 +1335,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
           const SizedBox(height: 4),
           Text(
             description,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 8),
         ],
@@ -1408,11 +1354,7 @@ class _ParagraphEvaluationContentState extends State<ParagraphEvaluationContent>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            AppIcons.autoStories,
-            size: 48,
-            color: Colors.grey.shade500,
-          ),
+          Icon(AppIcons.autoStories, size: 48, color: Colors.grey.shade500),
           const SizedBox(height: 16),
           Text(
             '段落流畅度评测',

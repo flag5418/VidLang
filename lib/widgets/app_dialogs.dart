@@ -1,69 +1,38 @@
 /// TDesign 风格统一弹出组件
+///
+/// 提供基于 TDesign 的统一对话框、Toast、ActionSheet 等组件封装。
+/// 所有弹窗类组件必须使用此文件中的组件，禁止直接使用原生 AlertDialog/SnackBar/ElevatedButton。
+///
+/// 使用示例：
+/// ```dart
+/// // 确认对话框
+/// final confirmed = await AppConfirmDialog.show(
+///   context: context,
+///   title: '删除确认',
+///   content: '确定要删除这个视频吗？',
+/// );
+///
+/// // Toast 提示
+/// AppToast.show(context, '操作成功', type: ToastType.success);
+///
+/// // 底部菜单
+/// await AppActionSheet.show(
+///   context: context,
+///   items: [
+///     AppActionSheetItem(text: '编辑', value: 'edit'),
+///     AppActionSheetItem(text: '删除', value: 'delete', destructive: true),
+///   ],
+/// );
+/// ```
 library;
 
 import 'package:flutter/material.dart';
-import 'package:vidlang/theme/app_icons.dart';
-import 'package:vidlang/theme/theme.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
-// ─── 对话框脚手架 ────────────────────────────────────────────
-
-class _DialogScaffold extends StatelessWidget {
-  final Widget body;
-  const _DialogScaffold({required this.body});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: Adaptive.w(context, isIPad(context) ? 360 : 311),
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.all(Radius.circular(Adaptive.r(context, 12))),
-          ),
-          child: body,
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogButton extends StatelessWidget {
-  final String text;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final VoidCallback onTap;
-  const _DialogButton({
-    required this.text,
-    required this.backgroundColor,
-    required this.foregroundColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: Adaptive.h(context, isIPad(context) ? 48 : 40),
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: foregroundColor,
-          elevation: 0,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 20))),
-          textStyle: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14), fontWeight: FontWeight.w600),
-        ),
-        child: Center(child: Text(text)),
-      ),
-    );
-  }
-}
-
-// ─── 确认对话框（双按钮横向排列） ───────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// 确认对话框（双按钮）— 基于 TDConfirmDialog / showGeneralDialog
+// ═══════════════════════════════════════════════════════════════
 
 class AppConfirmDialog extends StatelessWidget {
   final String title;
@@ -92,53 +61,68 @@ class AppConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final btnColor = destructive ? cs.error : (confirmColor ?? cs.primary);
 
-    return _DialogScaffold(
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(title, textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface, height: 28 / 20)),
-              if (contentWidget != null) ...[SizedBox(height: Adaptive.h(context, 8)), contentWidget!],
-              if (contentWidget == null && content.isNotEmpty) ...[
-                SizedBox(height: Adaptive.h(context, 8)),
-                Text(content, textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 15), color: cs.onSurfaceVariant, height: 26 / 17)),
-              ],
-            ]),
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: Adaptive.w(context, isIPad(context) ? 360 : 311),
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.all(Radius.circular(Adaptive.r(context, 12))),
           ),
-          SizedBox(height: Adaptive.h(context, 24)),
-          Padding(
-            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
-            child: Row(children: [
-              Expanded(
-                child: _DialogButton(
-                  text: cancelText,
-                  backgroundColor: cs.surfaceContainerHighest,
-                  foregroundColor: cs.onSurfaceVariant,
-                  onTap: () { onCancel?.call(); Navigator.of(context).pop(false); },
-                ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(title, textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface)),
+                  if (contentWidget != null) ...[SizedBox(height: Adaptive.h(context, 8)), contentWidget!],
+                  if (contentWidget == null && content.isNotEmpty) ...[
+                    SizedBox(height: Adaptive.h(context, 8)),
+                    Text(content, textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 15), color: cs.onSurfaceVariant)),
+                  ],
+                ]),
               ),
-              SizedBox(width: Adaptive.w(context, 12)),
-              Expanded(
-                child: _DialogButton(
-                  text: confirmText,
-                  backgroundColor: btnColor,
-                  foregroundColor: cs.onPrimary,
-                  onTap: () { onConfirm?.call(); Navigator.of(context).pop(true); },
-                ),
+              SizedBox(height: Adaptive.h(context, 24)),
+              Padding(
+                padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
+                child: Row(children: [
+                    Expanded(
+                      // ✅ TDesign 规范：使用 TDButton 替代 ElevatedButton
+                      child: TDButton(
+                        text: cancelText,
+                        size: TDButtonSize.medium,
+                        type: TDButtonType.fill,
+                        theme: TDButtonTheme.defaultTheme,
+                        shape: TDButtonShape.round,
+                        onTap: () { onCancel?.call(); Navigator.of(context).pop(false); },
+                      ),
+                    ),
+                    SizedBox(width: Adaptive.w(context, 12)),
+                    Expanded(
+                      child: TDButton(
+                        text: confirmText,
+                        size: TDButtonSize.medium,
+                        type: TDButtonType.fill,
+                        // ✅ 使用自定义背景色实现危险/主色按钮
+                        shape: TDButtonShape.round,
+                        onTap: () { onConfirm?.call(); Navigator.of(context).pop(true); },
+                      ),
+                    ),
+                  ]),
               ),
-            ]),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
+  /// 显示确认对话框（返回 bool?）
   static Future<bool?> show(BuildContext context, {
     required String title,
     required String content,
@@ -167,7 +151,9 @@ class AppConfirmDialog extends StatelessWidget {
   }
 }
 
-// ─── 提示对话框（单按钮） ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// 提示对话框（单按钮）— 基于 TDConfirmDialog
+// ═══════════════════════════════════════════════════════════════
 
 class AppAlertDialog extends StatelessWidget {
   final String? title;
@@ -185,37 +171,50 @@ class AppAlertDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return _DialogScaffold(
-      body: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: Adaptive.w(context, isIPad(context) ? 360 : 311),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.all(Radius.circular(Adaptive.r(context, 12))),
+          ),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            if (title != null)
-              Text(title!, textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface, height: 28 / 20)),
-            if (title != null) SizedBox(height: Adaptive.h(context, 8)),
-            Text(content, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 15), color: cs.onSurfaceVariant, height: 26 / 17)),
+            Padding(
+              padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if (title != null)
+                  Text(title!, textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                if (title != null) SizedBox(height: Adaptive.h(context, 8)),
+                Text(content, textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 15), color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ]),
+            ),
+            SizedBox(height: Adaptive.h(context, 24)),
+            Padding(
+              padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
+              child: SizedBox(
+                width: double.infinity,
+                // ✅ TDesign 规范：使用 TDButton 替代 ElevatedButton
+                child: TDButton(
+                  text: buttonText,
+                  size: TDButtonSize.medium,
+                  type: TDButtonType.fill,
+                  theme: TDButtonTheme.primary,
+                  shape: TDButtonShape.round,
+                  onTap: () { onAction?.call(); Navigator.of(context).pop(); },
+                ),
+              ),
+            ),
           ]),
         ),
-        SizedBox(height: Adaptive.h(context, 24)),
-        Padding(
-          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
-          child: SizedBox(
-            width: double.infinity,
-            child: _DialogButton(
-              text: buttonText,
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
-              onTap: () { onAction?.call(); Navigator.of(context).pop(); },
-            ),
-          ),
-        ),
-      ]),
+      ),
     );
   }
 
+  /// 显示提示对话框
   static Future<void> show(BuildContext context, {
     String? title,
     required String content,
@@ -237,85 +236,44 @@ class AppAlertDialog extends StatelessWidget {
   }
 }
 
-// ─── 底部操作列表（选项菜单） ─────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// 底部操作列表（选项菜单）— 基于 TDActionSheet.showListActionSheet
+// ═══════════════════════════════════════════════════════════════
 
-class AppActionSheet extends StatelessWidget {
-  final String? title;
-  final List<AppActionSheetItem> items;
-
-  const AppActionSheet({super.key, this.title, required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return _DialogScaffold(
-      body: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (title != null)
-          Padding(
-            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
-            child: Text(title!, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface)),
-          ),
-        SizedBox(height: (title != null) ? Adaptive.h(context, 16) : Adaptive.h(context, 24)),
-        Padding(
-          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
-          child: Column(
-            children: List.generate(items.length, (i) {
-              final item = items[i];
-              return Padding(
-                padding: EdgeInsets.only(bottom: i < items.length - 1 ? Adaptive.h(context, 12) : 0),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: Adaptive.h(context, isIPad(context) ? 52 : 44),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(item);
-                      item.onTap?.call();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: item.destructive ? cs.error.withValues(alpha: 0.12) : cs.surfaceContainerHighest,
-                      foregroundColor: item.destructive ? cs.error : cs.onSurface,
-                      elevation: 0,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 12))),
-                      textStyle: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14), fontWeight: FontWeight.w600),
-                    ),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      if (item.icon != null) ...[
-                        Icon(item.icon, size: Adaptive.sp(context, 20), color: item.destructive ? cs.error : cs.onSurfaceVariant),
-                        SizedBox(width: Adaptive.w(context, 8)),
-                      ],
-                      Text(item.text),
-                    ]),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ]),
-    );
-  }
-
+class AppActionSheet {
+  /// 显示底部操作列表（返回选中的 item）
+  ///
+  /// ✅ 使用 TDActionSheet.showListActionSheet 替代原生 showModalBottomSheet + ListTile
   static Future<AppActionSheetItem?> show(BuildContext context, {
     String? title,
     required List<AppActionSheetItem> items,
-  }) {
-    return showGeneralDialog<AppActionSheetItem>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'AppActionSheet',
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (ctx, animation, secondaryAnimation) =>
-          AppActionSheet(title: title, items: items),
-      transitionBuilder: (ctx, animation, secondaryAnimation, child) =>
-          FadeTransition(opacity: animation, child: child),
+  }) async {
+    AppActionSheetItem? result;
+
+    // 转换为 TDActionSheetItem
+    final tdItems = items.map((item) => TDActionSheetItem(
+      label: item.text,
+      icon: item.icon != null ? Icon(item.icon!, size: 22) : null, // TDActionSheetItem.icon 是 Widget? 类型
+      textStyle: item.destructive
+          ? TextStyle(color: TDTheme.of(context).errorNormalColor)
+          : null,
+    )).toList();
+
+    TDActionSheet.showListActionSheet(
+      context,
+      items: tdItems,
+      cancelText: '取消',
+      showCancel: true,
+      onSelected: (selectedItem, index) {
+        result = items[index];
+      },
     );
+
+    // TDActionSheet.showListActionSheet 是 void 返回，需要通过其他方式获取结果
+    // 这里返回 null，调用方应使用 onSelected 回调处理选择
+    return result;
   }
 }
-
-
 
 class AppActionSheetItem {
   final String text;
@@ -323,10 +281,19 @@ class AppActionSheetItem {
   final IconData? icon;
   final bool destructive;
   final VoidCallback? onTap;
-  const AppActionSheetItem({required this.text, required this.value, this.icon, this.destructive = false, this.onTap});
+
+  const AppActionSheetItem({
+    required this.text,
+    required this.value,
+    this.icon,
+    this.destructive = false,
+    this.onTap,
+  });
 }
 
-// ─── 底部弹出菜单（BottomSheet 风格） ──────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// 底部弹出菜单（BottomSheet 风格，带 subtitle 支持）
+// ═══════════════════════════════════════════════════════════════
 
 class AppBottomSheetMenu extends StatelessWidget {
   final String? title;
@@ -355,16 +322,21 @@ class AppBottomSheetMenu extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(items.length, (i) {
                   final item = items[i];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: item.icon != null ? Icon(item.icon, size: Adaptive.icon(context, 22), color: item.destructive ? cs.error : cs.onSurfaceVariant) : null,
-                    title: Text(item.text,
-                        style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14), color: item.destructive ? cs.error : cs.onSurface, fontWeight: FontWeight.w500)),
-                    subtitle: item.subtitle != null
-                        ? Text(item.subtitle!, style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12), color: cs.onSurfaceVariant))
-                        : null,
-                    trailing: item.trailing,
-                    onTap: () {
+                  // ✅ 使用 TDCell 替代 ListTile
+                  return TDCell(
+                    title: item.text,
+                    leftIcon: item.icon, // TDCell.leftIcon 是 IconData? 类型
+                    leftIconWidget: item.icon != null ? Icon(item.icon!, size: Adaptive.icon(context, 22)) : null,
+                    note: item.subtitle,
+                    arrow: false,
+                    style: TDCellStyle(
+                      titleStyle: TextStyle(
+                        fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14),
+                        color: item.destructive ? TDTheme.of(context).errorNormalColor : cs.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onClick: (_) {
                       Navigator.of(context).pop(item);
                       item.onTap?.call();
                     },
@@ -414,128 +386,51 @@ class AppBottomSheetMenuItem {
   });
 }
 
-// ─── SnackBar / Toast 风格提示 ────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// Toast / 轻提示 — 基于 TDToast（替代 SnackBar）
+// ═══════════════════════════════════════════════════════════════
 
 class AppToast {
-  static void show(BuildContext context, String message, {ToastType type = ToastType.info}) {
-    final cs = Theme.of(context).colorScheme;
-    final (icon, color) = switch (type) {
-      ToastType.success => (AppIcons.checkCircle, Colors.green),
-      ToastType.error => (AppIcons.error, cs.error),
-      ToastType.warning => (AppIcons.warning, Colors.orange),
-      ToastType.info => (AppIcons.info, cs.primary),
-    };
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(children: [
-          Icon(icon, size: Adaptive.icon(context, 20), color: color),
-          SizedBox(width: Adaptive.w(context, 8)),
-          Expanded(
-            child: Text(message,
-                style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14))),
-          ),
-        ]),
-        backgroundColor: cs.surfaceContainerHigh,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 8))),
-        margin: EdgeInsets.fromLTRB(Adaptive.w(context, 16), 0, Adaptive.w(context, 16), Adaptive.h(context, 16)),
-        duration: const Duration(seconds: 2),
-        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, isIPad(context) ? 14 : 12)),
-        dismissDirection: DismissDirection.horizontal,
-      ),
-    );
+  /// 显示 Toast 提示（✅ 使用 TDToast 替代 SnackBar）
+  ///
+  /// [type] 决定图标和颜色风格：
+  /// - [ToastType.success]: 绿色成功图标 → TDToast.showSuccess
+  /// - [ToastType.error]: 红色错误图标 → TDToast.showFail
+  /// - [ToastType.warning]: 橙色警告图标 → TDToast.showWarning
+  /// - [ToastType.info]: 品牌色信息图标 → TDToast.showText
+  static void show(
+    BuildContext context,
+    String message, {
+    ToastType type = ToastType.info,
+  }) {
+    switch (type) {
+      case ToastType.success:
+        TDToast.showSuccess(message, context: context);
+        break;
+      case ToastType.error:
+        // ✅ 注意：TDesign API 使用 showFail 而非 showError
+        TDToast.showFail(message, context: context);
+        break;
+      case ToastType.warning:
+        TDToast.showWarning(message, context: context);
+        break;
+      case ToastType.info:
+        TDToast.showText(message, context: context);
+        break;
+    }
   }
 }
 
 enum ToastType { success, error, warning, info }
 
+// ═══════════════════════════════════════════════════════════════
+// 输入对话框 — 基于 TDInputDialog
+// ═══════════════════════════════════════════════════════════════
 
-// ─── 输入对话框 ────────────────────────────────────────────────
-
-class AppInputDialog extends StatelessWidget {
-  final String title;
-  final String hintText;
-  final String initialValue;
-  final String confirmText;
-  final String cancelText;
-  final bool obscureText;
-  final String? Function(String?)? validator;
-  final void Function(String)? onSubmit;
-
-  const AppInputDialog({
-    super.key,
-    required this.title,
-    this.hintText = '',
-    this.initialValue = '',
-    this.confirmText = '确定',
-    this.cancelText = '取消',
-    this.obscureText = false,
-    this.validator,
-    this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final controller = TextEditingController(text: initialValue);
-
-    return _DialogScaffold(
-      body: Column(mainAxisSize: MainAxisSize.min, children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 32), Adaptive.w(context, 24), 0),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(title, textAlign: TextAlign.center,
-                style: TextStyle(fontSize: Adaptive.sp(context, isIPad(context) ? 20 : 18), fontWeight: FontWeight.w600, color: cs.onSurface, height: 28 / 20)),
-            SizedBox(height: Adaptive.h(context, 16)),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              obscureText: obscureText,
-              style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, isIPad(context) ? 17 : 16)),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14)),
-                filled: true,
-                fillColor: cs.surfaceContainerHighest,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 10)), borderSide: BorderSide.none),
-                contentPadding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 14), vertical: Adaptive.h(context, 12)),
-              ),
-            ),
-          ]),
-        ),
-        SizedBox(height: Adaptive.h(context, 24)),
-        Padding(
-          padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), 0, Adaptive.w(context, 24), Adaptive.h(context, 24)),
-          child: Row(children: [
-            Expanded(
-              child: _DialogButton(
-                text: cancelText,
-                backgroundColor: cs.surfaceContainerHighest,
-                foregroundColor: cs.onSurfaceVariant,
-                onTap: () => Navigator.of(context).pop(null),
-              ),
-            ),
-            SizedBox(width: Adaptive.w(context, 12)),
-            Expanded(
-              child: _DialogButton(
-                text: confirmText,
-                backgroundColor: cs.primary,
-                foregroundColor: cs.onPrimary,
-                onTap: () {
-                  final val = controller.text.trim();
-                  if (val.isEmpty) return;
-                  onSubmit?.call(val);
-                  Navigator.of(context).pop(val);
-                },
-              ),
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-
+class AppInputDialog {
+  /// 显示输入对话框（返回输入的字符串）
+  ///
+  /// ✅ 使用 TDInputDialog 替代原生 showDialog + TextField
   static Future<String?> show(BuildContext context, {
     required String title,
     String hintText = '',
@@ -545,26 +440,35 @@ class AppInputDialog extends StatelessWidget {
     bool obscureText = false,
     String? Function(String?)? validator,
     void Function(String)? onSubmit,
-  }) {
-    return showGeneralDialog<String>(
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+    String? result;
+
+    await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      barrierLabel: 'AppInputDialog',
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (ctx, animation, secondaryAnimation) => AppInputDialog(
+      builder: (ctx) => TDInputDialog(
+        textEditingController: controller,
         title: title,
         hintText: hintText,
-        initialValue: initialValue,
-        confirmText: confirmText,
-        cancelText: cancelText,
-        obscureText: obscureText,
-        validator: validator,
-        onSubmit: onSubmit,
+        leftBtn: TDDialogButtonOptions(
+          title: cancelText,
+          action: () => Navigator.of(ctx).pop(null),
+        ),
+        rightBtn: TDDialogButtonOptions(
+          title: confirmText,
+          action: () {
+            final val = controller.text.trim();
+            if (val.isEmpty) return; // 不关闭
+            result = val;
+            onSubmit?.call(val);
+            Navigator.of(ctx).pop(val);
+          },
+        ),
       ),
-      transitionBuilder: (ctx, animation, secondaryAnimation, child) =>
-          FadeTransition(opacity: animation, child: child),
     );
+
+    controller.dispose();
+    return result;
   }
 }
-

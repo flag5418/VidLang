@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/theme.dart';
 import '../../utils/adaptive.dart';
 
 /// 头像组件
-/// 
+///
 /// 基于 Pencil UI Design Skill 的头像规范：
 /// - 圆形（9999px 圆角）
 /// - 支持图片、文字、图标三种模式
@@ -12,19 +11,19 @@ import '../../utils/adaptive.dart';
 class Avatar extends StatelessWidget {
   /// 头像 URL 或路径
   final String? imageUrl;
-  
+
   /// 显示的文字（当 imageUrl 为空时使用）
   final String? text;
-  
+
   /// 显示的图标（当 imageUrl 和 text 都为空时使用）
   final IconData? icon;
-  
+
   /// 头像尺寸
   final AvatarSize size;
-  
+
   /// 边框颜色
   final Color? borderColor;
-  
+
   /// 边框宽度
   final double borderWidth;
 
@@ -46,8 +45,8 @@ class Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: borderColor != null
-          ? Border.all(color: borderColor!, width: borderWidth)
-          : null,
+            ? Border.all(color: borderColor!, width: borderWidth)
+            : null,
       ),
       child: _buildContent(context),
     );
@@ -60,8 +59,7 @@ class Avatar extends StatelessWidget {
         child: Image.network(
           imageUrl!,
           fit: BoxFit.cover,
-          errorBuilder: (ctx, error, stackTrace) => 
-            _buildTextOrIcon(ctx),
+          errorBuilder: (ctx, error, stackTrace) => _buildTextOrIcon(ctx),
         ),
       );
     } else if (text != null && text!.isNotEmpty) {
@@ -79,17 +77,17 @@ class Avatar extends StatelessWidget {
       backgroundColor: AppColors.primaryBrandLight,
       foregroundColor: AppColors.primaryBrandDark,
       child: text != null && text!.isNotEmpty
-        ? Text(
-            _getInitials(text!),
-            style: TextStyle(
-              fontSize: Adaptive.sp(context, size.fontSize),
-              fontWeight: FontWeight.w600,
+          ? Text(
+              _getInitials(text!),
+              style: TextStyle(
+                fontSize: Adaptive.sp(context, size.fontSize),
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          : Icon(
+              icon ?? AppIcons.person,
+              size: Adaptive.sp(context, size.iconSize),
             ),
-          )
-        : Icon(
-            icon ?? AppIcons.person,
-            size: Adaptive.sp(context, size.iconSize),
-          ),
     );
   }
 
@@ -112,7 +110,7 @@ enum AvatarSize {
   xl(80.0, 24.0, 40.0);
 
   const AvatarSize(this.value, this.fontSize, this.iconSize);
-  
+
   final double value;
   final double fontSize;
   final double iconSize;

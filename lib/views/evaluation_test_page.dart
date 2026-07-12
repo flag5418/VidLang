@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../widgets/pronunciation_evaluation_modal.dart';
 import '../models/evaluation_models.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 评测测试页面 - 用于演示各种评测模式
 class EvaluationTestPage extends StatefulWidget {
-  const EvaluationTestPage({Key? key}) : super(key: key);
+  const EvaluationTestPage({super.key});
 
   @override
   State<EvaluationTestPage> createState() => _EvaluationTestPageState();
@@ -19,7 +20,8 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
     'STT模式': 'This is a simple test for speech recognition evaluation.',
     '单词模式': 'pronunciation',
     '短句模式': 'The quick brown fox jumps over the lazy dog.',
-    '段落模式': 'Artificial intelligence has revolutionized the way we approach complex problems. Machine learning algorithms can now process vast amounts of data and identify patterns that humans might miss. This technology is being applied in various fields including healthcare, transportation, and education.',
+    '段落模式':
+        'Artificial intelligence has revolutionized the way we approach complex problems. Machine learning algorithms can now process vast amounts of data and identify patterns that humans might miss. This technology is being applied in various fields including healthcare, transportation, and education.',
   };
 
   @override
@@ -48,10 +50,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
             const SizedBox(height: 8),
             Text(
               '点击下方按钮测试不同类型的跟读评测',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 32),
 
@@ -68,28 +67,40 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
                     'speech_to_text',
                     AppColors.primary,
                     AppIcons.mic,
-                    () => _showEvaluation(_testTexts['STT模式']!, EvaluationMode.freeSTT),
+                    () => _showEvaluation(
+                      _testTexts['STT模式']!,
+                      EvaluationMode.freeSTT,
+                    ),
                   ),
                   _buildTestCard(
                     '单词评测',
                     'word_evaluation',
                     AppColors.success,
                     AppIcons.textFields,
-                    () => _showEvaluation(_testTexts['单词模式']!, EvaluationMode.word),
+                    () => _showEvaluation(
+                      _testTexts['单词模式']!,
+                      EvaluationMode.word,
+                    ),
                   ),
                   _buildTestCard(
                     '句子评测',
                     'sentence_evaluation',
                     AppColors.warning,
                     AppIcons.chatBubbleOutline,
-                    () => _showEvaluation(_testTexts['短句模式']!, EvaluationMode.sentence),
+                    () => _showEvaluation(
+                      _testTexts['短句模式']!,
+                      EvaluationMode.sentence,
+                    ),
                   ),
                   _buildTestCard(
                     '段落评测',
                     'paragraph_evaluation',
                     AppColors.primary,
                     AppIcons.article,
-                    () => _showEvaluation(_testTexts['段落模式']!, EvaluationMode.paragraph),
+                    () => _showEvaluation(
+                      _testTexts['段落模式']!,
+                      EvaluationMode.paragraph,
+                    ),
                   ),
                 ],
               ),
@@ -114,12 +125,9 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withOpacity(0.3),
-            width: 2,
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -127,15 +135,8 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
             Container(
               width: 48,
               height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: AppColors.surface,
-                size: 24,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(icon, color: AppColors.surface, size: 24),
             ),
             const SizedBox(height: 12),
             Text(
@@ -152,7 +153,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               subtitle,
               style: TextStyle(
                 fontSize: 12,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
             ),
@@ -167,10 +168,10 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
       margin: const EdgeInsets.only(top: 24),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _lastResult!.scoreColor.withOpacity(0.1),
+        color: _lastResult!.scoreColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _lastResult!.scoreColor.withOpacity(0.3),
+          color: _lastResult!.scoreColor.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -194,7 +195,10 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _lastResult!.scoreColor,
                   borderRadius: BorderRadius.circular(12),
@@ -211,17 +215,14 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // 文本预览
           Text(
-            '评测文本: ${_lastResult!.referenceText.length > 50 ? _lastResult!.referenceText.substring(0, 50) + "..." : _lastResult!.referenceText}',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            '评测文本: ${_lastResult!.referenceText.length > 50 ? "${_lastResult!.referenceText.substring(0, 50)}..." : _lastResult!.referenceText}',
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 8),
-          
+
           // 维度得分
           Row(
             children: [
@@ -244,13 +245,16 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
   }
 
   Widget _buildScoreChip(String label, double score) {
-    final color = score >= 80 ? AppColors.success : 
-                  score >= 60 ? AppColors.warning : AppColors.error;
-    
+    final color = score >= 80
+        ? AppColors.success
+        : score >= 60
+        ? AppColors.warning
+        : AppColors.error;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -263,13 +267,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               color: color,
             ),
           ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: color)),
         ],
       ),
     );
@@ -284,32 +282,9 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
         setState(() {
           _lastResult = result;
         });
-        
+
         // 显示结果提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  AppIcons.checkCircle,
-                  color: AppColors.surface,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '评测完成！得分: ${result.overallScore.toInt()}%',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            backgroundColor: result.scoreColor,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+        AppToast.show(context, '评测完成！得分: ${result.overallScore.toInt()}%', type: ToastType.success);
       },
     );
   }
@@ -319,8 +294,6 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
 void showEvaluationTestPage(BuildContext context) {
   Navigator.push(
     context,
-    MaterialPageRoute(
-      builder: (context) => const EvaluationTestPage(),
-    ),
+    MaterialPageRoute(builder: (context) => const EvaluationTestPage()),
   );
 }

@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 
 /// 全局异常处理器
@@ -201,42 +201,9 @@ class GlobalErrorHandler {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!nav.mounted) return;
 
-      final scaffold = ScaffoldMessenger.maybeOf(ctx);
-      if (scaffold == null) return;
-
-      scaffold.hideCurrentSnackBar();
-      scaffold.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                severity == ErrorSeverity.error ? AppIcons.error : AppIcons.warning,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(fontSize: 13),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: severity == ErrorSeverity.error
-              ? const Color(0xFFD32F2F)
-              : const Color(0xFFE65100),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: '知道了',
-            textColor: Colors.white70,
-            onPressed: () => scaffold.hideCurrentSnackBar(),
-          ),
-        ),
-      );
+    // 使用 AppToast (基于 TDToast) 替代 SnackBar
+    final toastType = severity == ErrorSeverity.error ? ToastType.error : ToastType.warning;
+    AppToast.show(ctx, message, type: toastType);
     });
   }
 

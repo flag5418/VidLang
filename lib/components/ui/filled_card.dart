@@ -43,16 +43,17 @@ class FilledCard extends StatelessWidget {
   }) {
     return FilledCard(
       key: key,
-      child: child,
       padding: padding,
       backgroundColor: const Color(0xFFDCFCE7),
       onTap: onTap,
+      child: child,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final effectiveGradient = gradient ??
+    final effectiveGradient =
+        gradient ??
         (backgroundColor == null
             ? AppColors.primaryGradient
             : LinearGradient(colors: [backgroundColor!, backgroundColor!]));
@@ -65,8 +66,9 @@ class FilledCard extends StatelessWidget {
         padding: padding ?? const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
           gradient: effectiveGradient,
-          borderRadius:
-              BorderRadius.circular(borderRadius ?? AppRadius.filledCard),
+          borderRadius: BorderRadius.circular(
+            borderRadius ?? AppRadius.filledCard,
+          ),
         ),
         child: DefaultTextStyle.merge(
           style: TextStyle(

@@ -23,10 +23,12 @@ class PronunciationEvaluationModal extends StatefulWidget {
   });
 
   @override
-  State<PronunciationEvaluationModal> createState() => _PronunciationEvaluationModalState();
+  State<PronunciationEvaluationModal> createState() =>
+      _PronunciationEvaluationModalState();
 }
 
-class _PronunciationEvaluationModalState extends State<PronunciationEvaluationModal> {
+class _PronunciationEvaluationModalState
+    extends State<PronunciationEvaluationModal> {
   late EvaluationService _evaluationService;
   EvaluationResult? _currentResult;
   bool _isRecording = false;
@@ -41,7 +43,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme ?? Theme.of(context);
-    
+
     return Dialog.fullscreen(
       child: GestureDetector(
         onTap: widget.dismissible ? () => Navigator.pop(context) : null,
@@ -50,36 +52,34 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
           child: Center(
             child: GestureDetector(
               onTap: () {}, // 阻止内部点击传递
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.85,
-                    maxWidth: MediaQuery.of(context).size.width * 0.92,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.shadowColor,
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                  maxWidth: MediaQuery.of(context).size.width * 0.92,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.shadowColor,
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // 顶部固定区 - 标题栏
                     _buildHeader(theme),
-                    
+
                     // 中间可变区 - 根据类型显示不同内容
-                    Flexible(
-                      child: _buildContentArea(theme),
-                    ),
-                    
+                    Flexible(child: _buildContentArea(theme)),
+
                     // 综合评分区
                     _buildScoreArea(theme),
-                    
+
                     // 底部固定区 - 控制栏
                     _buildControlArea(theme),
                   ],
@@ -98,7 +98,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-                color: theme.primaryColor.withValues(alpha: 0.1),
+        color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
@@ -106,11 +106,7 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
       ),
       child: Row(
         children: [
-          Icon(
-            AppIcons.recordVoiceOver,
-            color: theme.primaryColor,
-            size: 24,
-          ),
+          Icon(AppIcons.recordVoiceOver, color: theme.primaryColor, size: 24),
           const SizedBox(width: 12),
           Text(
             '跟读评测',
@@ -195,13 +191,13 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
           ? Row(
               children: [
                 // 综合评分圆环
-                Container(
+                SizedBox(
                   width: 60,
                   height: 60,
                   child: CircularProgressIndicator(
                     value: _currentResult!.overallScore / 100,
                     strokeWidth: 6,
-                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation(
                       _getScoreColor(_currentResult!.overallScore),
                     ),
@@ -223,14 +219,15 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
                         ),
                       ),
                       const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: _currentResult!.overallScore / 100,
-                      backgroundColor: theme.colorScheme.surfaceVariant,
-                      valueColor: AlwaysStoppedAnimation(
-                        _getScoreColor(_currentResult!.overallScore),
+                      LinearProgressIndicator(
+                        value: _currentResult!.overallScore / 100,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation(
+                          _getScoreColor(_currentResult!.overallScore),
+                        ),
+                        minHeight: 6,
                       ),
-                      minHeight: 6,
-                    ),
                     ],
                   ),
                 ),
@@ -265,18 +262,11 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
           // 音频控制行
           Row(
             children: [
-              Icon(
-                AppIcons.volumeUp,
-                color: theme.primaryColor,
-                size: 20,
-              ),
+              Icon(AppIcons.volumeUp, color: theme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 '原音音量',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: theme.primaryColor,
-                ),
+                style: TextStyle(fontSize: 14, color: theme.primaryColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -315,38 +305,38 @@ class _PronunciationEvaluationModalState extends State<PronunciationEvaluationMo
           // 控制按钮行
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-         children: [
+            children: [
+              _buildControlButton(
+                icon: AppIcons.stop,
+                label: '停止',
+                onPressed: _isRecording ? _stopRecording : null,
+                theme: theme,
+              ),
+              _buildControlButton(
+                icon: AppIcons.refresh,
+                label: '重录',
+                onPressed: _currentResult != null ? _resetRecording : null,
+                theme: theme,
+              ),
+              _buildControlButton(
+                icon: AppIcons.play,
+                label: '回放',
+                onPressed: _currentResult != null ? _playRecording : null,
+                theme: theme,
+              ),
+              _buildControlButton(
+                icon: AppIcons.save,
+                label: '保存',
+                onPressed: _currentResult != null ? _saveRecording : null,
+                theme: theme,
+              ),
+              if (widget.mode != EvaluationMode.freeSTT)
                 _buildControlButton(
-icon: AppIcons.stop,
-                    label: '停止',
-                  onPressed: _isRecording ? _stopRecording : null,
+                  icon: AppIcons.analytics,
+                  label: '详情',
+                  onPressed: _currentResult != null ? _showDetails : null,
                   theme: theme,
                 ),
-                _buildControlButton(
-icon: AppIcons.refresh,
-                    label: '重录',
-                  onPressed: _currentResult != null ? _resetRecording : null,
-                  theme: theme,
-                ),
-                _buildControlButton(
-icon: AppIcons.play,
-                    label: '回放',
-                  onPressed: _currentResult != null ? _playRecording : null,
-                  theme: theme,
-                ),
-                _buildControlButton(
-icon: AppIcons.save,
-                    label: '保存',
-                  onPressed: _currentResult != null ? _saveRecording : null,
-                  theme: theme,
-                ),
-                if (widget.mode != EvaluationMode.freeSTT)
-                  _buildControlButton(
-                    icon: AppIcons.analytics,
-                    label: '详情',
-                    onPressed: _currentResult != null ? _showDetails : null,
-                    theme: theme,
-                  ),
             ],
           ),
         ],
@@ -369,17 +359,19 @@ icon: AppIcons.save,
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: isEnabled 
-                ? theme.primaryColor.withOpacity(0.1)
-                : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+              color: isEnabled
+                  ? theme.primaryColor.withValues(alpha: 0.1)
+                  : theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 18,
-              color: isEnabled 
-                ? theme.primaryColor
-                : theme.colorScheme.onSurfaceVariant,
+              color: isEnabled
+                  ? theme.primaryColor
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
@@ -387,9 +379,9 @@ icon: AppIcons.save,
             label,
             style: TextStyle(
               fontSize: 10,
-              color: isEnabled 
-                ? theme.primaryColor
-                : theme.colorScheme.onSurfaceVariant,
+              color: isEnabled
+                  ? theme.primaryColor
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -495,7 +487,7 @@ void showPronunciationEvaluation(
   Function(EvaluationResult)? onComplete,
 }) {
   final detectedMode = mode ?? EvaluationModeDetector.detectMode(text);
-  
+
   showDialog(
     context: context,
     barrierDismissible: true,

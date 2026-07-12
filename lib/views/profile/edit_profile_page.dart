@@ -58,7 +58,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> _pickAvatar() async {
     String? selectedSource;
 
-    await TDActionSheet(
+    TDActionSheet(
       context,
       description: '选择头像来源',
       items: [
@@ -253,7 +253,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 SizedBox(height: Adaptive.h(context, 2)),
                 Text(
                   '点击更换头像',
-                  style: TextStyle(fontSize: Adaptive.sp(context, 12), color: cs.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: Adaptive.sp(context, 12),
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -263,8 +266,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           SizedBox(width: Adaptive.w(context, 6)),
           Icon(
             AppIcons.chevronRight,
-              size: Adaptive.sp(context, 20),
-              color: cs.outline.withValues(alpha: 0.5),
+            size: Adaptive.sp(context, 20),
+            color: cs.outline.withValues(alpha: 0.5),
           ),
         ],
       ),
@@ -437,5 +440,3 @@ class _ElevatedCardState extends State<_ElevatedCard>
     );
   }
 }
-
-

@@ -144,10 +144,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     folderVideos: videos,
                     audioType: 'music',
                   )
-                : PlayerPage(
-                    videoCode: firstVideo.code!,
-                    folderVideos: videos,
-                  ),
+                : PlayerPage(videoCode: firstVideo.code!, folderVideos: videos),
           ),
         );
         if (!mounted) return;
@@ -229,7 +226,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             Text(
               '你好，老板',
-              style: context.textStyles.title.copyWith(color: colors.textPrimary),
+              style: context.textStyles.title.copyWith(
+                color: colors.textPrimary,
+              ),
             ),
             Row(
               children: [
@@ -242,8 +241,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(AppIcons.search,
-                        size: 20, color: colors.textSecondary),
+                    child: Icon(
+                      AppIcons.search,
+                      size: 20,
+                      color: colors.textSecondary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -254,7 +256,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                     gradient: AppColors.primaryGradient,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(AppIcons.person, size: 20, color: Colors.white),
+                  child: const Icon(
+                    AppIcons.person,
+                    size: 20,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -291,7 +297,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ? DecorationImage(
                   image: FileImage(File(cover)),
                   fit: BoxFit.cover,
-                  onError: (_, __) {},
+                  onError: (_, _) {},
                 )
               : null,
           color: cover == null || cover.isEmpty
@@ -315,7 +321,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: colors.primary.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(6),
@@ -343,8 +352,11 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(AppIcons.playCircleFill,
-                      size: 18, color: Colors.white),
+                  const Icon(
+                    AppIcons.playCircleFill,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     '已播放 $progressPercent%',
@@ -358,7 +370,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                         value: progress,
                         minHeight: 3,
                         backgroundColor: Colors.white24,
-                        valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          colors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -387,17 +401,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _statCell('$streakDays', '连续', '学习', colors),
-            ),
+            Expanded(child: _statCell('$streakDays', '连续', '学习', colors)),
             const SizedBox(width: 10),
-            Expanded(
-              child: _statCell('$todayMin', '分钟', '今日', colors),
-            ),
+            Expanded(child: _statCell('$todayMin', '分钟', '今日', colors)),
             const SizedBox(width: 10),
-            Expanded(
-              child: _statCell('$wordCount', '单词', '积累', colors),
-            ),
+            Expanded(child: _statCell('$wordCount', '单词', '积累', colors)),
           ],
         ),
       ],
@@ -405,7 +413,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _statCell(
-      String number, String label1, String label2, AppColorsData colors) {
+    String number,
+    String label1,
+    String label2,
+    AppColorsData colors,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -416,9 +428,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           Text(
             number,
-            style: context.textStyles.hero.copyWith(
-              color: colors.primary,
-            ),
+            style: context.textStyles.hero.copyWith(color: colors.primary),
           ),
           const SizedBox(height: 2),
           Text(
@@ -462,8 +472,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                       tabs[i],
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? colors.primary : colors.textSecondary,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? colors.primary
+                            : colors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -500,13 +514,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(
             children: [
-              Icon(AppIcons.folderOpen,
-                  size: 48, color: colors.textWeak),
+              Icon(AppIcons.folderOpen, size: 48, color: colors.textWeak),
               const SizedBox(height: 12),
               Text(
                 '暂无内容',
                 style: context.textStyles.body.copyWith(
-                    color: colors.textSecondary),
+                  color: colors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -533,8 +547,8 @@ class _HomePageState extends ConsumerState<HomePage> {
       folder.folderType == FolderContentType.music
           ? 'music'
           : folder.folderType == FolderContentType.article
-              ? 'article'
-              : 'video',
+          ? 'article'
+          : 'video',
       brightness: Theme.of(context).brightness,
     );
     final cover = folder.cover;
@@ -558,8 +572,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ? Image.file(
                         File(cover),
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _gridPlaceholder(
-                            colors, typeColor, folder),
+                        errorBuilder: (_, _, _) =>
+                            _gridPlaceholder(colors, typeColor, folder),
                       )
                     : _gridPlaceholder(colors, typeColor, folder),
               ),
@@ -590,12 +604,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Widget _gridPlaceholder(
-      AppColorsData colors, Color typeColor, VideoFolder folder) {
+    AppColorsData colors,
+    Color typeColor,
+    VideoFolder folder,
+  ) {
     final icon = folder.folderType == FolderContentType.music
         ? AppIcons.musicNote
         : folder.folderType == FolderContentType.article
-            ? AppIcons.menuBook
-            : AppIcons.movie;
+        ? AppIcons.menuBook
+        : AppIcons.movie;
     return Container(
       color: typeColor.withValues(alpha: 0.08),
       child: Center(
@@ -635,9 +652,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                     // 品牌
                     Row(
                       children: [
-                        Icon(AppIcons.schoolFill,
-                            size: Adaptive.sp(ctx, 36),
-                            color: colors.primary),
+                        Icon(
+                          AppIcons.schoolFill,
+                          size: Adaptive.sp(ctx, 36),
+                          color: colors.primary,
+                        ),
                         SizedBox(width: Adaptive.w(ctx, 12)),
                         Text(
                           'VidLang',
@@ -668,14 +687,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                     _buildStatsRow(colors),
                     SizedBox(height: Adaptive.h(ctx, 32)),
                     // 快速入口
-                    _buildIpadQuickEntry(
-                        'video', '视频', AppIcons.movie, colors),
+                    _buildIpadQuickEntry('video', '视频', AppIcons.movie, colors),
                     SizedBox(height: Adaptive.h(ctx, 20)),
                     _buildIpadQuickEntry(
-                        'music', '音频', AppIcons.musicNote, colors),
+                      'music',
+                      '音频',
+                      AppIcons.musicNote,
+                      colors,
+                    ),
                     SizedBox(height: Adaptive.h(ctx, 20)),
-                    _buildIpadQuickEntry('article', '文章',
-                        AppIcons.menuBook, colors),
+                    _buildIpadQuickEntry(
+                      'article',
+                      '文章',
+                      AppIcons.menuBook,
+                      colors,
+                    ),
                   ],
                 ),
               ),
@@ -706,11 +732,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildIpadQuickEntry(String type, String title, IconData icon,
-      AppColorsData colors) {
+  Widget _buildIpadQuickEntry(
+    String type,
+    String title,
+    IconData icon,
+    AppColorsData colors,
+  ) {
     final folders = _recentFolders[type] ?? [];
     final typeColor = AppColors.colorForType(
-        type, brightness: Theme.of(context).brightness);
+      type,
+      brightness: Theme.of(context).brightness,
+    );
     final ctx = context;
 
     return GestureDetector(
@@ -720,7 +752,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         decoration: BoxDecoration(
           color: typeColor.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: typeColor.withValues(alpha: 0.15), width: 0.5),
+          border: Border.all(
+            color: typeColor.withValues(alpha: 0.15),
+            width: 0.5,
+          ),
         ),
         child: Row(
           children: [
@@ -744,8 +779,11 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
             SizedBox(width: Adaptive.w(ctx, 4)),
-            Icon(AppIcons.chevronRight,
-                size: Adaptive.sp(ctx, 18), color: colors.textWeak),
+            Icon(
+              AppIcons.chevronRight,
+              size: Adaptive.sp(ctx, 18),
+              color: colors.textWeak,
+            ),
           ],
         ),
       ),
@@ -763,12 +801,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(
             children: [
-              Icon(AppIcons.folderOpen,
-                  size: 48, color: colors.textWeak),
+              Icon(AppIcons.folderOpen, size: 48, color: colors.textWeak),
               const SizedBox(height: 12),
-              Text('暂无内容',
-                  style: context.textStyles.body
-                      .copyWith(color: colors.textSecondary)),
+              Text(
+                '暂无内容',
+                style: context.textStyles.body.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),

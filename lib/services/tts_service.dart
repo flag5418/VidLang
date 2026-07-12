@@ -20,21 +20,13 @@ class TtsEvent {
 
   const TtsEvent({required this.type, this.message});
 
-  const TtsEvent.loading()
-      : type = TtsEventType.loading,
-        message = null;
+  const TtsEvent.loading() : type = TtsEventType.loading, message = null;
 
-  const TtsEvent.playing()
-      : type = TtsEventType.playing,
-        message = null;
+  const TtsEvent.playing() : type = TtsEventType.playing, message = null;
 
-  const TtsEvent.completed()
-      : type = TtsEventType.completed,
-        message = null;
+  const TtsEvent.completed() : type = TtsEventType.completed, message = null;
 
-  const TtsEvent.error(String msg)
-      : type = TtsEventType.error,
-        message = msg;
+  const TtsEvent.error(String msg) : type = TtsEventType.error, message = msg;
 }
 
 /// TTS 事件类型
@@ -110,10 +102,19 @@ class TtsService {
     try {
       if (targetMode == SubscriptionMode.premium) {
         // 收费模式：使用 PCM 流式播放（低延迟）
-        await _speakPremium(text: text, onEvent: onEvent, onComplete: onComplete);
+        await _speakPremium(
+          text: text,
+          onEvent: onEvent,
+          onComplete: onComplete,
+        );
       } else {
         // 免费模式：使用原生 TTS（文件播放或直接播放）
-        await _speakFree(text: text, onEvent: onEvent, onComplete: onComplete, onProgress: onProgress);
+        await _speakFree(
+          text: text,
+          onEvent: onEvent,
+          onComplete: onComplete,
+          onProgress: onProgress,
+        );
       }
     } catch (e) {
       _ttsLog('🔊 [TtsPlayer] 💥 异常: $e');
@@ -181,8 +182,9 @@ class TtsService {
         // 直接播放已完成，因为 synthesizeToAudio 已经调用了 speak
         // 根据字数估算播放时长，使高亮定时器与播放保持同步
         // 基准：150 词/分钟 ≈ 400ms/词
-        final wordCount =
-            text.trim().isEmpty ? 1 : text.trim().split(RegExp(r'\s+')).length;
+        final wordCount = text.trim().isEmpty
+            ? 1
+            : text.trim().split(RegExp(r'\s+')).length;
         final estimatedMs = (wordCount * 400).clamp(500, 30000);
         final sw = Stopwatch()..start();
         Timer? progressTimer;
@@ -221,7 +223,9 @@ class TtsService {
         return;
       }
 
-      _ttsLog('🔊 [TtsPlayer] 📁 音频文件就绪: ${fileSize} bytes | ${result.audioPath.split('/').last}');
+      _ttsLog(
+        '🔊 [TtsPlayer] 📁 音频文件就绪: $fileSize bytes | ${result.audioPath.split('/').last}',
+      );
 
       // 通知 UI：开始播放
       onEvent?.call(const TtsEvent.playing());
@@ -232,12 +236,14 @@ class TtsService {
         if (_player.state == ap.PlayerState.playing) {
           await _player.stop();
         }
-        
+
         final playSw = Stopwatch()..start();
         await _player.play(ap.DeviceFileSource(result.audioPath));
         playSw.stop();
 
-        _ttsLog('🔊 [TtsPlayer] ▶️ 开始播放 (${playSw.elapsedMilliseconds}ms) | fromCache=${result.fromCache} | path=${result.audioPath.split('/').last}');
+        _ttsLog(
+          '🔊 [TtsPlayer] ▶️ 开始播放 (${playSw.elapsedMilliseconds}ms) | fromCache=${result.fromCache} | path=${result.audioPath.split('/').last}',
+        );
 
         // 用播放进度驱动高亮
         StreamSubscription? posSub;
@@ -277,7 +283,12 @@ class TtsService {
     FutureOr<void> Function()? onComplete,
     void Function(TtsEvent)? onEvent,
   }) async {
-    await speakClarity(text: word, mode: mode, onComplete: onComplete, onEvent: onEvent);
+    await speakClarity(
+      text: word,
+      mode: mode,
+      onComplete: onComplete,
+      onEvent: onEvent,
+    );
   }
 
   /// 朗读字幕（适用于视频播放器中逐句朗读）
@@ -287,7 +298,12 @@ class TtsService {
     FutureOr<void> Function()? onComplete,
     void Function(TtsEvent)? onEvent,
   }) async {
-    await speakClarity(text: text, mode: mode, onComplete: onComplete, onEvent: onEvent);
+    await speakClarity(
+      text: text,
+      mode: mode,
+      onComplete: onComplete,
+      onEvent: onEvent,
+    );
   }
 
   /// 预加载 TTS（不阻塞，用于提前合成下一句）

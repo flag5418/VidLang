@@ -28,6 +28,7 @@ import 'package:vidlang/models/shengtong_evaluation_result.dart';
 import 'package:vidlang/services/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 // ─── 回调类型 ───────────────────────────────────────────
 typedef ScoreCallback = Future<void> Function({
@@ -2207,9 +2208,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          this.context,
-        ).showSnackBar(const SnackBar(content: Text('需要麦克风权限才能跟读')));
+        AppToast.show(this.context, '需要麦克风权限才能跟读', type: ToastType.warning);
       }
       return;
     }
@@ -2361,9 +2360,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     cfg.setOriginalVolume?.call(1.0);
     setState(() => _state = 'idle');
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+AppToast.show(context, message);
     }
   }
 
@@ -2432,9 +2429,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         debugPrint('⚠️ [ShadowReader] 声通密钥未就绪，跳过评测');
         _isEvaluating = false;
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('声通服务未配置')));
+AppToast.show(context, '声通服务未配置', type: ToastType.warning);
         }
         return;
       }
@@ -2445,9 +2440,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         debugPrint('❌ [ShadowReader] 音频文件不存在: $_recordingPath');
         _isEvaluating = false;
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('录音文件不存在，请重新录音')));
+AppToast.show(context, '录音文件不存在，请重新录音', type: ToastType.warning);
         }
         return;
       }
@@ -2720,9 +2713,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       debugPrint('❌ [ShadowReader] 错误堆栈: $stack');
       if (mounted) {
         setState(() => _state = 'idle');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('评分失败: $e')));
+        AppToast.show(context, '评分失败: $e', type: ToastType.error);
       }
     } finally {
       debugPrint('🎤 [ShadowReader] 声通评测流程结束，重置 _isEvaluating = false');
@@ -2758,9 +2749,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       if (recognizedText.isEmpty) {
         if (mounted) {
           setState(() => _state = 'idle');
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('未能识别到语音，请尝试大声清晰地朗读')));
+AppToast.show(context, '未能识别到语音，请尝试大声清晰地朗读', type: ToastType.warning);
         }
         _isEvaluating = false;
         return;
@@ -2898,9 +2887,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     } catch (e) {
       if (mounted) {
         setState(() => _state = 'idle');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('评分失败: $e')));
+        AppToast.show(context, '评分失败: $e', type: ToastType.error);
       }
     } finally {
       _isEvaluating = false;
@@ -2963,16 +2950,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         });
         debugPrint('🎤 [ShadowReader] 🤖 AI 分析完成');
       } else if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('AI 分析失败，请稍后重试')));
+        AppToast.show(context, 'AI 分析失败，请稍后重试', type: ToastType.error);
       }
     } catch (e) {
       debugPrint('❌ [ShadowReader] AI 分析触发失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('AI 分析失败: $e')));
+        AppToast.show(context, 'AI 分析失败: $e', type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _isAiAnalyzing = false);

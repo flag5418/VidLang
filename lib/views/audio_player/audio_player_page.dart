@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:omni_player/omni_player.dart';
@@ -605,9 +606,8 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               .read(playerEngineProvider.notifier)
               .reloadSubtitles(widget.videoCode);
           setState(() {});
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('导入成功，共${stats.subtitlesInserted}条字幕')),
-          );
+          // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+          TDToast.showSuccess('导入成功，共${stats.subtitlesInserted}条字幕', context: context);
         }
         return;
       }

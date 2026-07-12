@@ -43,8 +43,7 @@ class LearningStatsService {
   String? get currentResourceType => _sessionResourceType;
 
   /// 当前所属文件夹 code
-  String? get currentFolderCode =>
-      _sessionActive ? _sessionFolderCode : null;
+  String? get currentFolderCode => _sessionActive ? _sessionFolderCode : null;
 
   // ════════════════════════════════════════════════
   //  会话管理（学习时长）
@@ -274,8 +273,9 @@ class LearningStatsService {
         // 使用 testScore 字段存储加权得分，同时记录题型分布到备注
         if (record.endTime == null) {
           record.endTime = DateTime.now();
-          record.duration =
-              DateTime.now().difference(record.startTime).inSeconds;
+          record.duration = DateTime.now()
+              .difference(record.startTime)
+              .inSeconds;
           await DatabaseService.update(record);
         }
       }
@@ -574,6 +574,124 @@ class LearningStatsService {
     }
   }
 
+  /// 学习历史记录（带时间范围和类型筛选）
+  ///
+  /// 用于学习记录页面，支持按天/周/月/自定义范围 + 按资源类型过滤。
+  /// 返回的每条记录包含是否已删除标记。
+  Future<List<LearningHistoryRecord>> getLearningHistory({
+    required DateTime startDate,
+    required DateTime endDate,
+    String? resourceType, // null = 全部类型
+    int limit = 100,
+  }) async {
+    try {
+      // 构建查询条件
+      final conditions = <String>['is_deleted = 0'];
+      final args = <Object>[
+        startDate.toIso8601String(),
+        endDate.toIso8601String(),
+      ];
+
+      if (resourceType != null) {
+        conditions.add('resource_type = ?');
+        args.add(resourceType);
+      }
+
+      final whereClause =
+          '${conditions.join(' AND ')} AND start_time >= ? AND start_time < ?';
+
+      final allRecords = await DatabaseService.findByCondition(
+        () => StudyRecord(),
+        where: whereClause,
+        whereArgs: args,
+        orderBy: 'start_time DESC',
+      );
+
+      if (allRecords.isEmpty) return [];
+
+      // 批量检查资源是否已删除
+      final deletedMap = <String, bool>{};
+      for (final r in allRecords) {
+        if (!deletedMap.containsKey(r.resourceCode)) {
+          deletedMap[r.resourceCode] = await _isResourceDeleted(
+            r.resourceCode,
+            r.resourceType,
+          );
+        }
+      }
+
+      // 批量解析标题
+      final titles = <String, String>{};
+      for (final r in allRecords) {
+        if (!titles.containsKey(r.resourceCode)) {
+          titles[r.resourceCode] = await _resolveResourceTitle(
+            r.resourceCode,
+            r.resourceType,
+          );
+        }
+      }
+
+      return allRecords
+          .take(limit)
+          .map(
+            (r) => LearningHistoryRecord(
+              id: r.code ?? '',
+              resourceCode: r.resourceCode,
+              resourceType: r.resourceType,
+              resourceTitle: titles[r.resourceCode],
+              folderCode: r.folderCode.isNotEmpty ? r.folderCode : null,
+              startTime: r.startTime,
+              endTime: r.endTime,
+              durationSeconds: r.duration,
+              bestFollowScore: r.bestFollowScore,
+              testScore: r.testScore,
+              followCount: r.followCount,
+              isDeleted: deletedMap[r.resourceCode] ?? false,
+            ),
+          )
+          .toList();
+    } catch (e) {
+      dev.log(
+        '[LearningStats] Failed to get learning history: $e',
+        name: 'LearningStats',
+        error: e,
+      );
+      return [];
+    }
+  }
+
+  /// 检查某个资源是否已被删除
+  static Future<bool> _isResourceDeleted(
+    String resourceCode,
+    String resourceType,
+  ) async {
+    try {
+      switch (resourceType) {
+        case 'article':
+          final articles = await DatabaseService.findByCondition(
+            () => Article(),
+            where: 'code = ?',
+            whereArgs: [resourceCode],
+            limit: 1,
+          );
+          return articles.isEmpty || articles.first.isDeleted;
+        case 'video':
+        case 'music':
+          final videos = await DatabaseService.findByCondition(
+            () => VideoInfo(),
+            where: 'code = ?',
+            whereArgs: [resourceCode],
+            limit: 1,
+          );
+          return videos.isEmpty || videos.first.isDeleted;
+        default:
+          return false;
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// 各资源类型今日时长分布
   Future<Map<String, int>> getTodayDurationByType() async {
     final today = DateTime.now();
@@ -864,4 +982,60 @@ class RecentResource {
     required this.lastStudiedAt,
     required this.lastDurationSeconds,
   });
+}
+
+/// 学习历史记录（用于学习记录页面）
+class LearningHistoryRecord {
+  final String id;
+  final String resourceCode;
+  final String resourceType; // video / music / article
+  final String? resourceTitle;
+  final String? folderCode;
+  final DateTime startTime;
+  final DateTime? endTime;
+  final int durationSeconds; // 学习时长（秒）
+  final double? bestFollowScore; // 最佳跟读分
+  final double? testScore; // 测试得分
+  final int followCount; // 跟读次数
+  final bool isDeleted; // 资源是否已被删除
+
+  const LearningHistoryRecord({
+    required this.id,
+    required this.resourceCode,
+    required this.resourceType,
+    this.resourceTitle,
+    this.folderCode,
+    required this.startTime,
+    this.endTime,
+    required this.durationSeconds,
+    this.bestFollowScore,
+    this.testScore,
+    required this.followCount,
+    required this.isDeleted,
+  });
+
+  /// 格式化时长显示
+  String get formattedDuration {
+    if (durationSeconds < 60) return '$durationSeconds秒';
+    if (durationSeconds < 3600) return '${durationSeconds ~/ 60}分钟';
+    final h = durationSeconds ~/ 3600;
+    final m = (durationSeconds % 3600) ~/ 60;
+    return m > 0 ? '$h时$m分' : '$h小时';
+  }
+
+  /// 格式化时间范围
+  String get timeRange {
+    if (endTime == null) {
+      return _formatTime(startTime);
+    }
+    return '${_formatTime(startTime)} - ${_formatShortTime(endTime!)}';
+  }
+
+  static String _formatTime(DateTime dt) {
+    return '${dt.month}/${dt.day} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  static String _formatShortTime(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
 }

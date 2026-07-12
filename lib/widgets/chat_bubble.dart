@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/conversation_message.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_icons.dart';
-import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// AI 对话消息气泡 - 微信风格
@@ -26,22 +23,31 @@ class ChatBubble extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: AppSpacing.space2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment: isAi
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.end,
         children: [
           if (isAi) _buildAvatar(),
           SizedBox(width: AppSpacing.space2),
           Flexible(
             child: Column(
-              crossAxisAlignment: isAi ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              crossAxisAlignment: isAi
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.end,
               children: [
                 _buildBubble(isAi),
-                if (isAi && showTranslation && message.translation != null && message.translation!.isNotEmpty)
+                if (isAi &&
+                    showTranslation &&
+                    message.translation != null &&
+                    message.translation!.isNotEmpty)
                   Padding(
                     padding: EdgeInsets.only(top: AppSpacing.space1),
                     child: Text(
                       message.translation!,
                       style: TextStyle(
-                        color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
+                        color: isDark
+                            ? AppColors.onSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
@@ -90,7 +96,10 @@ class ChatBubble extends StatelessWidget {
         : AppColors.onPrimary;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.space4, vertical: AppSpacing.space3),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.space4,
+        vertical: AppSpacing.space3,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(AppSpacing.space3),
@@ -100,11 +109,7 @@ class ChatBubble extends StatelessWidget {
         children: [
           Text(
             message.text,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 15,
-              height: 1.5,
-            ),
+            style: TextStyle(color: textColor, fontSize: 15, height: 1.5),
           ),
           if (message.isStreaming)
             Padding(
@@ -146,7 +151,10 @@ class TranscriptionPreview extends StatelessWidget {
         children: [
           Flexible(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.space3, vertical: AppSpacing.space2),
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.space3,
+                vertical: AppSpacing.space2,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppSpacing.space3),
@@ -164,7 +172,9 @@ class TranscriptionPreview extends StatelessWidget {
                     child: Text(
                       preview,
                       style: TextStyle(
-                        color: isDark ? AppColors.onSurfaceVariant : AppColors.lightOnSurfaceVariant,
+                        color: isDark
+                            ? AppColors.onSurfaceVariant
+                            : AppColors.lightOnSurfaceVariant,
                         fontSize: 14,
                         fontStyle: FontStyle.italic,
                       ),

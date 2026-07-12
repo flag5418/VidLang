@@ -18,6 +18,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
@@ -459,15 +460,18 @@ class _SchemaErrorPage extends StatelessWidget {
                 style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
+              // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
+              TDButton(
+                text: '重试',
+                onTap: () {
                   DatabaseService.resetSchemaCheck();
                   // 尝试重新进入
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const _AppEntry()),
                   );
                 },
-                child: const Text('重试'),
+                type: TDButtonType.fill,
+                theme: TDButtonTheme.primary,
               ),
             ],
           ),

@@ -10,7 +10,8 @@ import 'package:vidlang/services/ios_native_features.dart';
 /// 收费模式 → 云端 ai-proxy Edge Function
 class UnifiedTranslationService {
   static UnifiedTranslationService? _instance;
-  static UnifiedTranslationService get instance => _instance ??= UnifiedTranslationService._();
+  static UnifiedTranslationService get instance =>
+      _instance ??= UnifiedTranslationService._();
   UnifiedTranslationService._();
 
   /// 翻译文本（单词/句子/文章片段）
@@ -25,7 +26,13 @@ class UnifiedTranslationService {
     if (mode == SubscriptionMode.free) {
       return await _translateLocal(text: text);
     } else {
-      return await _translateCloud(text: text, contextSentence: contextSentence, sourceType: sourceType, sourceCode: sourceCode, billing: billing);
+      return await _translateCloud(
+        text: text,
+        contextSentence: contextSentence,
+        sourceType: sourceType,
+        sourceCode: sourceCode,
+        billing: billing,
+      );
     }
   }
 
@@ -52,14 +59,13 @@ class UnifiedTranslationService {
   }
 
   /// 本地翻译（iOS 系统翻译，MLTranslation）
-  Future<WordDetail> _translateLocal({
-    required String text,
-    String? contextSentence,
-  }) async {
+  Future<WordDetail> _translateLocal({required String text}) async {
     try {
       final result = await IosNativeFeatures.translate(text: text);
 
-      if (result.success && result.translatedText.isNotEmpty && result.translatedText != text) {
+      if (result.success &&
+          result.translatedText.isNotEmpty &&
+          result.translatedText != text) {
         return WordDetail(
           word: text,
           translation: result.translatedText,
@@ -71,16 +77,17 @@ class UnifiedTranslationService {
       // 翻译失败或翻译结果与原文相同
       final errorMsg = result.error ?? '翻译失败';
       debugPrint('iOS 系统翻译失败: $errorMsg');
-      
+
       // 检查是否需要下载语言包
-      final needsLanguagePack = errorMsg.contains('not available') || 
-                                 errorMsg.contains('language') ||
-                                 errorMsg.contains('未找到') ||
-                                 errorMsg.contains('下载');
-      
+      final needsLanguagePack =
+          errorMsg.contains('not available') ||
+          errorMsg.contains('language') ||
+          errorMsg.contains('未找到') ||
+          errorMsg.contains('下载');
+
       return WordDetail.error(
-        text, 
-        errorMsg, 
+        text,
+        errorMsg,
         languagePackRequired: needsLanguagePack,
       );
     } catch (e) {
@@ -108,10 +115,7 @@ class UnifiedTranslationService {
           'scene': 'player',
           'entry': 'subtitle_tap',
           'request_id': requestId,
-          'params': {
-            'text': text,
-            'target_language': '中文',
-          },
+          'params': {'text': text, 'target_language': '中文'},
           if (billing?.isNotEmpty ?? false) 'billing': billing,
         },
       );
@@ -120,11 +124,16 @@ class UnifiedTranslationService {
       if (data is Map<String, dynamic> && data['ok'] == true) {
         final result = data['result'] as Map<String, dynamic>?;
         if (result != null) {
-          return WordDetail.fromAiResult(result, costCny: (data['cost_cny'] as num?)?.toDouble(), balanceAfter: (data['balance_after'] as num?)?.toDouble());
+          return WordDetail.fromAiResult(
+            result,
+            costCny: (data['cost_cny'] as num?)?.toDouble(),
+            balanceAfter: (data['balance_after'] as num?)?.toDouble(),
+          );
         }
       }
 
-      final error = data['error'] as String? ?? data['message'] as String? ?? '翻译失败';
+      final error =
+          data['error'] as String? ?? data['message'] as String? ?? '翻译失败';
       if (error == 'insufficient_balance') {
         return WordDetail.error(
           text,

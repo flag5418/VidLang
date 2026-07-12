@@ -56,7 +56,9 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
       });
 
       final body = await response.transform(utf8.decoder).join();
-      _addLog('📥 响应体: ${body.substring(0, body.length > 200 ? 200 : body.length)}');
+      _addLog(
+        '📥 响应体: ${body.substring(0, body.length > 200 ? 200 : body.length)}',
+      );
 
       client.close();
       _addLog('✅ HTTP 测试完成');
@@ -71,12 +73,15 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
 
     try {
       _addLog('🔗 连接 api.stkouyu.com:8080');
-      final socket = await Socket.connect('api.stkouyu.com', 8080)
-          .timeout(const Duration(seconds: 10));
+      final socket = await Socket.connect(
+        'api.stkouyu.com',
+        8080,
+      ).timeout(const Duration(seconds: 10));
       _addLog('✅ TCP 连接成功');
 
       // 发送 HTTP GET 请求
-      final request = 'GET /sent.eval HTTP/1.1\r\n'
+      final request =
+          'GET /sent.eval HTTP/1.1\r\n'
           'Host: api.stkouyu.com:8080\r\n'
           'Connection: Upgrade\r\n'
           'Upgrade: websocket\r\n'
@@ -153,12 +158,15 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
                 decoration: BoxDecoration(
                   color: AppColors.lightBackground,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderLight!),
+                  border: Border.all(color: AppColors.borderLight),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(
                     _log.isEmpty ? '点击上方按钮开始测试...' : _log,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),

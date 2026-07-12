@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/utils/adaptive.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_radius.dart';
 import '../../theme/theme.dart';
 
 /// 徽章组件
-/// 
+///
 /// 基于 Pencil UI Design Skill 的徽章规范：
 /// - 高度: 22px
 /// - 内边距: 6px 水平, 8px 垂直
@@ -14,13 +12,13 @@ import '../../theme/theme.dart';
 class Badge extends StatelessWidget {
   /// 显示的文字
   final String text;
-  
+
   /// 徽章颜色
   final Color? backgroundColor;
-  
+
   /// 文字颜色
   final Color? textColor;
-  
+
   /// 前缀图标
   final IconData? icon;
 
@@ -47,11 +45,14 @@ class Badge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null)
-            Icon(icon, size: Adaptive.w(context, 14), color: textColor ?? AppColors.textSecondary),
-          
-          if (icon != null)
-            SizedBox(width: Adaptive.w(context, 4)),
-          
+            Icon(
+              icon,
+              size: Adaptive.w(context, 14),
+              color: textColor ?? AppColors.textSecondary,
+            ),
+
+          if (icon != null) SizedBox(width: Adaptive.w(context, 4)),
+
           Text(
             text,
             style: TextStyle(
@@ -71,7 +72,7 @@ class Badge extends StatelessWidget {
 /// 成功状态徽章
 class SuccessBadge extends StatelessWidget {
   final String text;
-  
+
   const SuccessBadge({super.key, required this.text});
 
   @override
@@ -88,7 +89,7 @@ class SuccessBadge extends StatelessWidget {
 /// 警告状态徽章
 class WarningBadge extends StatelessWidget {
   final String text;
-  
+
   const WarningBadge({super.key, required this.text});
 
   @override
@@ -105,7 +106,7 @@ class WarningBadge extends StatelessWidget {
 /// 错误状态徽章
 class ErrorBadge extends StatelessWidget {
   final String text;
-  
+
   const ErrorBadge({super.key, required this.text});
 
   @override
@@ -122,7 +123,7 @@ class ErrorBadge extends StatelessWidget {
 /// 信息状态徽章
 class InfoBadge extends StatelessWidget {
   final String text;
-  
+
   const InfoBadge({super.key, required this.text});
 
   @override

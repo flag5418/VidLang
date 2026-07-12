@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/models/topup_config.dart';
 import 'package:vidlang/services/auth_service.dart';
@@ -23,10 +25,30 @@ class TopupService {
         _cache = configs;
         return configs;
       }
-    } catch (_) {}
+    } catch (_) {
+      debugPrint('[TopupService] 加载充值配置失败，使用兜底数据');
+    }
 
-    // 降级：返回空列表，让 UI 走 loading 状态
-    return [];
+    // 降级：返回硬编码兜底档位
+    return _fallbackConfigs();
+  }
+
+  /// 硬编码兜底档位（当后端不可用时使用）
+  static List<TopupConfig> _fallbackConfigs() {
+    return [
+      TopupConfig(
+        id: -1, originalAmount: 10, actualAmount: 10,
+        bonusAmount: 0, label: '体验',
+      ),
+      TopupConfig(
+        id: -2, originalAmount: 50, actualAmount: 55,
+        bonusAmount: 5, label: '热门', discountLabel: '送 ¥5',
+      ),
+      TopupConfig(
+        id: -3, originalAmount: 100, actualAmount: 120,
+        bonusAmount: 20, label: '最划算', discountLabel: '送 ¥20',
+      ),
+    ];
   }
 
   /// 强制刷新缓存

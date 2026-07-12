@@ -140,7 +140,8 @@ class _AudioTestPageState extends State<AudioTestPage> {
     try {
       final tempDir = await getTemporaryDirectory();
       final ext = _ttsFormat == 'pcm' ? 'wav' : _ttsFormat;
-      final filePath = '${tempDir.path}/tts_file_test_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final filePath =
+          '${tempDir.path}/tts_file_test_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
       final result = await DashScopeTtsService.instance.synthesize(
         text: text,
@@ -237,11 +238,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
 
       final request = jsonEncode({
         'audio': {'audioType': 'wav', 'sampleRate': 16000},
-        'params': {
-          'userId': userId,
-          'coreType': coreType,
-          'refText': refText,
-        },
+        'params': {'userId': userId, 'coreType': coreType, 'refText': refText},
       });
 
       final started = await _shengtongEvaluator!.start(request);
@@ -322,7 +319,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
 
       _addShengtongLog('📝 发送 HTTP 评测请求...');
       _addShengtongLog('   coreType: sent.eval');
-      _addShengtongLog('   refText: ${_shengtongRefTextController.text.trim()}');
+      _addShengtongLog(
+        '   refText: ${_shengtongRefTextController.text.trim()}',
+      );
 
       final result = await evaluator.evaluate(
         coreType: 'sent.eval',
@@ -332,7 +331,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
       );
 
       _addShengtongLog('✅ 评测成功!');
-      _addShengtongLog('📊 结果:\n${const JsonEncoder.withIndent('  ').convert(result)}');
+      _addShengtongLog(
+        '📊 结果:\n${const JsonEncoder.withIndent('  ').convert(result)}',
+      );
     } catch (e, stackTrace) {
       _addShengtongLog('❌ 评测失败: $e');
       _addShengtongLog('📋 堆栈:\n$stackTrace');
@@ -357,7 +358,12 @@ class _AudioTestPageState extends State<AudioTestPage> {
     await file.writeAsBytes(wavData.toBytes());
   }
 
-  Uint8List _createWavHeader(int sampleRate, int channels, int bitsPerSample, int dataSize) {
+  Uint8List _createWavHeader(
+    int sampleRate,
+    int channels,
+    int bitsPerSample,
+    int dataSize,
+  ) {
     final byteRate = sampleRate * channels * bitsPerSample ~/ 8;
     final blockAlign = channels * bitsPerSample ~/ 8;
     final totalSize = dataSize + 36;
@@ -481,7 +487,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.borderLight!),
+                border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _ttsLog.isEmpty ? 'TTS 日志将显示在这里...' : _ttsLog,
@@ -507,7 +513,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isShengtongConnecting ? null : () => _testShengtongConnect(useWss: false),
+                    onPressed: _isShengtongConnecting
+                        ? null
+                        : () => _testShengtongConnect(useWss: false),
                     icon: _isShengtongConnecting
                         ? const SizedBox(
                             width: 16,
@@ -521,7 +529,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isShengtongConnecting ? null : () => _testShengtongConnect(useWss: true),
+                    onPressed: _isShengtongConnecting
+                        ? null
+                        : () => _testShengtongConnect(useWss: true),
                     icon: const Icon(AppIcons.lock),
                     label: const Text('测试 WSS'),
                   ),
@@ -540,7 +550,9 @@ class _AudioTestPageState extends State<AudioTestPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(AppIcons.http),
-                label: Text(_isShengtongHttpTesting ? 'HTTP 评测中...' : '测试 HTTP 评测'),
+                label: Text(
+                  _isShengtongHttpTesting ? 'HTTP 评测中...' : '测试 HTTP 评测',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.warning,
                   foregroundColor: AppColors.surface,
@@ -563,7 +575,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.borderLight!),
+                border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _shengtongLog.isEmpty ? '声通日志将显示在这里...' : _shengtongLog,
@@ -579,17 +591,17 @@ class _AudioTestPageState extends State<AudioTestPage> {
             _buildInfoCard(
               'DashScope TTS',
               '• 使用 HTTP SSE 流式合成\n'
-              '• 模型: qwen3-tts-flash (标准模型)\n'
-              '• 支持流式播放和文件保存\n'
-              '• 需要配置 qwen_api_key',
+                  '• 模型: qwen3-tts-flash (标准模型)\n'
+                  '• 支持流式播放和文件保存\n'
+                  '• 需要配置 qwen_api_key',
             ),
             const SizedBox(height: 8),
             _buildInfoCard(
               '声通评测',
               '• 使用测试密钥连接\n'
-              '• 支持 sent.eval (句子评测)\n'
-              '• 验证 sig 算法是否正确\n'
-              '• 生产环境请使用 AppKeysService 加载密钥',
+                  '• 支持 sent.eval (句子评测)\n'
+                  '• 验证 sig 算法是否正确\n'
+                  '• 生产环境请使用 AppKeysService 加载密钥',
             ),
           ],
         ),

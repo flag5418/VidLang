@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/providers/device_type_provider.dart';
@@ -16,8 +17,6 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/app_keys_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/views/main/main_page.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
@@ -31,7 +30,11 @@ class LoginPage extends ConsumerStatefulWidget {
   final bool requireSupabaseReauth;
   final String? initialEmail;
 
-  const LoginPage({super.key, this.requireSupabaseReauth = false, this.initialEmail});
+  const LoginPage({
+    super.key,
+    this.requireSupabaseReauth = false,
+    this.initialEmail,
+  });
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -147,7 +150,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 20)),
+          padding: EdgeInsets.symmetric(
+            horizontal: Adaptive.w(context, 16),
+            vertical: Adaptive.h(context, 20),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,9 +162,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               const SizedBox(height: 40),
               if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
               const SizedBox(height: 16),
-              if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else if (_tab == _LoginTab.local) _buildLocalForm() else _buildAuthForm(),
+              if (_mode == _AuthMode.verifyOtp)
+                _buildOtpForm()
+              else if (_tab == _LoginTab.local)
+                _buildLocalForm()
+              else
+                _buildAuthForm(),
               const SizedBox(height: 24),
-              if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
+              if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp)
+                _buildToggleMode(),
               SizedBox(height: Adaptive.h(context, 20)),
             ],
           ),
@@ -178,15 +190,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 左侧品牌区
-            Expanded(
-              flex: 4,
-              child: _buildBrandPanel(colorScheme),
-            ),
+            Expanded(flex: 4, child: _buildBrandPanel(colorScheme)),
             // 右侧表单区
-            Expanded(
-              flex: 6,
-              child: _buildIpadFormPanel(colorScheme),
-            ),
+            Expanded(flex: 6, child: _buildIpadFormPanel(colorScheme)),
           ],
         ),
       ),
@@ -201,8 +207,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withValues(alpha: brightness == Brightness.dark ? 0.25 : 0.15),
-            AppColors.primary.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.08),
+            AppColors.primary.withValues(
+              alpha: brightness == Brightness.dark ? 0.25 : 0.15,
+            ),
+            AppColors.primary.withValues(
+              alpha: brightness == Brightness.dark ? 0.15 : 0.08,
+            ),
           ],
         ),
       ),
@@ -218,7 +228,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   color: colorScheme.primaryContainer.withValues(alpha: 0.4),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(AppIcons.schoolFill, color: colorScheme.primary, size: Adaptive.w(context, 72)),
+                child: Icon(
+                  AppIcons.schoolFill,
+                  color: colorScheme.primary,
+                  size: Adaptive.w(context, 72),
+                ),
               ),
               SizedBox(height: Adaptive.h(context, 24)),
               Text(
@@ -251,16 +265,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return Container(
       color: colorScheme.surface,
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 60), vertical: Adaptive.h(context, 80)),
+        padding: EdgeInsets.symmetric(
+          horizontal: Adaptive.w(context, 60),
+          vertical: Adaptive.h(context, 80),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
             const SizedBox(height: 16),
-            if (_mode == _AuthMode.verifyOtp) _buildOtpForm() else if (_tab == _LoginTab.local) _buildLocalForm() else _buildAuthForm(),
+            if (_mode == _AuthMode.verifyOtp)
+              _buildOtpForm()
+            else if (_tab == _LoginTab.local)
+              _buildLocalForm()
+            else
+              _buildAuthForm(),
             const SizedBox(height: 24),
-            if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp) _buildToggleMode(),
+            if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp)
+              _buildToggleMode(),
           ],
         ),
       ),
@@ -274,7 +297,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildLogo() {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: EdgeInsets.only(top: Adaptive.h(context, 40), bottom: Adaptive.h(context, 32)),
+      padding: EdgeInsets.only(
+        top: Adaptive.h(context, 40),
+        bottom: Adaptive.h(context, 32),
+      ),
       child: Column(
         children: [
           Container(
@@ -283,7 +309,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               color: colorScheme.primaryContainer.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
-            child: Icon(AppIcons.schoolFill, color: colorScheme.primary, size: Adaptive.w(context, 48)),
+            child: Icon(
+              AppIcons.schoolFill,
+              color: colorScheme.primary,
+              size: Adaptive.w(context, 48),
+            ),
           ),
           SizedBox(height: Adaptive.h(context, 16)),
           Text(
@@ -328,7 +358,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Center(
               child: Text(
                 '忘记密码？',
-                style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: Adaptive.sp(context, 13),
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
@@ -350,8 +383,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              _countdownSeconds > 0 ? '${_countdownSeconds}s 后可重新发送' : '没收到验证码？',
-              style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
+              _countdownSeconds > 0
+                  ? '${_countdownSeconds}s 后可重新发送'
+                  : '没收到验证码？',
+              style: TextStyle(
+                fontSize: Adaptive.sp(context, 13),
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             GestureDetector(
               onTap: _countdownSeconds == 0 && !_loading ? _resendOtp : null,
@@ -359,7 +397,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ' 重新发送',
                 style: TextStyle(
                   fontSize: Adaptive.sp(context, 13),
-                  color: _countdownSeconds == 0 ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                  color: _countdownSeconds == 0
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -372,7 +412,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           child: Center(
             child: Text(
               '返回修改邮箱',
-              style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: Adaptive.sp(context, 13),
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),
@@ -387,9 +430,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      style: TextStyle(color: colorScheme.onSurface, fontSize: Adaptive.sp(context, 15)),
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: Adaptive.sp(context, 15),
+      ),
       decoration: _inputDecoration('邮箱地址', AppIcons.email),
-      readOnly: widget.requireSupabaseReauth && widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty,
+      readOnly:
+          widget.requireSupabaseReauth &&
+          widget.initialEmail != null &&
+          widget.initialEmail!.trim().isNotEmpty,
       onSubmitted: (_) => _passwordFocus.requestFocus(),
       contextMenuBuilder: null,
     );
@@ -401,11 +450,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       controller: _passwordController,
       focusNode: _passwordFocus,
       obscureText: _obscurePassword,
-      textInputAction: _mode == _AuthMode.login ? TextInputAction.done : TextInputAction.next,
-      style: TextStyle(color: colorScheme.onSurface, fontSize: Adaptive.sp(context, 15)),
+      textInputAction: _mode == _AuthMode.login
+          ? TextInputAction.done
+          : TextInputAction.next,
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: Adaptive.sp(context, 15),
+      ),
       decoration: _inputDecoration('密码', AppIcons.lock).copyWith(
         suffixIcon: IconButton(
-          icon: Icon(_obscurePassword ? AppIcons.visibilityOff : AppIcons.visibility, color: colorScheme.onSurfaceVariant, size: Adaptive.sp(context, 20)),
+          icon: Icon(
+            _obscurePassword ? AppIcons.visibilityOff : AppIcons.visibility,
+            color: colorScheme.onSurfaceVariant,
+            size: Adaptive.sp(context, 20),
+          ),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
       ),
@@ -421,9 +479,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       focusNode: _otpFocus,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
-      style: TextStyle(color: colorScheme.onSurface, fontSize: Adaptive.sp(context, 22), letterSpacing: 8, fontWeight: FontWeight.w600),
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: Adaptive.sp(context, 22),
+        letterSpacing: 8,
+        fontWeight: FontWeight.w600,
+      ),
       textAlign: TextAlign.center,
-      decoration: _inputDecoration('请输入验证码', null).copyWith(counterText: '', contentPadding: const EdgeInsets.symmetric(vertical: 16)),
+      decoration: _inputDecoration('请输入验证码', null).copyWith(
+        counterText: '',
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      ),
       onSubmitted: (_) => _verifyOtp(),
       contextMenuBuilder: null,
     );
@@ -433,12 +499,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: Adaptive.sp(context, 15)),
-      prefixIcon: icon != null ? Icon(icon, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8), size: Adaptive.sp(context, 22)) : null,
+      hintStyle: TextStyle(
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        fontSize: Adaptive.sp(context, 15),
+      ),
+      prefixIcon: icon != null
+          ? Icon(
+              icon,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+              size: Adaptive.sp(context, 22),
+            )
+          : null,
       filled: true,
       fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: BorderSide.none,
+      ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
@@ -447,34 +528,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         borderRadius: BorderRadius.circular(AppRadius.md),
         borderSide: BorderSide(color: colorScheme.error, width: 1),
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 20), vertical: Adaptive.h(context, 16)),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: Adaptive.w(context, 20),
+        vertical: Adaptive.h(context, 16),
+      ),
     );
   }
 
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
-    final colorScheme = Theme.of(context).colorScheme;
+    // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton，TDLoading 替换 CircularProgressIndicator
     return SizedBox(
       height: Adaptive.h(context, 52),
-      child: ElevatedButton(
-        onPressed: _loading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          disabledBackgroundColor: colorScheme.primary.withAlpha(100),
-          disabledForegroundColor: colorScheme.onPrimary.withAlpha(150),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
-          elevation: 0,
-        ),
-        child: _loading
-            ? SizedBox(
-                width: Adaptive.w(context, 24),
-                height: Adaptive.w(context, 24),
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: Theme.of(context).colorScheme.primary),
-              )
-            : Text(
-                label,
-                style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600, letterSpacing: 0.5),
-              ),
+      child: TDButton(
+        text: _loading ? '' : label,
+        onTap: _loading ? null : onPressed,
+        type: TDButtonType.fill,
+        theme: TDButtonTheme.primary,
       ),
     );
   }
@@ -490,12 +559,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
       child: Row(
         children: [
-          Icon(AppIcons.error, color: colorScheme.error, size: Adaptive.sp(context, 18)),
+          Icon(
+            AppIcons.error,
+            color: colorScheme.error,
+            size: Adaptive.sp(context, 18),
+          ),
           SizedBox(width: 8),
           Expanded(
             child: Text(
               _error!,
-              style: TextStyle(color: colorScheme.error, fontSize: Adaptive.sp(context, 13)),
+              style: TextStyle(
+                color: colorScheme.error,
+                fontSize: Adaptive.sp(context, 13),
+              ),
             ),
           ),
         ],
@@ -512,7 +588,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       children: [
         Text(
           isLogin ? '没有账号？' : '已有账号？',
-          style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.onSurfaceVariant),
+          style: TextStyle(
+            fontSize: Adaptive.sp(context, 14),
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         GestureDetector(
           onTap: () {
@@ -523,7 +602,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           },
           child: Text(
             isLogin ? ' 立即注册' : ' 去登录',
-            style: TextStyle(fontSize: Adaptive.sp(context, 14), color: colorScheme.primary, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: Adaptive.sp(context, 14),
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -566,7 +649,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           decoration: BoxDecoration(
             color: isActive ? colorScheme.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(AppRadius.xs),
-            boxShadow: isActive ? [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppColors.textPrimary.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Text(
             label,
@@ -574,7 +665,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             style: TextStyle(
               fontSize: Adaptive.sp(context, 14),
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              color: isActive ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+              color: isActive
+                  ? colorScheme.onSurface
+                  : colorScheme.onSurfaceVariant,
             ),
           ),
         ),
@@ -604,7 +697,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       controller: _localUsernameController,
       focusNode: _localUsernameFocus,
       textInputAction: TextInputAction.next,
-      style: TextStyle(color: colorScheme.onSurface, fontSize: Adaptive.sp(context, 15)),
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: Adaptive.sp(context, 15),
+      ),
       decoration: _inputDecoration('用户名', AppIcons.person),
       onSubmitted: (_) => _localPasswordFocus.requestFocus(),
     );
@@ -617,15 +713,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       focusNode: _localPasswordFocus,
       obscureText: _obscureLocalPassword,
       textInputAction: TextInputAction.done,
-      style: TextStyle(color: colorScheme.onSurface, fontSize: Adaptive.sp(context, 15)),
+      style: TextStyle(
+        color: colorScheme.onSurface,
+        fontSize: Adaptive.sp(context, 15),
+      ),
       decoration: _inputDecoration('密码', AppIcons.lock).copyWith(
         suffixIcon: IconButton(
           icon: Icon(
-            _obscureLocalPassword ? AppIcons.visibilityOff : AppIcons.visibility,
+            _obscureLocalPassword
+                ? AppIcons.visibilityOff
+                : AppIcons.visibility,
             color: colorScheme.onSurfaceVariant,
             size: Adaptive.sp(context, 20),
           ),
-          onPressed: () => setState(() => _obscureLocalPassword = !_obscureLocalPassword),
+          onPressed: () =>
+              setState(() => _obscureLocalPassword = !_obscureLocalPassword),
         ),
       ),
       onSubmitted: (_) => _submitLocalLogin(),
@@ -651,7 +753,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      await AuthService.instance.signInLocal(username: username, password: password);
+      await AuthService.instance.signInLocal(
+        username: username,
+        password: password,
+      );
       if (!mounted) return;
       _navigateToMain();
     } on AuthException catch (e) {
@@ -671,7 +776,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (widget.requireSupabaseReauth) {
       if (widget.initialEmail != null &&
           widget.initialEmail!.trim().isNotEmpty &&
-          email.trim().toLowerCase() != widget.initialEmail!.trim().toLowerCase()) {
+          email.trim().toLowerCase() !=
+              widget.initialEmail!.trim().toLowerCase()) {
         setState(() => _error = '请使用当前主账号邮箱验证');
         return;
       }
@@ -709,15 +815,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             limit: 1,
           );
           if (existing.isNotEmpty) {
-            final existingEmail = (existing.first.email ?? existing.first.username).trim().toLowerCase();
+            final existingEmail =
+                (existing.first.email ?? existing.first.username)
+                    .trim()
+                    .toLowerCase();
             final inputEmail = email.trim().toLowerCase();
             if (existingEmail.isNotEmpty && existingEmail != inputEmail) {
-              final ok = await _confirmSwitchSupabase(existingEmail, inputEmail);
+              final ok = await _confirmSwitchSupabase(
+                existingEmail,
+                inputEmail,
+              );
               if (!ok) return;
             }
           }
         }
-        await AuthService.instance.signInWithEmail(email: email, password: password);
+        await AuthService.instance.signInWithEmail(
+          email: email,
+          password: password,
+        );
         if (!mounted) return;
         _navigateToMain();
       } else {
@@ -725,7 +840,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           setState(() => _error = '请先验证主账号后再继续');
           return;
         }
-        await AuthService.instance.signUpWithEmail(email: email, password: password);
+        await AuthService.instance.signUpWithEmail(
+          email: email,
+          password: password,
+        );
         if (!mounted) return;
         _pendingEmail = email;
         _pendingPassword = password;
@@ -762,7 +880,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     try {
-      await AuthService.instance.verifySignUpOtp(email: _pendingEmail!, token: otp, password: _pendingPassword);
+      await AuthService.instance.verifySignUpOtp(
+        email: _pendingEmail!,
+        token: otp,
+        password: _pendingPassword,
+      );
       if (!mounted) return;
       _navigateToMain();
     } on AuthException catch (e) {
@@ -777,7 +899,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (_pendingEmail == null || _pendingPassword == null) return;
     setState(() => _loading = true);
     try {
-      await AuthService.instance.signUpWithEmail(email: _pendingEmail!, password: _pendingPassword!);
+      await AuthService.instance.signUpWithEmail(
+        email: _pendingEmail!,
+        password: _pendingPassword!,
+      );
       if (!mounted) return;
       _startCountdown();
       _otpController.clear();
@@ -792,10 +917,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   void _navigateToMain() {
     AppKeysService.loadFromRemote();
-    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainPage()), (route) => false);
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainPage()),
+      (route) => false,
+    );
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+    return RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    ).hasMatch(email);
   }
 }

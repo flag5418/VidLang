@@ -7,6 +7,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/score_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/widgets/app_dialogs.dart';
 
 class AiEvaluationSheet extends StatefulWidget {
   final String videoCode;
@@ -80,9 +81,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
 
       if (breakdown.allRecords.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('暂无跟读记录，请先跟读后再请求AI点评')));
+          AppToast.show(context, '暂无跟读记录，请先跟读后再请求AI点评', type: ToastType.warning);
         }
         return;
       }
@@ -153,9 +152,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('AI点评请求失败')));
+        AppToast.show(context, 'AI点评请求失败', type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _loading = false);

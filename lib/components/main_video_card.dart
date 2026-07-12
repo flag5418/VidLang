@@ -12,10 +12,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_radius.dart';
-import 'package:vidlang/theme/app_spacing.dart';
-import 'package:vidlang/theme/app_typography.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -53,7 +49,8 @@ class _MainVideoCardState extends State<MainVideoCard> {
     final cardHeight = (screenWidth - (Adaptive.w(context, 16))) * 9 / 16;
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
 
-    final cover = (widget.video.currentCover != null &&
+    final cover =
+        (widget.video.currentCover != null &&
             widget.video.currentCover!.isNotEmpty)
         ? widget.video.currentCover
         : widget.video.cover;
@@ -81,8 +78,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
                     return Image.file(
                       File(path),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          _placeholder(context, colors),
+                      errorBuilder: (_, _, _) => _placeholder(context, colors),
                     );
                   }
                   return _placeholder(context, colors);
@@ -119,11 +115,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
     final isPad = Adaptive.of(context);
     return Row(
       children: [
-        Icon(
-          icon,
-          size: Adaptive.sp(context, 18),
-          color: colors.textSecondary,
-        ),
+        Icon(icon, size: Adaptive.sp(context, 18), color: colors.textSecondary),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
@@ -172,11 +164,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
     );
   }
 
-  Widget _buildMenu(
-    BuildContext context,
-    AppColorsData colors,
-    bool isPad,
-  ) {
+  Widget _buildMenu(BuildContext context, AppColorsData colors, bool isPad) {
     return Positioned(
       bottom: Adaptive.h(context, 8),
       right: Adaptive.w(context, 12),
@@ -243,12 +231,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
             items.add(
               PopupMenuItem(
                 value: 'aiConversation',
-                child: _menuRow(
-                  context,
-                  AppIcons.forum,
-                  'AI 对话',
-                  colors,
-                ),
+                child: _menuRow(context, AppIcons.forum, 'AI 对话', colors),
               ),
             );
           }
@@ -256,12 +239,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
             items.add(
               PopupMenuItem(
                 value: 'unitTest',
-                child: _menuRow(
-                  context,
-                  AppIcons.quiz,
-                  '单元测试',
-                  colors,
-                ),
+                child: _menuRow(context, AppIcons.quiz, '单元测试', colors),
               ),
             );
           }
@@ -305,9 +283,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      colors.primary,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
                     minHeight: 4,
                   ),
                 ),
@@ -339,7 +315,11 @@ class _MainVideoCardState extends State<MainVideoCard> {
                 SizedBox(height: Adaptive.h(context, 2)),
                 Row(
                   children: [
-                    const Icon(AppIcons.schedule, size: 10, color: Colors.white70),
+                    const Icon(
+                      AppIcons.schedule,
+                      size: 10,
+                      color: Colors.white70,
+                    ),
                     SizedBox(width: Adaptive.w(context, 4)),
                     Text(
                       '${widget.video.currentPositionString} / ${widget.video.durationString}',

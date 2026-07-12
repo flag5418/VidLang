@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/forum/forum_service.dart';
 import '../providers/forum_providers.dart';
 
@@ -8,7 +7,7 @@ final adminAuthProvider = FutureProvider<bool>((ref) async {
   try {
     final supabase = ref.watch(supabaseProvider);
     final user = supabase.auth.currentUser;
-    
+
     if (user == null) {
       return false;
     }
@@ -56,15 +55,17 @@ final forumStatsProvider = FutureProvider((ref) async {
 });
 
 // 管理操作状态 providers
-final moderatePostProvider = StateNotifierProvider<ModeratePostNotifier, ModeratePostState>((ref) {
-  final forumService = ref.watch(forumServiceProvider);
-  return ModeratePostNotifier(forumService);
-});
+final moderatePostProvider =
+    StateNotifierProvider<ModeratePostNotifier, ModeratePostState>((ref) {
+      final forumService = ref.watch(forumServiceProvider);
+      return ModeratePostNotifier(forumService);
+    });
 
-final moderateCommentProvider = StateNotifierProvider<ModerateCommentNotifier, ModerateCommentState>((ref) {
-  final forumService = ref.watch(forumServiceProvider);
-  return ModerateCommentNotifier(forumService);
-});
+final moderateCommentProvider =
+    StateNotifierProvider<ModerateCommentNotifier, ModerateCommentState>((ref) {
+      final forumService = ref.watch(forumServiceProvider);
+      return ModerateCommentNotifier(forumService);
+    });
 
 // 管理操作状态类
 class ModeratePostState {
@@ -72,17 +73,9 @@ class ModeratePostState {
   final String? error;
   final bool success;
 
-  ModeratePostState({
-    this.isLoading = false,
-    this.error,
-    this.success = false,
-  });
+  ModeratePostState({this.isLoading = false, this.error, this.success = false});
 
-  ModeratePostState copyWith({
-    bool? isLoading,
-    String? error,
-    bool? success,
-  }) {
+  ModeratePostState copyWith({bool? isLoading, String? error, bool? success}) {
     return ModeratePostState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -123,34 +116,28 @@ class ModeratePostNotifier extends StateNotifier<ModeratePostState> {
 
   Future<void> approvePost(int postId) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // 实现帖子审核通过逻辑
       // 这里需要调用管理员边缘函数
       await Future.delayed(const Duration(seconds: 1)); // 模拟网络请求
-      
+
       state = state.copyWith(isLoading: false, success: true);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<void> rejectPost(int postId, {String? reason}) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // 实现帖子审核拒绝逻辑
       await Future.delayed(const Duration(seconds: 1)); // 模拟网络请求
-      
+
       state = state.copyWith(isLoading: false, success: true);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
@@ -167,33 +154,27 @@ class ModerateCommentNotifier extends StateNotifier<ModerateCommentState> {
 
   Future<void> approveComment(int commentId) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // 实现评论审核通过逻辑
       await Future.delayed(const Duration(seconds: 1)); // 模拟网络请求
-      
+
       state = state.copyWith(isLoading: false, success: true);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
   Future<void> rejectComment(int commentId, {String? reason}) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // 实现评论审核拒绝逻辑
       await Future.delayed(const Duration(seconds: 1)); // 模拟网络请求
-      
+
       state = state.copyWith(isLoading: false, success: true);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 

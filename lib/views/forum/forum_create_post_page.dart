@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/forum/forum_category.dart';
 import '../../models/forum/forum_post.dart';
@@ -13,13 +14,14 @@ class ForumCreatePostPage extends ConsumerStatefulWidget {
   final String? initialResourceType;
 
   const ForumCreatePostPage({
-    Key? key,
+    super.key,
     this.initialPostType,
     this.initialResourceType,
-  }) : super(key: key);
+  });
 
   @override
-  ConsumerState<ForumCreatePostPage> createState() => _ForumCreatePostPageState();
+  ConsumerState<ForumCreatePostPage> createState() =>
+      _ForumCreatePostPageState();
 }
 
 class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
@@ -37,9 +39,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   final List<String> _postTypes = [
     'discussion',
-    'resource', 
+    'resource',
     'help',
-    'feedback'
+    'feedback',
   ];
 
   final List<String> _resourceTypes = [
@@ -47,14 +49,14 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     'audio',
     'article',
     'image',
-    'other'
+    'other',
   ];
 
   final Map<String, String> _postTypeLabels = {
     'discussion': '学习讨论',
     'resource': '资源分享',
     'help': '求助问答',
-    'feedback': '反馈建议'
+    'feedback': '反馈建议',
   };
 
   final Map<String, String> _resourceTypeLabels = {
@@ -62,7 +64,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     'audio': '音频',
     'article': '文章',
     'image': '图片',
-    'other': '其他'
+    'other': '其他',
   };
 
   @override
@@ -91,16 +93,13 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
         elevation: 1,
+        // ✅ TDesign 规范：使用 TDButton 替换 TextButton
         actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _submitPost,
-            child: _isLoading
-                ? SizedBox(
-                    width: Adaptive.w(context, 20),
-                    height: Adaptive.w(context, 20),
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('发布'),
+          TDButton(
+            text: _isLoading ? '' : '发布',
+            onTap: _isLoading ? null : _submitPost,
+            type: TDButtonType.text,
+            theme: TDButtonTheme.primary,
           ),
         ],
       ),
@@ -143,7 +142,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-        border: Border.all(color: AppColors.borderLight!),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,10 +176,12 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
                     });
                   }
                 },
-                selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                selectedColor: Theme.of(
+                  context,
+                ).primaryColor.withValues(alpha: 0.2),
                 labelStyle: TextStyle(
-                  color: isSelected 
-                      ? Theme.of(context).primaryColor 
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
                       : AppColors.textSecondary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -198,7 +199,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-        border: Border.all(color: AppColors.borderLight!),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: TextFormField(
         controller: _titleController,
@@ -228,17 +229,17 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
   Widget _buildCategorySelector() {
     final categoriesAsync = ref.watch(forumCategoriesProvider);
-    
+
     return Container(
       padding: EdgeInsets.all(Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-        border: Border.all(color: AppColors.borderLight!),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: categoriesAsync.when(
         data: (categories) => DropdownButtonFormField<int>(
-          value: _selectedCategoryId,
+          initialValue: _selectedCategoryId,
           decoration: InputDecoration(
             labelText: '选择分类 *',
             border: InputBorder.none,
@@ -247,7 +248,10 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
               color: AppColors.textSecondary,
             ),
           ),
-          style: TextStyle(fontSize: Adaptive.sp(context, 16), color: AppColors.textPrimary),
+          style: TextStyle(
+            fontSize: Adaptive.sp(context, 16),
+            color: AppColors.textPrimary,
+          ),
           items: categories.map((category) {
             return DropdownMenuItem<int>(
               value: category.id,
@@ -266,16 +270,12 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
             });
           },
         ),
-        loading: () => Container(
+        loading: () => SizedBox(
           height: Adaptive.h(context, 50),
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
+          child: const Center(child: CircularProgressIndicator()),
         ),
-        error: (error, stack) => Text(
-          '加载分类失败: $error',
-          style: TextStyle(color: AppColors.error),
-        ),
+        error: (error, stack) =>
+            Text('加载分类失败: $error', style: TextStyle(color: AppColors.error)),
       ),
     );
   }
@@ -286,7 +286,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-        border: Border.all(color: AppColors.borderLight!),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: TextFormField(
         controller: _contentController,
@@ -322,7 +322,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)!),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +338,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
           SizedBox(height: Adaptive.h(context, 12)),
           // 资源类型选择
           DropdownButtonFormField<String>(
-            value: _selectedResourceType,
+            initialValue: _selectedResourceType,
             decoration: InputDecoration(
               labelText: '资源类型',
               border: OutlineInputBorder(
@@ -401,7 +401,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-        border: Border.all(color: AppColors.borderLight!),
+        border: Border.all(color: AppColors.borderLight),
       ),
       child: TextFormField(
         controller: _tagsController,
@@ -419,49 +419,16 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     );
   }
 
+  // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
       height: Adaptive.h(context, 50),
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _submitPost,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
-          ),
-          elevation: 2,
-        ),
-        child: _isLoading
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: Adaptive.w(context, 20),
-                    height: Adaptive.w(context, 20),
-                    child: const CircularProgressIndicator(
-                      color: AppColors.surface,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                  SizedBox(width: Adaptive.w(context, 8)),
-                  Text(
-                    '发布中...',
-                    style: TextStyle(
-                      fontSize: Adaptive.sp(context, 16),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              )
-            : Text(
-                '发布帖子',
-                style: TextStyle(
-                  fontSize: Adaptive.sp(context, 16),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+      child: TDButton(
+        text: _isLoading ? '' : '发布帖子',
+        onTap: _isLoading ? null : _submitPost,
+        type: TDButtonType.fill,
+        theme: TDButtonTheme.primary,
       ),
     );
   }
@@ -494,9 +461,12 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
         'content': _contentController.text.trim(),
         'category_id': _selectedCategoryId!,
         'post_type': _selectedPostType,
-        if (_selectedResourceType != null) 'resource_type': _selectedResourceType,
-        if (_resourceUrlController.text.isNotEmpty) 'resource_url': _resourceUrlController.text.trim(),
-        if (_resourceDescriptionController.text.isNotEmpty) 'resource_description': _resourceDescriptionController.text.trim(),
+        if (_selectedResourceType != null)
+          'resource_type': _selectedResourceType,
+        if (_resourceUrlController.text.isNotEmpty)
+          'resource_url': _resourceUrlController.text.trim(),
+        if (_resourceDescriptionController.text.isNotEmpty)
+          'resource_description': _resourceDescriptionController.text.trim(),
         if (tags.isNotEmpty) 'tags': tags,
       };
 
@@ -505,20 +475,9 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
       // 成功提示
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(AppIcons.checkCircle, color: AppColors.surface),
-                SizedBox(width: Adaptive.w(context, 8)),
-                const Text('帖子发布成功！'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        
+        // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+        TDToast.showSuccess('帖子发布成功！', context: context);
+
         // 返回论坛主页
         Navigator.of(context).pop();
       }
@@ -537,7 +496,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
   Future<void> _mockCreatePost(Map<String, dynamic> postData) async {
     // 模拟网络延迟
     await Future.delayed(const Duration(seconds: 2));
-    
+
     // 模拟创建帖子的逻辑
     print('📝 创建帖子:');
     print('   标题: ${postData['title']}');
@@ -550,7 +509,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
     if (postData['tags'] != null) {
       print('   标签: ${postData['tags']}');
     }
-    
+
     // 模拟随机失败率（测试错误处理）
     if (DateTime.now().millisecond < 100) {
       throw Exception('网络连接失败');
@@ -558,18 +517,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(AppIcons.error, color: AppColors.surface),
-            SizedBox(width: Adaptive.w(context, 8)),
-            Text(message),
-          ],
-        ),
-        backgroundColor: AppColors.error,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
+    TDToast.showFail(message, context: context);
   }
 }
