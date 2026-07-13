@@ -238,19 +238,23 @@ chore(structure): 重组 docs 目录结构
 
 ## 九、知识库索引
 
+> **文档已精简重构（2026-07-13）**，详见 `docs/DOCUMENTATION_INDEX.md`
+
 | 文档 | 路径 | 说明 |
 |------|------|------|
+| 文档总索引 | `docs/DOCUMENTATION_INDEX.md` | **首选入口**：目录结构 + 快速查找指南 |
 | AI 上下文速查 | `docs/AGENT_CONTEXT.md` | AI 快速恢复认知 |
-| 整体架构 | `docs/developer/architecture/overall-architecture.md` | 三引擎架构 |
-| 代码结构 | `docs/developer/design/code-knowledge-base/flutter-code-structure.md` | Flutter 代码结构 |
-| 数据库设计 | `docs/developer/design/code-knowledge-base/database-design.md` | SQLite 设计 |
-| 服务架构 | `docs/developer/design/code-knowledge-base/services-architecture.md` | 服务层架构 |
-| Supabase 集成 | `docs/developer/design/code-knowledge-base/supabase-integration.md` | 云端同步 |
-| AI 集成 | `docs/developer/design/code-knowledge-base/ai-service-integration.md` | DeepSeek 集成 |
-| TDesign 组件 | `docs/developer/design/code-knowledge-base/tdesign-components.md` | UI 组件库 |
+| **架构总览** | `docs/architecture/overview.md` | 产品定位 + 导航(4Tab) + 技术栈 + 开发阶段 |
+| **数据库设计** | `docs/architecture/database-schema.md` | 22表 ERD + DDL + 计费表 + 字段规范 |
+| 代码结构 | `docs/reference/flutter-code-structure.md` | Flutter 代码目录详解 |
+| 服务架构 | `docs/reference/services-architecture.md` | 服务层架构（51个服务） |
+| Supabase 集成 | `docs/reference/supabase-integration.md` | 云端同步 |
+| AI 集成 | `docs/reference/ai-service-integration.md` | DeepSeek 集成 |
+| TDesign 组件 | `docs/reference/tdesign-components.md` | UI 组件库 |
 
 ---
 
-**文档版本**：V1.0
-**创建时间**：2026-07-12
+**文档版本**：V1.1
+**更新时间**：2026-07-13
+**变更**: 知识库路径同步至精简后的 docs/ 新结构
 **来源**：从 `项目全局规则.md` 提取核心规则，供 AI 自动加载
