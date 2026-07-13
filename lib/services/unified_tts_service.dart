@@ -32,9 +32,9 @@ class TtsResult {
 
 /// 统一 TTS 服务
 ///
-/// 分流策略（符合 docs/AI 计费体系与 Edge Function 架构设计.md §6.4）：
+/// 分流策略（符合 docs/modules/billing-redesign.md §TTS 双路径）：
 /// - 免费模式 → 原生系统 TTS（iOS AVSpeechSynthesizer / Android TTS），无需 AI 模型
-/// - 收费模式 → 云端 ai-proxy Edge Function → 阿里云 qwen-tts
+/// - 收费模式 → DashScope HTTP SSE 直连（阿里云 qwen3-tts-flash）
 ///
 /// 性能优化：
 /// - 持久化磁盘缓存（Documents/tts_cache/，基于文本 SHA256 hash 文件名）
@@ -173,10 +173,10 @@ class UnifiedTtsService {
 
   // ─── 云端 TTS ─────────────────────────────
 
-  /// 云端 TTS（阿里云 via ai-proxy）
+  /// 云端 TTS（DashScope HTTP SSE 直连）
   ///
   /// 1. 先查本地持久化缓存 → 命中直接返回（毫秒级）
-  /// 2. 未命中则调用 Edge Function → 写入持久化缓存
+  /// 2. 未命中则调用 DashScope API → 写入持久化缓存
   Future<TtsResult> _synthesizeCloud({required String text}) async {
     final cacheKey = _computeHash(text);
     final sw = Stopwatch()..start();

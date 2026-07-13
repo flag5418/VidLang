@@ -7,11 +7,14 @@ import 'package:vidlang/services/ai_service.dart';
 import 'package:vidlang/services/ios_native_features.dart';
 import 'package:vidlang/services/tts_service.dart';
 
-/// 原生翻译/TTS/词典封装（免费模式用）
+/// 原生功能封装（免费模式 iOS 使用）
 /// 聚合 IosNativeFeatures + TtsService + AiService
 /// 
-/// 免费模式：使用 iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
-/// 收费模式：使用 ai-proxy Edge Function（阿里 Qwen）
+/// **严格按订阅模式分流**：
+/// - 免费模式（仅 iOS）：使用 iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
+/// - 收费模式（iOS + Android）：使用 ai-proxy Edge Function（DeepSeek / 阿里云 TTS）
+/// 
+/// 注意：本地模型（LocalAiService / LocalModelService / MarianMT / Piper TTS）已移除
 class NativeService {
   static NativeService? _instance;
   static NativeService get instance => _instance ??= NativeService._();
@@ -19,8 +22,8 @@ class NativeService {
 
   /// 查单词释义（按免费/收费模式走统一服务）
   /// 
-  /// 免费模式：iOS 原生翻译 + 本地 MarianMT 并行
-  /// 收费模式：AiService.getDefinition（ai-proxy Edge Function）
+  /// - 收费模式：AiService.getDefinition（ai-proxy Edge Function → DeepSeek）
+  /// - 免费模式（仅 iOS）：IosNativeFeatures.translate（MLTranslation）
   static Future<WordCardData> lookupWord(
     String word, {
     required SubscriptionMode mode,

@@ -939,18 +939,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     for (final s in parsed.sentences) {
       s.articleCode = articleCode;
     }
-    for (final ch in parsed.chapters) {
-      ch.articleCode = articleCode;
-    }
     for (final p in parsed.paragraphs) {
       p.articleCode = articleCode;
     }
 
     if (parsed.sentences.isNotEmpty) {
       await DatabaseService.batchInsert(parsed.sentences);
-    }
-    if (parsed.chapters.isNotEmpty) {
-      await DatabaseService.batchInsert(parsed.chapters);
     }
     if (parsed.paragraphs.isNotEmpty) {
       await DatabaseService.batchInsert(parsed.paragraphs);

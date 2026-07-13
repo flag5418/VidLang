@@ -292,13 +292,13 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           // 顶部品牌区
           Padding(
-            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 20), Adaptive.h(context, 24), Adaptive.w(context, 20), Adaptive.h(context, 20)),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             child: Row(
               children: [
                 // 大图标
                 Container(
-                  width: Adaptive.w(context, 56),
-                  height: Adaptive.w(context, 56),
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(14),
@@ -309,7 +309,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     size: Adaptive.sp(context, 30),
                   ),
                 ),
-                SizedBox(width: Adaptive.w(context, 16)),
+                const SizedBox(width: 16),
                 // 标题 + 副标题
                 Expanded(
                   child: Column(
@@ -323,7 +323,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: Adaptive.h(context, 4)),
+                      const SizedBox(height: 4),
                       Text(
                         '看视频、听音乐、读文章，轻松学英语',
                         style: TextStyle(
@@ -340,7 +340,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           // 底部统计区（白色背景）
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 16)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: const BorderRadius.vertical(
@@ -400,7 +400,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: Adaptive.sp(context, 18), color: color),
-          SizedBox(height: Adaptive.h(context, 4)),
+          const SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
@@ -409,7 +409,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               color: colorScheme.onSurface,
             ),
           ),
-          SizedBox(height: Adaptive.h(context, 2)),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
@@ -425,7 +425,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildStatDivider(ColorScheme colorScheme) {
     return Container(
       width: 1,
-      height: Adaptive.h(context, 32),
+      height: 32,
       color: colorScheme.outlineVariant.withValues(alpha: 0.3),
     );
   }
@@ -461,7 +461,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 10)),
+        const SizedBox(height: 10),
         // 三行横排卡片
         _buildResourceRow(
           type: 'video',
@@ -471,7 +471,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        const SizedBox(height: 8),
         _buildResourceRow(
           type: 'music',
           title: '音频',
@@ -480,7 +480,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        const SizedBox(height: 8),
         _buildResourceRow(
           type: 'article',
           title: '文章',
@@ -509,7 +509,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return GestureDetector(
       onTap: () => _goToResources(type),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 14), vertical: Adaptive.h(context, 12)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(12),
@@ -522,15 +522,15 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             // 图标
             Container(
-              width: Adaptive.w(context, 36),
-              height: Adaptive.w(context, 36),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, size: Adaptive.sp(context, 20), color: color),
             ),
-            SizedBox(width: Adaptive.w(context, 12)),
+            const SizedBox(width: 12),
             // 中间内容区
             Expanded(
               child: hasFolders
@@ -552,7 +552,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              SizedBox(width: Adaptive.w(context, 4)),
+              const SizedBox(width: 4),
             ],
             Icon(
               AppIcons.chevronRight,
@@ -1017,51 +1017,67 @@ class _HomePageState extends ConsumerState<HomePage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 4,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 40), vertical: Adaptive.h(context, 40)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildBrandStatsCard(colorScheme, brightness, surfaceColor),
-                SizedBox(height: Adaptive.h(context, 24)),
-                _buildResourceSection(colorScheme, brightness, surfaceColor),
-              ],
-            ),
-          ),
-        ),
-        Container(
-          width: 0.5,
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-        Expanded(
-          flex: 6,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 40), vertical: Adaptive.h(context, 40)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+    // iPad 使用与 iPhone 相同的单列布局，只是间距更大
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Adaptive.w(context, 24), Adaptive.h(context, 24), Adaptive.w(context, 24), 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 品牌 + 学习统计（固定区域）
+          _buildBrandStatsCard(colorScheme, brightness, surfaceColor),
+          SizedBox(height: Adaptive.h(context, 20)),
+          // 资源中心（固定区域）
+          _buildResourceSection(colorScheme, brightness, surfaceColor),
+          SizedBox(height: Adaptive.h(context, 20)),
+          // 最近学习标题 + 查看更多（固定区域）
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(left: Adaptive.w(context, 4)),
+                child: Text(
                   '最近学习',
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 16),
+                    fontSize: Adaptive.sp(context, 18),
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: Adaptive.h(context, 12)),
-                Expanded(
-                  child: _buildRecentList(colorScheme, brightness, surfaceColor),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LearningHistoryPage()),
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '查看更多',
+                      style: TextStyle(
+                        fontSize: Adaptive.sp(context, 14),
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    Icon(
+                      AppIcons.chevronRight,
+                      size: Adaptive.sp(context, 18),
+                      color: colorScheme.primary,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
-      ],
+          SizedBox(height: Adaptive.h(context, 12)),
+          // 最近学习列表（可滚动区域，占据剩余空间）
+          Expanded(
+            child: _buildRecentList(colorScheme, brightness, surfaceColor),
+          ),
+        ],
+      ),
     );
   }
 }

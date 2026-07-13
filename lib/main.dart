@@ -4,9 +4,10 @@
 ///
 /// 初始化流程：
 /// 1. 确保Flutter绑定初始化
-/// 2. 注册数据库实体
-/// 3. 初始化屏幕适配（ScreenUtil）
-/// 4. 渲染应用根组件
+/// 2. 从本地存储读取设备类型，无则检测并写入
+/// 3. 注册数据库实体
+/// 4. 初始化屏幕适配（ScreenUtil）
+/// 5. 渲染应用根组件
 ///
 /// 主题说明：
 /// - 支持亮色/暗色主题
@@ -28,7 +29,6 @@ import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/article_bookmark.dart';
-import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/base_entity.dart';
@@ -46,11 +46,12 @@ import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_tag.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/models/device_type.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
+import 'package:vidlang/services/device_info_service.dart';
 import 'package:vidlang/services/global_error_handler.dart';
-import 'package:vidlang/services/local_ai_service.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
@@ -60,18 +61,41 @@ import 'package:vidlang/views/test/shengtong_http_test_page.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:tdesign_flutter/src/util/adaptive_extension.dart' as plugin_adaptive;
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-/// 在 runApp 之前检测设备类型，用于 ScreenUtil 初始化
-AppDeviceType _detectInitialDeviceType() {
-  final view = WidgetsBinding.instance.platformDispatcher.views.first;
-  final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
-  if (shortestSide >= 600) {
-    return AppDeviceType.ipad;
+/// 从本地存储读取设备类型，无则检测并写入
+///
+/// Storage-first 策略：
+/// 1. 先读 SharedPreferences
+/// 2. 有值则使用
+/// 3. 无值则检测并写入
+Future<AppDeviceType> _loadDeviceType() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString('device_type');
+    
+    if (stored != null && stored.isNotEmpty) {
+      // 有存储值，直接使用
+      final type = AppDeviceType.values.firstWhere(
+        (e) => e.name == stored,
+        orElse: () => AppDeviceType.iphone,
+      );
+      debugPrint('[Main] Loaded device type from storage: $type');
+      return type;
+    }
+    
+    // 无存储值，检测并写入
+    final detected = await DeviceInfoService.instance.detectDeviceType();
+    await prefs.setString('device_type', detected.name);
+    debugPrint('[Main] Detected and saved device type: $detected');
+    return detected;
+  } catch (e) {
+    debugPrint('[Main] Failed to load device type: $e');
+    return AppDeviceType.iphone; // 失败默认手机
   }
-  return AppDeviceType.iphone;
 }
 
 /// 应用入口函数
@@ -82,10 +106,12 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      final view = WidgetsBinding.instance.platformDispatcher.views.first;
-      final shortestSide =
-          view.physicalSize.shortestSide / view.devicePixelRatio;
-      if (shortestSide >= 600) {
+      // 1. 先读取本地存储的设备类型
+      final deviceType = await _loadDeviceType();
+      
+      // 2. 根据设备类型设置屏幕方向
+      if (deviceType.isTablet) {
+        // iPad: 支持所有方向
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.portraitUp,
           DeviceOrientation.portraitDown,
@@ -93,6 +119,7 @@ void main() {
           DeviceOrientation.landscapeRight,
         ]);
       } else {
+        // iPhone: 仅竖屏
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       }
 
@@ -106,11 +133,18 @@ void main() {
       // 禁用系统上下文菜单，避免 Flutter 3.46 主分支的 SystemContextMenu 断言错误
       SystemChannels.platform.invokeMethod('SystemContextMenu.disable');
 
-      // 先执行 runApp，让 Flutter 能够立刻渲染第一帧（Splash Screen）
-      // 避免因为网络请求或本地数据库初始化过慢导致长时间黑屏/白屏
-      runApp(ProviderScope(child: VidLangApp(initialDeviceType: _detectInitialDeviceType())));
+      // 3. 初始化插件缓存 (转换为插件的枚举类型)
+      plugin_adaptive.Adaptive.updateCache(
+        deviceType.isTablet 
+            ? plugin_adaptive.AppDeviceType.ipad 
+            : plugin_adaptive.AppDeviceType.iphone,
+      );
 
-      // 在后台异步进行各项繁重的初始化任务
+      // 4. 先执行 runApp，让 Flutter 能够立刻渲染第一帧（Splash Screen）
+      // 避免因为网络请求或本地数据库初始化过慢导致长时间黑屏/白屏
+      runApp(ProviderScope(child: VidLangApp(initialDeviceType: deviceType)));
+
+      // 5. 在后台异步进行各项繁重的初始化任务
       _initializeAsyncDependencies();
     },
     (error, stack) {
@@ -156,10 +190,6 @@ Future<void> _initializeAsyncDependencies() async {
         description: '错误日志表',
       ),
       'article': EntityConfig(creator: () => Article(), description: '文章表'),
-      'article_chapter': EntityConfig(
-        creator: () => ArticleChapter(),
-        description: '文章章节表（旧版，迁移中）',
-      ),
       'article_paragraph': EntityConfig(
         creator: () => ArticleParagraph(),
         description: '文章段落表',
@@ -214,11 +244,9 @@ Future<void> _initializeAsyncDependencies() async {
 
     await DeviceUtils.initialize();
 
-    // 初始化本地 AI 服务（TTS、STT、翻译模型）
-    // 不阻塞启动，失败时静默处理
-    LocalAiService.instance.initialize().catchError((e) {
-      logger.error('本地 AI 服务初始化失败', tag: 'INIT', error: e);
-    });
+    // 注意：本地模型（LocalAiService/LocalModelService）已移除
+    // - iOS 免费模式：使用 IosNativeFeatures（系统 MLTranslation / AVSpeechSynthesizer / Vision）
+    // - Android / iOS 付费模式：使用云端 AI（ai-proxy Edge Function）
   } catch (e, st) {
     logger.error('后台初始化依赖失败', tag: 'INIT', error: e, stackTrace: st);
   }
@@ -228,6 +256,11 @@ Future<void> _initializeAsyncDependencies() async {
 ///
 /// 配置应用的主题、语言、路由等全局设置。
 /// 同时监听排他性登录被顶号事件，弹出提示并跳转登录页。
+///
+/// 支持设备类型切换：
+/// - 监听 deviceTypeProvider
+/// - 当用户修改设备类型时，MaterialApp 会重新构建
+/// - 所有子组件通过 context.ts/s/rs 获取缩放值
 class VidLangApp extends StatefulWidget {
   final AppDeviceType initialDeviceType;
 
@@ -274,15 +307,25 @@ class _VidLangAppState extends State<VidLangApp> {
 
   @override
   Widget build(BuildContext context) {
-    final designSize = DeviceConfig.getDesignSize(widget.initialDeviceType);
+    return Consumer(
+      builder: (context, ref, _) {
+        // 监听设备类型，当用户修改时重新构建 MaterialApp
+        final deviceType = ref.watch(deviceTypeProvider);
+        
+        // 同步更新插件缓存 (转换为插件的枚举类型)
+        plugin_adaptive.Adaptive.updateCache(
+          deviceType.isTablet 
+              ? plugin_adaptive.AppDeviceType.ipad 
+              : plugin_adaptive.AppDeviceType.iphone,
+        );
 
-    return ScreenUtilInit(
-      designSize: designSize,
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return Consumer(
-          builder: (context, ref, _) {
+        final designSize = DeviceConfig.getDesignSize(deviceType);
+
+        return ScreenUtilInit(
+          designSize: designSize,
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
             return MaterialApp(
               title: 'VidLang',
               theme: AppTheme.lightTheme,

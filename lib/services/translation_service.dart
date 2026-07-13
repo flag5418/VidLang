@@ -3,7 +3,6 @@ import 'dart:developer' as dev;
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/models/article.dart';
-import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/article_translation.dart';
@@ -15,7 +14,6 @@ class TranslationService {
   static Future<ArticleTranslation?> translateArticle({
     required String articleCode,
     required Article article,
-    required List<ArticleChapter> chapters,
     required List<ArticleParagraph> paragraphs,
     required List<ArticleSentence> sentences,
   }) async {
@@ -70,7 +68,7 @@ class TranslationService {
       );
     }
 
-    final prompt = _buildSentenceTranslationPrompt(article, chapters, paragraphs, sentences);
+    final prompt = _buildSentenceTranslationPrompt(article, paragraphs, sentences);
     final result = await _callAiProxy(prompt, articleCode);
     if (result == null) return null;
 
@@ -105,7 +103,6 @@ class TranslationService {
 
   static String _buildSentenceTranslationPrompt(
     Article article,
-    List<ArticleChapter> chapters,
     List<ArticleParagraph> paragraphs,
     List<ArticleSentence> sentences,
   ) {

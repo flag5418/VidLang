@@ -13,7 +13,6 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article.dart';
-import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/error_log.dart';
@@ -639,14 +638,7 @@ class WifiTransferService extends ChangeNotifier {
         if (article != null) {
           folderCodes.add(article.folderCode);
           await DatabaseService.softDelete(article);
-          final chapters = await DatabaseService.findByCondition(
-            () => ArticleChapter(),
-            where: 'article_code = ? AND is_deleted = 0',
-            whereArgs: [c],
-          );
-          for (final ch in chapters) {
-            await DatabaseService.softDelete(ch);
-          }
+          // ArticleChapter 已移除，只删除 paragraphs 和 sentences
           final paragraphs = await DatabaseService.findByCondition(
             () => ArticleParagraph(),
             where: 'article_code = ? AND is_deleted = 0',
@@ -716,7 +708,7 @@ class WifiTransferService extends ChangeNotifier {
       article.contentMarkdown = contentMarkdown;
       article.wordCount = contentMarkdown.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
       await _softDeleteArticleContent(articleCode);
-      await _parseArticleChaptersAndSentences(article);
+      await _parseArticleParagraphsAndSentences(article);
     }
     await DatabaseService.update(article);
     notifyListeners();
@@ -724,14 +716,7 @@ class WifiTransferService extends ChangeNotifier {
   }
 
   Future<void> _softDeleteArticleContent(String articleCode) async {
-    final chapters = await DatabaseService.findByCondition(
-      () => ArticleChapter(),
-      where: 'article_code = ? AND is_deleted = 0',
-      whereArgs: [articleCode],
-    );
-    for (final ch in chapters) {
-      await DatabaseService.softDelete(ch);
-    }
+    // ArticleChapter 已移除，只删除 paragraphs 和 sentences
     final paragraphs = await DatabaseService.findByCondition(
       () => ArticleParagraph(),
       where: 'article_code = ? AND is_deleted = 0',
@@ -881,8 +866,8 @@ class WifiTransferService extends ChangeNotifier {
 
     await DatabaseService.insert(article);
 
-    // Parse and save chapters + sentences
-    await _parseArticleChaptersAndSentences(article);
+      // Parse and save paragraphs + sentences
+    await _parseArticleParagraphsAndSentences(article);
 
     // Upload to cloud for AI question generation
     try {
@@ -893,21 +878,16 @@ class WifiTransferService extends ChangeNotifier {
     return article;
   }
 
-  Future<void> _parseArticleChaptersAndSentences(Article article) async {
-    // 统一换行符：\r\n → \n，单独 \r → \n
+  Future<void> _parseArticleParagraphsAndSentences(Article article) async {
+    // 解析 paragraphs + sentences（无 chapter 层级）
     String normalized = article.contentMarkdown
         .replaceAll('\r\n', '\n')
         .replaceAll('\r', '\n');
     final lines = normalized.split('\n');
-    final chapters = <ArticleChapter>[];
     final paragraphs = <ArticleParagraph>[];
     final sentences = <ArticleSentence>[];
     int sentenceIndex = 0;
-    int chapterIndex = 0;
     int paragraphIndex = 0;
-    String currentChapterTitle = 'Introduction';
-    int chapterStartSentence = 0;
-    final chapterSentences = <String>[];
     // Current paragraph being built
     final paraContentLines = <String>[];
     int paraStartSentence = 0;
@@ -944,28 +924,9 @@ class WifiTransferService extends ChangeNotifier {
 
       contentLineCount++;
 
-      // Check for chapter header (# or ## or ###)
+      // Check for chapter header (# or ## or ###) — 跳过，不再创建 Chapter
       if (line.startsWith('#')) {
         flushParagraph();
-        // Save previous chapter
-        if (chapterSentences.isNotEmpty) {
-          chapters.add(
-            ArticleChapter(
-              articleCode: article.code!,
-              title: currentChapterTitle,
-              chapterIndex: chapterIndex,
-              sentenceCount: chapterSentences.length,
-              plainText: chapterSentences.join(' '),
-              startSentenceIndex: chapterStartSentence,
-              endSentenceIndex: sentenceIndex - 1,
-            )..code = const Uuid().v4().replaceAll('-', ''),
-          );
-        }
-        chapterIndex++;
-        final headerText = line.replaceAll(RegExp(r'^#+\s+'), '');
-        currentChapterTitle = headerText.isNotEmpty ? headerText : 'Chapter $chapterIndex';
-        chapterStartSentence = sentenceIndex;
-        chapterSentences.clear();
         continue;
       }
 
@@ -1007,7 +968,6 @@ class WifiTransferService extends ChangeNotifier {
               endPositionMs: sentenceIndex * 3000,
             )..code = const Uuid().v4().replaceAll('-', ''),
           );
-          chapterSentences.add(s);
         }
       } else {
         // Already split by the regex
@@ -1027,7 +987,6 @@ class WifiTransferService extends ChangeNotifier {
               endPositionMs: sentenceIndex * 3000,
             )..code = const Uuid().v4().replaceAll('-', ''),
           );
-          chapterSentences.add(s);
         }
       }
     }
@@ -1035,25 +994,7 @@ class WifiTransferService extends ChangeNotifier {
     // Flush last paragraph
     flushParagraph();
 
-    // Save last chapter
-    if (chapterSentences.isNotEmpty || chapterIndex == 0) {
-      chapters.add(
-        ArticleChapter(
-          articleCode: article.code!,
-          title: currentChapterTitle,
-          chapterIndex: chapterIndex,
-          sentenceCount: chapterSentences.length,
-          plainText: chapterSentences.join(' '),
-          startSentenceIndex: chapterStartSentence,
-          endSentenceIndex: sentenceIndex - 1,
-        )..code = const Uuid().v4().replaceAll('-', ''),
-      );
-    }
-
-    // Batch insert
-    for (final ch in chapters) {
-      await DatabaseService.insert(ch);
-    }
+    // Batch insert（不再插入 chapters）
     for (final p in paragraphs) {
       await DatabaseService.insert(p);
     }
@@ -1070,7 +1011,6 @@ class WifiTransferService extends ChangeNotifier {
     print('═══ 文章解析结果 ═══');
     print('空行数: $blankLineCount');
     print('内容行数: $contentLineCount');
-    print('章节数: ${chapters.length}');
     print('段落数: ${paragraphs.length}');
     print('句子数: ${sentences.length}');
     for (final p in paragraphs) {

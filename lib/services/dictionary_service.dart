@@ -5,11 +5,11 @@ import 'package:vidlang/services/ios_native_features.dart';
 
 /// 统一词典查询服务
 ///
-/// 按免费/收费模式分流：
-/// - 免费模式：iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
-/// - 收费模式：AiService.getDefinition（ai-proxy Edge Function → 阿里 Qwen）
+/// **严格按订阅模式分流（无 fallback、无保底）**：
+/// - 免费模式（仅 iOS）：iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
+/// - 收费模式（iOS + Android）：AiService.getDefinition（ai-proxy Edge Function → DeepSeek）
 ///
-/// 废弃了旧的 stardict.db 离线词典，统一走翻译/释义服务体系。
+/// 注意：本地模型（MarianMT / LocalAiService）已移除，stardict.db 离线词典已废弃。
 class DictionaryService {
   DictionaryService._();
   static final DictionaryService _instance = DictionaryService._();
@@ -44,6 +44,7 @@ class DictionaryService {
   }
 
   /// 免费模式查词：iOS 原生系统翻译（MLTranslation，需 iOS 17.4+）
+  /// 注意：Android 不支持免费模式，此方法仅在 iOS 免费模式下调用
   Future<WordDetail> _lookupFree({required String word}) async {
     try {
       final result = await IosNativeFeatures.translate(text: word);

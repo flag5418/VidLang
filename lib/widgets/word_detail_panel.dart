@@ -181,8 +181,8 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         !widget.data.isInsufficientBalance) {
       return _buildErrorState();
     }
-    // 本地模型返回错误信息时，也显示错误状态
-    if (widget.data.source == 'local' || widget.data.source == 'local_ai') {
+    // iOS 原生翻译返回错误信息时，也显示错误状态
+    if (widget.data.source == 'ios_translate') {
       final translation = widget.data.translation ?? '';
       final error = widget.data.error ?? '';
       if (_isErrorContent(translation) || _isErrorContent(error)) {

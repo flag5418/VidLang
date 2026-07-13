@@ -2,9 +2,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
-import 'package:vidlang/services/local_model_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/views/files/file_list_page.dart';
@@ -24,6 +24,8 @@ class _MainPageState extends ConsumerState<MainPage>
   late PageController _pageController;
   late AnimationController _animationController;
   int _currentPage = 0;
+  // 本地模型（LocalModelService）已移除，此标记保留以避免重构 _checkModelStatus 调用点
+  // ignore: unused_field
   bool _hasCheckedModels = false;
 
   @override
@@ -56,29 +58,19 @@ class _MainPageState extends ConsumerState<MainPage>
     LearningStatsService.instance.handleAppLifecycleChanged(state);
   }
 
+  // 本地模型（LocalModelService）已移除，模型状态检查不再需要
+  // iOS 免费模式使用系统原生功能（MLTranslation / AVSpeechSynthesizer），无需本地模型
   Future<void> _checkModelStatus() async {
-    if (_hasCheckedModels) return;
-    _hasCheckedModels = true;
-    try {
-      final localModelService = LocalModelService.instance;
-      final status = await localModelService.checkModelsStatus();
-      debugPrint('=== 模型状态检查 ===');
-      debugPrint('状态: $status');
-      debugPrint('canUseAiFeatures: ${localModelService.canUseAiFeatures}');
-      if (status == LocalModelStatus.missing) {
-        debugPrint('翻译模型未找到，请检查 iOS 系统翻译设置');
-      }
-    } catch (e) {
-      debugPrint('检查模型状态失败: $e');
-    }
+    _hasCheckedModels = true; // 标记为已检查，避免重复调用
   }
 
   void _onTabTapped(int index) {
     if (_currentPage == index) return;
     _currentPage = index;
-    final ipad = isIPad(context);
+    final deviceType = ref.read(deviceTypeProvider);
+    final isIpad = deviceType.isTablet;
     // iPad 布局使用 IndexedStack，不需要 PageController
-    if (!ipad) {
+    if (!isIpad) {
       _pageController.animateToPage(
         index,
         duration: const Duration(milliseconds: 300),
@@ -91,7 +83,8 @@ class _MainPageState extends ConsumerState<MainPage>
   @override
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navigationIndexProvider);
-    final ipad = isIPad(context);
+    final deviceType = ref.watch(deviceTypeProvider);
+    final isIpad = deviceType.isTablet;
 
     final pages = [
       HomePage(onNavigateToTab: () => _onTabTapped(1)),
@@ -100,7 +93,7 @@ class _MainPageState extends ConsumerState<MainPage>
       const ProfilePage(),
     ];
 
-    if (ipad) {
+    if (isIpad) {
       return _buildIpadLayout(currentIndex, pages);
     }
     return _buildIphoneLayout(currentIndex, pages);
@@ -170,22 +163,16 @@ class _MainPageState extends ConsumerState<MainPage>
     return Scaffold(
       body: Row(
         children: [
-          // 左侧边栏
+          // 左侧边栏 (固定宽度，不缩放)
           Container(
-            width: Adaptive.w(context, 220.0),
+            width: 280.0,
             color: colors.surface,
             child: Column(
               children: [
-                SizedBox(
-                  height:
-                      MediaQuery.of(context).padding.top +
-                      Adaptive.h(context, 20.0),
-                ),
+                SizedBox(height: MediaQuery.of(context).padding.top + 20.0),
                 // 品牌区
                 Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: Adaptive.w(context, 20.0),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Row(
                     children: [
                       Icon(
@@ -193,7 +180,7 @@ class _MainPageState extends ConsumerState<MainPage>
                         size: Adaptive.sp(context, 28.0),
                         color: colors.primary,
                       ),
-                      SizedBox(width: Adaptive.w(context, 10.0)),
+                      const SizedBox(width: 10.0),
                       Text(
                         'VidLang',
                         style: TextStyle(

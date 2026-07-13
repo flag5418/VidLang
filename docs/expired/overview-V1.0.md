@@ -171,7 +171,7 @@ App 入口
 |------|------|------|
 | 框架 | Flutter 3.13+ (SDK ^3.13.0) | - |
 | 状态管理 | flutter_riverpod (StateNotifierProvider.autoDispose) | - |
-| 数据库（本地） | SQLite (sqflite) + FTS5 全文检索 | 22个已注册实体 |
+| 数据库（本地） | SQLite (sqflite) + FTS5 全文检索 | 20 个已注册实体 |
 | 视频播放 | OmniPlayer（自研） | iOS AVPlayer + Android ExoPlayer |
 | 音频播放 | just_audio | 歌曲/跟读/TTS |
 | 屏幕适配 | flutter_screenutil | 设计稿 375×812 |
@@ -185,15 +185,35 @@ App 入口
 | 用户认证 | supabase-flutter Auth（Apple/Google/Email） |
 | 云端数据 | PostgreSQL（profiles, study_records 等） |
 | 文件存储 | Supabase Storage（录音文件、封面、头像） |
-| AI 能力 | Edge Functions（代理 DeepSeek API） |
-| 实时同步 | Supabase Realtime（跨设备进度同步） |
+| AI 能力 | 多通道架构（Edge Function + WebSocket 直连） | 见 §4.4 详细说明 |
+| 实时通信 | Supabase Realtime（排他性登录检测）+ Qwen WebSocket（AI 对话） | |
 | 付费 | 自研预付费钱包系统 |
 
-### 4.3 数据策略
+### 4.3 数据存储策略
 
-```
-用户操作 → 先写本地 SQLite（离线可用）→ 异步同步到 Supabase（云端）
-```
+> 核心学习数据存放在**本地 SQLite**，为支持 AI 分析将必要数据上传至 Supabase 云端。
+
+| 数据类型 | 存储位置 | 说明 |
+|----------|---------|------|
+| 学习记录（study_record） | 本地 SQLite | 离线可用，核心数据不依赖网络 |
+| 录音/评分记录 | 本地 SQLite + Supabase Storage | 本地保留原始录音，云端用于 AI 深度分析 |
+| 用户配置/设置 | 本地 config 表 | 多用户隔离，按 user_code 存储 |
+| 计费/钱包 | Supabase PostgreSQL | 充值、扣费、余额必须云端一致 |
+| 论坛/社交 | Supabase PostgreSQL + Edge Functions | 纯云端功能 |
+| AI 对话记录 | Supabase conversation_session | 云端存储，跨设备可查看历史 |
+
+### 4.4 AI 服务调用架构
+
+> AI 调用根据场景选择不同通道，**非统一走 Edge Function**。
+
+| 场景 | 通道 | 说明 |
+|------|------|------|
+| 查词释义（ai_definition） | **Edge Function** (`ai-proxy`) | 统一计费 + 缓存 |
+| AI 翻译（ai_translate） | **Edge Function** (`ai-proxy`) / iOS 系统翻译 | 免费走本地，付费走云端 |
+| TTS 语音合成 | **DashScope WebSocket 直连** | 流式合成，首包延迟低，本地缓存 |
+| STT 发音评分 | **Edge Function** (`ai-proxy` → 声通) | 上传音频 base64，返回评分 |
+| AI 对话（conversation） | **Qwen Realtime WebSocket** | 全双工实时对话流 |
+| AI 对话判分（ai_chat） | **Edge Function** (`ai-proxy`) | 批量判分 |
 
 ---
 
@@ -221,10 +241,13 @@ App 入口
 ├── ✅ Supabase Auth + 自研计费系统
 └── ✅ BillingService + GlobalErrorHandler
 
-🔄 Phase 5：社交与扩展 — 进行中
-├── ✅ 论坛模块 + AI对话 + WiFi传输
-├── ✅ 成长体系 + 拍照翻译
-└── 🚧 持续迭代中
+✅ Phase 5：社交与扩展 — 已完成核心功能
+├── ✅ 论坛模块（11 张表，完整 CRUD）
+├── ✅ AI 对话（Qwen Realtime WebSocket 全双工）
+├── ✅ WiFi 传输（设备间资源直传）
+├── ✅ 成长体系（学习统计/历史/等级）
+├── ✅ 拍照翻译（OCR + AI 翻译）
+└── 🚧 持续迭代中（体验优化/性能调优/新功能）
 ```
 
 ---

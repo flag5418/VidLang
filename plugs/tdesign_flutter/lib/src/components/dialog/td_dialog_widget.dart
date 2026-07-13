@@ -324,8 +324,10 @@ class HorizontalTextButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 标题和内容不能同时为空
-    final buttonHeight = context.s(56);
+    final defaultHeight = context.s(56);
+    final leftHeight = leftBtn.height ?? defaultHeight;
+    final rightHeight = rightBtn.height ?? defaultHeight;
+    final dividerHeight = leftHeight > rightHeight ? leftHeight : rightHeight;
     return Column(
       children: [
         const TDDivider(height: 0.5),
@@ -340,8 +342,7 @@ class HorizontalTextButtons extends StatelessWidget {
                 buttonStyle: leftBtn.style,
                 buttonType: leftBtn.type ?? TDButtonType.text,
                 buttonTheme: leftBtn.theme,
-                // fix： The button height does not fill the container.
-                height: buttonHeight,
+                height: leftHeight,
                 buttonTextFontWeight: leftBtn.fontWeight,
                 onPressed: () {
                   if (leftBtn.action != null) {
@@ -354,7 +355,7 @@ class HorizontalTextButtons extends StatelessWidget {
             ),
             TDDivider(
               width: 0.5,
-              height: buttonHeight,
+              height: dividerHeight,
             ),
             Expanded(
               child: TDDialogButton(
@@ -364,7 +365,7 @@ class HorizontalTextButtons extends StatelessWidget {
                 buttonStyle: rightBtn.style,
                 buttonType: rightBtn.type ?? TDButtonType.text,
                 buttonTheme: rightBtn.theme ?? TDButtonTheme.primary,
-                height: buttonHeight,
+                height: rightHeight,
                 buttonTextFontWeight: rightBtn.fontWeight ?? FontWeight.w600,
                 onPressed: () {
                   if (rightBtn.action != null) {

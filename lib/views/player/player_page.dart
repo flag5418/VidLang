@@ -112,6 +112,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
   }
 
   List<DeviceOrientation> _defaultOrientations() {
+    // 注意：此处无 BuildContext，使用屏幕尺寸直接检测（仅用于方向锁定）
+    // 与 deviceTypeProvider 检测逻辑一致：shortestSide >= 600 → iPad
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
     final shortestSide = view.physicalSize.shortestSide / view.devicePixelRatio;
     if (shortestSide >= 600) {

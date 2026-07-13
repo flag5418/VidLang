@@ -338,7 +338,6 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       'subtitles',
       'participle',
       'article',
-      'article_chapter',
       'article_paragraph',
       'article_sentence',
       'config',

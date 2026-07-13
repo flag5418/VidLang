@@ -1,7 +1,7 @@
 # AI 服务集成知识库
 
-> **版本**: V2.0 | **日期**: 2026-07-13
-> **状态**: ✅ 已启用 - 四通道混合 AI 架构（Edge Function + 直连 WebSocket/HTTP + iOS 原生能力）
+> **版本**: V1.1 | **日期**: 2026-07-13
+> **状态**: ✅ 已启用 - 多通道混合 AI 架构（Edge Function + 直连 WebSocket/HTTP + 本地模型）
 > **核心文件**: `lib/services/ai_service.dart` 及多个专用服务
 
 ---
@@ -9,12 +9,12 @@
 ## 📋 目录
 
 1. [架构概览](#一架构概览)
-2. [订阅模式与严格分流](#二订阅模式与严格分流)
+2. [通道分类与选路规则](#二通道分类与选路规则)
 3. [通道一：AiService → ai-proxy Edge Function](#三通道一aiservice--ai-proxy-edge-function)
-4. [通道二：TTS 直连 DashScope / iOS AVSpeech](#四通道二tts-直连-dashscope--ios-avspeech)
+4. [通道二：TTS 直连 DashScope](#四通道二tts-直连-dashscope)
 5. [通道三：STT/评测 声通 WebSocket](#五通道三stt评测-声通-websocket)
 6. [通道四：AI 对话 Qwen Realtime WebSocket](#六通道四ai-对话-qwen-realtime-websocket)
-7. [iOS 原生能力（免费模式）](#七ios-原生能力免费模式)
+7. [通道五：本地模型 LocalAiService](#七通道五本地模型-localaiservice)
 8. [WordDetail 模型](#八worddetail-模型)
 9. [缓存策略](#九缓存策略)
 10. [计费机制](#十计费机制)
@@ -26,13 +26,13 @@
 
 ### 1.1 核心原则
 
-**VidLang 的 AI 服务采用「订阅模式严格分流」——不同功能根据当前订阅模式走不同的调用路径，无 fallback、无保底、无降级。**
+**VidLang 的 AI 服务采用「多通道混合架构」——不同功能走不同的调用路径，不再有唯一的统一入口。**
 
 | 原则 | 说明 |
 |------|------|
-| **按模式分流** | 免费模式（仅 iOS）：使用 iOS 原生能力；收费模式（iOS + Android）：调用云端 AI |
+| **按功能选路** | 不同 AI 功能使用最合适的技术路径（Edge Function / WebSocket 直连 / HTTP 直连） |
 | **计费统一入口** | 所有产生费用的操作，最终都通过 `ai-proxy` Edge Function 或独立 Edge Function 完成扣费 |
-| **Android 强制收费** | Android 无原生能力支持，强制使用收费模式，不允许切换 |
+| **本地降级可选** | 部分功能支持 `preferLocal: true` 降级到 iOS 系统翻译或 ONNX 模型 |
 
 ### 1.2 整体架构图
 
@@ -54,82 +54,46 @@
 │  └─────┬────┘ └──────────────┘ └─────────────┘ └────────────────┘ │
 │        │                                                         │
 │        ▼                                                         │
-│  ┌──────────┐                                                    │
-│  │ DeepSeek/│                                                    │
-│  │ Qwen API │                                                    │
-│  └──────────┘                                                    │
-│                                                                     │
-│  ═══════════════════ iOS 免费（免费模式专用）═════════════════════  │
-│                                                                     │
-│  ┌──────────────┐ ┌──────────────────┐                             │
-│  │ IosNativeFeat │ │ LocalTtsService   │                             │
-│  │ (MLTranslat.) │ │ (AVSpeechSynth.)  │                             │
-│  └──────────────┘ └──────────────────┘                             │
+│  ┌──────────┐  ┌──────────────┐                                   │
+│  │ DeepSeek/│  │ LocalAiService│ (iOS MLTranslation / AVSpeech)   │
+│  │ Qwen API │  │ (离线降级)    │                                   │
+│  └──────────┘  └──────────────┘                                   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.3 四大通道总览
+### 1.3 五大通道总览
 
-| # | 通道名称 | 入口服务 | 协议 | 用途 | 适用模式 | 计费方式 |
-|---|---------|----------|------|------|---------|---------|
-| 1 | **Edge Function 代理** | `AiService` | HTTPS → Supabase → Qwen/DeepSeek | 查词、翻译、释义、词联、对话结算、评测分析、出题、学习建议 | **Premium only** | ai-proxy 内部扣费 |
-| 2 | **TTS 直连 / 本地** | `UnifiedTtsService` → 分流 | HTTP SSE (DashScope) / AVSpeech (iOS) | 所有语音合成 | Premium: DashScope / Free(iOS): AVSpeech | DashScope 不经 Edge Function |
-| 3 | **STT/评测直连** | `ShengtongEvaluator` | WebSocket (声通) | 发音评分、跟读评测 | **Premium only** | evaluation-storage Edge Function 记录结果 |
-| 4 | **AI 对话直连** | `QwenRealtimeService` | WebSocket (DashScope Realtime) | 口语练习实时对话 | **Premium only** | ai-conversation 创建会话 + question/answer 结算 |
-
-> ⚠️ **本地模型（ONNX/MarianMT/Piper）已完全移除**。不再存在第 5 通道。
+| # | 通道名称 | 入口服务 | 协议 | 用途 | 计费方式 |
+|---|---------|----------|------|------|---------|
+| 1 | **Edge Function 代理** | `AiService` | HTTPS → Supabase → Qwen/DeepSeek | 查词、翻译、释义、词联、对话结算、评测分析、出题、学习建议 | ai-proxy 内部扣费 |
+| 2 | **TTS 直连** | `UnifiedTtsService` → `DashScopeTtsService` | HTTP SSE (DashScope) | 所有语音合成（播放器朗读、清晰朗读、单词发音） | 不经 Edge Function，免费/按量 |
+| 3 | **STT/评测直连** | `ShengtongEvaluator` | WebSocket (声通) | 发音评分、跟读评测 | evaluation-storage Edge Function 记录结果 |
+| 4 | **AI 对话直连** | `QwenRealtimeService` | WebSocket (DashScope Realtime) | 口语练习实时对话 | ai-conversation 创建会话 + question/answer 结算 |
+| 5 | **本地模型** | `LocalAiService` | iOS MLTranslation / ONNX / AVSpeech | 翻译降级、TTS 降级 | 免费 |
 
 ---
 
-## 二、订阅模式与严格分流
+## 二、通道分类与选路规则
 
-### 2.1 订阅模式定义
+### 2.1 功能 → 通道映射表
 
-```dart
-enum SubscriptionMode {
-  free,      // 免费：仅限 iOS，使用系统原生能力
-  premium,   // 收费：云端 AI（DeepSeek / 阿里云 TTS / 声通评测）
-}
-```
+| 功能 | 主通道 | 备用通道 | 代码入口 |
+|------|--------|----------|----------|
+| **单词查词/释义** | ① AiService (`ai_definition`) | ⑤ LocalAiService (iOS 翻译) | `AiService.getDefinition()` |
+| **句子/段落翻译** | ① AiService (`ai_translate`) | ⑤ LocalAiService | `AiService.translateText()` |
+| **对话消息翻译** | ① AiService (`ai_translate_conversation`) | ⑤ LocalAiService | `AiService.translateConversationText()` |
+| **词联网络** | ① AiService (`ai_word_link`) | 无 | `AiService.callAiProxy(ruleCode:'ai_word_link')` |
+| **TTS 语音合成** | ② DashScope 直连 | ⑤ LocalTtsService (AVSpeech) | `UnifiedTtsService.synthesize()` |
+| **TTS（备用路径）** | ① AiService (`ai_tts`) — ⚠️ 死代码，无调用者 | — | `AiService.getTtsAudio()` |
+| **发音评分（声通）** | ③ ShengtongEvaluator WebSocket | — | `ShengtongEvaluator.evaluate()` |
+| **AI 评测分析** | ① AiService (`ai_audio_evaluation`) | — | `AiEvaluationService.analyzePronunciation()` |
+| **AI 对话（实时）** | ④ QwenRealtimeService WebSocket | — | `QwenRealtimeService.connect()` |
+| **对话会话创建** | ① `ai-conversation` Edge Function | — | `ConversationService.createSession()` |
+| **对话问答计费** | ① AiService (`ai_conversation_question/answer/settle`) | — | `ConversationService` 内部 |
+| **AI 出题** | ① AiService (`ai_test_plan`) | — | 测试引擎内部 |
+| **学习建议** | ① AiService (`ai_learning_suggestion`) | — | 学习模块内部 |
 
-### 2.2 平台差异
-
-| 平台 | 默认模式 | 可否切换 | 说明 |
-|------|---------|---------|------|
-| **iOS** | `free` | ✅ 可切换 | 默认免费，用户可手动切换到 premium |
-| **Android** | `premium` | ❌ 强制锁定 | 无原生能力支持，必须使用云端 AI |
-
-### 2.3 功能 → 通道映射表（按模式）
-
-#### Premium 模式（iOS + Android）
-
-| 功能 | 主通道 | 代码入口 |
-|------|--------|----------|
-| 单词查词/释义 | ① AiService (`ai_definition`) | `AiService.getDefinition()` |
-| 句子/段落翻译 | ① AiService (`ai_translate`) | `AiService.translateText()` |
-| 对话消息翻译 | ① AiService (`ai_translate_conversation`) | `AiService.translateConversationText()` |
-| 词联网络 | ① AiService (`ai_word_link`) | `AiService.callAiProxy(ruleCode:'ai_word_link')` |
-| TTS 语音合成 | ② DashScope 直连 | `UnifiedTtsService.synthesize()` |
-| 发音评分（声通） | ③ ShengtongEvaluator WebSocket | `ShengtongEvaluator.evaluate()` |
-| AI 评测分析 | ① AiService (`ai_audio_evaluation`) | `AiEvaluationService.analyzePronunciation()` |
-| AI 对话（实时） | ④ QwenRealtimeService WebSocket | `QwenRealtimeService.connect()` |
-| 对话会话创建 | ① `ai-conversation` Edge Function | `ConversationService.createSession()` |
-| 对话问答计费 | ① AiService (`ai_conversation_question/answer/settle`) | `ConversationService` 内部 |
-| AI 出题 | ① AiService (`ai_test_plan`) | 测试引擎内部 |
-| 学习建议 | ① AiService (`ai_learning_suggestion`) | 学习模块内部 |
-
-#### Free 模式（仅 iOS）
-
-| 功能 | 主通道 | 代码入口 | 备注 |
-|------|--------|----------|------|
-| 单词查词/释义 | iOS MLTranslation | `IosNativeFeatures.translateText()` → `UnifiedTranslationService` | 通过 `word_card.dart` 直接调用 |
-| 句子/段落翻译 | iOS MLTranslation | 同上 | — |
-| TTS 语音合成 | AVSpeechSynthesizer | `LocalTtsService` | 通过 `UnifiedTtsService` 分流 |
-| 发音评分 | ❌ **不可用** | — | 显示 Toast 提示升级 |
-| AI 对话 | ❌ **不可用** | — | 不显示入口或提示升级 |
-| 词联网络 | ❌ **不可用** | — | — |
-
-### 2.4 调用决策流程
+### 2.2 调用决策流程
 
 ```
 开发者需要 AI 功能
@@ -139,39 +103,36 @@ enum SubscriptionMode {
        │
        ├── 查词/翻译/释义/词联？
        │       │
-       │       ├── 当前是 Premium 模式？
-       │       │       │
-       │       │      YES → AiService.getDefinition() / translateText() / callAiProxy()
-       │       │               → ai-proxy Edge Function → DeepSeek/Qwen
+       │       ▼
+       │  AiService.getDefinition() / translateText() / callAiProxy()
        │       │
-       │       └── 当前是 Free 模式？（仅 iOS）
-       │               │
-       │              YES → IosNativeFeatures / UnifiedTranslationService
-       │                     → iOS MLTranslation（系统原生）
+       │       ├── preferLocal=true? → LocalAiService (iOS MLTranslation)
+       │       └── preferLocal=false(默认) → ai-proxy Edge Function → Qwen
        │
        ├── TTS 语音合成？
        │       │
        │       ▼
        │  UnifiedTtsService.synthesize()
        │       │
-       │       ├── 免费模式(iOS)? → LocalTtsService (AVSpeechSynthesizer)
-       │       └── 收费模式？     → DashScopeTtsService (HTTP SSE 直连)
+       │       ├── 免费模式? → LocalTtsService (AVSpeechSynthesizer)
+       │       └── 收费模式? → DashScopeTtsService (HTTP SSE 直连)
        │
        ├── 发音评测？
        │       │
-       │       ├── Premium? → ShengtongEvaluator (WebSocket 直连声通)
-       │       └── Free?    → Toast 提示「升级到 Premium 获得发音评分」
+       │       ▼
+       │  ShengtongEvaluator (WebSocket 直连声通)
+       │       + AiEvaluationService (ai_audio_evaluation, 可选 AI 分析)
        │
        ├── AI 对话？
        │       │
-       │       ├── Premium? → QwenRealtimeService (WebSocket 直连)
-       │       └── Free?    → 不显示入口 / 提示升级
+       │       ▼
+       │  QwenRealtimeService (WebSocket 直连 DashScope Realtime)
+       │       + ConversationService (会话创建/结算走 Edge Function)
        │
        └── 其他 AI 功能？
                │
                ▼
           AiService.callAiProxy(ruleCode: 'xxx')
-          （仅 Premium 可用）
 ```
 
 ---
@@ -182,7 +143,7 @@ enum SubscriptionMode {
 
 | 文件 | 说明 |
 |------|------|
-| `lib/services/ai_service.dart` | 统一 Edge Function 调用入口（**仅 Premium 模式使用**） |
+| `lib/services/ai_service.dart` | 统一 Edge Function 调用入口 |
 | `supabase/functions/ai-proxy/index.ts` | Edge Function 主路由（Deno 运行时） |
 
 ### 3.2 AiService 公共方法列表
@@ -216,8 +177,7 @@ class AiService {
 | `sourceCode` | String | ❌ | 来源标识（资源 ID），用于计费溯源 |
 | `params` | Map | ❌ | 业务参数（因 ruleCode 而异） |
 | `billing` | Map | ❌ | 显式指定计费元数据（action_key, resource_type 等） |
-
-> ⚠️ **已移除**: `preferLocal` 参数（V2.0 起）。不再支持本地模型降级。
+| `preferLocal` | bool | ❌ | 是否优先本地模型（默认 false） |
 
 ### 3.4 scene 动态映射
 
@@ -303,29 +263,30 @@ class AiService {
 
 ---
 
-## 四、通道二：TTS 直连 DashScope / iOS AVSpeech
+## 四、通道二：TTS 直连 DashScope
 
 ### 4.1 核心文件
 
 | 文件 | 说明 |
 |------|------|
-| `lib/services/unified_tts_service.dart` | TTS 统一入口（按模式分流+缓存） |
+| `lib/services/unified_tts_service.dart` | TTS 统一入口（分流+缓存） |
 | `lib/services/tts_service.dart` | TTS 业务封装（播放器集成） |
-| `lib/services/dashscope_tts_service.dart` | DashScope HTTP SSE TTS 实现（Premium） |
-| `lib/services/local_tts_service.dart` | 本地 TTS（AVSpeechSynthesizer，Free/iOS） |
+| `lib/services/dashscope_tts_service.dart` | DashScope HTTP SSE TTS 实现 |
+| `lib/services/local_tts_service.dart` | 本地 TTS（AVSpeechSynthesizer，免费模式兜底） |
 
-### 4.2 分流逻辑（严格按模式）
+### 4.2 分流逻辑
 
 ```
 UnifiedTtsService.synthesize(text)
        │
-       ├── 当前是 Free 模式？（仅 iOS 可能）
+       ├── 免费模式？
        │       │
        │      YES → LocalTtsService (AVSpeechSynthesizer)
        │               │
        │              iOS: AVSpeechSynthesizer
+       │              Android: TextToSpeech
        │
-       └── 当前是 Premium 模式？（默认，iOS + Android）
+       └── 收费模式？（默认）
                │
                ├── ① 检查磁盘缓存（SHA256 hash key, LRU, Documents/tts_cache/）
                │       │
@@ -348,7 +309,7 @@ UnifiedTtsService.synthesize(text)
 
 ### 4.4 与 ai_tts 的关系
 
-`AiService.getTtsAudio()` 方法仍然存在于代码中，它通过 `ai-proxy` Edge Function 的 `ai_tts` 路由调用千问 TTS。**但此方法当前没有任何调用者**，属于保留的死代码。所有实际的 TTS 调用均走 `UnifiedTtsService → DashScopeTtsService`（Premium）或 `LocalTtsService`（Free/iOS）路径。
+`AiService.getTtsAudio()` 方法仍然存在于代码中，它通过 `ai-proxy` Edge Function 的 `ai_tts` 路由调用千问 TTS。**但此方法当前没有任何调用者**，属于保留的死代码。所有实际的 TTS 调用均走 `UnifiedTtsService → DashScopeTtsService` 直连路径。
 
 ---
 
@@ -368,29 +329,23 @@ UnifiedTtsService.synthesize(text)
 ```
 用户录音完成
        │
-       ├── Premium 模式？
-       │       │
-       │      YES → ShengtongEvaluator.evaluate(audioPath, refText)
-       │       │
-       │       ├── WebSocket 连接 stkouyu.com
-       │       ├── 上传 PCM 音频 + 参考文本
-       │       ├── 接收结构化评测结果（ShengtongEvaluationResult）
-       │       │
-       │       ├── [可选] AiEvaluationService.analyzePronunciation()
-       │       │       │
-       │       │       ▼
-       │       │   AiService.callAiProxyRaw(ruleCode:'ai_audio_evaluation')
-       │       │   → 将声通结果发给 Qwen → 获取个性化改进建议
-       │       │
-       │       └── [必须] EvaluationStorageService.save()
-       │               │
-       │               ▼
-       │           evaluation-storage Edge Function → 写入云端
+       ▼
+ShengtongEvaluator.evaluate(audioPath, refText)
        │
-       └── Free 模式？
+       ├── WebSocket 连接 stkouyu.com
+       ├── 上传 PCM 音频 + 参考文本
+       ├── 接收结构化评测结果（ShengtongEvaluationResult）
+       │
+       ├── [可选] AiEvaluationService.analyzePronunciation()
+       │       │
+       │       ▼
+       │   AiService.callAiProxyRaw(ruleCode:'ai_audio_evaluation')
+       │   → 将声通结果发给 Qwen → 获取个性化改进建议
+       │
+       └── [必须] EvaluationStorageService.save()
                │
-              → Toast 提示「升级到 Premium 获得发音评分」
-              （不调用任何评测服务）
+               ▼
+           evaluation-storage Edge Function → 写入云端
 ```
 
 ### 5.3 密钥来源
@@ -412,7 +367,7 @@ UnifiedTtsService.synthesize(text)
 ### 6.2 调用链路
 
 ```
-用户进入 AI 对话模式（仅 Premium）
+用户进入 AI 对话模式
        │
        ├── 1. ConversationService.createSession()
        │       │
@@ -450,34 +405,42 @@ headers: {
 
 ---
 
-## 七、iOS 原生能力（免费模式）
+## 七、通道五：本地模型 LocalAiService
 
 ### 7.1 核心文件
 
 | 文件 | 说明 |
 |------|------|
-| `lib/services/ios_native_features.dart` | iOS 原生能力封装（MLTranslation / AVSpeech） |
-| `lib/services/local_tts_service.dart` | 本地 TTS（AVSpeechSynthesizer） |
-| `lib/services/unified_translation_service.dart` | 统一翻译服务（封装 iOS MLTranslation） |
+| `lib/services/local_ai_service.dart` | 本地 AI 统一入口 |
+| `lib/services/local_model_service.dart` | 模型下载/状态管理 |
+| `lib/services/local_tts_service.dart` | 本地 TTS（Piper / AVSpeech） |
+| `lib/services/local_stt_service.dart` | 本地 STT（已废弃保留） |
+| `lib/services/ios_native_features.dart` | iOS 原生能力（MLTranslation / AVSpeech） |
 
-### 7.2 支持的功能（仅 iOS 免费模式）
+### 7.2 支持的功能
 
 | 功能 | 实现方式 | 系统要求 | 质量 | 状态 |
 |------|----------|----------|------|------|
-| 翻译 (英→中) | iOS MLTranslation | iOS 17.4+ | ⭐⭐⭐⭐ | ✅ 免费模式使用 |
+| 翻译 (英→中) | iOS MLTranslation | iOS 17.4+ | ⭐⭐⭐⭐ | ✅ 可用 |
+| 翻译 (英→中) | ONNX Runtime 模型 | iOS/Android | ⭐⭐⭐ | ✅ 可用 |
 | TTS 语音合成 | AVSpeechSynthesizer | iOS 8+ | ⭐⭐⭐⭐ | ✅ 免费模式使用 |
+| TTS 语音合成 | Piper TTS (ONNX) | iOS/Android | ⭐⭐⭐ | ✅ 可选 |
+| 单词释义 | iOS TranslationService | iOS 17.4+ | ⭐⭐⭐ | ✅ 降级使用 |
+| STT 语音识别 | — | — | — | ❌ 已移除 |
 
 ### 7.3 触发条件
 
-iOS 原生能力仅在以下条件同时满足时启用：
+本地模型仅在调用方显式指定 `preferLocal: true` 时启用：
 
-1. **平台为 iOS**
-2. **当前订阅模式为 `free`**
-3. **功能本身在免费模式下可用**（查词/翻译/TTS）
+```dart
+// 示例：强制使用本地翻译
+final result = await AiService.translateText(
+  text: 'Hello world',
+  preferLocal: true,  // ← 关键参数
+);
+```
 
-不由调用方传参控制，而是由各调用方自行读取 `subscriptionProvider` 判断模式后选择对应实现。
-
-> ⚠️ **已移除**: `preferLocal` 参数、ONNX Runtime 模型、MarianMT 翻译、Piper TTS、本地 STT 等所有本地模型相关功能（V2.0 起）。
+不支持全局切换模式（文档旧版描述的 `aiModeProvider` 已不存在）。
 
 ---
 
@@ -574,10 +537,9 @@ class WordMorphology {
 |-----------|------|
 | `'native'` | 本地词典 |
 | `'ai_enriched'` | AI Edge Function 返回（含上下文增强） |
-| `'ios_translate'` | iOS 系统翻译（MLTranslation，免费模式） |
+| `'local_ai'` | 本地模型（MLTranslation/ONNX） |
+| `'ios_translate'` | iOS 系统翻译 |
 | `'ai'` | AI 错误（含余额不足） |
-
-> ⚠️ **已移除**: `'local_ai'` source 值（V2.0 起，本地模型已不存在）。
 
 ---
 
@@ -585,7 +547,7 @@ class WordMorphology {
 
 ### 9.1 单词缓存（word_cache 表）
 
-**适用范围**: `AiService.getDefinition()` 的查词结果（仅 Premium 模式）
+**适用范围**: `AiService.getDefinition()` 的查词结果
 
 | 属性 | 值 |
 |------|-----|
@@ -595,7 +557,7 @@ class WordMorphology {
 | 冲突策略 | UPSERT（`ON CONFLICT(word)`） |
 | 热度追踪 | `query_count` 字段（通过 RPC `bump_word_cache_count` 递增） |
 
-**两级缓存策略**:
+**三级缓存策略**:
 
 ```
 getDefinition('hello', contextSentence: '...')
@@ -609,7 +571,9 @@ getDefinition('hello', contextSentence: '...')
        │      完全命中 → 返回
        │      部分命中 → 仅补充 contextSentenceInfo（enrichWithContext）
        │
-       └── ③ 全部未命中 → 调用 ai-proxy (ai_definition)
+       ├── ③ preferLocal=true？尝试 iOS MLTranslation
+       │
+       └── ④ 全部未命中 → 调用 ai-proxy (ai_definition)
                │
                ▼
            写入 word_cache 表（含 cache_version）
@@ -624,7 +588,6 @@ getDefinition('hello', contextSentence: '...')
 - **不存在** `translation_cache_service.dart` 或内存级翻译缓存
 - **不存在** 全局 TTL 过期机制（依赖 `_cacheVersion` 版本失效）
 - 缓存清理通过用户手动"清除缓存"触发
-- **免费模式下查词/翻译不经过 word_cache 缓存**（直接调用 iOS 原生能力）
 
 ---
 
@@ -632,18 +595,18 @@ getDefinition('hello', contextSentence: '...')
 
 ### 10.1 计费入口汇总
 
-| 产生费用的操作 | 计费方式 | 扣费位置 | 适用模式 |
-|---------------|---------|---------|---------|
-| 查词/释义 (`ai_definition`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| 翻译 (`ai_translate`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| 词联 (`ai_word_link`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| 对话提问 (`ai_conversation_question`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| 对话回复 (`ai_conversation_answer`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| 对话结算 (`ai_conversation_settle`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| AI 评测分析 (`ai_audio_evaluation`) | pricing_rule 表费率 | ai-proxy 内部 deduct() | Premium |
-| TTS（DashScope 直连） | **不计费**（或按 DashScope API 用量） | 不经过 ai-proxy | Premium |
-| 声通评测（WebSocket 直连） | **不计费**（或按声通套餐） | 不经过 ai-proxy | Premium |
-| AI 对话实时（WebSocket 直连） | **通过 question/answer 分轮计费** | ai-proxy | Premium |
+| 产生费用的操作 | 计费方式 | 扣费位置 |
+|---------------|---------|---------|
+| 查词/释义 (`ai_definition`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| 翻译 (`ai_translate`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| 词联 (`ai_word_link`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| 对话提问 (`ai_conversation_question`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| 对话回复 (`ai_conversation_answer`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| 对话结算 (`ai_conversation_settle`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| AI 评测分析 (`ai_audio_evaluation`) | pricing_rule 表费率 | ai-proxy 内部 deduct() |
+| TTS（DashScope 直连） | **不计费**（或按 DashScope API 用量） | 不经过 ai-proxy |
+| 声通评测（WebSocket 直连） | **不计费**（或按声通套餐） | 不经过 ai-proxy |
+| AI 对话实时（WebSocket 直连） | **通过 question/answer 分轮计费** | ai-proxy |
 
 ### 10.2 费率配置
 
@@ -670,22 +633,19 @@ if (result.isInsufficientBalance) {
 
 ### ✅ 必须遵守的规范
 
-#### 1. 按模式选择正确的通道
+#### 1. 按功能选择正确的通道
 
 ```dart
-// ✅ Premium 模式：单词查词 → AiService
+// ✅ 单词查词 → AiService
 final detail = await AiService.getDefinition(word: 'hello');
 
-// ✅ Free 模式（iOS）：单词查词 → IosNativeFeatures / UnifiedTranslationService
-final translation = await UnifiedTranslationService.instance.translate(text: 'hello');
-
-// ✅ TTS 合成 → UnifiedTtsService（自动按模式分流）
+// ✅ TTS 合成 → UnifiedTtsService（不要用 AiService.getTtsAudio）
 final ttsResult = await UnifiedTtsService.instance.synthesize(text: 'Hello');
 
-// ✅ Premium 模式：发音评测 → ShengtongEvaluator
+// ✅ 发音评测 → ShengtongEvaluator
 final evalResult = await ShengtongEvaluator.evaluate(...);
 
-// ✅ Premium 模式：AI 对话 → QwenRealtimeService
+// ✅ AI 对话 → QwenRealtimeService
 await QwenRealtimeService.instance.connect(wsUrl: url, apiKey: key);
 ```
 
@@ -738,43 +698,24 @@ void _onWordTap(String word) {
 }
 ```
 
-#### 5. 模式判断正确姿势
-
-```dart
-// ✅ 正确：从 subscriptionProvider 读取当前模式
-final subState = ref.watch(subscriptionProvider);
-if (subState.mode == SubscriptionMode.premium) {
-  // 走云端 AI
-  final detail = await AiService.getDefinition(word: word);
-} else {
-  // 仅 iOS 能走到这里，走原生能力
-  final result = await UnifiedTranslationService.instance.translate(text: word);
-}
-
-// ❌ 错误：不要使用 preferLocal 或任何 fallback 逻辑
-// ❌ 错误：不要假设 Android 可以使用免费模式
-```
-
 ### ⚠️ 常见误区
 
 | 误区 | 正确做法 |
 |------|---------|
-| 认为 AiService 是唯一 AI 入口 | TTS/STT/对话各有独立通道；免费模式走 iOS 原生 |
+| 认为 AiService 是唯一 AI 入口 | TTS/STT/对话各有独立通道 |
 | 使用 `lookupWord()` 方法 | 该方法不存在，应使用 `getDefinition()` |
-| `ai_tts` 用于生产 TTS | 它是死代码，TTS 应走 `UnifiedTtsService`（自动分流） |
+| `ai_tts` 用于生产 TTS | 它是死代码，TTS 应走 `UnifiedTtsService` |
 | `ai_pronunciation_score` 用于评分 | 评测走 `ShengtongEvaluator` 直连；AI 分析走 `ai_audio_evaluation` |
-| 翻译缓存走本地 SQLite | Premium 走 Supabase `word_cache` 云端表；Free 走 iOS 原生（无缓存） |
-| 传递 `preferLocal: true` | 该参数已移除，改用模式分流 |
-| 认为 Android 可以使用免费模式 | Android 强制 premium，无原生能力支持 |
+| 翻译缓存走本地 SQLite | 实际走 Supabase `word_cache` 云端表 |
 
 ---
 
 ## 📚 相关文档
 
 - [Supabase 集成指南](./supabase-integration.md) — Edge Functions 清单与多通道架构总览
-- [计费体系设计](../modules/billing-redesign.md) — pricing_rule / billing-center / topup-config / 充值策略
+- [计费体系设计](../modules/billing-redesign.md) — pricing_rule / billing-center / 充值策略
 - [服务层架构](./services-architecture.md) — 各服务的详细说明
-- [数据库设计](./database-schema-V2.0.md) — word_cache / pricing_rule / billing_records 表结构
+- [数据库设计](./database-design.md) — word_cache / pricing_rule / billing_records 表结构
 - [架构总览](../architecture/overview-V1.1.md) — 产品架构与技术栈
 
 ---
@@ -784,8 +725,7 @@ if (subState.mode == SubscriptionMode.premium) {
 | 版本 | 日期 | 变更内容 |
 |------|------|----------|
 | V1.0 | 2026-07-12 | 初版建立（双模式 AI 架构指南） |
-| V1.1 | 2026-07-13 | 全面重写：核心假设从「统一入口」修正为「多通道混合架构」；新增 5 大通道分类；更新 WordDetail 模型；修正缓存描述 |
-| V2.0 | 2026-07-13 | **重大重构**：移除本地模型通道（第 5 通道）；删除 `preferLocal` 参数；新增「订阅模式与严格分流」章节（§2）；明确 Android 强制 premium；TTS 通道增加 iOS AVSpeech 分支（§4.2）；新增「iOS 原生能力」章节（§7）替代原本地模型章节；更新 source 值表（移除 `local_ai`）；更新决策流程图和误区表 |
+| V1.1 | 2026-07-13 | **全面重写**：核心假设从「统一入口」修正为「多通道混合架构」；新增 5 大通道分类（Edge Function/TTS直连/STT直连/对话WebSocket/本地模型）；删除不存在的 `lookupWord()`/`ai_word_lookup`/`ai_pronunciation_score`/`ai_grammar_check`；更新 WordDetail 模型为实际字段（pronounce/definitions/morphology/contextSentence 等）；修正缓存描述为 word_cache 云端表（非本地SQLite）；标注 `ai_tts` 为死代码；更新 ai-proxy 完整路由表（12 个 rule_code）；补充 TTS/STT/对话的完整调用链路 |
 
 ---
 

@@ -19,7 +19,8 @@ class ForumHomePage extends ConsumerStatefulWidget {
 class _ForumHomePageState extends ConsumerState<ForumHomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final String _selectedCategory = 'all';
+  // ignore: unused_field
+final String _selectedCategory = 'all';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 

@@ -12,6 +12,9 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/views/player/player_page.dart';
+import 'package:vidlang/views/audio_player/audio_player_page.dart';
+import 'package:vidlang/views/article/article_reader_page.dart';
 
 /// 时间范围枚举
 enum TimeRange {
@@ -139,7 +142,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           return Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(
-                Adaptive.r(builderContext, 20),
+                Adaptive.r(builderContext, 16),
               ),
             ),
             child: Container(
@@ -158,18 +161,8 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                 children: [
                   // 标题栏
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        child: Text(
-                          '取消',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: Adaptive.sp(builderContext, 15),
-                          ),
-                        ),
-                      ),
                       Text(
                         '选择日期范围',
                         style: TextStyle(
@@ -178,39 +171,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                           color: colorScheme.onSurface,
                         ),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          // 先更新状态再关闭弹窗
-                          if (tempStart.isAfter(tempEnd)) {
-                            final swap = tempStart;
-                            tempStart = tempEnd;
-                            tempEnd = swap;
-                          }
-                          Navigator.pop(dialogContext);
-                          // 使用 Future.microtask 确保 dialog 完全关闭后再 setState
-                          Future.microtask(() {
-                            if (!mounted) return;
-                            setState(() {
-                              _customStartDate = tempStart;
-                              _customEndDate = tempEnd;
-                              _selectedTimeRange = TimeRange.custom;
-                            });
-                            _loadRecords();
-                          });
-                        },
-                        child: Text(
-                          '确定',
-                          style: TextStyle(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: Adaptive.sp(builderContext, 15),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   SizedBox(height: Adaptive.h(builderContext, 20)),
-                  // 开始日期 — 使用 dialogContext 弹出日期选择器
+                  // 开始日期
                   _buildDatePickerRow(
                     pickerContext: dialogContext,
                     scaffoldContext: builderContext,
@@ -232,7 +196,63 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                     onChanged: (d) => setDialogState(() => tempEnd = d),
                     colorScheme: colorScheme,
                   ),
-                  SizedBox(height: Adaptive.h(builderContext, 16)),
+                  SizedBox(height: Adaptive.h(builderContext, 24)),
+                  // 底部按钮
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            '取消',
+                            style: TextStyle(
+                              fontSize: Adaptive.sp(builderContext, 15),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: Adaptive.w(builderContext, 12)),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (tempStart.isAfter(tempEnd)) {
+                              final swap = tempStart;
+                              tempStart = tempEnd;
+                              tempEnd = swap;
+                            }
+                            Navigator.pop(dialogContext);
+                            Future.microtask(() {
+                              if (!mounted) return;
+                              setState(() {
+                                _customStartDate = tempStart;
+                                _customEndDate = tempEnd;
+                                _selectedTimeRange = TimeRange.custom;
+                              });
+                              _loadRecords();
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            '确定',
+                            style: TextStyle(
+                              fontSize: Adaptive.sp(builderContext, 15),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -357,8 +377,9 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   // ════════════════════════════════════════════════
 
   Widget _buildIphoneLayout(ColorScheme colorScheme) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, size: Adaptive.sp(context, 18)),
@@ -462,40 +483,63 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   // ════════════════════════════════════════════════
 
   Widget _buildIpadLayout(ColorScheme colorScheme) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: Adaptive.sp(context, 20)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '学习记录',
-          style: TextStyle(
-            fontSize: Adaptive.sp(context, 19),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: colors.surface,
       body: Row(
         children: [
+          // 左侧导航栏（包含返回按钮）
           _buildIpadSideNav(colorScheme),
+          // 分割线
           Container(
             width: 0.5,
             color: colorScheme.outlineVariant.withValues(alpha: 0.3),
           ),
+          // 右侧内容区
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildIpadHeader(colorScheme),
-                Divider(
-                  height: 1,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                ),
-                Expanded(child: _buildBody(colorScheme)),
-              ],
+            child: Container(
+              color: colors.surface,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 顶部标题 + 返回按钮
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      MediaQuery.of(context).padding.top + 8,
+                      24,
+                      12,
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios_new, size: Adaptive.sp(context, 20)),
+                          onPressed: () => Navigator.pop(context),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '学习记录',
+                          style: TextStyle(
+                            fontSize: Adaptive.sp(context, 20),
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 时间筛选栏
+                  _buildIpadHeader(colorScheme),
+                  Divider(
+                    height: 1,
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                  // 学习记录列表
+                  Expanded(child: _buildBody(colorScheme)),
+                ],
+              ),
             ),
           ),
         ],
@@ -504,29 +548,15 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   }
 
   Widget _buildIpadSideNav(ColorScheme colorScheme) {
+    final colors = context.colors;
     return Container(
-      width: Adaptive.w(context, 180),
-      decoration: BoxDecoration(color: colorScheme.surfaceContainerLow),
+      width: 220,
+      decoration: BoxDecoration(color: colors.surface),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              Adaptive.w(context, 24),
-              Adaptive.h(context, MediaQuery.of(context).padding.top + 20),
-              Adaptive.w(context, 24),
-              Adaptive.h(context, 8),
-            ),
-            child: Text(
-              '资源类型',
-              style: TextStyle(
-                fontSize: Adaptive.sp(context, 15),
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          SizedBox(height: Adaptive.h(context, 12)),
+          const SizedBox(height: 80),
+          // 筛选项列表
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -549,27 +579,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         _loadRecords();
       },
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 8),
-          vertical: Adaptive.h(context, 3),
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 12),
-          vertical: Adaptive.h(context, 10),
-        ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.08)
+              ? colorScheme.primary
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
-          border: Border(
-            left: BorderSide(
-              color: isSelected ? colorScheme.primary : Colors.transparent,
-              width: 3,
-            ),
-          ),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           children: [
@@ -577,16 +594,16 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
               type.icon,
               size: Adaptive.sp(context, 20),
               color: isSelected
-                  ? colorScheme.primary
+                  ? Colors.white
                   : colorScheme.onSurfaceVariant,
             ),
-            SizedBox(width: Adaptive.w(context, 8)),
+            const SizedBox(width: 8),
             Text(
               type.label,
               style: TextStyle(
                 fontSize: Adaptive.sp(context, 15),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                color: isSelected ? Colors.white : colorScheme.onSurface,
               ),
             ),
           ],
@@ -597,15 +614,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
 
   Widget _buildIpadHeader(ColorScheme colorScheme) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        Adaptive.w(context, 32),
-        Adaptive.h(context, MediaQuery.of(context).padding.top + 16),
-        Adaptive.w(context, 24),
-        Adaptive.h(context, 12),
-      ),
+      padding: const EdgeInsets.fromLTRB(32, 12, 24, 12),
       child: Row(
         children: [
-          // 时间范围 Chip 行（标题已在 AppBar 中显示）
+          // 时间范围 Chip 行
           Expanded(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -613,7 +625,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                 children: TimeRange.values.map((range) {
                   final isSelected = _selectedTimeRange == range;
                   return Padding(
-                    padding: EdgeInsets.only(right: Adaptive.w(context, 8)),
+                    padding: const EdgeInsets.only(right: 8),
                     child: GestureDetector(
                       onTap: () => _onTimeRangeTap(range),
                       child: _buildChip(
@@ -743,10 +755,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
       child: Container(
         padding: EdgeInsets.all(Adaptive.w(context, 12)),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
             width: 0.5,
           ),
         ),
@@ -843,7 +855,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
     }
   }
 
-  /// 视频/音频详情行：播放图标 + 已学时长 / 总时长
+  /// 视频/音频详情行：播放图标 + 最后学习进度 / 总时长
   Future<Widget> _buildVideoDetail(
     String resourceCode,
     int studiedSeconds,
@@ -865,6 +877,8 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         return _simpleDetail('🕐 $studiedSeconds秒', colorScheme);
       }
       final totalSec = totalMs ~/ 1000;
+      // 使用最后播放位置作为学习进度
+      final lastPositionSec = video.currentPosition ~/ 1000;
       return Row(
         children: [
           Icon(
@@ -874,7 +888,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           ),
           SizedBox(width: Adaptive.w(context, 4)),
           Text(
-            '${_fmtDur(studiedSeconds)} / ${_fmtDur(totalSec)}',
+            '${_fmtDur(lastPositionSec)} / ${_fmtDur(totalSec)}',
             style: _detailStyle(colorScheme),
           ),
         ],
@@ -996,11 +1010,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
             limit: 1,
           );
           if (videos.isEmpty) return 0.0;
-          final totalMs = videos.first.duration;
+          final video = videos.first;
+          final totalMs = video.duration;
           if (totalMs <= 0) return 0.0;
           final totalSec = totalMs ~/ 1000;
           if (totalSec <= 0) return 0.0;
-          return (record.durationSeconds / totalSec).clamp(0.0, 1.0);
+          // 使用最后播放位置作为进度
+          final lastPositionSec = video.currentPosition ~/ 1000;
+          return (lastPositionSec / totalSec).clamp(0.0, 1.0);
         default:
           return 0.0;
       }
@@ -1025,25 +1042,36 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
     if (record.isDeleted) return;
     switch (record.resourceType) {
       case 'video':
-      case 'music':
-        Navigator.pushNamed(
+        Navigator.push(
           context,
-          '/player',
-          arguments: {
-            'code': record.resourceCode,
-            'type': record.resourceType,
-            'title': record.resourceTitle,
-          },
+          MaterialPageRoute(
+            builder: (_) => PlayerPage(
+              videoCode: record.resourceCode,
+              folderVideos: [],
+            ),
+          ),
+        );
+        break;
+      case 'music':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AudioPlayerPage(
+              videoCode: record.resourceCode,
+              folderVideos: [],
+              audioType: 'music',
+            ),
+          ),
         );
         break;
       case 'article':
-        Navigator.pushNamed(
+        Navigator.push(
           context,
-          '/articleReader',
-          arguments: {
-            'code': record.resourceCode,
-            'title': record.resourceTitle,
-          },
+          MaterialPageRoute(
+            builder: (_) => ArticleReaderPage(
+              articleCode: record.resourceCode,
+            ),
+          ),
         );
         break;
     }

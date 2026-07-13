@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:vidlang/models/device_type.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // 设备检测
 // ═══════════════════════════════════════════════════════════════
 
-/// 判断当前设备是否为 iPad（短边 >= 600pt）
-bool isIPad(BuildContext context) =>
-    MediaQuery.of(context).size.shortestSide >= 600;
+/// 判断当前设备是否为 iPad
+///
+/// 统一通过 deviceTypeProvider 获取，支持用户手动覆盖。
+/// 这是全项目唯一的设备类型判断入口。
+bool isIPad(BuildContext context) {
+  final container = ProviderScope.containerOf(context);
+  return container.read(deviceTypeProvider).isTablet;
+}
+
+/// 从 ProviderContainer 获取当前设备类型
+/// 
+/// 用于在非 Widget 上下文中获取设备类型
+AppDeviceType getDeviceTypeFromProvider(ProviderContainer container) {
+  return container.read(deviceTypeProvider);
+}
 
 // ═══════════════════════════════════════════════════════════════
 // iPad 尺寸缩放规则表（枚举）
@@ -94,7 +109,12 @@ class Adaptive {
   Adaptive._();
 
   /// 判断当前设备是否为 iPad
-  static bool of(BuildContext context) => isIPad(context);
+  /// 
+  /// 使用 ProviderContainer 读取设备类型
+  static bool of(BuildContext context) {
+    final container = ProviderScope.containerOf(context);
+    return container.read(deviceTypeProvider).isTablet;
+  }
 
   // ─── 核心适配方法 ──────────────────────────────────
 
@@ -146,9 +166,13 @@ class Adaptive {
     ScaleType type,
     double Function(num) screenUtilFn,
   ) {
-    if (isIPad(context)) {
+    final isTablet = of(context);
+    if (isTablet) {
       final scaled = value.toDouble() * DeviceScale.of(type);
-      return screenUtilFn(scaled);
+      final result = screenUtilFn(scaled);
+      // 调试日志
+      debugPrint('[Adaptive] $type: $value → $scaled → ${result.toStringAsFixed(2)} (iPad)');
+      return result;
     }
     return value.toDouble();
   }
@@ -178,8 +202,14 @@ extension AdaptiveContext on BuildContext {
   double is_(num value) => Adaptive.icon(this, value);
 
   /// 是否为 iPad 设备
-  bool get ipad => isIPad(this);
+  bool get ipad {
+    final container = ProviderScope.containerOf(this);
+    return container.read(deviceTypeProvider).isTablet;
+  }
 
   /// 是否为 iPhone 设备
-  bool get iphone => !isIPad(this);
+  bool get iphone {
+    final container = ProviderScope.containerOf(this);
+    return container.read(deviceTypeProvider).isPhone;
+  }
 }

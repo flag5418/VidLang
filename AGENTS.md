@@ -183,7 +183,15 @@ final fileProvider = StateNotifierProvider<FileNotifier, FileState>((ref) {
 - 图标统一使用 `AppIcons`（Material rounded 线性风格）
 - 间距/圆角使用 `DesignTokens` 常量
 
-### 6.5 组件规范
+### 6.5 文档版本命名规范
+
+- 所有文档文件名必须包含版本号：`{name}-V{major}.md`
+- 版本号从 V1.0 开始，每次重大更新递增主版本号
+- 过期文档移入 `docs/expired/` 目录，保留原文件名不变
+- 示例：`database-schema-V2.0.md`, `overview-V1.0.md`
+- **禁止**在文档内容中标注「旧版」「迁移中」「废弃中」等过渡性文字——只记录当前有效状态
+
+### 6.6 组件规范
 
 - 公共组件 → `lib/components/`
 - 业务组件 → `lib/widgets/`
@@ -202,10 +210,11 @@ final fileProvider = StateNotifierProvider<FileNotifier, FileState>((ref) {
 - [ ] 4. 在 `lib/providers/` 下创建状态管理
 - [ ] 5. 在 `lib/views/` 下创建页面目录和页面文件
 - [ ] 6. 如有新组件，在 `lib/components/` 或 `lib/widgets/` 下创建
-- [ ] 7. 更新本文档中的目录结构
-- [ ] 8. 更新 `docs/AGENT_CONTEXT.md`
-- [ ] 9. 更新 `docs/developer/design/code-knowledge-base/` 知识库
-- [ ] 10. 提交 Commit：`chore(structure): 新增 {模块名} 模块`
+    - [ ] 7. 更新本文档中的目录结构
+    - [ ] 8. 更新 `docs/AGENT_CONTEXT.md`
+    - [ ] 9. 更新 `docs/developer/design/code-knowledge-base/` 知识库
+    - [ ] 10. 文档文件名带版本号（如 `xxx-V2.0.md`）
+    - [ ] 11. 提交 Commit：`chore(structure): 新增 {模块名} 模块`
 
 ### 7.2 Git 提交信息
 
@@ -233,10 +242,43 @@ chore(structure): 重组 docs 目录结构
 - ❌ 在代码中硬编码颜色值
 - ❌ 混淆视频时长（毫秒）和学习记录时长（秒）
 - ❌ 随意更新 `plugs/` 下的插件
+- ❌ 机械替换函数（如把 `20.w` 直接替换成 `Adaptive.w(context, 20)` 而不思考设计意图）
 
 ---
 
-## 九、知识库索引
+## 九、自适应开发规范
+
+### 9.1 Adaptive 使用原则
+
+**核心原则：不是所有值都需要缩放，要根据设计意图决定**
+
+| 场景 | 是否缩放 | 原因 |
+|------|---------|------|
+| 页面内边距 | ✅ 是 | 不同设备需要不同留白 |
+| 卡片内部间距 | ❌ 否 | 卡片已在外层容器中，内部元素保持固定 |
+| 文字大小 | ✅ 是 | 保证可读性 |
+| 图标大小 | ✅ 是 | 与文字协调 |
+| 固定布局结构 | ❌ 否 | 如 iPhone/iPad 布局切换时的结构差异 |
+
+### 9.2 修改前检查清单
+
+在进行大规模替换前，必须：
+
+1. **理解设计意图**：这个值在什么场景下使用？是否应该随设备缩放？
+2. **列出影响范围**：哪些文件会受影响？是否有边界情况？
+3. **创建测试页面**：验证缩放效果，不要让用户当测试者
+4. **添加调试日志**：输出缩放过程，便于验证
+
+### 9.3 验证流程
+
+1. 修改完成后，先在测试页面验证缩放系数
+2. 检查调试日志确认缩放过程正确
+3. 在模拟器/真机上验证布局效果
+4. 提供验证结果截图或日志
+
+---
+
+## 十、知识库索引
 
 > **文档已精简重构（2026-07-13）**，详见 `docs/DOCUMENTATION_INDEX.md`
 
@@ -244,8 +286,8 @@ chore(structure): 重组 docs 目录结构
 |------|------|------|
 | 文档总索引 | `docs/DOCUMENTATION_INDEX.md` | **首选入口**：目录结构 + 快速查找指南 |
 | AI 上下文速查 | `docs/AGENT_CONTEXT.md` | AI 快速恢复认知 |
-| **架构总览** | `docs/architecture/overview.md` | 产品定位 + 导航(4Tab) + 技术栈 + 开发阶段 |
-| **数据库设计** | `docs/architecture/database-schema.md` | 22表 ERD + DDL + 计费表 + 字段规范 |
+| **架构总览** | `docs/architecture/overview-V1.1.md` | 产品定位 + 导航(4Tab) + 技术栈 + 开发阶段 + AI多通道架构 |
+| **数据库设计** | `docs/architecture/database-schema-V2.0.md` | SQLite 20表 + Supabase 云端表 + DDL + 字段规范 |
 | 代码结构 | `docs/reference/flutter-code-structure.md` | Flutter 代码目录详解 |
 | 服务架构 | `docs/reference/services-architecture.md` | 服务层架构（51个服务） |
 | Supabase 集成 | `docs/reference/supabase-integration.md` | 云端同步 |

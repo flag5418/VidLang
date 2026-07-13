@@ -1,17 +1,21 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/services/settings_service.dart';
 
 /// 订阅模式
+/// 
+/// **严格分流规则**：
+/// - iOS：支持 free（原生功能）和 premium（云端 AI）两种模式，用户可切换
+/// - Android：**仅支持 premium**（无原生功能），强制锁定不允许切换到 free
 enum SubscriptionMode {
-  /// 免费模式
-  /// iOS：使用系统原生翻译/OCR/TTS
-  /// Android：仅基础播放，无翻译/TTS/OCR
+  /// 免费模式（仅 iOS 可用）
+  /// 使用系统原生翻译/OCR/TTS（AVSpeechSynthesizer / MLTranslation / Vision）
   free,
 
-  /// 付费模式
+  /// 付费模式（iOS + Android 均可用）
   /// 使用 DeepSeek AI + 声通评分 + 阿里云TTS
   premium,
 }
@@ -97,15 +101,24 @@ final subscriptionProvider = StateNotifierProvider<SubscriptionNotifier, Subscri
 });
 
 class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
-  SubscriptionNotifier() : super(SubscriptionState(isIOS: Platform.isIOS)) {
+  SubscriptionNotifier() : super(SubscriptionState(
+    isIOS: Platform.isIOS,
+    // Android 强制 premium，iOS 默认 free（可切换）
+    mode: Platform.isIOS ? SubscriptionMode.free : SubscriptionMode.premium,
+  )) {
     _loadFromStorage(); // 初始化时从持久化存储加载
   }
 
   /// 从 config 表加载订阅模式
+  /// 注意：Android 会忽略存储值，强制使用 premium
   Future<void> _loadFromStorage() async {
     try {
       final modeStr = await SettingsService.getSubscriptionMode();
-      final mode = modeStr == 'premium' ? SubscriptionMode.premium : SubscriptionMode.free;
+      var mode = modeStr == 'premium' ? SubscriptionMode.premium : SubscriptionMode.free;
+      // Android 强制 premium，忽略存储的 free 设置
+      if (!state.isIOS) {
+        mode = SubscriptionMode.premium;
+      }
       if (state.mode != mode) {
         state = state.copyWith(mode: mode);
       }
@@ -115,7 +128,14 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   }
 
   /// 切换免费/付费模式（自动持久化）
+  /// 
+  /// **Android 调用此方法无效**——始终强制为 premium
   Future<void> setMode(SubscriptionMode mode) async {
+    // Android 强制锁定为 premium，不允许切换
+    if (!state.isIOS) {
+      debugPrint('⚠️ [Subscription] Android 不允许切换到免费模式，已忽略');
+      return;
+    }
     state = state.copyWith(mode: mode);
     await SettingsService.setSubscriptionMode(mode.name); // 持久化到 config 表
   }

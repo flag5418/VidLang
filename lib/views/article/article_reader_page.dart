@@ -9,7 +9,6 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/models/article_chapter.dart';
 import 'package:vidlang/models/article_paragraph.dart';
 import 'package:vidlang/models/article_sentence.dart';
 import 'package:vidlang/models/article_translation.dart';
@@ -85,7 +84,6 @@ class ArticleReaderPage extends StatefulWidget {
 
 class _ArticleReaderPageState extends State<ArticleReaderPage> {
   Article? _article;
-  List<ArticleChapter> _chapters = [];
   List<ArticleParagraph> _paragraphs = [];
   List<ArticleSentence> _sentences = [];
   bool _isLoading = true;
@@ -240,8 +238,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     _stopReadingAll();
     setState(() {
       _article = null;
-      _chapters = [];
-      _paragraphs = [];
+        _paragraphs = [];
       _sentences = [];
       _isLoading = true;
       _readSentenceIndex = 0;
@@ -311,12 +308,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       return;
     }
 
-    final chapters = await DatabaseService.findByCondition<ArticleChapter>(
-      () => ArticleChapter(),
-      where: 'article_code = ? AND is_deleted = 0',
-      whereArgs: [widget.articleCode],
-      orderBy: 'chapter_index ASC',
-    );
+    // ArticleChapter 已移除，不再查询章节
     final sentences = await DatabaseService.findByCondition<ArticleSentence>(
       () => ArticleSentence(),
       where: 'article_code = ? AND is_deleted = 0',
@@ -347,7 +339,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     setState(() {
       _article = article;
-      _chapters = chapters;
+      // _chapters 已移除
       if (_sentences.isEmpty) _sentences = sentences;
       if (_paragraphs.isEmpty) _paragraphs = paragraphs;
       _readSentenceIndex = article.lastSentenceIndex;
@@ -568,7 +560,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       final t = await TranslationService.translateArticle(
         articleCode: widget.articleCode,
         article: _article!,
-        chapters: _chapters,
         paragraphs: _paragraphs,
         sentences: _sentences,
       );

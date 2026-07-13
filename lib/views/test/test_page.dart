@@ -2163,16 +2163,27 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
           if (!_submitted) _submit();
         }
       } else {
-        // 声通不可用，降级到 Edge Function 评分
-        await _evaluateWithEdgeFunction(audioPath, coreType, refText);
+        // 声通返回空结果（可能超时或服务不可用）
+        debugPrint('⚠️ [TestPage] 声通评测返回空结果, coreType=$coreType');
+        if (mounted) {
+          setState(() {
+            _pronState = 'scored';
+            _pronScore = 0.0;
+            _pronFeedback = '评分服务暂不可用，已记录练习。';
+          });
+          _pronScore = 0.0;
+          if (!_submitted) _submit(); // 仍然允许提交
+        }
       }
     } catch (e) {
-      debugPrint('Shengtong evaluation failed, fallback to Edge Function: $e');
-      await _evaluateWithEdgeFunction(
-        audioPath,
-        type == 'word_pron' ? 'word.eval' : 'sent.eval',
-        refText,
-      );
+      debugPrint('❌ [TestPage] 声通评测异常: $e');
+      if (mounted) {
+        setState(() {
+          _pronState = 'idle';
+          _pronScore = null;
+        });
+        AppToast.show(context, '评分失败: $e', type: ToastType.error);
+      }
     } finally {
       // 清理临时文件
       try {
@@ -2181,7 +2192,10 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
     }
   }
 
-  /// 降级：通过 Edge Function 评分（使用 EvaluationApi）
+  /// ~~降级：通过 Edge Function 评分（已废弃，保留仅作参考）~~
+  /// 注意：评测严格走声通路径，不再 fallback 到 Edge Function
+  // ignore: unused_element
+  @Deprecated('评测已统一为声通路径，此方法不再被调用')
   Future<void> _evaluateWithEdgeFunction(
     String audioPath,
     String coreType,

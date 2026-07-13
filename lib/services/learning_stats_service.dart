@@ -825,7 +825,7 @@ class LearningStatsService {
             whereArgs: [resourceCode],
             limit: 1,
           );
-          return articles.isNotEmpty ? articles.first.title ?? '' : '';
+          return articles.isNotEmpty ? articles.first.title : '';
         case 'video':
         case 'music':
           final videos = await DatabaseService.findByCondition(
@@ -834,7 +834,7 @@ class LearningStatsService {
             whereArgs: [resourceCode],
             limit: 1,
           );
-          return videos.isNotEmpty ? videos.first.name ?? '' : '';
+          return videos.isNotEmpty ? videos.first.name : '';
         default:
           return '';
       }

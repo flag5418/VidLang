@@ -15,23 +15,22 @@ docs/
 ├── knowledge-base-index.yaml  ← 知识库索引
 │
 ├── architecture/              ← 【核心】架构设计（权威来源）
-│   ├── overview.md            ← 架构总览 + 导航结构 + 技术栈 + 开发阶段
-│   └── database-schema.md     ← 数据库设计（22表 ERD + DDL + 计费表）
+│   ├── overview-V1.1.md        ← 架构总览 + 导航结构 + 技术栈 + 开发阶段
+│   └── database-schema-V2.0.md ← 数据库设计（SQLite 20表 + Supabase 云端表 + DDL）
 │
 ├── modules/                   ← 【模块】各功能模块的详细设计
 │   ├── scoring-design.md      ← 跟读/跟唱评分系统设计
 │   ├── wordbook-design.md     ← 单词本系统设计
 │   ├── test-system-design.md  ← 测试引擎设计
 │   ├── ai-conversation-design.md  ← AI 对话系统设计
-│   └── billing-redesign.md    ← 计费系统重设计
+│   └── billing-redesign.md      ← 计费系统设计（V1.1，充值/扣费/优惠策略/billing-center） │
 │
 ├── reference/                 ← 【参考】代码级知识库（给 AI/开发者查）
 │   ├── flutter-code-structure.md   ← Flutter 代码结构详解
-│   ├── services-architecture.md    ← 服务层架构（51个服务）
-│   ├── database-design.md          ← 数据库设计（完整版，含查询优化）
+│   ├── services-architecture.md    ← 服务层架构（52个服务，V2.1）
 │   ├── omni-player-integration.md  ← OmniPlayer 集成指南
-│   ├── supabase-integration.md     ← Supabase 集成指南
-│   ├── ai-service-integration.md   ← AI 服务集成指南
+│   ├── supabase-integration.md     ← Supabase 集成指南（18个Edge Functions，多通道AI架构，V1.1）
+│   ├── ai-service-integration.md   ← AI 服务集成（V1.1，多通道混合架构：5大通道/12个rule_code/WordDetail模型） │
 │   ├── tdesign-components.md       ← TDesign 组件使用参考
 │   └── design-style-guide.md       ← UI 设计规范
 │
@@ -44,8 +43,8 @@ docs/
 
 | 我想了解... | 查看文档 |
 |------------|---------|
-| 产品定位、导航结构、技术栈 | `architecture/overview.md` |
-| 数据库有哪些表、字段定义 | `architecture/database-schema.md` |
+| 产品定位、导航结构、技术栈 | `architecture/overview-V1.1.md` |
+| 数据库有哪些表、字段定义 | `architecture/database-schema-V2.0.md` |
 | 评分系统怎么工作 | `modules/scoring-design.md` |
 | 单词本两档记忆体系 | `modules/wordbook-design.md` |
 | 测试引擎填空/听写/选择 | `modules/test-system-design.md` |
@@ -76,6 +75,7 @@ docs/
 
 > 以下为上一轮审查中发现的不一致，将在后续迭代中逐步修正：
 
-1. ~~导航 Tab 数量~~ → 已在 `architecture/overview.md` 中统一为 **4 Tab**
-2. ~~数据库表数量~~ → 已在 `architecture/database-schema.md` 中统一为 **22 表**
-3. ~~计费体系分散~~ → 已合并到 `database-schema.md` 第五章
+1. ~~导航 Tab 数量~~ → 已在 `architecture/overview-V1.1.md` 中统一为 **4 Tab**
+2. ~~数据库表数量~~ → 已在 `architecture/database-schema-V2.0.md` 中统一为 **20 表（本地，已移除 article_chapter）+ N 表（云端）**
+3. ~~计费体系分散~~ → 已合并到 `database-schema-V2.0.md` 第五章 + `modules/billing-redesign-V1.1.md`
+4. ~~database-design.md 与 database-schema-V2.0.md 重叠~~ → 已归档 `database-design-V2.0.md` 到 expired/，保留 `database-schema-V2.0.md` 为唯一权威数据库文档

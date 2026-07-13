@@ -7,7 +7,6 @@
 /// 4. 设置列表
 /// 5. 底部固定（退出登录）
 library;
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -17,8 +16,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/services/billing_service.dart';
 import 'package:vidlang/models/base_entity.dart';
+import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/providers/difficulty_provider.dart';
+import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
@@ -136,6 +137,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       title: '外观设置',
                       subtitle: ref.watch(themeModeProvider).label,
                       onTap: () => _showThemePicker(),
+                    ),
+                    _SettingItem(
+                      icon: Icons.devices,
+                      title: '设备类型',
+                      subtitle: ref.watch(deviceTypeProvider).isTablet
+                          ? 'iPad 布局'
+                          : 'iPhone 布局',
+                      onTap: () => _showDeviceTypeCombobox(),
                     ),
                     _SettingItem(
                       icon: AppIcons.tune,
@@ -507,17 +516,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ],
                 ),
               ),
-              // Toggle switch
-              GestureDetector(
-                onTap: () async {
-                  await ref
-                      .read(subscriptionProvider.notifier)
-                      .setMode(
-                        isPremium
-                            ? SubscriptionMode.free
-                            : SubscriptionMode.premium,
-                      );
-                },
+              // Toggle switch（仅 iOS 可切换，Android 强制 premium 不显示开关）
+              if (subState.isIOS)
+                GestureDetector(
+                  onTap: () async {
+                    await ref
+                        .read(subscriptionProvider.notifier)
+                        .setMode(
+                          isPremium
+                              ? SubscriptionMode.free
+                              : SubscriptionMode.premium,
+                        );
+                  },
                 child: Container(
                   width: Adaptive.w(context, 50),
                   height: Adaptive.h(context, 28),
@@ -543,9 +553,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         color: Colors.white,
                       ),
                     ),
+                    ),
                   ),
                 ),
-              ),
+              // Android 显示锁定图标提示（强制 premium 不可切换）
+              if (!subState.isIOS)
+                Padding(
+                  padding: EdgeInsets.only(right: Adaptive.w(context, 4)),
+                  child: Icon(
+                    AppIcons.lock,
+                    size: Adaptive.w(context, 16),
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ),
             ],
           ),
           // 付费模式下额外显示今日消费和充值按钮
@@ -1010,6 +1030,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     await AppBottomSheetMenu.show(context, title: '学习难度', items: items);
   }
 
+  void _showDeviceTypeCombobox() async {
+    final currentType = ref.read(deviceTypeProvider);
+    final result = await AppComboboxDialog.show<AppDeviceType>(
+      context,
+      title: '设备类型',
+      items: AppDeviceType.values,
+      currentValue: currentType,
+      itemBuilder: (type) => type.isTablet ? 'iPad 布局' : 'iPhone 布局',
+    );
+    if (result != null && result != currentType) {
+      await ref.read(deviceTypeProvider.notifier).setDeviceType(result);
+    }
+  }
+
   /// 设置 WiFi 传输端口 — 使用 AppInputDialog（支持 iPad 自适应）
   void _showWifiPortDialog() async {
     final result = await AppInputDialog.show(
@@ -1218,7 +1252,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Navigator.pop(buildContext);
                             if (!mounted) return;
                             setState(() => _ttsCacheLabel = '0 条缓存 · 0KB');
-                            AppToast.show(context, 'TTS 缓存已清除', type: ToastType.success);
+                            AppToast.show(
+                              context,
+                              'TTS 缓存已清除',
+                              type: ToastType.success,
+                            );
                           },
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
@@ -1252,7 +1290,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             if (newSize == null ||
                                 newSize < 5 ||
                                 newSize > 200) {
-                              AppToast.show(buildContext, '请输入 5-200 之间的数字', type: ToastType.warning);
+                              AppToast.show(
+                                buildContext,
+                                '请输入 5-200 之间的数字',
+                                type: ToastType.warning,
+                              );
                               return;
                             }
                             await SettingsService.setTtsCacheSize(newSize);
@@ -1263,7 +1305,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               _ttsCacheLabel =
                                   '${stats.count} 条缓存 · ${stats.sizeLabel}';
                             });
-                            AppToast.show(context, '已设置为 $newSize 条', type: ToastType.success);
+                            AppToast.show(
+                              context,
+                              '已设置为 $newSize 条',
+                              type: ToastType.success,
+                            );
                           },
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.symmetric(
@@ -1275,7 +1321,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               ),
                             ),
                           ),
-                          child: const Text('保存'),
+                          child: Text(
+                            '保存',
+                            style: TextStyle(
+                              fontSize: Adaptive.sp(context, 14),
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],

@@ -44,8 +44,8 @@ class _MainVideoCardState extends State<MainVideoCard> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final textStyles = context.textStyles;
-    final isPad = Adaptive.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
+final isPad = Adaptive.of(context);
+final screenWidth = MediaQuery.of(context).size.width;
     final cardHeight = (screenWidth - (Adaptive.w(context, 16))) * 9 / 16;
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
 
@@ -112,8 +112,8 @@ class _MainVideoCardState extends State<MainVideoCard> {
     String title,
     AppColorsData colors,
   ) {
-    final isPad = Adaptive.of(context);
-    return Row(
+  final _ = Adaptive.of(context);
+  return Row(
       children: [
         Icon(icon, size: Adaptive.sp(context, 18), color: colors.textSecondary),
         const SizedBox(width: AppSpacing.space2),
@@ -128,9 +128,8 @@ class _MainVideoCardState extends State<MainVideoCard> {
     );
   }
 
-  Widget _placeholder(BuildContext context, AppColorsData colors) {
-    final isPad = Adaptive.of(context);
-    return Container(
+Widget _placeholder(BuildContext context, AppColorsData colors) {
+  return Container(
       color: AppColors.cardThumbnailBg,
       child: Center(
         child: Icon(
@@ -142,9 +141,8 @@ class _MainVideoCardState extends State<MainVideoCard> {
     );
   }
 
-  Widget _buildSubtitleBadge(BuildContext context, AppColorsData colors) {
-    final isPad = Adaptive.of(context);
-    return Positioned(
+Widget _buildSubtitleBadge(BuildContext context, AppColorsData colors) {
+  return Positioned(
       top: Adaptive.w(context, 8),
       left: Adaptive.w(context, 8),
       child: Container(
@@ -164,7 +162,7 @@ class _MainVideoCardState extends State<MainVideoCard> {
     );
   }
 
-  Widget _buildMenu(BuildContext context, AppColorsData colors, bool isPad) {
+  Widget _buildMenu(BuildContext context, AppColorsData colors, bool _) {
     return Positioned(
       bottom: Adaptive.h(context, 8),
       right: Adaptive.w(context, 12),
@@ -260,9 +258,9 @@ class _MainVideoCardState extends State<MainVideoCard> {
     BuildContext context,
     AppColorsData colors,
     AppTextStylesData textStyles,
-    bool isPad,
-  ) {
-    final progress = widget.video.duration > 0
+bool _,
+) {
+  final progress = widget.video.duration > 0
         ? widget.video.currentPosition / widget.video.duration
         : 0.0;
     return Positioned(
@@ -341,10 +339,10 @@ class _MainVideoCardState extends State<MainVideoCard> {
 
   Widget _buildPlayButton(
     BuildContext context,
-    AppColorsData colors,
-    bool isPad,
-  ) {
-    final size = Adaptive.w(context, 44);
+  AppColorsData colors,
+  bool _,
+) {
+  final size = Adaptive.w(context, 44);
     return Center(
       child: Container(
         width: size,

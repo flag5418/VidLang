@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/forum/forum_service.dart';
 import '../providers/forum_providers.dart';
 
 // 管理员认证状态 provider
@@ -23,7 +22,7 @@ final adminAuthProvider = FutureProvider<bool>((ref) async {
 // 待审核帖子列表 provider
 final pendingPostsProvider = FutureProvider((ref) async {
   try {
-    final forumService = ref.watch(forumServiceProvider);
+    final _ = ref.watch(forumServiceProvider);
     // 这里需要实现获取待审核帖子的方法
     // 暂时返回空列表，后续实现
     return <dynamic>[];
@@ -35,7 +34,7 @@ final pendingPostsProvider = FutureProvider((ref) async {
 // 待审核评论列表 provider
 final pendingCommentsProvider = FutureProvider((ref) async {
   try {
-    final forumService = ref.watch(forumServiceProvider);
+    final _ = ref.watch(forumServiceProvider);
     // 这里需要实现获取待审核评论的方法
     // 暂时返回空列表，后续实现
     return <dynamic>[];
@@ -57,14 +56,12 @@ final forumStatsProvider = FutureProvider((ref) async {
 // 管理操作状态 providers
 final moderatePostProvider =
     StateNotifierProvider<ModeratePostNotifier, ModeratePostState>((ref) {
-      final forumService = ref.watch(forumServiceProvider);
-      return ModeratePostNotifier(forumService);
+      return ModeratePostNotifier();
     });
 
 final moderateCommentProvider =
     StateNotifierProvider<ModerateCommentNotifier, ModerateCommentState>((ref) {
-      final forumService = ref.watch(forumServiceProvider);
-      return ModerateCommentNotifier(forumService);
+      return ModerateCommentNotifier();
     });
 
 // 管理操作状态类
@@ -110,9 +107,7 @@ class ModerateCommentState {
 
 // 帖子审核操作类
 class ModeratePostNotifier extends StateNotifier<ModeratePostState> {
-  final ForumService _forumService;
-
-  ModeratePostNotifier(this._forumService) : super(ModeratePostState());
+  ModeratePostNotifier() : super(ModeratePostState());
 
   Future<void> approvePost(int postId) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -148,9 +143,7 @@ class ModeratePostNotifier extends StateNotifier<ModeratePostState> {
 
 // 评论审核操作类
 class ModerateCommentNotifier extends StateNotifier<ModerateCommentState> {
-  final ForumService _forumService;
-
-  ModerateCommentNotifier(this._forumService) : super(ModerateCommentState());
+  ModerateCommentNotifier() : super(ModerateCommentState());
 
   Future<void> approveComment(int commentId) async {
     state = state.copyWith(isLoading: true, error: null);

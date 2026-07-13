@@ -1,8 +1,7 @@
 # VidLang 计费体系设计
 
-> **版本**: V2.0 | **日期**: 2026-07-13
+> **版本**: V1.1 | **日期**: 2026-07-13
 > **状态**: ✅ 核心设计已实施（source_type 链路 / billing-center / topup-config / 充值页面均已完成）
-> **重要变更**: V2.0 同步代码实际状态——本地模型已彻底移除；模式分流严格化（无 fallback）；Android 强制 premium
 
 ---
 
@@ -411,10 +410,10 @@ Future<void> _speakClarityPremium(String text, ...) async {
 | 分类编码 | 用户展示名 | 图标建议 | 包含的 rule_code | 说明 |
 |---------|----------|---------|-----------------|------|
 | `translate` | 翻译 | 🌐 | `ai_translate`, `ai_translate_conversation` | 句子翻译、对话翻译 |
-| `tts` | AI 发音 | 🔊 | DashScope 直连（Premium 主力）/ AVSpeechSynthesizer（iOS Free） | AI 语音合成朗读（TTS 按订阅模式自动分流，见 §15 说明） |
+| `tts` | AI 发音 | 🔊 | DashScope 直连（主力）/ `ai_tts`（Edge Function 备用） | AI 语音合成朗读（TTS 已迁移至 App 端直连，见 §15 说明） |
 | `conversation` | AI 对话 | 💬 | `ai_conversation`, `ai_conversation_question`, `ai_conversation_answer`, `ai_conversation_settle` | 口语练习对话 |
 | `lookup` | 智能查词 | 🔍 | `ai_definition`, `ai_word_link` | 单词释义 + 词联网络 |
-| `evaluate` | 评测与测试 | 📝 | `ai_audio_evaluation`, `ai_test_plan` | 发音评分（App 端声通 WebSocket，仅 Premium）+ AI 出题 |
+| `evaluate` | 评测与测试 | 📝 | `ai_audio_evaluation`, `ai_test_plan` | 发音评分（App 端声通 WebSocket） + AI 出题 |
 
 ### 4.2 分类映射表（服务端配置）
 
@@ -1202,7 +1201,7 @@ TTS（文字转语音）存在**两条实现路径**：
 
 | 服务 | 路径 | 说明 |
 |------|------|------|
-| STT/发音评测 | `ShengtongEvaluator`（WebSocket 直连） | Premium 模式专用（Free 模式显示升级提示） |
+| STT（语音识别） | `UnifiedSttService` → `ShengtongEvaluator`（WebSocket 直连） | 收费模式专用 |
 | AI 对话 | `QwenRealtimeService`（WebSocket 直连） + `ConversationService`（`ai-conversation` Edge Function 创建会话） | 会话创建走 Edge Function，实时对话走直连 |
 
 ---
@@ -1288,7 +1287,7 @@ P2（后续 - 充值与完善）：
 | 版本 | 日期 | 变更内容 |
 |------|------|----------|
 | V1.0 | 2026-06-13 | 初始设计文档（计费体系改造方案） |
-| V2.0 | 2026-07-13 | **同步代码实际状态**：本地模型已彻底移除（LocalAiService/LocalModelService/LocalSttService/HuggingFaceTranslationService/ModelPathService/UnifiedSttService 均已删除）；TTS 分类表更新为「按模式分流」（DashScope Premium / AVSpeech Free）；STT 描述更新（移除 UnifiedSttService 引用，标注仅 Premium 可用）；评测分类标注「仅 Premium」；新增 Android 强制 premium 说明 |
+| V1.1 | 2026-07-13 | **同步审查修正**：状态更新为「核心设计已实施」；TTS 分类表标注双路径架构；充值示例数据更新为赠送模式（充50送55/充100送120）；rule_code 更新为实际名称（ai_audio_evaluation 替代 ai_evaluate）；新增 §15 TTS 双路径说明章节；usage-stats 标记为已被 billing-center 替代（8种op超原设计5种）；实施清单中已完成项标记 ✅ |
 
 ---
 

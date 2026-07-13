@@ -159,16 +159,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildLogo(),
-              const SizedBox(height: 40),
+              SizedBox(height: Adaptive.h(context, 32)),
               if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
-              const SizedBox(height: 16),
+              SizedBox(height: Adaptive.h(context, 14)),
               if (_mode == _AuthMode.verifyOtp)
                 _buildOtpForm()
               else if (_tab == _LoginTab.local)
                 _buildLocalForm()
               else
                 _buildAuthForm(),
-              const SizedBox(height: 24),
+              SizedBox(height: Adaptive.h(context, 20)),
               if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp)
                 _buildToggleMode(),
               SizedBox(height: Adaptive.h(context, 20)),
@@ -185,78 +185,146 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Widget _buildIpadLayout(ColorScheme colorScheme) {
     return Scaffold(
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 左侧品牌区
-            Expanded(flex: 4, child: _buildBrandPanel(colorScheme)),
-            // 右侧表单区
-            Expanded(flex: 6, child: _buildIpadFormPanel(colorScheme)),
-          ],
-        ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 左侧品牌区（沉浸式深蓝背景）
+          Expanded(
+            flex: 4,
+            child: _buildBrandPanel(colorScheme),
+          ),
+          // 右侧表单区（白色背景，内容居中）
+          Expanded(
+            flex: 6,
+            child: _buildIpadFormPanel(colorScheme),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBrandPanel(ColorScheme colorScheme) {
-    final brightness = Theme.of(context).brightness;
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.primary.withValues(
-              alpha: brightness == Brightness.dark ? 0.25 : 0.15,
-            ),
-            AppColors.primary.withValues(
-              alpha: brightness == Brightness.dark ? 0.15 : 0.08,
-            ),
+            Color(0xFF1E3A8A),
+            Color(0xFF1E40AF),
+            Color(0xFF2563EB),
           ],
         ),
       ),
-      child: Center(
-        child: Padding(
-          padding: EdgeInsets.all(Adaptive.w(context, 40)),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.all(Adaptive.w(context, 28)),
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer.withValues(alpha: 0.4),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  AppIcons.schoolFill,
-                  color: colorScheme.primary,
-                  size: Adaptive.w(context, 72),
-                ),
+      child: Stack(
+        children: [
+          // 装饰性圆点
+          Positioned(
+            top: Adaptive.w(context, 50),
+            right: Adaptive.w(context, 30),
+            child: Container(
+              width: Adaptive.w(context, 100),
+              height: Adaptive.w(context, 100),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.06),
               ),
-              SizedBox(height: Adaptive.h(context, 24)),
-              Text(
-                'VidLang',
-                style: TextStyle(
-                  fontSize: Adaptive.sp(context, 42),
-                  fontWeight: FontWeight.w800,
-                  color: colorScheme.onSurface,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              SizedBox(height: Adaptive.h(context, 16)),
-              Text(
-                '看视频、听英语、读文章、轻松学英语',
-                style: TextStyle(
-                  fontSize: Adaptive.sp(context, 18),
-                  fontWeight: FontWeight.w400,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
-        ),
+          Positioned(
+            bottom: Adaptive.w(context, 80),
+            left: -Adaptive.w(context, 24),
+            child: Container(
+              width: Adaptive.w(context, 150),
+              height: Adaptive.w(context, 150),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.04),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.4,
+            right: -Adaptive.w(context, 50),
+            child: Container(
+              width: Adaptive.w(context, 200),
+              height: Adaptive.w(context, 200),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.03),
+              ),
+            ),
+          ),
+          // 品牌内容
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 32)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Container(
+                    padding: EdgeInsets.all(Adaptive.w(context, 18)),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      AppIcons.schoolFill,
+                      color: Colors.white,
+                      size: Adaptive.w(context, 44),
+                    ),
+                  ),
+                  SizedBox(height: Adaptive.h(context, 24)),
+                  // 品牌名
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'VidLang',
+                      style: TextStyle(
+                        fontSize: Adaptive.sp(context, 34),
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: Adaptive.h(context, 14)),
+                  // 分割线
+                  Container(
+                    width: Adaptive.w(context, 36),
+                    height: Adaptive.h(context, 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(Adaptive.r(context, 2)),
+                    ),
+                  ),
+                  SizedBox(height: Adaptive.h(context, 18)),
+                  // 标语
+                  Text(
+                    '看视频、听英语、读文章',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 15),
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  SizedBox(height: Adaptive.h(context, 5)),
+                  Text(
+                    '轻松学英语',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 15),
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -264,27 +332,52 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildIpadFormPanel(ColorScheme colorScheme) {
     return Container(
       color: colorScheme.surface,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 60),
-          vertical: Adaptive.h(context, 80),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
-            const SizedBox(height: 16),
-            if (_mode == _AuthMode.verifyOtp)
-              _buildOtpForm()
-            else if (_tab == _LoginTab.local)
-              _buildLocalForm()
-            else
-              _buildAuthForm(),
-            const SizedBox(height: 24),
-            if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp)
-              _buildToggleMode(),
-          ],
+      child: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 36)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: Adaptive.w(context, 380)),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 24)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 欢迎标题
+                  Text(
+                    '欢迎回来',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 22),
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  SizedBox(height: Adaptive.h(context, 6)),
+                  Text(
+                    '登录以继续使用 VidLang',
+                    style: TextStyle(
+                      fontSize: Adaptive.sp(context, 13),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(height: Adaptive.h(context, 28)),
+                  if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
+                  if (!widget.requireSupabaseReauth)
+                    SizedBox(height: Adaptive.h(context, 20)),
+                  if (_mode == _AuthMode.verifyOtp)
+                    _buildOtpForm()
+                  else if (_tab == _LoginTab.local)
+                    _buildLocalForm()
+                  else
+                    _buildAuthForm(),
+                  SizedBox(height: Adaptive.h(context, 20)),
+                  if (!widget.requireSupabaseReauth &&
+                      _mode != _AuthMode.verifyOtp)
+                    _buildToggleMode(),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -346,12 +439,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildEmailField(),
-        const SizedBox(height: 16),
+        SizedBox(height: Adaptive.h(context, 14)),
         _buildPasswordField(),
-        if (_error != null) ...[const SizedBox(height: 12), _buildError()],
-        const SizedBox(height: 24),
+        if (_error != null) ...[SizedBox(height: Adaptive.h(context, 10)), _buildError()],
+        SizedBox(height: Adaptive.h(context, 20)),
         _buildPrimaryButton(isLogin ? '登录' : '发送验证码', _submitAuth),
-        const SizedBox(height: 12),
+        SizedBox(height: Adaptive.h(context, 10)),
         if (isLogin)
           GestureDetector(
             onTap: () {},
@@ -375,10 +468,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildOtpField(),
-        if (_error != null) ...[const SizedBox(height: 12), _buildError()],
-        const SizedBox(height: 24),
+        if (_error != null) ...[SizedBox(height: Adaptive.h(context, 10)), _buildError()],
+        SizedBox(height: Adaptive.h(context, 20)),
         _buildPrimaryButton('验证并完成注册', _verifyOtp),
-        const SizedBox(height: 12),
+        SizedBox(height: Adaptive.h(context, 10)),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -406,7 +499,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: Adaptive.h(context, 8)),
         GestureDetector(
           onTap: () => setState(() => _mode = _AuthMode.register),
           child: Center(
@@ -538,12 +631,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
     // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton，TDLoading 替换 CircularProgressIndicator
     return SizedBox(
-      height: Adaptive.h(context, 52),
+      height: Adaptive.h(context, 48),
       child: TDButton(
         text: _loading ? '' : label,
         onTap: _loading ? null : onPressed,
         type: TDButtonType.fill,
         theme: TDButtonTheme.primary,
+        style: TDButtonStyle(
+          backgroundColor: AppColors.primary,
+          textColor: AppColors.onPrimary,
+        ),
       ),
     );
   }
@@ -551,7 +648,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildError() {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(
+        horizontal: Adaptive.w(context, 10),
+        vertical: Adaptive.h(context, 8),
+      ),
       decoration: BoxDecoration(
         color: colorScheme.error.withAlpha(25),
         borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -562,9 +662,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Icon(
             AppIcons.error,
             color: colorScheme.error,
-            size: Adaptive.sp(context, 18),
+            size: Adaptive.sp(context, 16),
           ),
-          SizedBox(width: 8),
+          SizedBox(width: Adaptive.w(context, 8)),
           Expanded(
             child: Text(
               _error!,
@@ -682,10 +782,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildLocalUsernameField(),
-        const SizedBox(height: 16),
+        SizedBox(height: Adaptive.h(context, 14)),
         _buildLocalPasswordField(),
-        if (_error != null) ...[const SizedBox(height: 12), _buildError()],
-        const SizedBox(height: 24),
+        if (_error != null) ...[SizedBox(height: Adaptive.h(context, 10)), _buildError()],
+        SizedBox(height: Adaptive.h(context, 20)),
         _buildPrimaryButton('登录', _submitLocalLogin),
       ],
     );

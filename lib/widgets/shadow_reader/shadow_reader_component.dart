@@ -2305,15 +2305,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     debugPrint('🎤 [ShadowReader] 订阅模式: ${cfg.subscriptionMode}');
     debugPrint('🎤 [ShadowReader] 是否付费模式: $isPremium');
 
+    // 严格按模式分流：跟读评分（声通评测）仅限付费模式
     if (isPremium) {
-      debugPrint('🎤 [ShadowReader] 进入付费模式评测流程');
+      debugPrint('🎤 [ShadowReader] 进入付费模式评测流程（声通 WebSocket）');
       setState(() => _state = 'evaluating');
       _evaluateRecording(path, cfg);
     } else {
-      debugPrint('🎤 [ShadowReader] 进入免费模式评测流程');
-      // 免费模式：直接使用识别结果评分
-      setState(() => _state = 'evaluating');
-      _evaluateFreeModeRecording(path, cfg);
+      debugPrint('🎤 [ShadowReader] 免费模式不支持跟读评分，显示提示');
+      if (mounted) {
+        AppToast.show(context, '跟读评分功能仅限付费模式使用', type: ToastType.info);
+        setState(() => _state = 'idle');
+      }
     }
   }
 
@@ -2724,7 +2726,9 @@ AppToast.show(context, '录音文件不存在，请重新录音', type: ToastTyp
     }
   }
 
-  /// 免费模式评分：使用系统 speech_to_text 实时识别
+  /// ~~免费模式评分：使用系统 speech_to_text 实时识别~~
+  /// 已废弃：跟读评分仅限付费模式（声通评测），免费模式不再评分
+  // ignore: unused_element
   Future<void> _evaluateFreeModeRecording(
     String audioPath,
     ShadowReaderConfig cfg,

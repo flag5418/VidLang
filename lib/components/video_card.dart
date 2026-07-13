@@ -241,7 +241,7 @@ class _VideoCardState extends State<VideoCard> {
   }
 
   Widget _buildMoreButton(BuildContext context, AppColorsData colors) {
-    final isPad = Adaptive.of(context);
+    final _ = Adaptive.of(context);
     return Positioned(
       bottom: 4,
       right: 4,
@@ -339,7 +339,7 @@ class _VideoCardState extends State<VideoCard> {
     String title,
     AppColorsData colors,
   ) {
-    final isPad = Adaptive.of(context);
+    final _ = Adaptive.of(context);
     return Row(
       children: [
         Icon(icon, size: Adaptive.sp(context, 18), color: colors.textSecondary),
@@ -360,7 +360,7 @@ class _VideoCardState extends State<VideoCard> {
     AppColorsData colors,
     AppTextStylesData textStyles,
   ) {
-    final isPad = Adaptive.of(context);
+    final _ = Adaptive.of(context);
     return Positioned(
       bottom: 4,
       left: 4,

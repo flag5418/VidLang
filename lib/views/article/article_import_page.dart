@@ -53,12 +53,9 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
       await DatabaseService.insert(parsed.article);
       final articleCode = parsed.article.code!;
 
-      // 填充 articleCode 到句子、章节和段落
+      // 填充 articleCode 到句子和段落
       for (final s in parsed.sentences) {
         s.articleCode = articleCode;
-      }
-      for (final ch in parsed.chapters) {
-        ch.articleCode = articleCode;
       }
       for (final p in parsed.paragraphs) {
         p.articleCode = articleCode;
@@ -67,11 +64,6 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
       // 保存句子
       if (parsed.sentences.isNotEmpty) {
         await DatabaseService.batchInsert(parsed.sentences);
-      }
-
-      // 保存章节（阅读器核心依赖）
-      if (parsed.chapters.isNotEmpty) {
-        await DatabaseService.batchInsert(parsed.chapters);
       }
 
       // 保存段落

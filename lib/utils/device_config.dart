@@ -30,10 +30,15 @@ class DeviceConfig {
   static const Size ipadDesignSize = Size(834, 1194);
 
   // ============================================================
-  // 设备检测
+  // 设备检测（仅限启动时 / 非 BuildContext 场景使用）
   // ============================================================
+  // ⚠️ 正常 UI 代码请使用 deviceTypeProvider 或 isIPad(context)
+  // 以下方法仅在无法获取 BuildContext 时使用（如 ScreenUtil 初始化）
 
   /// 根据屏幕尺寸检测设备类型
+  ///
+  /// ⚠️ 仅用于启动时 ScreenUtil 初始化等非 BuildContext 场景。
+  /// UI 层请使用 deviceTypeProvider 或 isIPad(context)。
   static AppDeviceType detectFromSize(Size size) {
     final shortestSide = size.shortestSide;
     if (shortestSide >= 600) {
@@ -43,6 +48,8 @@ class DeviceConfig {
   }
 
   /// 从 BuildContext 检测设备类型
+  ///
+  /// ⚠️ 优先使用 isIPad(context) 或 ref.watch(deviceTypeProvider)
   static AppDeviceType detectFromContext(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     return detectFromSize(size);

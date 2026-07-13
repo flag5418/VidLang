@@ -1,22 +1,21 @@
 import '../models/article.dart';
-import '../models/article_chapter.dart';
 import '../models/article_paragraph.dart';
 import '../models/article_sentence.dart';
 
 /// 文章解析工具
 ///
-/// 将用户输入的 Markdown 文本解析为 Article + ArticleChapter[] + ArticleSentence[]
+/// 将用户输入的 Markdown 文本解析为 Article + ArticleParagraph[] + ArticleSentence[]
+///
+/// 注意：ArticleChapter 已移除，章节概念不再使用。文章直接按段落+句子组织。
 class ArticleParser {
   /// 解析结果
   final Article article;
   final List<ArticleParagraph> paragraphs;
-  final List<ArticleChapter> chapters;
   final List<ArticleSentence> sentences;
 
   ArticleParser({
     required this.article,
     required this.paragraphs,
-    required this.chapters,
     required this.sentences,
   });
 
@@ -25,74 +24,56 @@ class ArticleParser {
   /// [title] 文章标题
   /// [content] 用户粘贴的文章正文（Markdown 格式）
   ///
-  /// 按 # 标题拆分为章，章内按句子分割。
-  /// 无标题时整个文章视为单章。
+  /// 按空行拆分为段落，段内按句子分割。
   static ArticleParser parse({required String title, required String content}) {
     final article = Article(title: title, contentMarkdown: content);
 
-    final chapSections = _splitIntoChapterSections(content);
+    final paraTexts = content.split(RegExp(r'\n\s*\n'));
     final List<ArticleParagraph> paragraphs = [];
-    final List<ArticleChapter> chapters = [];
     final List<ArticleSentence> sentences = [];
     int globalSentenceIdx = 0;
     int totalWordCount = 0;
     int globalParagraphIdx = 0;
 
-    for (int cIdx = 0; cIdx < chapSections.length; cIdx++) {
-      final section = chapSections[cIdx];
-      final chapTitle = section.title;
+    for (int pIdx = 0; pIdx < paraTexts.length; pIdx++) {
+      final text = paraTexts[pIdx].trim();
+      if (text.isEmpty) continue;
 
-      final paraTexts = section.body.split(RegExp(r'\n\s*\n'));
-      final startSentenceIdx = globalSentenceIdx;
+      // 跳过 Markdown 标题行（原章节标题，不再创建 Chapter 对象）
+      if (RegExp(r'^#{1,6}\s+').hasMatch(text)) continue;
 
-      for (int pIdx = 0; pIdx < paraTexts.length; pIdx++) {
-        final text = paraTexts[pIdx].trim();
-        if (text.isEmpty) continue;
+      final plainText = _stripMarkdown(text);
+      final paraSentences = _splitSentences(plainText);
+      int paraWordCount = 0;
 
-        final plainText = _stripMarkdown(text);
-        final paraSentences = _splitSentences(plainText);
-        int paraWordCount = 0;
+      for (int sIdx = 0; sIdx < paraSentences.length; sIdx++) {
+        final s = paraSentences[sIdx].trim();
+        if (s.isEmpty) continue;
 
-        for (int sIdx = 0; sIdx < paraSentences.length; sIdx++) {
-          final s = paraSentences[sIdx].trim();
-          if (s.isEmpty) continue;
+        final wc = _wordCount(s);
+        paraWordCount += wc;
 
-          final wc = _wordCount(s);
-          paraWordCount += wc;
-
-          sentences.add(ArticleSentence(
-            articleCode: '',
-            paragraphIndex: globalParagraphIdx,
-            sentenceIndex: globalSentenceIdx,
-            content: s,
-            wordCount: wc,
-          ));
-          globalSentenceIdx++;
-        }
-
-        totalWordCount += paraWordCount;
-
-        paragraphs.add(ArticleParagraph(
+        sentences.add(ArticleSentence(
           articleCode: '',
           paragraphIndex: globalParagraphIdx,
-          contentMarkdown: text,
-          contentPlain: plainText,
-          startSentenceIdx: globalSentenceIdx - paraSentences.where((s) => s.trim().isNotEmpty).length,
-          endSentenceIdx: globalSentenceIdx - 1,
+          sentenceIndex: globalSentenceIdx,
+          content: s,
+          wordCount: wc,
         ));
-        globalParagraphIdx++;
+        globalSentenceIdx++;
       }
 
-      final chapPlainText = section.body.split(RegExp(r'\n\s*\n')).map((t) => _stripMarkdown(t.trim())).where((t) => t.isNotEmpty).join(' ');
-      chapters.add(ArticleChapter(
+      totalWordCount += paraWordCount;
+
+      paragraphs.add(ArticleParagraph(
         articleCode: '',
-        title: chapTitle,
-        chapterIndex: cIdx,
-        sentenceCount: globalSentenceIdx - startSentenceIdx,
-        plainText: chapPlainText,
-        startSentenceIndex: startSentenceIdx,
-        endSentenceIndex: globalSentenceIdx - 1,
+        paragraphIndex: globalParagraphIdx,
+        contentMarkdown: text,
+        contentPlain: plainText,
+        startSentenceIdx: globalSentenceIdx - paraSentences.where((s) => s.trim().isNotEmpty).length,
+        endSentenceIdx: globalSentenceIdx - 1,
       ));
+      globalParagraphIdx++;
     }
 
     article.totalParagraphs = paragraphs.length;
@@ -103,43 +84,8 @@ class ArticleParser {
     return ArticleParser(
       article: article,
       paragraphs: paragraphs,
-      chapters: chapters,
       sentences: sentences,
     );
-  }
-
-  /// 按 # / ## / ### 标题将文章拆分为章
-  static List<_ChapterSection> _splitIntoChapterSections(String content) {
-    final headingRegex = RegExp(r'^(#{1,6})\s+(.+)$', multiLine: true);
-    final matches = headingRegex.allMatches(content).toList();
-
-    if (matches.isEmpty) {
-      // 无标题，整篇文章作为单章
-      return [_ChapterSection(title: '', body: content.trim())];
-    }
-
-    final sections = <_ChapterSection>[];
-    for (int i = 0; i < matches.length; i++) {
-      final match = matches[i];
-      final title = match.group(2) ?? '';
-      final start = match.end;
-
-      // 下一章开始（或文末）
-      final end = i + 1 < matches.length ? matches[i + 1].start : content.length;
-      final body = content.substring(start, end).trim();
-
-      sections.add(_ChapterSection(title: title, body: body));
-    }
-
-    // 处理第一个标题前的内容（作为前言章）
-    if (matches.isNotEmpty && matches.first.start > 0) {
-      final preBody = content.substring(0, matches.first.start).trim();
-      if (preBody.isNotEmpty) {
-        sections.insert(0, _ChapterSection(title: '', body: preBody));
-      }
-    }
-
-    return sections;
   }
 
   /// 按句子分割
@@ -147,7 +93,7 @@ class ArticleParser {
   /// 按 . ! ? 分割，排除常见缩写
   static List<String> _splitSentences(String text) {
     // 保护缩写
-    final abbreviations = [
+    const abbreviations = [
       'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.',
       'e.g.', 'i.e.', 'etc.', 'vs.', 'St.',
       'Jr.', 'Sr.', 'U.S.', 'U.K.', 'a.m.', 'p.m.',
@@ -199,10 +145,4 @@ class ArticleParser {
   static int _wordCount(String text) {
     return RegExp(r'\b[a-zA-Z]+\b').allMatches(text).length;
   }
-}
-
-class _ChapterSection {
-  final String title;
-  final String body;
-  const _ChapterSection({required this.title, required this.body});
 }

@@ -25,6 +25,12 @@ dependencies:
 
   image_picker: 1.1.2
 
+  # 本地存储 (用于读取设备类型)
+  shared_preferences: ^2.2.0
+
+  # 屏幕适配 (用于自适应尺寸映射)
+  flutter_screenutil: ^5.9.0
+
 dev_dependencies:
   flutter_lints: ^1.0.4
   flutter_test:

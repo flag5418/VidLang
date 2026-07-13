@@ -195,15 +195,27 @@ class _WordCardState extends ConsumerState<WordCard> {
       final mode = isPremium ? SubscriptionMode.premium : SubscriptionMode.free;
 
       if (_isSingleWord) {
-        // 单词释义：走 AiService.getDefinition（带三级缓存，返回结构化中文释义）
-        detail = await AiService.getDefinition(
-          word: widget.word,
-          contextSentence: widget.contextSentence,
-          sourceType: widget.sourceType,
-          sourceCode: widget.sourceCode,
-          billing: isPremium ? {'mode': 'premium'} : null,
-          preferLocal: !isPremium,
-        );
+        // 单词释义：严格按模式分流
+        // - 付费模式：AiService.getDefinition（云端 AI，带三级缓存）
+        // - 免费模式：不走 AiService（免费模式使用 UnifiedTranslationService 走 iOS 原生翻译）
+        if (isPremium) {
+          detail = await AiService.getDefinition(
+            word: widget.word,
+            contextSentence: widget.contextSentence,
+            sourceType: widget.sourceType,
+            sourceCode: widget.sourceCode,
+            billing: {'mode': 'premium'},
+          );
+        } else {
+          // 免费模式单词查询走统一翻译服务（iOS 原生翻译）
+          detail = await UnifiedTranslationService.instance.translate(
+            text: widget.word,
+            mode: SubscriptionMode.free,
+            contextSentence: widget.contextSentence,
+            sourceType: widget.sourceType,
+            sourceCode: widget.sourceCode,
+          );
+        }
       } else {
         // 句子/短语翻译：走 UnifiedTranslationService
         detail = await UnifiedTranslationService.instance.translate(
@@ -217,29 +229,14 @@ class _WordCardState extends ConsumerState<WordCard> {
 
       if (!mounted) return;
 
-      // 本地模型失败时静默关闭弹窗
+      // 翻译失败时处理（无本地模型概念，统一按成功/失败处理）
       if (!detail.success) {
-        final isLocalError = detail.source == 'local' || detail.source == 'local_ai' || detail.source == 'native';
-        if (isLocalError) {
-          // 如果需要下载语言包，显示引导弹窗
-          if (detail.languagePackRequired && mounted) {
-            dev.log('📱 Language pack required, showing guide', name: 'WordCard');
-            NativeTranslationGuideSheet.show(context);
-          } else {
-            dev.log('📱 Local model failed, closing dialog silently: ${detail.error}', name: 'WordCard');
-            if (mounted) Navigator.of(context).pop();
-          }
-          return;
+        // iOS 原生翻译可能需要下载语言包
+        if (detail.languagePackRequired && mounted) {
+          dev.log('📱 Language pack required, showing guide', name: 'WordCard');
+          NativeTranslationGuideSheet.show(context);
         }
-      }
-      // 本地模型返回错误翻译内容时也关闭
-      if (detail.source == 'local' || detail.source == 'local_ai') {
-        final translation = detail.translation ?? '';
-        if (translation.contains('失败') || translation.contains('未就绪') || translation.contains('Tokenization')) {
-          dev.log('📱 Local model returned error translation, closing dialog', name: 'WordCard');
-          if (mounted) Navigator.of(context).pop();
-          return;
-        }
+        // 不再区分 local/local_ai/native source，统一由 UI 展示错误信息
       }
 
       // 余额不足时弹出充值弹窗
