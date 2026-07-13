@@ -35,12 +35,7 @@ docs/
 │   ├── tdesign-components.md       ← TDesign 组件使用参考
 │   └── design-style-guide.md       ← UI 设计规范
 │
-└── archive/                   ← 【归档】过时/冗余文档（仅供参考，不再维护）
-    ├── detailed-design/       ← 旧版详细设计文档（19个文件）
-    ├── code-knowledge-base/   ← 旧版代码知识库（已迁移至 reference/）
-    ├── design-templates/      ← Pencil 设计模板（已弃用）
-    ├── architecture-old/      ← 旧版架构文档（已合并至 architecture/）
-    └── superpowers/           ← 旧版功能规格文档
+└── expired/                   ← 【过期】所有过时文档（扁平存放，不再维护）
 ```
 
 ---
@@ -69,7 +64,7 @@ docs/
 1. **架构级变更** → `architecture/` （如新增引擎、导航调整、数据库大改）
 2. **新模块设计** → `modules/` （如新增论坛、成长体系等独立功能）
 3. **代码级知识** → `reference/` （如 API 用法、组件示例、编码规范）
-4. **过时文档** → 移入 `archive/` 并在本文档中标注
+4. **过时文档** → 移入 `expired/`（扁平存放，不再维护）
 
 ### 文档与代码一致性原则
 
