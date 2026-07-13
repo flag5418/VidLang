@@ -3,8 +3,6 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
-import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -125,10 +123,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TDLoading(
-              size: TDLoadingSize.medium,
-              icon: TDLoadingIcon.circle,
-            ),
+            TDLoading(size: TDLoadingSize.medium, icon: TDLoadingIcon.circle),
             const SizedBox(height: 12),
             Text(
               '加载中...',

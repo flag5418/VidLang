@@ -856,12 +856,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         whereArgs: [resourceCode],
         limit: 1,
       );
-      if (videos.isEmpty)
+      if (videos.isEmpty) {
         return _simpleDetail('🕐 $studiedSeconds秒', colorScheme);
+      }
       final video = videos.first;
       final totalMs = video.duration;
-      if (totalMs <= 0)
+      if (totalMs <= 0) {
         return _simpleDetail('🕐 $studiedSeconds秒', colorScheme);
+      }
       final totalSec = totalMs ~/ 1000;
       return Row(
         children: [

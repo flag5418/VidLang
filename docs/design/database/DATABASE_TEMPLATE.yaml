@@ -1,0 +1,346 @@
+# 数据库设计（机器可读格式）
+# 用于 AI 自动读取和理解
+
+version: "1.0"
+updated: "YYYY-MM-DD"
+
+# 设计原则
+principles:
+  - "离线优先：本地 SQLite 为主"
+  - "云端同步：Supabase 为辅"
+  - "软删除：支持数据恢复"
+  - "审计字段：created_at, updated_at, is_deleted"
+
+# 表结构
+tables:
+  # 用户表
+  - name: "user"
+    description: "用户表"
+    columns:
+      - name: "id"
+        type: "TEXT"
+        primary_key: true
+        nullable: false
+        
+      - name: "email"
+        type: "TEXT"
+        unique: true
+        nullable: false
+        
+      - name: "nickname"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "avatar_url"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "created_at"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "updated_at"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "is_deleted"
+        type: "INTEGER"
+        default: 0
+        
+    indexes:
+      - name: "idx_user_email"
+        columns: ["email"]
+        unique: true
+        
+      - name: "idx_user_is_deleted"
+        columns: ["is_deleted"]
+        
+  # 视频集表
+  - name: "video_folder"
+    description: "视频集表"
+    columns:
+      - name: "id"
+        type: "TEXT"
+        primary_key: true
+        nullable: false
+        
+      - name: "user_id"
+        type: "TEXT"
+        nullable: false
+        foreign_key:
+          table: "user"
+          column: "id"
+          
+      - name: "name"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "folder_code"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "cover_url"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "created_at"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "updated_at"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "is_deleted"
+        type: "INTEGER"
+        default: 0
+        
+    indexes:
+      - name: "idx_video_folder_user_id"
+        columns: ["user_id"]
+        
+      - name: "idx_video_folder_folder_code"
+        columns: ["folder_code"]
+        
+      - name: "idx_video_folder_is_deleted"
+        columns: ["is_deleted"]
+        
+  # 视频信息表
+  - name: "video_info"
+    description: "视频信息表"
+    columns:
+      - name: "id"
+        type: "TEXT"
+        primary_key: true
+        nullable: false
+        
+      - name: "folder_id"
+        type: "TEXT"
+        nullable: false
+        foreign_key:
+          table: "video_folder"
+          column: "id"
+          
+      - name: "name"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "path"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "duration"
+        type: "INTEGER"
+        nullable: false
+        unit: "milliseconds"
+        
+      - name: "created_at"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "updated_at"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "is_deleted"
+        type: "INTEGER"
+        default: 0
+        
+    indexes:
+      - name: "idx_video_info_folder_id"
+        columns: ["folder_id"]
+        
+      - name: "idx_video_info_is_deleted"
+        columns: ["is_deleted"]
+        
+  # 字幕表
+  - name: "subtitles"
+    description: "字幕表"
+    columns:
+      - name: "id"
+        type: "TEXT"
+        primary_key: true
+        nullable: false
+        
+      - name: "video_id"
+        type: "TEXT"
+        nullable: false
+        foreign_key:
+          table: "video_info"
+          column: "id"
+          
+      - name: "start_time"
+        type: "INTEGER"
+        nullable: false
+        unit: "milliseconds"
+        
+      - name: "end_time"
+        type: "INTEGER"
+        nullable: false
+        unit: "milliseconds"
+        
+      - name: "content"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "translation"
+        type: "TEXT"
+        nullable: true
+        
+      - name: "created_at"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "is_deleted"
+        type: "INTEGER"
+        default: 0
+        
+    indexes:
+      - name: "idx_subtitles_video_id"
+        columns: ["video_id"]
+        
+      - name: "idx_subtitles_time"
+        columns: ["start_time", "end_time"]
+        
+      - name: "idx_subtitles_is_deleted"
+        columns: ["is_deleted"]
+        
+    fts5:
+      enabled: true
+      columns: ["content"]
+      triggers: true
+      
+  # 学习记录表
+  - name: "study_record"
+    description: "学习记录表"
+    columns:
+      - name: "id"
+        type: "TEXT"
+        primary_key: true
+        nullable: false
+        
+      - name: "user_id"
+        type: "TEXT"
+        nullable: false
+        foreign_key:
+          table: "user"
+          column: "id"
+          
+      - name: "video_id"
+        type: "TEXT"
+        nullable: false
+        foreign_key:
+          table: "video_info"
+          column: "id"
+          
+      - name: "duration"
+        type: "INTEGER"
+        nullable: false
+        unit: "seconds"
+        
+      - name: "progress"
+        type: "REAL"
+        nullable: false
+        
+      - name: "created_at"
+        type: "TEXT"
+        nullable: false
+        
+      - name: "is_deleted"
+        type: "INTEGER"
+        default: 0
+        
+    indexes:
+      - name: "idx_study_record_user_id"
+        columns: ["user_id"]
+        
+      - name: "idx_study_record_video_id"
+        columns: ["video_id"]
+        
+      - name: "idx_study_record_is_deleted"
+        columns: ["is_deleted"]
+
+# 字段规范
+field_standards:
+  # 通用字段
+  common:
+    id:
+      type: "TEXT"
+      format: "UUID"
+      example: "550e8400-e29b-41d4-a716-446655440000"
+      
+    created_at:
+      type: "TEXT"
+      format: "ISO8601"
+      example: "2026-07-12T10:00:00Z"
+      
+    updated_at:
+      type: "TEXT"
+      format: "ISO8601"
+      example: "2026-07-12T10:00:00Z"
+      
+    is_deleted:
+      type: "INTEGER"
+      values: [0, 1]
+      default: 0
+      
+  # 时长字段
+  duration:
+    video:
+      unit: "milliseconds"
+      example: 120000
+      
+    study_record:
+      unit: "seconds"
+      example: 3600
+      
+    subtitle:
+      start_time:
+        unit: "milliseconds"
+        example: 1000
+        
+      end_time:
+        unit: "milliseconds"
+        example: 5000
+
+# 命名规范
+naming_conventions:
+  table: "snake_case"
+  column: "snake_case"
+  index: "idx_{table}_{column}"
+  foreign_key: "fk_{table}_{column}"
+
+# FTS5 配置
+fts5:
+  enabled: true
+  tables:
+    - name: "subtitles_fts"
+      source_table: "subtitles"
+      columns: ["content"]
+      triggers: true
+
+# 迁移策略
+migration:
+  strategy: "versioned"
+  path: "supabase/migrations/"
+  format: "{timestamp}_{description}.sql"
+  
+  steps:
+    - "创建新表"
+    - "迁移数据"
+    - "删除旧表"
+    - "重命名"
+
+# 性能优化
+performance:
+  indexing:
+    - "主键索引：自动创建"
+    - "外键索引：所有外键字段"
+    - "查询索引：高频查询字段"
+    - "复合索引：多字段查询"
+    
+  query_optimization:
+    - "避免 SELECT *"
+    - "使用 LIMIT"
+    - "避免 OR，使用 UNION"
+    - "使用索引"

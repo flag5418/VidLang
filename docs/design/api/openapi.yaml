@@ -1,0 +1,358 @@
+# API 设计（机器可读格式）
+# OpenAPI 3.1.0 规范
+
+openapi: 3.1.0
+info:
+  title: VidLang API
+  version: 1.0.0
+  description: VidLang 语言学习应用 API
+  contact:
+    name: VidLang Team
+  license:
+    name: MIT
+
+# 服务器配置
+servers:
+  - url: https://api.vidlang.app/v1
+    description: 生产环境
+  - url: https://staging-api.vidlang.app/v1
+    description: 预发布环境
+  - url: http://localhost:3000/v1
+    description: 本地开发环境
+
+# 认证方式
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+# 数据模型
+  schemas:
+    # 视频模型
+    Video:
+      type: object
+      required:
+        - id
+        - name
+        - folder_id
+        - duration
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 视频 ID
+        name:
+          type: string
+          description: 视频名称
+        folder_id:
+          type: string
+          format: uuid
+          description: 文件夹 ID
+        duration:
+          type: integer
+          description: 视频时长（毫秒）
+        path:
+          type: string
+          description: 视频路径
+        created_at:
+          type: string
+          format: date-time
+          description: 创建时间
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新时间
+          
+    # 字幕模型
+    Subtitle:
+      type: object
+      required:
+        - id
+        - video_id
+        - start_time
+        - end_time
+        - content
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 字幕 ID
+        video_id:
+          type: string
+          format: uuid
+          description: 视频 ID
+        start_time:
+          type: integer
+          description: 开始时间（毫秒）
+        end_time:
+          type: integer
+          description: 结束时间（毫秒）
+        content:
+          type: string
+          description: 字幕内容
+        translation:
+          type: string
+          description: 翻译
+          
+    # AI 查询请求
+    AiQueryRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          description: 问题
+        context:
+          type: string
+          description: 上下文
+        video_id:
+          type: string
+          format: uuid
+          description: 视频 ID（可选）
+          
+    # AI 查询响应
+    AiQueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 是否成功
+        data:
+          type: object
+          properties:
+            answer:
+              type: string
+              description: 回答
+            sources:
+              type: array
+              items:
+                type: string
+              description: 来源
+              
+    # 分页信息
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: 当前页码
+        limit:
+          type: integer
+          description: 每页数量
+        total:
+          type: integer
+          description: 总数量
+        total_pages:
+          type: integer
+          description: 总页数
+          
+    # 错误响应
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 是否成功
+          enum: [false]
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: 错误代码
+            message:
+              type: string
+              description: 错误消息
+            details:
+              type: object
+              description: 错误详情
+
+# API 端点
+paths:
+  # 视频相关
+  /videos:
+    get:
+      summary: 获取视频列表
+      description: 获取指定文件夹下的视频列表
+      tags:
+        - videos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: folder_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 文件夹 ID
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: 页码
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: 每页数量
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Video'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 资源不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /videos/{id}:
+    get:
+      summary: 获取视频详情
+      description: 获取指定视频的详细信息
+      tags:
+        - videos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 视频 ID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Video'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 资源不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /videos/{video_id}/subtitles:
+    get:
+      summary: 获取字幕列表
+      description: 获取指定视频的字幕列表
+      tags:
+        - subtitles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: video_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 视频 ID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subtitle'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 资源不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /ai/query:
+    post:
+      summary: AI 问答
+      description: 向 AI 提问
+      tags:
+        - ai
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiQueryRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AiQueryResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求过于频繁
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# 全局认证
+security:
+  - bearerAuth: []

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../../../tdesign_flutter.dart';
 import '../../util/context_extension.dart';
+import '../../util/adaptive_extension.dart';
 import 'td_dialog_widget.dart';
 
 /// 带有输入框的弹窗
@@ -27,7 +28,7 @@ class TDInputDialog extends StatelessWidget {
     this.leftBtn,
     this.rightBtn,
     this.showCloseButton,
-    this.padding = const EdgeInsets.fromLTRB(24, 32, 24, 0),
+    this.padding,
     this.buttonWidget,
     this.customInputWidget,
   })  : assert((title != null || content != null || contentWidget != null)),
@@ -83,6 +84,13 @@ class TDInputDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectivePadding = padding ?? EdgeInsets.fromLTRB(
+      context.s(24),
+      context.s(32),
+      context.s(24),
+      0,
+    );
+    
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -98,18 +106,18 @@ class TDInputDialog extends StatelessWidget {
               contentWidget: contentWidget,
               content: content,
               contentColor: contentColor,
-              padding: padding,
+              padding: effectivePadding,
             ),
             customInputWidget != null
                 ? customInputWidget!
                 : Container(
-                    margin: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                    margin: EdgeInsets.fromLTRB(context.s(24), context.s(16), context.s(24), context.s(24)),
                     child: TextField(
                       controller: textEditingController,
                       autofocus: true,
                       decoration: InputDecoration(
                         contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 16),
+                            EdgeInsets.symmetric(horizontal: context.s(16)),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(
                                 TDTheme.of(context).radiusDefault),
@@ -119,7 +127,6 @@ class TDInputDialog extends StatelessWidget {
                             color: TDTheme.of(context).textColorPlaceholder),
                         fillColor: TDTheme.of(context).bgColorComponent,
                         filled: true,
-                        // labelText: '左上角',
                       ),
                     ),
                   ),
@@ -132,19 +139,20 @@ class TDInputDialog extends StatelessWidget {
     if (buttonWidget != null) {
       return buttonWidget!;
     }
+    final buttonHeight = context.s(56);
     final left = leftBtn ??
         TDDialogButtonOptions(
             title: context.resource.cancel,
             titleColor: TDTheme.of(context).textColorPrimary,
             fontWeight: FontWeight.normal,
             action: null,
-            height: 56);
+            height: buttonHeight);
     final right = rightBtn ??
         TDDialogButtonOptions(
             title: context.resource.confirm,
             action: null,
             fontWeight: FontWeight.w600,
-            height: 56);
+            height: buttonHeight);
     return HorizontalTextButtons(
       leftBtn: left,
       rightBtn: right,

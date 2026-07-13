@@ -1,7 +1,7 @@
 # VidLang - 数据库设计
 
-> **版本**: V1.0 | **日期**: 2026-07-12  
-> **状态**: 当前有效  
+> **版本**: V2.0 | **日期**: 2026-07-13
+> **状态**: 当前有效
 > **适用读者**: 后端开发者、数据库管理员、AI 辅助工具
 
 ---
@@ -44,42 +44,122 @@
 ### 2.1 实体关系图 (ERD)
 
 ```
-┌─────────────┐       ┌─────────────┐
-│ video_folder │──────<│  video_info │
-│   (视频集)    │ 1:N  │   (视频)     │
-└─────────────┘       └─────────────┘
-        │                     │
-        │                     │
-        ▼                     ▼
-┌─────────────┐       ┌─────────────┐
-│   config    │       │  subtitles  │
-│  (系统配置)  │       │   (字幕)     │
-└─────────────┘       └─────────────┘
-                             │
-                             │
-                             ▼
-                      ┌─────────────┐
-                      │  participle │
-                      │   (分词)     │
-                      └─────────────┘
-
-┌─────────────┐       ┌──────────────┐
-│     user    │──────<│ study_record │
-│    (用户)    │ 1:N  │  (学习记录)   │
-└─────────────┘       └──────────────┘
+┌─────────────────── 核心学习引擎 ───────────────────┐
+│                                                      │
+│  ┌─────────────┐       ┌─────────────┐             │
+│  │ video_folder │──────<│  video_info │             │
+│  │   (视频集)    │ 1:N  │   (视频)     │             │
+│  └─────────────┘       └──────┬──────┘             │
+│         │                     │                     │
+│         │                     ▼                     │
+│  ┌─────────────┐       ┌─────────────┐             │
+│  │   config    │       │  subtitles  │◄────┐      │
+│  │  (系统配置)  │       │   (字幕)FTS │     │      │
+│  └─────────────┘       └──────┬──────┘     │      │
+│                              │             │      │
+│                              ▼             │      │
+│                       ┌─────────────┐       │      │
+│                       │  participle │       │      │
+│                       │   (分词)FTS  │       │      │
+│                       └─────────────┘       │      │
+│                                                │      │
+│  ┌─────────────────── 文章引擎 ───────────┐    │      │
+│  │                                          │    │      │
+│  │  ┌─────────┐  ┌──────────────┐         │    │      │
+│  │  │ article │<>│article_chapter│(旧版)   │    │      │
+│  │  │ (文章)  │ 1:N              │         │    │      │
+│  │  └────┬────┘  └──────────────┘         │    │      │
+│  │       │1:N                             │    │      │
+│  │  ┌────▼──────────┬──────────────┐      │    │      │
+│  │  │article_       │article_      │      │    │      │
+│  │  │paragraph      │sentence (FTS)│      │    │      │
+│  │  └───────┬───────┴──────┬───────┘      │    │      │
+│  │          │               │              │    │      │
+│  │          ▼               ▼              │    │      │
+│  │  ┌──────────────┐ ┌──────────────┐     │    │      │
+│  │  │article_      │ │article_      │     │    │      │
+│  │  │bookmark      │ │translation   │     │    │      │
+│  │  └──────────────┘ └──────────────┘     │    │      │
+│  └──────────────────────────────────────────┘    │      │
+│                                                │      │
+│  ┌─────────────────── 学习记录 ────────────┐    │      │
+│  │                                          │    │      │
+│  │  ┌─────────┐     ┌──────────────────┐   │    │      │
+│  │  │  user   │<────│   study_record   │   │    │      │
+│  │  │ (用户)  │ 1:N │   (学习记录)     │   │    │      │
+│  │  └─────────┘     └────────┬─────────┘   │    │      │
+│  │                           │              │    │      │
+│  │                ┌──────────┼──────────┐    │    │      │
+│  │                ▼          ▼          ▼    │    │      │
+│  │  ┌─────────────┐ ┌──────────┐ ┌───────────┐│    │      │
+│  │  │recording_   │ │test_     │ │ai_eval_   ││    │      │
+│  │  │record       │ │session+  │ │uation_log ││    │      │
+│  │  │(跟读录音)    │ │item+eval │ │(AI评价日志)││    │      │
+│  │  └─────────────┘ └──────────┘ └───────────┘│    │      │
+│  └──────────────────────────────────────────────┘    │      │
+│                                                        │      │
+│  ┌─────────────────── 单词本系统 ─────────────┐       │      │
+│  │                                               │       │      │
+│  │  ┌─────────┐     ┌──────────┐              │       │      │
+│  │  │word_book│<────│word_book_ │              │       │      │
+│  │  │(单词本)  │ N:M │tag        │              │       │      │
+│  │  └────┬────┘     └─────┬────┘              │       │      │
+│  │       │               │                    │       │      │
+│  │       ▼               │                    │       │      │
+│  │  ┌──────────┐    ┌────▼────┐               │       │      │
+│  │  │ word_tag │    │word_    │               │       │      │
+│  │  │(单词标签) │    │card_data│               │       │      │
+│  │  │          │    │word_    │               │       │      │
+│  │  └──────────┘    │detail   │               │       │      │
+│  │                   └─────────┘               │       │      │
+│  └───────────────────────────────────────────────┘       │      │
+│                                                                │      │
+│  ┌──────────────── 辅助表 ──────────────────┐                 │      │
+│  │                                            │                 │      │
+│  │  error_log / device_type / playback_settings /            │      │
+│  │  conversation_message / conversation_record /             │      │
+│  │  learning_resource / billing_summary / pricing_rule /     │      │
+│  │  topup_config / evaluation_models / shengtong_*           │      │
+│  └────────────────────────────────────────────────────────────┘      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 表清单
+### 2.2 表清单（完整版，共 20 个已注册实体）
 
 | 序号 | 表名 | 模型类 | 用途 | FTS5 |
 |------|------|--------|------|------|
+| **核心引擎** |
 | 1 | `video_folder` | VideoFolder | 视频集/文件夹 | 否 |
 | 2 | `video_info` | VideoInfo | 视频信息 | 否 |
 | 3 | `subtitles` | Subtitles | 字幕行 | ✅ 是 |
 | 4 | `participle` | Participle | 分词 | ✅ 是 |
-| 5 | `config` | Config | 系统配置（KV） | 否 |
-| 6 | `user` | User | 用户信息 | 否 |
-| 7 | `study_record` | StudyRecord | 学习记录 | ⚠️ 未注册 |
+| **文章引擎** |
+| 5 | `article` | Article | 文章 | 否 |
+| 6 | `article_chapter` | ArticleChapter | 文章章节（旧版迁移中） | 否 |
+| 7 | `article_paragraph` | ArticleParagraph | 文章段落 | 否 |
+| 8 | `article_sentence` | ArticleSentence | 文章句子 | ✅ 是 |
+| 9 | `article_bookmark` | ArticleBookmark | 文章书签 | 否 |
+| **学习记录** |
+| 10 | `study_record` | StudyRecord | 学习记录 | ✅ 已注册 |
+| 11 | `recording_record` | RecordingRecord | 跟读录音记录 | 否 |
+| **测试/评测** |
+| 12 | `test_session` | TestSession | 测试主记录 | 否 |
+| 13 | `test_item` | TestItem | 单题记录 | 否 |
+| 14 | `test_evaluation` | TestEvaluation | AI评价报告 | 否 |
+| 15 | `ai_evaluation_log` | AiEvaluationLog | AI学习评价日志 | 否 |
+| **单词本** |
+| 16 | `word_book` | WordBook | 单词本 | 否 |
+| 17 | `word_tag` | WordTag | 单词标签 | 否 |
+| 18 | `word_book_tag` | WordBookTag | 单词-标签关联 | 否 |
+| **系统** |
+| 19 | `config` | Config | 系统配置（KV） | 否 |
+| 20 | `user` | User | 用户信息 | 否 |
+| 21 | `error_log` | ErrorLog | 错误日志 | 否 |
+| **设备** |
+| 22 | `device_type` | DeviceType | 设备类型 | 否 |
+
+> **注**: 以上 22 个表中，前 20 个已在 `main.dart` 中通过 `DatabaseService.registerEntities()` 注册。`error_log` 和 `device_type` 也已导入并注册。
 
 ---
 
@@ -206,7 +286,7 @@ CREATE TABLE IF NOT EXISTS video_info (
     -- 基本信息
     name                TEXT NOT NULL DEFAULT '',      -- 视频名称
     folder_code         TEXT NOT NULL,                 -- 所属视频集 code
-    file_path           TEXT,                          -- ⚠️ 待添加：视频文件路径
+    file_path           TEXT,                          -- 视频文件路径 ✅ 已实现
     
     -- 时长和进度
     duration            INTEGER NOT NULL DEFAULT 0,    -- 总时长（毫秒）
@@ -441,12 +521,12 @@ CREATE TABLE IF NOT EXISTS user (
 );
 ```
 
-### 3.7 study_record（学习记录）- ⚠️ 未注册
+### 3.7 study_record（学习记录）✅ 已注册
 
 **用途**：记录每次学习的详细信息，用于统计和分析。
 
 ```sql
--- ⚠️ 此表尚未在 main.dart 中注册，以下为设计稿
+-- ✅ 此表已在 main.dart 中注册
 CREATE TABLE IF NOT EXISTS study_record (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     code            TEXT UNIQUE NOT NULL,

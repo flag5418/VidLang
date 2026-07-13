@@ -1,10 +1,10 @@
 # VidLang 整体架构与产品设计
 
-> 版本：v2.0  
-> 更新日期：2026-06-04  
-> 设计范围：视频学习 + 文章学习 + 歌曲学习 三引擎统一架构  
-> 目标市场：全球英语学习者（App Store + Google Play）  
-> 后台服务：Supabase + Stripe/RevenueCat
+> 版本：v3.0
+> 更新日期：2026-07-13
+> 设计范围：视频学习 + 文章学习 + 歌曲学习 三引擎统一架构
+> 目标市场：全球英语学习者（App Store + Google Play）
+> 后台服务：Supabase（PostgreSQL + Auth + Storage + Edge Functions）+ 自研计费
 
 ---
 
@@ -146,19 +146,22 @@ enum ContentType { video, article, song }
 ### 3.1 底部导航
 
 ```
-┌─────────────────────────────────────────────────┐
-│                                                   │
-│    Learn     Words     Discover     Profile       │
-│                                                   │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                                                         │
+│   🏠Learn    🎬Video    📖Article    📚Words    👤Profile │
+│                                                         │
+└───────────────────────────────────────────────────────┘
 ```
 
-| Tab | 说明 |
-|-----|------|
-| **Learn** | 首页核心——继续学习 + 快速导入 |
-| **Words** | 单词本——所有收藏的单词（间隔复习） |
-| **Discover** | 发现内容（待后续扩展：社区/推荐/热榜） |
-| **Profile** | 设置/统计/付费/帮助 |
+> **更新说明（V3）**: 导航栏从 4 Tab（Learn/Words/Discover/Profile）调整为 **5 Tab**，将 Video 和 Article 独立为一级入口，移除 Discover Tab（功能合并至各引擎首页）。
+
+| Tab | 对应页面 | 说明 |
+|-----|----------|------|
+| **🏠 Learn** | `home_page.dart` | 首页核心——继续学习 + 今日统计 + 快速导入 |
+| **🎬 Video** | `file_list_page.dart` | 视频集列表——导入/管理视频文件夹 |
+| **📖 Article** | `article_list_page.dart` | 文章列表——导入/管理学习文章 |
+| **📚 Words** | `collection_page.dart` | 单词本（收藏本）——所有收藏的单词 |
+| **👤 Profile** | `profile_page.dart` | 个人中心——统计/设置/付费/充值 |
 
 ### 3.2 Learn Tab 布局
 
@@ -309,14 +312,16 @@ App 入口
 
 | 领域 | 选用 | 说明 |
 |------|------|------|
-| 框架 | Flutter 3.x | - |
-| 状态管理 | Riverpod | 现有选择，保持 |
-| 数据库（本地） | sqflite | 现有选择，保持 |
-| 视频播放 | OmniPlayer（自研） | 现有，iOS IJK + Android Texture |
-| 音频播放 | just_audio | 新增，用于歌曲播放 |
-| 屏幕适配 | flutter_screenutil | 现有，保持 |
-| 组件库 | tdesign_flutter | 现有，保持 |
-| 动画 | Lottie | 现有，保持 |
+| 框架 | Flutter 3.13+ (SDK ^3.13.0) | - |
+| 状态管理 | flutter_riverpod (StateNotifierProvider) | - |
+| 数据库（本地） | SQLite (sqflite) + FTS5 全文检索 | 20个已注册实体 |
+| 视频播放 | OmniPlayer（自研） | iOS AVPlayer + Android ExoPlayer |
+| 音频播放 | just_audio + audioplayers | 歌曲/跟读/TTS |
+| 屏幕适配 | flutter_screenutil | 设计稿 375×812 |
+| 组件库 | tdesign_flutter（自研修改版） | 统一UI风格 |
+| 本地AI | ONNX Runtime (sherpa-onnx) | 本地TTS/STT/翻译 |
+| 后端服务 | Supabase | PostgreSQL + Auth + Storage + Edge Functions |
+| AI API | DeepSeek / 通义千问(Qwen) | 通过Edge Function代理 |
 
 ### 5.2 后端（Supabase）
 
@@ -346,32 +351,44 @@ App 入口
 ## 六、开发阶段规划
 
 ```
-Phase 1 (当前)：视频闭环
-├── 录音功能 → 跟读评分循环
-├── 字幕查词集成 → WordCard
-├── 基础测试 → 填空/选择
-├── 学习记录写入
-└── UI 英文化
+✅ Phase 1：视频闭环 — 已完成
+├── ✅ OmniPlayer 视频播放器（缓存/Seek同步/倍速/AB循环）
+├── ✅ 字幕解析（SRT/VTT/ASS）+ 显示 + 点击查词
+├── ✅ 跟读录音 → 发音评分（声通评测 + AI评测）
+├── ✅ 单句暂停 + 由慢到快模式
+├── ✅ 测试引擎（填空/听写/选择/AI评价）
+├── ✅ 学习记录写入（StudyRecord 已注册）
+├── ✅ AI翻译集成（DeepSeek/Qwen）
+└── ✅ TTS朗读（系统TTS/阿里云TTS/本地ONNX）
 
-Phase 2：文章阅读
-├── Article + ArticleSentence 模型
-├── 粘贴/OCR 导入
-├── 分句 + 时间轴
-├── TTS 朗读 + 跟读
-└── 复用测试引擎
+✅ Phase 2：文章阅读 — 已完成
+├── ✅ Article + ArticleParagraph/Sentence/Bookmark 模型
+├── ✅ 文章导入 + 解析（ArticleParser）
+├── ✅ ShadowReader 阅读器（句子高亮/跟读/TTS）
+├── ✅ 可选中文/英文文本 → 查词
+└── ✅ 复用测试引擎 + 学习记录
 
-Phase 3：歌曲学习
-├── Song + LyricLine 模型
-├── 歌词导入 + 时间轴
-├── 音频播放 + 歌词高亮
-├── 声通音乐评分集成
-└── 复用测试引擎
+✅ Phase 3：歌曲学习 — 已完成
+├── ✅ LRC歌词解析 + ID3标签解析
+├── ✅ AudioPlayerPage（音频播放+歌词滚动）
+├── ✅ 跟唱评分（声通HTTP评测）
+├── ✅ 学习记录页
+└── ✅ 复用测试引擎
 
-Phase 4：Supabase + 上架
-├── 用户系统 + 云端同步
-├── 付费系统（RevenueCat）
-├── App Store / Google Play 上架
-└── 国际化（英文默认 + 多语言）
+✅ Phase 4：用户系统 + 计费 — 已完成
+├── ✅ Supabase Auth（Apple/Google/Email）
+├── ✅ 自研计费系统（余额/充值/扣费/Topup）
+├── ✅ BillingService + SubscriptionProvider
+├── ✅ GlobalErrorHandler 全局错误处理
+└── ✅ LocalAiService 本地AI初始化
+
+🔄 Phase 5：社交与扩展 — 进行中
+├── ✅ 论坛模块（ForumService + 发布/浏览）
+├── ✅ AI对话（ConversationService + QwenRealtime）
+├── ✅ WiFi文件传输
+├── ✅ 成长体系（LearningHistory/GrowthDetail）
+├── ✅ 拍照翻译（CameraTranslatePage）
+└── 🚧 ... 持续迭代中
 ```
 
 ---

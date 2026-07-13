@@ -23,7 +23,6 @@ import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_radius.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/theme/app_typography.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/views/article/article_import_page.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -182,13 +181,17 @@ class _FileListPageState extends ConsumerState<FileListPage> {
       controller: _searchController,
       keyboardType: isArticleTab ? TextInputType.url : TextInputType.text,
       onChanged: (v) => setState(() => _searchQuery = v),
-      onSubmitted: isArticleTab && _searchQuery.trim().isNotEmpty ? (_) => _importFromUrl() : null,
+      onSubmitted: isArticleTab && _searchQuery.trim().isNotEmpty
+          ? (_) => _importFromUrl()
+          : null,
       style: TextStyle(
         color: colorScheme.onSurface,
         fontSize: Adaptive.sp(context, AppTypography.fontSizeSmall),
       ),
       decoration: InputDecoration(
-        hintText: isArticleTab ? '请输入链接' : '搜索${_resourceLabels[_currentTab]}...',
+        hintText: isArticleTab
+            ? '请输入链接'
+            : '搜索${_resourceLabels[_currentTab]}...',
         hintStyle: TextStyle(
           color: AppColors.onSurfaceDisabled,
           fontSize: Adaptive.sp(context, AppTypography.fontSizeSmall),
@@ -342,7 +345,10 @@ class _FileListPageState extends ConsumerState<FileListPage> {
         _showSnackBarWithAction('提取到的文章内容为空', '手动复制', () {
           _searchController.clear();
           setState(() => _searchQuery = '');
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ArticleImportPage()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ArticleImportPage()),
+          );
         });
         return;
       }
@@ -388,7 +394,9 @@ class _FileListPageState extends ConsumerState<FileListPage> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => ArticleReaderPage(articleCode: articleCode)),
+        MaterialPageRoute(
+          builder: (_) => ArticleReaderPage(articleCode: articleCode),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -396,7 +404,10 @@ class _FileListPageState extends ConsumerState<FileListPage> {
       _showSnackBarWithAction('导入失败: $e', '手动复制', () {
         _searchController.clear();
         setState(() => _searchQuery = '');
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const ArticleImportPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ArticleImportPage()),
+        );
       });
     }
   }
@@ -406,7 +417,11 @@ class _FileListPageState extends ConsumerState<FileListPage> {
     TDToast.showText(message, context: context);
   }
 
-  void _showSnackBarWithAction(String message, String actionLabel, VoidCallback onAction) {
+  void _showSnackBarWithAction(
+    String message,
+    String actionLabel,
+    VoidCallback onAction,
+  ) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -524,7 +539,11 @@ class _FileListPageState extends ConsumerState<FileListPage> {
                   shape: BoxShape.circle,
                   color: colorScheme.primary.withValues(alpha: 0.1),
                 ),
-                child: Icon(AppIcons.add, size: Adaptive.sp(context, 24), color: colorScheme.primary),
+                child: Icon(
+                  AppIcons.add,
+                  size: Adaptive.sp(context, 24),
+                  color: colorScheme.primary,
+                ),
               ),
             ),
             const Spacer(flex: 1),

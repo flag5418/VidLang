@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vidlang/services/forum/forum_service.dart';
-import 'package:vidlang/models/forum/forum_post.dart';
 import 'dart:convert';
 
 /// 论坛系统的端到端测试

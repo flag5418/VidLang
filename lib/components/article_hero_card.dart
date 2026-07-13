@@ -103,12 +103,15 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     final percent = (progress * 100).round();
 
     final metaParts = <String>[];
-    if (widget.article.totalParagraphs > 0)
+    if (widget.article.totalParagraphs > 0) {
       metaParts.add('${widget.article.totalParagraphs}段');
-    if (widget.article.totalSentences > 0)
+    }
+    if (widget.article.totalSentences > 0) {
       metaParts.add('${widget.article.totalSentences}句');
-    if (widget.article.wordCount > 0)
+    }
+    if (widget.article.wordCount > 0) {
       metaParts.add('${widget.article.wordCount}词');
+    }
 
     return Positioned(
       bottom: 0,

@@ -569,8 +569,9 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                       if (l.contains('✅')) color = Colors.green[700]!;
                       if (l.contains('⚠️') ||
                           l.contains('🔧') ||
-                          l.contains('💡'))
+                          l.contains('💡')) {
                         color = Colors.orange[700]!;
+                      }
                       if (l.contains('🚀')) color = Colors.blue[700]!;
                       if (l.contains('📁')) color = Colors.purple[700]!;
                       return SelectableText(

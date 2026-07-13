@@ -1,0 +1,171 @@
+# 功能规范模板（机器可读格式）
+# 用于 AI 自动读取和理解
+
+version: "1.0"
+updated: "YYYY-MM-DD"
+
+# 功能概述
+feature:
+  name: "功能名称"
+  description: "功能描述"
+  target_users: "目标用户"
+
+# 用户故事
+user_stories:
+  - id: "story_1"
+    role: "用户角色"
+    action: "功能"
+    benefit: "价值"
+    
+  - id: "story_2"
+    role: "用户角色"
+    action: "功能"
+    benefit: "价值"
+
+# 验收标准
+acceptance_criteria:
+  functional:
+    - id: "ac_1"
+      description: "标准 1"
+      testable: true
+      
+    - id: "ac_2"
+      description: "标准 2"
+      testable: true
+      
+  performance:
+    - id: "ac_perf_1"
+      metric: "response_time"
+      threshold: "< 200ms"
+      
+    - id: "ac_perf_2"
+      metric: "memory_usage"
+      threshold: "< 100MB"
+
+# 数据模型
+data_model:
+  entities:
+    - name: "EntityName"
+      fields:
+        - name: "id"
+          type: "String"
+          required: true
+          primary_key: true
+          
+        - name: "name"
+          type: "String"
+          required: true
+          
+        - name: "created_at"
+          type: "DateTime"
+          required: true
+          
+      relationships:
+        - type: "belongs_to"
+          target: "User"
+          foreign_key: "user_id"
+          
+  tables:
+    - name: "entity_name"
+      columns:
+        - name: "id"
+          type: "TEXT"
+          primary_key: true
+          
+        - name: "name"
+          type: "TEXT"
+          not_null: true
+          
+        - name: "created_at"
+          type: "TEXT"
+          not_null: true
+          
+        - name: "is_deleted"
+          type: "INTEGER"
+          default: 0
+
+# 接口设计
+api:
+  endpoints:
+    - method: "GET"
+      path: "/api/v1/entities"
+      description: "获取列表"
+      parameters:
+        - name: "page"
+          type: "integer"
+          required: false
+          default: 1
+          
+        - name: "limit"
+          type: "integer"
+          required: false
+          default: 20
+          
+      response:
+        type: "array"
+        items:
+          $ref: "#/components/schemas/Entity"
+          
+    - method: "POST"
+      path: "/api/v1/entities"
+      description: "创建实体"
+      request:
+        $ref: "#/components/schemas/CreateEntityRequest"
+      response:
+        $ref: "#/components/schemas/Entity"
+
+# 任务分解
+tasks:
+  development:
+    - id: "dev_1"
+      name: "任务 1"
+      description: "任务描述"
+      estimated_time: "2h"
+      status: "pending"
+      
+    - id: "dev_2"
+      name: "任务 2"
+      description: "任务描述"
+      estimated_time: "4h"
+      status: "pending"
+      
+  testing:
+    - id: "test_1"
+      name: "任务 1"
+      description: "任务描述"
+      estimated_time: "2h"
+      status: "pending"
+
+# 风险评估
+risks:
+  - id: "risk_1"
+    type: "technical"
+    description: "风险描述"
+    impact: "high"
+    likelihood: "medium"
+    mitigation: "应对措施"
+    
+  - id: "risk_2"
+    type: "schedule"
+    description: "风险描述"
+    impact: "medium"
+    likelihood: "high"
+    mitigation: "应对措施"
+
+# 依赖
+dependencies:
+  - name: "依赖 1"
+    version: ">=1.0.0"
+    type: "required"
+    
+  - name: "依赖 2"
+    version: ">=2.0.0"
+    type: "optional"
+
+# 技术约束
+constraints:
+  - type: "platform"
+    value: "iOS 14+, Android 8+"
+    
+  - type: "performance"
+    value: "响应时间 < 200ms"

@@ -12,24 +12,18 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
-import 'package:vidlang/utils/adaptive.dart';
 
 class LoadingWidget extends StatelessWidget {
   /// 加载提示文字（如已设置，TDLoading 会自动垂直排列图标和文字）
   final String? message;
-  
+
   /// 加载指示器尺寸（映射到 TDLoadingSize）
   final double? size;
-  
+
   /// 自定义颜色（默认使用主题品牌色）
   final Color? color;
 
-  const LoadingWidget({
-    super.key,
-    this.message,
-    this.size,
-    this.color,
-  });
+  const LoadingWidget({super.key, this.message, this.size, this.color});
 
   @override
   Widget build(BuildContext context) {

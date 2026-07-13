@@ -1,0 +1,202 @@
+# VidLang 知识库索引
+# 用于 AI 按需加载知识库文档
+
+version: "1.0"
+updated: "2026-07-12"
+
+# 知识库分类
+categories:
+  - name: "architecture"
+    description: "架构设计知识"
+    path: "docs/developer/architecture/"
+    
+  - name: "code"
+    description: "代码结构知识"
+    path: "docs/developer/design/code-knowledge-base/"
+    
+  - name: "integration"
+    description: "集成与服务知识"
+    path: "docs/developer/design/code-knowledge-base/"
+    
+  - name: "tools"
+    description: "工具与组件知识"
+    path: "docs/developer/design/code-knowledge-base/"
+
+# 知识库文档
+documents:
+  # 架构设计
+  - id: "overall-architecture"
+    name: "整体架构"
+    path: "docs/developer/architecture/overall-architecture.md"
+    category: "architecture"
+    description: "三引擎架构、产品定位、技术选型"
+    load_triggers:
+      - "项目架构"
+      - "技术选型"
+      - "产品定位"
+    priority: "high"
+    
+  # 代码结构
+  - id: "flutter-code-structure"
+    name: "Flutter 代码结构"
+    path: "docs/developer/design/code-knowledge-base/flutter-code-structure.md"
+    category: "code"
+    description: "Flutter 项目代码结构、目录组织"
+    load_triggers:
+      - "代码结构"
+      - "目录组织"
+      - "新增模块"
+    priority: "high"
+    
+  - id: "database-design"
+    name: "数据库设计"
+    path: "docs/developer/design/code-knowledge-base/database-design.md"
+    category: "code"
+    description: "SQLite 数据库设计、表结构、FTS5"
+    load_triggers:
+      - "数据库"
+      - "表结构"
+      - "FTS5"
+      - "新增表"
+    priority: "high"
+    
+  - id: "services-architecture"
+    name: "服务架构"
+    path: "docs/developer/design/code-knowledge-base/services-architecture.md"
+    category: "code"
+    description: "服务层架构、职责划分"
+    load_triggers:
+      - "服务层"
+      - "Service"
+      - "新增服务"
+    priority: "high"
+    
+  - id: "models-design"
+    name: "数据模型设计"
+    path: "docs/developer/design/code-knowledge-base/models-design.md"
+    category: "code"
+    description: "数据模型设计、BaseEntity 继承"
+    load_triggers:
+      - "数据模型"
+      - "Model"
+      - "BaseEntity"
+      - "新增模型"
+    priority: "high"
+    
+  # 集成与服务
+  - id: "supabase-integration"
+    name: "Supabase 集成"
+    path: "docs/developer/design/code-knowledge-base/supabase-integration.md"
+    category: "integration"
+    description: "Supabase 集成、Edge Functions、认证"
+    load_triggers:
+      - "Supabase"
+      - "Edge Functions"
+      - "认证"
+      - "云端同步"
+    priority: "high"
+    
+  - id: "ai-service-integration"
+    name: "AI 服务集成"
+    path: "docs/developer/design/code-knowledge-base/ai-service-integration.md"
+    category: "integration"
+    description: "DeepSeek API 集成、AI 查询"
+    load_triggers:
+      - "AI"
+      - "DeepSeek"
+      - "AI 查询"
+    priority: "medium"
+    
+  - id: "authentication"
+    name: "认证与用户"
+    path: "docs/developer/design/code-knowledge-base/authentication.md"
+    category: "integration"
+    description: "用户认证、用户管理"
+    load_triggers:
+      - "认证"
+      - "用户"
+      - "登录"
+    priority: "medium"
+    
+  # 工具与组件
+  - id: "tdesign-components"
+    name: "TDesign 组件"
+    path: "docs/developer/design/code-knowledge-base/tdesign-components.md"
+    category: "tools"
+    description: "TDesign Flutter 组件库使用"
+    load_triggers:
+      - "TDesign"
+      - "UI 组件"
+      - "组件库"
+    priority: "medium"
+    
+  - id: "development-setup"
+    name: "开发环境配置"
+    path: "docs/developer/design/code-knowledge-base/development-setup.md"
+    category: "tools"
+    description: "开发环境配置、依赖安装"
+    load_triggers:
+      - "开发环境"
+      - "依赖安装"
+      - "配置"
+    priority: "low"
+    
+  # AI 相关
+  - id: "ai-context"
+    name: "AI 上下文速查"
+    path: "docs/AGENT_CONTEXT.md"
+    category: "ai"
+    description: "AI 快速恢复认知的上下文"
+    load_triggers:
+      - "AI 上下文"
+      - "恢复认知"
+    priority: "high"
+
+# 自动加载规则
+auto_load:
+  # 每次会话自动加载的文档
+  always_load:
+    - "overall-architecture"
+    - "flutter-code-structure"
+    - "ai-context"
+    
+  # 根据触发条件加载的文档
+  conditional_load:
+    - document_id: "database-design"
+      triggers: ["数据库", "表结构", "新增表"]
+      
+    - document_id: "services-architecture"
+      triggers: ["服务层", "Service", "新增服务"]
+      
+    - document_id: "models-design"
+      triggers: ["数据模型", "Model", "新增模型"]
+      
+    - document_id: "supabase-integration"
+      triggers: ["Supabase", "Edge Functions", "认证"]
+      
+    - document_id: "ai-service-integration"
+      triggers: ["AI", "DeepSeek"]
+      
+    - document_id: "tdesign-components"
+      triggers: ["TDesign", "UI 组件"]
+
+# 知识库维护规则
+maintenance:
+  # 每周检查
+  weekly_check:
+    - "检查文档与代码一致性"
+    - "更新过时信息"
+    - "清理无用文档"
+    
+  # 每月审查
+  monthly_review:
+    - "全面审查知识库"
+    - "更新架构图"
+    - "更新数据库设计"
+    
+  # 版本管理
+  versioning:
+    enabled: true
+    format: "V{major}.{minor}"
+    archive_old_versions: true
+    archive_path: "docs/developer/archive/"

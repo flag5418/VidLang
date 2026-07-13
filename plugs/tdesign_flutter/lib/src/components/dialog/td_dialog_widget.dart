@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../tdesign_flutter.dart';
+import '../../util/adaptive_extension.dart';
 
 /// TDDialog手脚架
 class TDDialogScaffold extends StatelessWidget {
@@ -34,13 +35,27 @@ class TDDialogScaffold extends StatelessWidget {
   /// 弹窗宽度
   final double? width;
 
+  /// 计算弹窗宽度
+  ///
+  /// iPhone：固定 311pt
+  /// iPad：屏幕宽度的 50%，最大 400pt
+  double _calculateWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (isIPad(context)) {
+      // iPad：屏幕宽度的50%，最大400pt
+      return (screenWidth * 0.5).clamp(300, 400);
+    }
+    // iPhone：固定311pt
+    return 311;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Material(
         type: MaterialType.transparency,
         child: Container(
-          width: width ?? 311,
+          width: width ?? _calculateWidth(context),
           decoration: BoxDecoration(
             color:
                 backgroundColor ?? TDTheme.of(context).bgColorContainer, // 底色
@@ -58,12 +73,12 @@ class TDDialogScaffold extends StatelessWidget {
                           Navigator.pop(context);
                         },
                         child: SizedBox(
-                          width: 38,
-                          height: 38,
+                          width: context.s(38),
+                          height: context.s(38),
                           child: Center(
                             child: Icon(
                               TDIcons.close,
-                              size: 22,
+                              size: context.is_(22),
                               color: TDTheme.of(context).textColorPlaceholder,
                             ),
                           ),
@@ -99,7 +114,7 @@ class TDDialogTitle extends StatelessWidget {
       title,
       textColor: titleColor ?? TDTheme.of(context).textColorPrimary,
       fontWeight: FontWeight.w600,
-      font: Font(size: 18, lineHeight: 26),
+      font: Font(size: context.ts(18).toInt(), lineHeight: context.ts(26).toInt()),
       textAlign: TextAlign.center,
     );
   }
@@ -125,7 +140,7 @@ class TDDialogContent extends StatelessWidget {
     return TDText(
       content,
       textColor: contentColor ?? TDTheme.of(context).textColorSecondary,
-      font: Font(size: 16, lineHeight: 24),
+      font: Font(size: context.ts(16).toInt(), lineHeight: context.ts(24).toInt()),
       textAlign: TextAlign.center,
     );
   }
@@ -142,7 +157,7 @@ class TDDialogInfoWidget extends StatelessWidget {
     this.content,
     this.contentColor,
     this.contentMaxHeight = 0,
-    this.padding = const EdgeInsets.fromLTRB(24, 32, 24, 0),
+    this.padding,
   }) : super(key: key);
 
   /// 标题
@@ -173,8 +188,17 @@ class TDDialogInfoWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // 标题和内容不能同时为空
     assert((title != null || content != null || contentWidget != null));
+    
+    // 动态计算内边距
+    final effectivePadding = padding ?? EdgeInsets.fromLTRB(
+      context.s(24),
+      context.s(32),
+      context.s(24),
+      0,
+    );
+    
     return Container(
-      padding: padding,
+      padding: effectivePadding,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -189,7 +213,7 @@ class TDDialogInfoWidget extends StatelessWidget {
           if (contentWidget != null || content != null)
             Container(
               padding: EdgeInsets.fromLTRB(
-                  0, (title != null && content != null) ? 8.0 : 0, 0, 0),
+                  0, (title != null && content != null) ? context.s(8) : 0, 0, 0),
               constraints: contentMaxHeight > 0
                   ? BoxConstraints(
                       maxHeight: contentMaxHeight,
@@ -231,7 +255,7 @@ class HorizontalNormalButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     // 标题和内容不能同时为空
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      padding: EdgeInsets.fromLTRB(context.s(24), 0, context.s(24), context.s(24)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -301,6 +325,7 @@ class HorizontalTextButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 标题和内容不能同时为空
+    final buttonHeight = context.s(56);
     return Column(
       children: [
         const TDDivider(height: 0.5),
@@ -316,7 +341,7 @@ class HorizontalTextButtons extends StatelessWidget {
                 buttonType: leftBtn.type ?? TDButtonType.text,
                 buttonTheme: leftBtn.theme,
                 // fix： The button height does not fill the container.
-                height: 56,
+                height: buttonHeight,
                 buttonTextFontWeight: leftBtn.fontWeight,
                 onPressed: () {
                   if (leftBtn.action != null) {
@@ -327,9 +352,9 @@ class HorizontalTextButtons extends StatelessWidget {
                 },
               ),
             ),
-            const TDDivider(
+            TDDivider(
               width: 0.5,
-              height: 56,
+              height: buttonHeight,
             ),
             Expanded(
               child: TDDialogButton(
@@ -339,7 +364,7 @@ class HorizontalTextButtons extends StatelessWidget {
                 buttonStyle: rightBtn.style,
                 buttonType: rightBtn.type ?? TDButtonType.text,
                 buttonTheme: rightBtn.theme ?? TDButtonTheme.primary,
-                height: 56,
+                height: buttonHeight,
                 buttonTextFontWeight: rightBtn.fontWeight ?? FontWeight.w600,
                 onPressed: () {
                   if (rightBtn.action != null) {

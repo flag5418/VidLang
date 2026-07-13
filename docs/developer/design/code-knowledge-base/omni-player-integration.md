@@ -1,9 +1,10 @@
 # OmniPlayer 播放器集成知识库
 
-> **版本**: v1.0.0 (本地定制版)
-> **最后更新**: 2026-07-12
+> **版本**: v2.0.0 (本地定制版)
+> **最后更新**: 2026-07-13
 > **状态**: ✅ 已启用 - 项目唯一视频/音频播放引擎
 > **源码位置**: `plugs/omni_player/`
+> **集成状态**: ✅ 已完整集成 - PlayerPage (1550+行) + PlayerEngineNotifier (1110+行)
 
 ---
 
@@ -275,23 +276,36 @@ await OmniPlayer.instance.initialize(cacheConfig: CacheConfig(
 
 ```dart
 /// 打开视频/音频并开始播放
-Future<void> open(MediaItem item)
+///
+/// [autoPlay] 是否自动播放（默认 true）
+/// [skipCache] 是否跳过缓存（默认 false，设为 true 时不走缓存逻辑）
+Future<void> open(MediaItem item, {bool autoPlay = true, bool skipCache = false})
 
-/// 打开媒体（从指定时间点开始）
+/// 打开媒体（从指定时间点开始）—— 内部调用 open + seekTo
 Future<void> openFrom(MediaItem item, {int? startMs})
 
-// 示例：
+// 示例 1：基本用法
 final mediaItem = MediaItem(
   url: videoPath,
   title: videoTitle,
   isVideo: true,
 );
-
 await OmniPlayer.instance.open(mediaItem);
 
-// 从 30 秒处开始播放
+// 示例 2：从 30 秒处开始播放
 await OmniPlayer.instance.openFrom(mediaItem, startMs: 30000);
+
+// 示例 3：跳过缓存（如 HLS/DASH 流媒体场景）
+await OmniPlayer.instance.open(mediaItem, skipCache: true);
+
+// 示例 4：打开但不自动播放
+await OmniPlayer.instance.open(mediaItem, autoPlay: false);
 ```
+
+**缓存行为说明**：
+- 默认情况下（`skipCache=false`），对 HTTP(S) 点播链接自动启用缓存
+- HLS (`.m3u8`)、DASH (`.mpd`)、RTSP/RTMP 等流媒体格式**不缓存**（即使 `skipCache=false`）
+- 本地文件路径（`file://`）不经过缓存系统
 
 ### 播放控制
 
@@ -483,7 +497,9 @@ class CacheEntry {
 
 ### PlayerEngineProvider（项目标准）
 
-**文件位置**: `lib/providers/player_engine_provider.dart`
+**文件位置**: `lib/providers/player_engine_provider.dart`（1110+ 行）
+
+> **注意**: 使用 `StateNotifierProvider.autoDispose`（非普通 `StateNotifierProvider`），页面销毁时自动释放状态。
 
 #### State 定义
 
@@ -1147,6 +1163,7 @@ OmniPlayer.instance.stateStream.listen((state) {
 | 版本 | 日期 | 变更内容 | 作者 |
 |------|------|----------|------|
 | v1.0.0 | 2026-07-12 | 初版建立，完整的 API 参考与集成指南 | AI Assistant |
+| v2.0.0 | 2026-07-13 | **验证更新**：确认与代码完全一致；补充 `open()` 的 autoPlay/skipCache 参数；修正 Provider 为 autoDispose；标注 PlayerPage(1550行)+Notifier(1110行) 已完整实现 | AI Assistant |
 
 ---
 
@@ -1175,7 +1192,7 @@ OmniPlayer.instance.stateStream.listen((state) {
 - [ ] 字幕样式自定义（字体、颜色、位置）
 - [ ] 音轨切换（多语言）
 - [ ] 倍速预设 > 2.0x（如 3.0x、4.0x）
-- [ ] 播放历史记录（最近观看位置）
+- [ ] 播放历史记录独立页面（⚠️ VideoInfo 已记录 currentPosition/playDate，但缺少聚合展示页）
 - [ ] 收藏/稍后再看列表
 - [ ] 截图功能
 - [ ] GIF 录制

@@ -468,7 +468,10 @@ class AppInputDialog {
       ),
     );
 
-    controller.dispose();
+    // 延迟一帧后再 dispose，避免 TextField 还在使用 controller 时被销毁
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
     return result;
   }
 }

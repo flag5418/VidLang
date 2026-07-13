@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/models/study_record.dart';

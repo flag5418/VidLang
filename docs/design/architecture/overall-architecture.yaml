@@ -1,0 +1,156 @@
+# 项目总体设计（机器可读格式）
+# 用于 AI 自动读取和理解
+
+version: "1.0"
+updated: "2026-07-12"
+
+# 产品定位
+product:
+  name: "VidLang"
+  description: "视频语言学习应用"
+  target_users: "英语学习者"
+  core_value: "通过视频、文章、歌曲三种媒介学习英语"
+  differentiation: "字幕查词 + 跟读评分 + AI 问答"
+
+# 技术架构
+architecture:
+  pattern: "Flutter Monorepo"
+  reason:
+    - "多学习引擎共享同一套学习引擎代码"
+    - "本地数据库与云端 Supabase 强耦合"
+    - "团队规模适中，统一管理成本低"
+
+# 技术栈
+tech_stack:
+  frontend:
+    framework: "Flutter 3.x"
+    state_management: "Riverpod"
+    ui_library: "TDesign"
+    screen_adaptation: "flutter_screenutil"
+    
+  local:
+    database: "SQLite + FTS5"
+    video_player: "OmniPlayer"
+    audio_player: "just_audio"
+    
+  backend:
+    service: "Supabase"
+    database: "PostgreSQL"
+    auth: "Supabase Auth"
+    storage: "Supabase Storage"
+    edge_functions: "Supabase Edge Functions"
+    
+  ai:
+    service: "DeepSeek API"
+
+# 三引擎架构
+engines:
+  video:
+    name: "视频引擎"
+    features:
+      - "字幕查词"
+      - "跟读评分"
+      - "重复播放"
+    models:
+      - "VideoFolder"
+      - "VideoInfo"
+      - "Subtitles"
+      - "Participle"
+      
+  article:
+    name: "文章引擎"
+    features:
+      - "文章阅读"
+      - "生词本"
+      - "阅读测试"
+    models:
+      - "Article"
+      - "ArticleWord"
+      - "WordBook"
+      
+  song:
+    name: "歌曲引擎"
+    features:
+      - "歌词同步"
+      - "听歌学英语"
+      - "歌曲测试"
+    models:
+      - "Song"
+      - "SongLyrics"
+      - "SongWord"
+
+# 开发阶段
+phases:
+  - name: "Phase 1: 视频闭环"
+    status: "in_progress"
+    goal: "完成视频学习核心功能"
+    tasks:
+      - name: "录音功能"
+        status: "completed"
+      - name: "字幕查词"
+        status: "in_progress"
+      - name: "跟读评分"
+        status: "pending"
+      - name: "重复播放"
+        status: "pending"
+        
+  - name: "Phase 2: 文章阅读"
+    status: "pending"
+    goal: "完成文章阅读功能"
+    tasks:
+      - name: "Article 模型"
+        status: "pending"
+      - name: "文章阅读页面"
+        status: "pending"
+      - name: "生词本"
+        status: "pending"
+      - name: "阅读测试"
+        status: "pending"
+        
+  - name: "Phase 3: 歌曲学习"
+    status: "pending"
+    goal: "完成歌曲学习功能"
+    tasks:
+      - name: "Song 模型"
+        status: "pending"
+      - name: "歌词同步"
+        status: "pending"
+      - name: "听歌学英语"
+        status: "pending"
+      - name: "歌曲测试"
+        status: "pending"
+        
+  - name: "Phase 4: 云端同步"
+    status: "pending"
+    goal: "完成 Supabase 集成"
+    tasks:
+      - name: "用户认证"
+        status: "pending"
+      - name: "数据同步"
+        status: "pending"
+      - name: "AI 问答"
+        status: "pending"
+
+# 关键决策
+decisions:
+  - id: "monorepo"
+    question: "为什么选择单仓架构？"
+    pros:
+      - "代码共享，减少重复"
+      - "统一管理，降低复杂度"
+      - "方便协作，减少冲突"
+    cons:
+      - "代码量大，编译慢"
+      - "模块耦合，难以独立部署"
+    conclusion: "对于 VidLang 这个项目，优点大于缺点"
+    
+  - id: "supabase"
+    question: "为什么选择 Supabase？"
+    pros:
+      - "快速开发，降低后端成本"
+      - "实时同步，用户体验好"
+      - "认证集成，安全可靠"
+    cons:
+      - "供应商锁定"
+      - "定制性有限"
+    conclusion: "对于 VidLang 这个项目，Supabase 足够满足需求"

@@ -1,7 +1,7 @@
 # VidLang - 服务层架构详解
 
-> **版本**: V1.0 | **日期**: 2026-07-12  
-> **状态**: 当前有效  
+> **版本**: V2.0 | **日期**: 2026-07-13
+> **状态**: 当前有效
 > **适用读者**: 后端开发者、架构师、AI 辅助工具
 
 ---
@@ -31,45 +31,128 @@
 
 ---
 
-## 二、服务清单与分类
+## 二、服务清单与分类（完整版）
 
-### 2.1 核心服务（必须）
-
-| 序号 | 服务类 | 文件 | 职责 | 设计模式 |
-|------|--------|------|------|----------|
-| 1 | **DatabaseService** | `database_service.dart` | 数据库 CRUD、建表、迁移、FTS5 | 单例 + Repository |
-| 2 | **AuthService** | `auth_service.dart` | 用户认证（Supabase Auth + 本地认证） | 单例 + Strategy |
-| 3 | **FilePickerService** | `file_picker_service.dart` | 文件导入、扫描、字幕解析 | 单例 |
-| 4 | **ThumbnailService** | `thumbnail_service.dart` | 视频缩略图生成 | 单例 |
-| 5 | **LearningStatsService** | `learning_stats_service.dart` | 学习统计、会话管理、指标归集 | 单例 |
-| 6 | **AppKeysService** | `app_keys_service.dart` | 配置管理、密钥管理、用户上下文 | 单例 |
-
-### 2.2 AI 服务层（智能能力）
-
-| 序号 | 服务类 | 文件 | 职责 | 依赖 |
-|------|--------|------|------|------|
-| 7 | **AiService** | `ai_service.dart` | AI 代理调用（Edge Function）、查词、翻译 | Supabase Functions |
-| 8 | **NativeService** | `native_service.dart` | 原生翻译/TTS/词典封装（免费模式） | IosNativeFeatures, AiService |
-| 9 | **LocalAiService** | `local_ai_service.dart` | 本地 AI 服务统一入口（TTS/STT/翻译） | LocalTtsService, LocalSttService |
-| 10 | **TtsService** | `tts_service.dart` | 跨平台 TTS 朗读（免费/收费模式自动切换） | UnifiedTtsService, DashscopeTtsService |
-| 11 | **LocalTtsService** | `local_tts_service.dart` | 本地 TTS 引擎（ONNX Runtime） | sherpa-onnx |
-| 12 | **LocalSttService** | `local_stt_service.dart` | 本地 STT 引擎（已移除，保留兼容） | - |
-| 13 | **LocalModelService** | `local_model_service.dart` | 本地模型下载、状态检查、版本管理 | 文件系统 |
-
-### 2.3 业务服务（功能模块）
+### 2.1 核心基础设施服务
 
 | 序号 | 服务类 | 文件 | 职责 | 状态 |
 |------|--------|------|------|------|
-| 14 | **FileManagerService** | `file_manager_service.dart` | 物理文件 CRUD（目录创建/删除/重命名） | ✅ 已实现 |
-| 15 | **SyncService** | `sync_service.dart` | 云端同步（Supabase Realtime） | 🚧 开发中 |
-| 16 | **TopupService** | `topup_service.dart` | 充值服务（余额管理、订单） | ✅ 已实现 |
-| 17 | **SubscriptionService** | `subscription_service.dart` | 订阅模式管理（免费/收费切换） | ✅ 已实现 |
+| 1 | **DatabaseService** | `database_service.dart` | 数据库 CRUD、建表、FTS5 全文检索 | ✅ 核心 |
+| 2 | **GlobalErrorHandler** | `global_error_handler.dart` | 全局错误处理（Zone Error + Navigator） | ✅ 已实现 |
+| 3 | **AppKeysService** | `app_keys_service.dart` | 配置管理、密钥管理、用户上下文 | ✅ 已实现 |
+| 4 | **SettingsService** | `settings_service.dart` | 应用设置读写（播放设置等） | ✅ 已实现 |
 
-### 2.4 平台特定服务
+### 2.2 文件/媒体服务
 
-| 序号 | 服务类 | 文件 | 职责 | 平台 |
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
 |------|--------|------|------|------|
-| 18 | **IosNativeFeatures** | `ios_native_features.dart` | iOS 原生能力（MLTranslation、词典查询） | iOS only |
+| 5 | **FilePickerService** | `file_picker_service.dart` | 文件导入、扫描、字幕解析(.srt/.vtt/.ass/.lrc) | ✅ 已实现 |
+| 6 | **FileManagerService** | `file_manager_service.dart` | 物理文件 CRUD（目录创建/删除/重命名） | ✅ 已实现 |
+| 7 | **ThumbnailService** | `thumbnail_service.dart` | 视频缩略图生成 | ✅ 已实现 |
+| 8 | **InitialLetterCover** | `initial_letter_cover.dart` | 首字母封面生成（无缩略图时） | ✅ 已实现 |
+| 9 | **FolderStatsService** | `folder_stats_service.dart` | 文件夹统计信息聚合 | ✅ 已实现 |
+| 10 | **WifiTransferService** | `wifi_transfer_service.dart` | WiFi 文件传输 | ✅ 已实现 |
+| 11 | **ID3Parser** | `id3_parser.dart` | 音频 ID3 标签解析（歌曲引擎） | ✅ 已实现 |
+| 12 | **LrcParser** | `lrc_parser.dart` | LRC 歌词解析（歌曲引擎） | ✅ 已实现 |
+
+### 2.3 AI 服务层（智能能力）
+
+| 序号 | 服务类 | 文件 | 职责 | 依赖 |
+|------|--------|------|------|------|
+| 13 | **AiService** | `ai_service.dart` | AI 代理调用（Edge Function）、查词、翻译 | Supabase Functions |
+| 14 | **LocalAiService** | `local_ai_service.dart` | 本地 AI 服务统一入口（TTS/STT/翻译初始化） | LocalTts/Stt, HuggingFace |
+| 15 | **NativeService** | `native_service.dart` | 原生通道封装（iOS 特有能力） | IosNativeFeatures |
+| 16 | **IosNativeFeatures** | `ios_native_features.dart` | iOS 原生能力（MLTranslation、词典查询） | iOS only |
+| 17 | **DictionaryService** | `dictionary_service.dart` | 查词服务（本地词典 + AI） | AiService |
+| 18 | **TranslationService** | `translation_service.dart` | 翻译服务入口 | UnifiedTranslation |
+| 19 | **UnifiedTranslationService** | `unified_translation_service.dart` | 统一翻译（本地/云端自动切换） | HuggingFace, AiService |
+| 20 | **HuggingfaceTranslationService** | `huggingface_translation_service.dart` | HuggingFace 本地翻译模型 | ONNX Runtime |
+| 21 | **TranslationInitService** | `translation_init_service.dart` | 翻译服务懒加载初始化 | - |
+
+### 2.4 TTS（文字转语音）服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 22 | **TtsService** | `tts_service.dart` | TTS 入口（免费/收费模式自动切换） | ✅ 已实现 |
+| 23 | **UnifiedTtsService** | `unified_tts_service.dart` | 统一 TTS（系统/本地/云端路由） | ✅ 已实现 |
+| 24 | **DashscopeTtsService** | `dashscope_tts_service.dart` | 阿里云 TTS PCM 流（收费模式） | ✅ 已实现 |
+| 25 | **LocalTtsService** | `local_tts_service.dart` | 本地 TTS 引擎（ONNX + sherpa-onnx） | ✅ 已实现 |
+
+### 2.5 STT（语音转文字）服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 26 | **SpeechToTextService** | `speech_to_text_service.dart` | STT 入口 | ✅ 已实现 |
+| 27 | **UnifiedSttService** | `unified_stt_service.dart` | 统一 STT（本地/云端路由） | ✅ 已实现 |
+| 28 | **LocalSttService** | `local_stt_service.dart` | 本地 STT 引擎 | ✅ 已实现 |
+| 29 | **AudioRecognitionService** | `audio_recognition_service.dart` | 音频识别（跟读评分输入） | ✅ 已实现 |
+
+### 2.6 评测服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 30 | **EvaluationService** | `evaluation_service.dart` | 发音评测协调器 | ✅ 已实现 |
+| 31 | **EvaluationApi** | `evaluation_api.dart` | 评测 API 封装 | ✅ 已实现 |
+| 32 | **EvaluationStorageService** | `evaluation_storage_service.dart` | 评测结果存储 | ✅ 已实现 |
+| 33 | **AiEvaluationService** | `ai_evaluation_service.dart` | AI 学习评价 | ✅ 已实现 |
+| 34 | **ScoreService** | `score_service.dart` | 评分计算 | ✅ 已实现 |
+| 35 | **ShengtongEvaluator** | `shengtong_evaluator.dart` | 声通评测器（基类/协调） | ✅ 已实现 |
+| 36 | **ShengtongEvaluatorManual** | `shengtong_evaluator_manual.dart` | 声通手动模式评测 | ✅ 已实现 |
+| 37 | **ShengtongHttpEvaluator** | `shengtong_http_evaluator.dart` | 声通 HTTP 模式评测 | ✅ 已实现 |
+
+### 2.7 用户/认证/计费服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 38 | **AuthService** | `auth_service.dart` | 认证（Supabase Auth + 本地 Auth） | ✅ 已实现 |
+| 39 | **BillingService** | `billing_service.dart` | 计费/余额/扣费 | ✅ 已实现 |
+| 40 | **TopupService** | `topup_service.dart` | 充值服务 | ✅ 已实现 |
+
+### 2.8 数据统计服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 41 | **StatsService** | `stats_service.dart` | 统计服务入口 | ✅ 已实现 |
+| 42 | **LearningStatsService** | `learning_stats_service.dart` | 学习统计、会话管理、指标归集 | ✅ 已实现 |
+
+### 2.9 对话/AI 实时服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 43 | **ConversationService** | `conversation_service.dart` | AI 对话管理 | ✅ 已实现 |
+| 44 | **QwenRealtimeService** | `qwen_realtime_service.dart` | 通义千问实时语音对话 | ✅ 已实现 |
+
+### 2.10 内容解析服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 45 | **ArticleParser** | `article_parser.dart` | 文章内容解析（文章引擎） | ✅ 已实现 |
+
+### 2.11 单词本服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 46 | **WordBookService** | `word_book_service.dart` | 单词本 CRUD | ✅ 已实现 |
+| 47 | **WordTagService** | `word_tag_service.dart` | 单词标签管理 | ✅ 已实现 |
+
+### 2.12 本地模型服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 48 | **LocalModelService** | `local_model_service.dart` | 本地模型下载、状态检查、版本管理 | ✅ 已实现 |
+| 49 | **ModelPathService** | `model_path_service.dart` | 模型路径管理 | ✅ 已实现 |
+
+### 2.13 测试服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 50 | **TestGenerator** | `test_generator.dart` | 测试题目生成 | ✅ 已实现 |
+
+### 2.14 论坛服务
+
+| 序号 | 服务类 | 文件 | 职责 | 状态 |
+|------|--------|------|------|------|
+| 51 | **ForumService** | `forum/forum_service.dart` | 论坛 CRUD（基于 Supabase） | ✅ 已实现 |
 
 ---
 
@@ -90,14 +173,9 @@
 
 ```dart
 class DatabaseService {
-  // 单例
-  static final DatabaseService instance = DatabaseService._internal();
-  
-  // 初始化
-  Future<Database> get database async {...}
-  
-  // 实体注册（在 main.dart 中调用）
-  Future<void> registerEntities(List<BaseEntity> entities) async {...}
+  // 静态访问方式（非传统单例）
+  static Future<Database> get database async {...}
+  static void registerEntities(Map<String, EntityConfig> entities) {...}
   
   // 通用 CRUD
   Future<int> insert(BaseEntity entity) async {...}
@@ -110,7 +188,7 @@ class DatabaseService {
     String? orderBy,
     int? limit,
     int? offset,
-  ) async {...}
+  }) async {...}
   
   // FTS5 全文检索
   Future<List<T>> searchFTS<T extends BaseEntity>(
@@ -119,13 +197,15 @@ class DatabaseService {
     String query, {
     String? where,
     List<dynamic>? whereArgs,
-  ) async {...}
+  }) async {...}
   
   // 用户过滤
   static void setCurrentUser(String userCode) {...}
   static String? get currentUserCode => _currentUserCode;
 }
 ```
+
+> **注意**: DatabaseService 在 V2 中已从传统单例改为静态方法访问模式，实体注册使用 `Map<String, EntityConfig>` 而非 `List<BaseEntity>`。
 
 #### 使用示例
 
@@ -154,12 +234,6 @@ final results = await DatabaseService.searchFTS(
   whereArgs: [videoCode],
 );
 ```
-
-#### 注意事项
-- ⚠️ 必须在 `main.dart` 中先调用 `registerEntities()` 才能使用
-- ⚠️ 所有查询默认带 `user_code` 过滤（多用户支持）
-- ⚠️ 软删除使用 `softDelete()` 而非物理删除
-- ⚠️ FTS5 表需要特殊配置触发器（见 database-design.md）
 
 ---
 
@@ -191,59 +265,6 @@ final results = await DatabaseService.searchFTS(
 └─────────────────┴───────────────────────────┘
 ```
 
-#### 关键 API
-
-```dart
-class AuthService {
-  static final AuthService instance = AuthService._();
-  
-  // Supabase 登录
-  Future<User> signInWithEmail({required String email, required String password}) async {...}
-  Future<User> signInWithApple() async {...}
-  Future<User> signInWithGoogle() async {...}
-  
-  // 本地登录
-  Future<local.User> signInLocal({required String username, required String password}) async {...}
-  
-  // 注册
-  Future<User> signUp({required String email, required String password}) async {...}
-  
-  // 登出
-  Future<void> signOut() async {...}
-  
-  // 密码管理
-  Future<void> changePassword(String newPassword) async {...}
-  
-  // 会话监控
-  Future<void> startSessionWatch() async {...}  // 监控会话过期
-  void _stopSessionWatch() {...}
-  
-  // 当前用户
-  User? get currentUser => AppKeysService.currentUser;
-  bool get isLoggedIn => currentUser != null;
-  bool get isSupabaseUser => currentUser?.authProvider == 'supabase';
-}
-```
-
-#### 使用示例
-
-```dart
-try {
-  final user = await AuthService.instance.signInWithEmail(
-    email: 'test@example.com',
-    password: 'password123',
-  );
-  print('登录成功: ${user.displayName}');
-} on AuthException catch (e) {
-  showErrorDialog('登录失败: ${e.message}');
-}
-```
-
-#### 安全机制
-- 🔒 凭证存储在 iOS Keychain / Android Keystore（通过 flutter_secure_storage）
-- 🔄 Session Watchdog 自动刷新 Supabase Token（每 20 分钟检查一次）
-- 🚫 登出时清除所有本地缓存和安全存储
-
 ---
 
 ### 3.3 AiService（AI 代理服务）⭐⭐⭐
@@ -257,22 +278,6 @@ try {
 - 计费集成（每次调用返回 cost_cny 和 balance_after）
 - 缓存管理（本地缓存常用查询结果）
 - 本地/云端模式自动切换
-
-#### 架构设计
-
-```
-AiService
-    │
-    ├── callAiProxy()          ← 核心调用方法
-    │   ├── preferLocal: true  → 尝试本地模型（iOS MLTranslation）
-    │   └── preferLocal: false → 走云端 Edge Function
-    │
-    ├── getDefinition()        ← 查单词释义
-    │   └── 返回 WordDetail
-    │
-    └── translateText()         ← 翻译文本
-        └── 返回 TranslationResult
-```
 
 #### Edge Function 返回格式
 
@@ -291,80 +296,6 @@ AiService
 }
 ```
 
-#### 关键 API
-
-```dart
-class AiService {
-  static const _functionName = 'ai-proxy';
-  static const _cacheVersion = 2;  // 缓存版本号
-  
-  /// 核心调用方法
-  static Future<WordDetail> callAiProxy({
-    required String ruleCode,      // 规则码：ai_translate / ai_definition
-    required String scene,          // 场景：video / article / music
-    required String entry,          // 入口：word_lookup / sentence_translate
-    required String word,           // 查询词
-    String? sourceType,
-    String? sourceCode,
-    Map<String, dynamic> params = const {},
-    Map<String, dynamic>? billing,
-    bool preferLocal = false,       // 是否优先本地模型
-  }) async {...}
-  
-  /// 查单词释义（快捷方法）
-  static Future<WordDetail> getDefinition({
-    required String word,
-    String? contextSentence,
-    String? sourceType,
-    String? sourceCode,
-  }) async {
-    return callAiProxy(
-      ruleCode: 'ai_definition',
-      scene: sourceType ?? 'unknown',
-      entry: 'word_lookup',
-      word: word,
-      params: {'context_sentence': contextSentence},
-    );
-  }
-  
-  /// 翻译文本（快捷方法）
-  static Future<WordDetail> translateText({
-    required String text,
-    String? sourceType,
-  }) async {
-    return callAiProxy(
-      ruleCode: 'ai_translate',
-      scene: sourceType ?? 'unknown',
-      entry: 'sentence_translate',
-      word: text,
-    );
-  }
-}
-```
-
-#### 错误处理
-
-```dart
-// 余额不足
-if (detail.isInsufficientBalance) {
-  showRechargeDialog(
-    requiredCny: detail.costCny,
-    currentBalance: detail.balanceAfter,
-  );
-}
-
-// 其他错误
-if (!detail.success) {
-  showErrorToast(detail.error ?? 'AI 查询失败');
-}
-```
-
-#### 缓存策略
-- 缓存位置：SQLite 或内存（LRU）
-- 缓存 Key：`${ruleCode}:${word}:${_cacheVersion}`
-- 缓存失效：当 `_cacheVersion` 递增时，旧缓存全部失效
-- 缓存时间：常用词永久缓存，非常用词 7 天过期
-
 ---
 
 ### 3.4 LearningStatsService（学习统计服务）⭐⭐
@@ -377,17 +308,6 @@ if (!detail.success) {
 - 时长计算（精确到秒）
 - 指标归集（跟读评分、测试得分）
 - 资源汇总更新（VideoInfo.lastFollowScore 等）
-
-#### 设计原则
-```
-复用 StudyRecord 作为汇总层，不新建表
-        ↓
-详情层（RecordingRecord / TestItem）保持独立
-        ↓
-由各业务组件自行写入详情
-        ↓
-本服务统一协调汇总数据的读写一致性
-```
 
 #### 会话生命周期
 
@@ -402,135 +322,6 @@ recordTestScore(score)    ← 可多次调用
 endSession()              ← 写入 StudyRecord
     ↓
 switchResource(newCode)   ← 原子操作：end + begin
-```
-
-#### 关键 API
-
-```dart
-class LearningStatsService {
-  static final LearningStatsService instance = LearningStatsService._();
-  
-  // ════════════════════════════════════
-  //  会话管理
-  // ════════════════════════════════════
-  
-  /// 开始学习某个资源
-  Future<void> beginSession({
-    required String resourceCode,    // video_info.code / article.code
-    required String resourceType,    // video / article / music
-    String? folderCode,              // 所属文件夹 code
-  }) async {...}
-  
-  /// 结束当前会话（写入 StudyRecord）
-  Future<void> endSession() async {...}
-  
-  /// 切换资源（原子操作：结束旧 + 开启新）
-  Future<void> switchResource({
-    required String resourceCode,
-    required String resourceType,
-    String? folderCode,
-  }) async {...}
-  
-  // ════════════════════════════════════
-  //  行为指标
-  // ════════════════════════════════════
-  
-  /// 记录跟读评分
-  Future<void> recordFollowScore({
-    required String resourceCode,
-    required double score,            // 0-100
-    required String sentenceCode,
-    String? resourceType,
-  }) async {...}
-  
-  /// 记录测试得分
-  Future<void> recordTestScore({
-    required String resourceCode,
-    required double score,
-    required TestType testType,       // fill / dictation / quiz
-    Map<String, dynamic>? detail,
-  }) async {...}
-  
-  // ════════════════════════════════════
-  //  查询统计
-  // ════════════════════════════════════
-  
-  /// 获取今日学习时长（秒）
-  Future<int> getTodayStudyDuration() async {...}
-  
-  /// 获取本周学习统计
-  Future<WeeklyStats> getWeeklyStats() async {...}
-}
-```
-
-#### 使用示例（在播放器页面中）
-
-```dart
-class PlayerPageState extends State<PlayerPage> {
-  @override
-  void initState() {
-    super.initState();
-    // 开始学习会话
-    LearningStatsService.instance.beginSession(
-      resourceCode: widget.video.code,
-      resourceType: 'video',
-      folderCode: widget.folderCode,
-    );
-  }
-  
-  @override
-  void dispose() {
-    // 结束学习会话
-    LearningStatsService.instance.endSession();
-    super.dispose();
-  }
-  
-  void _onFollowScore(double score) {
-    // 记录跟读评分
-    LearningStatsService.instance.recordFollowScore(
-      resourceCode: widget.video.code,
-      score: score,
-      sentenceCode: currentSentence.code,
-    );
-  }
-  
-  void _onSwitchVideo(VideoInfo newVideo) {
-    // 切换视频（原子操作）
-    LearningStatsService.instance.switchResource(
-      resourceCode: newVideo.code,
-      resourceType: 'video',
-      folderCode: widget.folderCode,
-    );
-  }
-}
-```
-
-#### 数据写入流程
-
-```
-endSession() 被调用
-    ↓
-计算 duration = DateTime.now() - _sessionStartTime
-    ↓
-创建 StudyRecord 对象：
-  - resource_code = _sessionResourceCode
-  - resource_type = _sessionResourceType
-  - folder_code = _sessionFolderCode
-  - start_time = _sessionStartTime
-  - end_time = DateTime.now()
-  - duration = duration.inSeconds  ← ⚠️ 单位是秒！
-  - best_follow_score = _bestFollowScore
-  - follow_count = _followCount
-  - best_test_score = _bestTestScore
-  - test_count = _testCount
-    ↓
-DatabaseService.insert(studyRecord)
-    ↓
-更新 VideoInfo/Article 统计字段：
-  - total_play_duration += duration
-  - last_follow_score = max(last_follow_score, score)
-    ↓
-_resetSession()  ← 清理会话状态
 ```
 
 ---
@@ -554,71 +345,13 @@ speakClarity(text, mode?)
 mode == null ? → 检查 SubscriptionProvider.currentMode
     ↓
 mode == SubscriptionMode.free ?
-    → UnifiedTtsService.speakSystem(text)  ← iOS AVSpeechSynthesizer
+    → UnifiedTtsService.speakSystem(text)  ← iOS AVSpeechSynthesizer / Android TTS
     ↓
 mode == SubscriptionMode.premium ?
     → DashscopeTtsService.speak(text)       ← 阿里云 TTS PCM 流
     ↓
 onEvent 回调通知 UI 状态变化
 ```
-
-#### 关键 API
-
-```dart
-class TtsService {
-  static final TtsService _instance = TtsService._internal();
-  factory TtsService() => _instance;
-  
-  bool get isSpeaking => _isSpeaking;
-  
-  /// 朗读文本（自动选择模式）
-  Future<void> speakClarity({
-    required String text,
-    SubscriptionMode? mode,        // 可选，不传则自动检测
-    void Function(TtsEvent)? onEvent,  // 事件回调
-    VoidCallback? onComplete,       // 完成回调（兼容旧接口）
-  }) async {...}
-  
-  /// 停止朗读
-  Future<void> stop() async {...}
-  
-  /// 预加载（提前合成下一句）
-  Future<void> prefetch(String text) async {...}
-  
-  /// 释放资源
-  void dispose() {...}
-}
-```
-
-#### 事件回调示例
-
-```dart
-TtsService().speakClarity(
-  text: 'Hello, how are you?',
-  onEvent: (event) {
-    switch (event.type) {
-      case TtsEventType.loading:
-        showLoadingIndicator();  // 显示加载动画
-        break;
-      case TtsEventType.playing:
-        hideLoadingIndicator();  // 开始播放
-        break;
-      case TtsEventType.completed:
-        enableNextButton();      // 播放完成，允许下一步
-        break;
-      case TtsEventType.error:
-        showErrorToast(event.message ?? 'TTS 错误');
-        break;
-    }
-  },
-);
-```
-
-#### 缓存机制
-- 缓存路径：`Documents/tts_cache/`
-- 缓存文件名：`sha256(text).pcm`
-- 缓存命中：同一句话重复点击秒开（无需重新合成）
-- 缓存清理：应用退出时可清理（可选保留）
 
 ---
 
@@ -632,78 +365,6 @@ TtsService().speakClarity(
 - 动态密钥（Qwen API Key、声通 AppKey，从服务端加载）
 - 当前用户上下文（全局共享）
 
-#### 配置分类
-
-```dart
-class AppKeysService {
-  static final AppKeysService instance = AppKeysService._();
-  
-  // ════════════════════════════════════
-  // ① 静态常量 —— 基础连接信息
-  // ════════════════════════════════════
-  static const String supabaseUrl = 'https://xxx.supabase.co';
-  static const String supabaseAnonKey = 'sb_publishable_xxx';
-  
-  // ════════════════════════════════════
-  // ② 声通语音评测 —— 基础配置
-  // ════════════════════════════════════
-  static const String shengtongWsUrl = 'ws://api.stkouyu.com:8080';
-  static const String shengtongWssUrl = 'wss://api.stkouyu.com:8443';
-  static const bool shengtongUseSSL = false;
-  
-  // ════════════════════════════════════
-  // ③ 运行时状态 —— 当前用户
-  // ════════════════════════════════════
-  static User? currentUser;  // 全局共享
-  
-  // ════════════════════════════════════
-  // ④ 动态密钥 —— 从服务端加载
-  // ════════════════════════════════════
-  String? _qwenApiKey;              // 通义千问 API Key
-  String? _shengtongAppId;          // 声通 App ID
-  String? _shengtongApiKey;         // 声通 API Key
-  
-  /// 从 app_settings 表加载动态密钥
-  Future<void> loadDynamicKeys() async {
-    final response = await supabase
-      .from('app_settings')
-      .select()
-      .eq('key', ['qwen_api_key', 'shengtong_app_id', 'shengtong_api_key']);
-    
-    for (var row in response) {
-      switch (row['key']) {
-        case 'qwen_api_key':
-          _qwenApiKey = row['value'];
-          break;
-        case 'shengtong_app_id':
-          _shengtongAppId = row['value'];
-          break;
-        case 'shengtong_api_key':
-          _shengtongApiKey = row['value'];
-          break;
-      }
-    }
-  }
-}
-```
-
-#### 使用场景
-
-```dart
-// 在任何地方获取当前用户
-final user = AppKeysService.currentUser;
-if (user != null) {
-  print('Hello, ${user.displayName}');
-}
-
-// 获取 Supabase URL
-final url = AppKeysService.supabaseUrl;
-
-// 获取动态密钥（需先调用 loadDynamicKeys）
-await AppKeysService.instance.loadDynamicKeys();
-final qwenKey = AppKeysService.instance.qwenApiKey;
-```
-
 ---
 
 ## 四、服务间依赖关系图
@@ -714,15 +375,17 @@ final qwenKey = AppKeysService.instance.qwenApiKey;
                     │  (静态常量+动态密钥)  │
                     └──────────┬──────────┘
                                │
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-          ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  DatabaseService │  │   AuthService   │  │    AiService    │
-│  (数据库 CRUD)   │  │  (用户认证)      │  │  (AI 代理调用)   │
-└────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘
-         │                     │                     │
-         │                     │                     │
+          ┌────────────────────┼────────────────────┬──────────────────┐
+          │                    │                    │                  │
+          ▼                    ▼                    ▼                  ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐
+│  DatabaseService │  │   AuthService   │  │    AiService    │  │ LocalAiSvc   │
+│  (数据库 CRUD)   │  │  (用户认证)      │  │  (AI 代理调用)   │  │ (本地AI入口) │
+└────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  └──────┬───────┘
+         │                     │                     │                    │
+         │                     │                     │                    ├──→ LocalTtsService
+         │                     │                     │                    ├──→ LocalSttService
+         │                     │                     │                    └──→ HuggingFaceTrans
          ▼                     ▼                     ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │ LearningStats   │  │  FilePicker     │  │  NativeService  │
@@ -734,23 +397,42 @@ final qwenKey = AppKeysService.instance.qwenApiKey;
                               │                    │
                               ▼                    ▼
                    ┌─────────────────┐  ┌─────────────────┐
-                   │  LocalAiService │  │   TtsService    │
-                   │  (本地 AI 统一)  │  │  (跨平台 TTS)   │
-                   └────────┬────────┘  └────────┬─────────┘
+                   │   TtsService    │  │ EvaluationSvc   │
+                   │  (跨平台 TTS)   │  │  (发音评测)      │
+                   └────────┬────────┘  └────────┬────────┘
                             │                     │
               ┌─────────────┼─────────────┐       │
               ▼             ▼             ▼       ▼
-     ┌────────────┐ ┌────────────┐ ┌──────────┐ ┌──────────┐
-     │LocalTtsSvc │ │LocalSttSvc │ │LocalModel│ │Dashscope │
-     │(本地 TTS)  │ │(已移除)     │ │ Service  │ │ Tts Svc  │
-     └────────────┘ └────────────┘ └──────────┘ └──────────┘
+     ┌────────────┐ ┌────────────┐ ┌──────────┐ ┌──────────────┐
+     │DashscopeTTS│ │ System TTS │ │LocalModel│ │ShengtongEval │
+     │(阿里云TTS) │ │(系统TTS)   │ │ Service  │ │(声通评测)     │
+     └────────────┘ └────────────┘ └──────────┘ └──────────────┘
 ```
 
 ---
 
-## 五、服务层最佳实践
+## 五、新增的重要服务（V1 → V2 新增）
 
-### 5.1 创建新服务的模板
+以下服务在 V1 文档中未记录，但已在代码中实现：
+
+| 服务 | 说明 |
+|------|------|
+| **GlobalErrorHandler** | 全局错误捕获，Zone-level 错误处理 + 导航到错误页 |
+| **StatsService** | 统计服务入口，聚合各类学习数据 |
+| **ConversationService** | AI 对话管理（多轮对话上下文） |
+| **QwenRealtimeService** | 通义千问实时语音对话（WebSocket） |
+| **WordBookService** | 单词本完整 CRUD（收藏、标签、复习） |
+| **ForumService** | 论坛模块的 Supabase 数据操作 |
+| **WifiTransferService** | WiFi 局域网文件传输 |
+| **EvaluationService 系列** | 7 个评测相关服务（声通/手动/HTTP/AI） |
+| **ArticleParser** | 文章内容解析（EPUB/TXT 等） |
+| **BillingService / TopupService** | 会员计费与充值 |
+
+---
+
+## 六、服务层最佳实践
+
+### 6.1 创建新服务的模板
 
 ```dart
 /// {服务名} 服务
@@ -789,7 +471,7 @@ class {ServiceName} {
       return result;
     } catch (e) {
       // 统一错误处理
-      throw {CustomException}('{友好错误信息}: $e');
+      throw ServiceException('{友好错误信息}: $e');
     }
   }
   
@@ -800,7 +482,7 @@ class {ServiceName} {
 }
 ```
 
-### 5.2 异步操作标准模式
+### 6.2 异步操作标准模式
 
 ```dart
 Future<ResultType> doSomethingAsync() async {
@@ -821,19 +503,16 @@ Future<ResultType> doSomethingAsync() async {
     return ResultType.fromData(data);
     
   } on SocketException {
-    // 网络异常
     throw ServiceException('网络异常，请检查网络连接');
   } on TimeoutException {
-    // 超时
     throw ServiceException('请求超时，请稍后重试');
   } catch (e) {
-    // 其他未知错误
     throw ServiceException('操作失败: $e');
   }
 }
 ```
 
-### 5.3 错误处理规范
+### 6.3 错误处理规范
 
 | 错误类型 | 处理方式 | 示例 |
 |----------|----------|------|
@@ -843,41 +522,17 @@ Future<ResultType> doSomethingAsync() async {
 | **余额不足** | 返回特殊标记（非异常） | `WordDetail.error(isInsufficientBalance: true)` |
 | **数据不存在** | 返回空集合或 null | `return []` 或 `return null` |
 
-### 5.4 日志规范
-
-```dart
-import 'dart:developer' as dev;
-
-// 使用结构化日志
-dev.log(
-  '🚀 [ServiceName] MethodName START: param=$param',
-  name: 'ServiceName',  // 服务名作为日志 tag
-);
-
-dev.log(
-  '✅ [ServiceName] MethodName SUCCESS: result=$result',
-  name: 'ServiceName',
-);
-
-dev.log(
-  '❌ [ServiceName] MethodName ERROR: $error',
-  name: 'ServiceName',
-  error: error,  // 传入 error 对象，便于调试
-  stackTrace: stackTrace,
-);
-```
-
 ---
 
-## 六、常见问题排查
+## 七、常见问题排查
 
 ### Q1: DatabaseService 未初始化？
 
 **症状**: `Null check operator used on a null value`
 
 **解决方案**:
-1. 检查 `main.dart` 是否调用了 `registerEntities()`
-2. 确保在使用前访问了 `DatabaseService.instance.database`
+1. 检查 `main.dart` 是否调用了 `DatabaseService.registerEntities({...})`
+2. 确保在使用前访问了 `DatabaseService.database`（触发初始化）
 3. 不要在 `main()` 函数的顶层直接调用 DB 操作
 
 ### Q2: AiService 返回余额不足？
@@ -906,82 +561,46 @@ dev.log(
 **自动处理机制**:
 - Session Watchdog 每 20 分钟检查一次 Token 有效性
 - Token 即将过期时自动刷新
-- 如果刷新失败，抛出 `SessionHijackedException`
-- UI 层应捕获此异常并引导用户重新登录
+- 如果刷新失败，通过 GlobalErrorHandler 导航回登录页
 
 ---
 
-## 七、性能优化建议
+## 八、服务层统计（截至 2026-07-13）
 
-### 7.1 数据库操作优化
-
-```dart
-// ❌ 避免：N+1 查询问题
-for (var folder in folders) {
-  final videos = await DatabaseService.findByCondition(...);  // N 次查询
-}
-
-// ✅ 推荐：批量查询或 JOIN
-final allVideos = await DatabaseService.findByCondition(
-  () => VideoInfo(),
-  where: 'folder_code IN (${folders.map((f) => '?').join(',')})',
-  whereArgs: folders.map((f) => f.code).toList(),
-);
-```
-
-### 7.2 并发控制
-
-```dart
-// ❌ 避免：无限制并发
-for (var video in videos) {
-  await processVideo(video);  // 串行执行，慢
-}
-
-// ✅ 推荐：有限并发（如 3 个并发）
-await Future.wait(
-  videos.map((video) => processVideo(video)),
-).catchError((e) => handleError(e));
-```
-
-### 7.3 内存管理
-
-```dart
-// 大列表分页加载
-Future<List<VideoInfo>> loadVideosPaginated(int page) async {
-  return await DatabaseService.findByCondition(
-    () => VideoInfo(),
-    limit: 50,  // 每页 50 条
-    offset: page * 50,
-  );
-}
-
-// 及时释放大对象
-void _processLargeData() {
-  List<BigObject> data = fetchLargeData();
-  // ... 处理
-  data.clear();  // 手动清空引用，帮助 GC
-  data = [];
-}
-```
+| 类别 | 数量 | 说明 |
+|------|------|------|
+| 核心基础设施 | 4 | DB、ErrorHandler、AppKeys、Settings |
+| 文件/媒体 | 8 | 文件导入、缩略图、WiFi传输、歌词/ID3解析 |
+| AI 服务 | 9 | AI查询、本地AI、翻译、词典、原生通道 |
+| TTS 服务 | 4 | TTS入口、统一TTS、阿里云TTS、本地TTS |
+| STT 服务 | 4 | STT入口、统一STT、本地STT、音频识别 |
+| 评测服务 | 7 | 评测协调、API、存储、AI评价、声通(x3) |
+| 用户/计费 | 3 | Auth、Billing、Topup |
+| 数据统计 | 2 | Stats、LearningStats |
+| 对话/AI实时 | 2 | Conversation、QwenRealtime |
+| 内容解析 | 1 | ArticleParser |
+| 单词本 | 2 | WordBook、WordTag |
+| 本地模型 | 2 | LocalModel、ModelPath |
+| 测试 | 1 | TestGenerator |
+| 论坛 | 1 | ForumService |
+| **总计** | **~51** | （含 forum 子目录） |
 
 ---
 
-## 八、服务层统计（截至 2026-07-12）
+## 九、版本更新记录
 
-| 类别 | 数量 | 总代码行数（约） |
-|------|------|------------------|
-| 核心服务 | 6 | ~2500 |
-| AI 服务 | 7 | ~3000 |
-| 业务服务 | 4 | ~1500 |
-| 平台特定服务 | 1 | ~200 |
-| **总计** | **18** | **~7200** |
+| 版本 | 日期 | 更新内容 |
+|------|------|----------|
+| V1.0 | 2026-07-12 | 初始版本，仅覆盖 18 个核心服务 |
+| V2.0 | 2026-07-13 | **重大更新**：服务清单从 18 个扩展至 51 个；补充评测服务族(7)、TTS/STT 服务族(各4)、论坛/单词本/WiFi传输等服务；更新 DatabaseService API 为静态方法模式；新增服务间依赖关系图 |
 
 ---
 
-**最后更新**: 2026-07-12  
-**维护者**: VidLang 开发团队  
-**相关文档**: 
-- [README.md](./README.md) - 知识库入口
+**最后更新**: 2026-07-13
+**维护者**: VidLang 开发团队
+**相关文档**:
+- [AGENT_CONTEXT.md](../AGENT_CONTEXT.md) - 项目核心认知
 - [Flutter 代码结构详解](./flutter-code-structure.md) - 整体代码组织
 - [数据库设计](./database-design.md) - 数据模型和表结构
-- [状态管理指南](./state-management-guide.md) - Provider 层如何调用 Services
+- [OmniPlayer 集成指南](./omni-player-integration.md) - 播放器集成
+- [AI 服务集成](./ai-service-integration.md) - AI 服务详细说明

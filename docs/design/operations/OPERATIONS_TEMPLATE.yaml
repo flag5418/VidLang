@@ -1,0 +1,298 @@
+# 运维设计（机器可读格式）
+# 用于 AI 自动读取和理解
+
+version: "1.0"
+updated: "YYYY-MM-DD"
+
+# 运维概述
+operations:
+  goals:
+    availability: "99.9%"
+    performance: "响应时间 < 200ms"
+    security: "数据加密，访问控制"
+    
+  scope:
+    - "Supabase 后端服务"
+    - "DeepSeek AI 服务"
+    - "客户端应用"
+
+# 部署策略
+deployment:
+  environments:
+    - name: "开发环境"
+      purpose: "本地开发"
+      url: "localhost"
+      
+    - name: "预发布环境"
+      purpose: "测试验证"
+      url: "staging.vidlang.app"
+      
+    - name: "生产环境"
+      purpose: "正式发布"
+      url: "app.vidlang.app"
+      
+  pipeline:
+    steps:
+      - "代码提交"
+      - "CI 构建"
+      - "自动测试"
+      - "预发布部署"
+      - "生产部署"
+      
+  rollback:
+    strategy: "版本回滚"
+    steps:
+      - "识别问题"
+      - "决定回滚"
+      - "执行回滚"
+      - "验证回滚"
+      - "通知相关人员"
+
+# 监控策略
+monitoring:
+  metrics:
+    - name: "可用性"
+      threshold: "< 99.9%"
+      alert: "邮件 + 短信"
+      
+    - name: "响应时间"
+      threshold: "> 200ms"
+      alert: "邮件"
+      
+    - name: "错误率"
+      threshold: "> 1%"
+      alert: "邮件 + 短信"
+      
+    - name: "CPU 使用率"
+      threshold: "> 80%"
+      alert: "邮件"
+      
+    - name: "内存使用率"
+      threshold: "> 80%"
+      alert: "邮件"
+      
+  tools:
+    - name: "Supabase Dashboard"
+      purpose: "后端监控"
+      
+    - name: "Sentry"
+      purpose: "错误追踪"
+      
+    - name: "Firebase Analytics"
+      purpose: "用户行为分析"
+      
+  alerts:
+    - name: "可用性告警"
+      condition: "availability < 99.9%"
+      severity: "critical"
+      notification:
+        - email
+        - sms
+        
+    - name: "响应时间告警"
+      condition: "response_time > 200ms"
+      severity: "warning"
+      notification:
+        - email
+        
+    - name: "错误率告警"
+      condition: "error_rate > 1%"
+      severity: "critical"
+      notification:
+        - email
+        - sms
+
+# 备份策略
+backup:
+  content:
+    - name: "数据库"
+      frequency: "每日"
+      retention: "30 天"
+      
+    - name: "文件存储"
+      frequency: "每周"
+      retention: "90 天"
+      
+    - name: "配置文件"
+      frequency: "每次变更"
+      retention: "永久"
+      
+  process:
+    steps:
+      - "触发备份"
+      - "执行备份"
+      - "验证备份"
+      - "存储备份"
+      - "通知相关人员"
+      
+  recovery:
+    steps:
+      - "识别问题"
+      - "决定恢复"
+      - "执行恢复"
+      - "验证恢复"
+      - "通知相关人员"
+
+# 故障处理
+incident:
+  levels:
+    - level: "P0"
+      impact: "服务不可用"
+      response_time: "5 分钟"
+      resolution_time: "1 小时"
+      
+    - level: "P1"
+      impact: "功能异常"
+      response_time: "15 分钟"
+      resolution_time: "4 小时"
+      
+    - level: "P2"
+      impact: "性能问题"
+      response_time: "30 分钟"
+      resolution_time: "8 小时"
+      
+    - level: "P3"
+      impact: "体验问题"
+      response_time: "2 小时"
+      resolution_time: "24 小时"
+      
+  process:
+    steps:
+      - "识别故障"
+      - "评估影响"
+      - "通知相关人员"
+      - "执行修复"
+      - "验证修复"
+      - "总结复盘"
+      
+  postmortem:
+    content:
+      - "故障原因"
+      - "影响范围"
+      - "处理过程"
+      - "改进措施"
+
+# 安全策略
+security:
+  access_control:
+    roles:
+      - name: "管理员"
+        permissions: ["完全访问"]
+        
+      - name: "开发者"
+        permissions: ["代码访问"]
+        
+      - name: "运维"
+        permissions: ["部署访问"]
+        
+      - name: "用户"
+        permissions: ["应用访问"]
+        
+  data_security:
+    encryption:
+      transmission: "HTTPS"
+      storage: "AES-256"
+      
+    access_control: "RBAC"
+    audit_logging: true
+    
+  checks:
+    - name: "代码扫描"
+      frequency: "每次提交"
+      tool: "SonarQube"
+      
+    - name: "依赖检查"
+      frequency: "每日"
+      tool: "Dependabot"
+      
+    - name: "渗透测试"
+      frequency: "每季度"
+      tool: "OWASP ZAP"
+
+# 性能优化
+performance:
+  targets:
+    response_time: "< 200ms"
+    startup_time: "< 2s"
+    memory_usage: "< 100MB"
+    battery_consumption: "< 5%/小时"
+    
+  frontend_optimization:
+    - "代码分割"
+    - "图片压缩"
+    - "缓存策略"
+    - "懒加载"
+    
+  backend_optimization:
+    - "数据库索引"
+    - "查询优化"
+    - "缓存策略"
+    - "负载均衡"
+    
+  monitoring:
+    metrics:
+      - name: "响应时间"
+        threshold: "200ms"
+        alert: true
+        
+      - name: "吞吐量"
+        threshold: "1000 req/s"
+        alert: true
+        
+      - name: "错误率"
+        threshold: "1%"
+        alert: true
+
+# 运维工具
+tools:
+  - name: "Supabase CLI"
+    purpose: "后端管理"
+    version: "latest"
+    
+  - name: "Firebase CLI"
+    purpose: "客户端部署"
+    version: "latest"
+    
+  - name: "Sentry CLI"
+    purpose: "错误监控"
+    version: "latest"
+    
+  - name: "GitHub Actions"
+    purpose: "CI/CD"
+    version: "latest"
+    
+  configurations:
+    supabase:
+      project_id: "your-project-id"
+      url: "https://your-project.supabase.co"
+      
+    sentry:
+      dsn: "your-sentry-dsn"
+      environment: "production"
+      
+    firebase:
+      project_id: "your-project-id"
+
+# 运维文档
+documentation:
+  documents:
+    - name: "部署手册"
+      description: "部署流程"
+      update_frequency: "按需更新"
+      
+    - name: "运维手册"
+      description: "运维操作"
+      update_frequency: "按需更新"
+      
+    - name: "故障手册"
+      description: "故障处理"
+      update_frequency: "按需更新"
+      
+    - name: "安全手册"
+      description: "安全策略"
+      update_frequency: "按需更新"
+      
+  conventions:
+    version_management: "所有文档必须有版本号"
+    change_records: "所有变更必须有记录"
+    archiving: "旧版本文档必须归档"
