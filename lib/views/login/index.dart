@@ -5,8 +5,8 @@
 /// - iPad: 左右分屏布局（左侧品牌区 + 右侧表单区）
 library;
 
-import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
-
+import 'dart:async';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,7 +20,6 @@ import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/views/main/main_page.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/theme/app_colors.dart';
 
 import 'package:vidlang/widgets/app_dialogs.dart';
 
@@ -339,9 +338,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       color: cs.surface,
       child: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 36)),
+          padding: EdgeInsets.symmetric(
+            vertical: adaptive.Adaptive.h(context, 36),
+          ),
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: adaptive.Adaptive.w(context, 380)),
+            constraints: BoxConstraints(
+              maxWidth: adaptive.Adaptive.w(context, 380),
+            ),
             child: Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: adaptive.Adaptive.w(context, 24),
@@ -591,7 +594,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ),
             GestureDetector(
-              onTap: _countdownSeconds == 0 && !_loading ? _resendResetOtp : null,
+              onTap: _countdownSeconds == 0 && !_loading
+                  ? _resendResetOtp
+                  : null,
               child: Text(
                 ' 重新发送',
                 style: TextStyle(
@@ -671,11 +676,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       decoration: _inputDecoration('新密码', AppIcons.lock).copyWith(
         suffixIcon: IconButton(
           icon: Icon(
-            _obscureResetPassword ? AppIcons.visibilityOff : AppIcons.visibility,
+            _obscureResetPassword
+                ? AppIcons.visibilityOff
+                : AppIcons.visibility,
             color: cs.onSurfaceVariant,
             size: adaptive.Adaptive.sp(context, 20),
           ),
-          onPressed: () => setState(() => _obscureResetPassword = !_obscureResetPassword),
+          onPressed: () =>
+              setState(() => _obscureResetPassword = !_obscureResetPassword),
         ),
       ),
       contextMenuBuilder: null,
@@ -932,7 +940,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           });
         },
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 10)),
+          padding: EdgeInsets.symmetric(
+            vertical: adaptive.Adaptive.h(context, 10),
+          ),
           decoration: BoxDecoration(
             color: isActive ? cs.surface : Colors.transparent,
             borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -952,9 +962,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             style: TextStyle(
               fontSize: adaptive.Adaptive.sp(context, 14),
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              color: isActive
-                  ? cs.onSurface
-                  : cs.onSurfaceVariant,
+              color: isActive ? cs.onSurface : cs.onSurfaceVariant,
             ),
           ),
         ),
@@ -1279,11 +1287,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final confirmPassword = _resetConfirmPasswordController.text.trim();
 
     // 校验
-    if (otp.isEmpty) { setState(() => _error = '请输入验证码'); return; }
-    if (newPassword.isEmpty) { setState(() => _error = '请输入新密码'); return; }
-    if (confirmPassword.isEmpty) { setState(() => _error = '请确认新密码'); return; }
-    if (newPassword != confirmPassword) { setState(() => _error = '两次密码输入不一致'); return; }
-    if (newPassword.length < 6) { setState(() => _error = '密码至少需要6位'); return; }
+    if (otp.isEmpty) {
+      setState(() => _error = '请输入验证码');
+      return;
+    }
+    if (newPassword.isEmpty) {
+      setState(() => _error = '请输入新密码');
+      return;
+    }
+    if (confirmPassword.isEmpty) {
+      setState(() => _error = '请确认新密码');
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      setState(() => _error = '两次密码输入不一致');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setState(() => _error = '密码至少需要6位');
+      return;
+    }
 
     setState(() {
       _error = null;

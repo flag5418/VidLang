@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
-import 'package:vidlang/theme/app_colors.dart';
 
 class ArticleItemCard extends StatefulWidget {
   final Article article;

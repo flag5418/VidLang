@@ -1,7 +1,7 @@
 library;
 
-import 'dart:io';import 'package:vidlang/utils/adaptive.dart' as adaptive;
-
+import 'dart:io';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,9 +20,7 @@ import 'package:vidlang/views/word_book/widgets/snippet_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_nav_panel.dart';
 import 'package:vidlang/widgets/word_card.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
-
 
 import 'word_book_detail_sheet.dart';
 import 'word_book_review_page.dart';
@@ -255,7 +253,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                     width: adaptive.Adaptive.w(context, 240),
                                     child: _buildNavPanel(),
                                   ),
-                                  SizedBox(width: adaptive.Adaptive.w(context, 16)),
+                                  SizedBox(
+                                    width: adaptive.Adaptive.w(context, 16),
+                                  ),
                                   Expanded(
                                     child: _words.isEmpty
                                         ? _buildEmptyState(context)
@@ -352,7 +352,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
           ),
           decoration: BoxDecoration(
             color: colorScheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 999)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 999),
+            ),
           ),
           child: Text(
             '${_allWords.length}$unitLabel',
@@ -406,10 +408,14 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         onTap: () => _onTabChanged(tabIndex),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
+          padding: EdgeInsets.symmetric(
+            vertical: adaptive.Adaptive.h(context, 8),
+          ),
           decoration: BoxDecoration(
             color: selected ? colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 8),
+            ),
           ),
           alignment: Alignment.center,
           child: Row(
@@ -533,7 +539,10 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         if (!_isKnowledgeBase && isPremium) ...[
           FilledButton.icon(
             onPressed: () => _enterSelectionMode('test'),
-            icon: Icon(AppIcons.quiz, size: adaptive.Adaptive.icon(context, 18)),
+            icon: Icon(
+              AppIcons.quiz,
+              size: adaptive.Adaptive.icon(context, 18),
+            ),
             label: const Text('测试'),
             style: FilledButton.styleFrom(
               backgroundColor: colorScheme.tertiaryContainer,
@@ -548,7 +557,10 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         ],
         FilledButton.icon(
           onPressed: () => _enterSelectionMode('review'),
-          icon: Icon(AppIcons.refresh, size: adaptive.Adaptive.icon(context, 18)),
+          icon: Icon(
+            AppIcons.refresh,
+            size: adaptive.Adaptive.icon(context, 18),
+          ),
           label: const Text('复习'),
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.primaryContainer,
@@ -650,7 +662,8 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   Widget _buildWordList() {
     return ListView.separated(
       itemCount: _words.length,
-      separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
+      separatorBuilder: (_, _) =>
+          SizedBox(height: adaptive.Adaptive.h(context, 10)),
       itemBuilder: (context, index) {
         final item = _words[index];
         final tags = _tagsByWordCode[item.code] ?? const <WordTag>[];
@@ -799,7 +812,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
             return Dialog(
               backgroundColor: cs.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+                borderRadius: BorderRadius.circular(
+                  adaptive.Adaptive.r(context, 16),
+                ),
               ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
@@ -889,7 +904,10 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                       },
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: adaptive.Adaptive.w(context, 12),
+                                    horizontal: adaptive.Adaptive.w(
+                                      context,
+                                      12,
+                                    ),
                                     vertical: adaptive.Adaptive.h(context, 8),
                                   ),
                                   child: Row(
@@ -903,12 +921,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                             ? cs.primary
                                             : cs.onSurfaceVariant,
                                       ),
-                                      SizedBox(width: adaptive.Adaptive.w(context, 10)),
+                                      SizedBox(
+                                        width: adaptive.Adaptive.w(context, 10),
+                                      ),
                                       Expanded(
                                         child: Text(
                                           tag.name,
                                           style: TextStyle(
-                                            fontSize: adaptive.Adaptive.sp(context, 14),
+                                            fontSize: adaptive.Adaptive.sp(
+                                              context,
+                                              14,
+                                            ),
                                             fontWeight: selected
                                                 ? FontWeight.w600
                                                 : FontWeight.w400,
@@ -1209,7 +1232,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                   vertical: adaptive.Adaptive.h(context, 10),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 20),
+                  ),
                 ),
               ),
             ),

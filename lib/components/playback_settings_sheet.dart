@@ -3,7 +3,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/playback_settings.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 片头/片尾/封面截图设置底部面板
@@ -106,7 +105,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
             (v) => setState(() => _skipEnding = v),
           ),
           if (_skipEnding)
-              _secondsRow(
+            _secondsRow(
               cs,
               '片尾时长（秒）',
               _endingSec,
@@ -164,12 +163,18 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
             child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           IconButton(
-            icon: Icon(AppIcons.remove, size: adaptive.Adaptive.icon(context, 20)),
+            icon: Icon(
+              AppIcons.remove,
+              size: adaptive.Adaptive.icon(context, 20),
+            ),
             onPressed: value > min ? () => onChanged(value - 1) : null,
           ),
           Text('$value', style: Theme.of(context).textTheme.titleMedium),
           IconButton(
-            icon: AppIcons.getIcon(AppIcons.add, size: adaptive.Adaptive.icon(context, 20)),
+            icon: AppIcons.getIcon(
+              AppIcons.add,
+              size: adaptive.Adaptive.icon(context, 20),
+            ),
             onPressed: value < max ? () => onChanged(value + 1) : null,
           ),
         ],

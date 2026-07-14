@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
 import 'package:vidlang/services/tts_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
-
 
 /// 统一词条详情弹窗组件
 ///
@@ -206,25 +205,35 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       child: Container(
         width: isWide ? 520 : screenSize.width * 0.65,
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.55),
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 28), vertical: adaptive.Adaptive.h(context, 28)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(context, 28),
+          vertical: adaptive.Adaptive.h(context, 28),
+        ),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.08),
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.4 : 0.08,
+              ),
               blurRadius: adaptive.Adaptive.w(context, 20),
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.2 : 0.04),
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.2 : 0.04,
+              ),
               blurRadius: adaptive.Adaptive.w(context, 6),
               offset: const Offset(0, 2),
             ),
           ],
         ),
         child: DefaultTextStyle(
-          style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 13)),
+          style: TextStyle(
+            color: cs.onSurfaceVariant,
+            fontSize: adaptive.Adaptive.sp(context, 13),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -233,7 +242,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   Expanded(child: _buildHeader()),
                   GestureDetector(
                     onTap: widget.onClose,
-                    child: Icon(Icons.close_rounded, size: adaptive.Adaptive.icon(context, 20), color: cs.onSurfaceVariant),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: adaptive.Adaptive.icon(context, 20),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -241,12 +254,27 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               SizedBox(
                 width: adaptive.Adaptive.icon(context, 32),
                 height: adaptive.Adaptive.icon(context, 32),
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: cs.primary),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: cs.primary,
+                ),
               ),
               SizedBox(height: adaptive.Adaptive.h(context, 16)),
-              Text('正在查询「${widget.data.word}」...', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), fontWeight: FontWeight.w500)),
+              Text(
+                '正在查询「${widget.data.word}」...',
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(context, 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               SizedBox(height: adaptive.Adaptive.h(context, 6)),
-              Text('正在连接 AI 翻译服务', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: cs.onSurfaceVariant.withValues(alpha: 0.6))),
+              Text(
+                '正在连接 AI 翻译服务',
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(context, 12),
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+              ),
               SizedBox(height: adaptive.Adaptive.h(context, 16)),
             ],
           ),
@@ -267,18 +295,25 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       child: Container(
         width: isWide ? 420 : screenSize.width * 0.6,
         constraints: BoxConstraints(maxHeight: screenSize.height * 0.55),
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 24), vertical: adaptive.Adaptive.h(context, 20)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(context, 24),
+          vertical: adaptive.Adaptive.h(context, 20),
+        ),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.08),
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.4 : 0.08,
+              ),
               blurRadius: adaptive.Adaptive.w(context, 20),
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.2 : 0.04),
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.2 : 0.04,
+              ),
               blurRadius: adaptive.Adaptive.w(context, 6),
               offset: const Offset(0, 2),
             ),
@@ -292,22 +327,37 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 Expanded(child: _buildHeader()),
                 GestureDetector(
                   onTap: widget.onClose,
-                  child: Icon(Icons.close_rounded, size: adaptive.Adaptive.icon(context, 20), color: cs.onSurfaceVariant),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: adaptive.Adaptive.icon(context, 20),
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
             SizedBox(height: adaptive.Adaptive.h(context, 16)),
-            Icon(Icons.error_outline_rounded, size: adaptive.Adaptive.icon(context, 36), color: cs.error.withValues(alpha: 0.8)),
+            Icon(
+              Icons.error_outline_rounded,
+              size: adaptive.Adaptive.icon(context, 36),
+              color: cs.error.withValues(alpha: 0.8),
+            ),
             SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Text(
               widget.data.error ?? '查询失败',
-              style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: adaptive.Adaptive.sp(context, 15),
+                fontWeight: FontWeight.w600,
+              ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: adaptive.Adaptive.h(context, 6)),
             Text(
               '请检查网络连接后重试',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 13)),
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: adaptive.Adaptive.sp(context, 13),
+              ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: adaptive.Adaptive.h(context, 18)),
@@ -331,26 +381,37 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final pad = adaptive.isIPad(context);
 
     // 横竖屏尺寸参数 — iPad 下大幅放大
-    final cardWidth = screenSize.width * (isLandscape ? (pad ? 0.78 : 0.65) : (pad ? 0.90 : 0.9));
-    final maxHeight = screenSize.height * (isLandscape ? (pad ? 0.90 : 0.82) : (pad ? 0.80 : 0.65));
+    final cardWidth =
+        screenSize.width *
+        (isLandscape ? (pad ? 0.78 : 0.65) : (pad ? 0.90 : 0.9));
+    final maxHeight =
+        screenSize.height *
+        (isLandscape ? (pad ? 0.90 : 0.82) : (pad ? 0.80 : 0.65));
     final navWidth = isLandscape ? (pad ? 180.0 : 110.0) : (pad ? 150.0 : 96.0);
 
     return Material(
       color: Colors.transparent,
       child: Container(
         width: cardWidth,
-        constraints: BoxConstraints(maxWidth: pad ? 1000 : 700, maxHeight: maxHeight),
+        constraints: BoxConstraints(
+          maxWidth: pad ? 1000 : 700,
+          maxHeight: maxHeight,
+        ),
         decoration: BoxDecoration(
           color: cs.surface,
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.4 : 0.08),
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.4 : 0.08,
+              ),
               blurRadius: adaptive.Adaptive.w(context, 20),
               offset: const Offset(0, 8),
             ),
             BoxShadow(
-              color: Colors.black.withValues(alpha: brightness == Brightness.dark ? 0.2 : 0.04),
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.2 : 0.04,
+              ),
               blurRadius: adaptive.Adaptive.w(context, 6),
               offset: const Offset(0, 2),
             ),
@@ -373,7 +434,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   ),
                   Container(
                     height: 1,
-                    color: cs.outlineVariant.withValues(alpha: brightness == Brightness.dark ? 0.3 : 0.15),
+                    color: cs.outlineVariant.withValues(
+                      alpha: brightness == Brightness.dark ? 0.3 : 0.15,
+                    ),
                   ),
                   // 下方：左导航 + 右内容
                   Flexible(
@@ -389,7 +452,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                         // 分割线
                         Container(
                           width: 1,
-                          color: cs.outlineVariant.withValues(alpha: brightness == Brightness.dark ? 0.3 : 0.15),
+                          color: cs.outlineVariant.withValues(
+                            alpha: brightness == Brightness.dark ? 0.3 : 0.15,
+                          ),
                         ),
                         // 右侧可滚动内容
                         Expanded(
@@ -425,7 +490,11 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         onTap: () => _scrollToSection(s),
         behavior: HitTestBehavior.opaque,
         child: Container(
-          margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 4), left: adaptive.Adaptive.w(context, 8), right: adaptive.Adaptive.w(context, 8)),
+          margin: EdgeInsets.only(
+            bottom: adaptive.Adaptive.h(context, 4),
+            left: adaptive.Adaptive.w(context, 8),
+            right: adaptive.Adaptive.w(context, 8),
+          ),
           padding: EdgeInsets.symmetric(
             horizontal: adaptive.Adaptive.w(context, 8),
             vertical: adaptive.Adaptive.h(context, isLandscape ? 10 : 8),
@@ -434,7 +503,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             color: isActive
                 ? cs.primary.withValues(alpha: 0.1)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 8),
+            ),
           ),
           child: Row(
             children: [
@@ -445,7 +516,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 height: isLandscape ? 18 : 16,
                 decoration: BoxDecoration(
                   color: isActive ? cs.primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 2),
+                  ),
                 ),
               ),
               SizedBox(width: adaptive.Adaptive.w(context, 8)),
@@ -454,7 +527,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   s.label,
                   style: TextStyle(
                     color: isActive ? cs.primary : cs.onSurfaceVariant,
-                    fontSize: isLandscape ? adaptive.Adaptive.sp(context, 14) : adaptive.Adaptive.sp(context, 13),
+                    fontSize: isLandscape
+                        ? adaptive.Adaptive.sp(context, 14)
+                        : adaptive.Adaptive.sp(context, 13),
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -471,7 +546,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       children: [
         Expanded(
           child: ListView(
-            padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 12)),
+            padding: EdgeInsets.symmetric(
+              vertical: adaptive.Adaptive.h(context, 12),
+            ),
             children: scrollableChildren,
           ),
         ),
@@ -490,7 +567,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               children: [
                 Icon(
                   AppIcons.settings,
-                  size: isLandscape ? adaptive.Adaptive.icon(context, 14) : adaptive.Adaptive.icon(context, 12),
+                  size: isLandscape
+                      ? adaptive.Adaptive.icon(context, 14)
+                      : adaptive.Adaptive.icon(context, 12),
                   color: cs.onSurfaceVariant,
                 ),
                 SizedBox(width: adaptive.Adaptive.w(context, 4)),
@@ -565,7 +644,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 widget.data.word,
                 style: TextStyle(
                   color: context.colors.onSurface,
-                  fontSize: widget.data.word.length > 20 ? adaptive.Adaptive.sp(context, 16) : adaptive.Adaptive.sp(context, 20),
+                  fontSize: widget.data.word.length > 20
+                      ? adaptive.Adaptive.sp(context, 16)
+                      : adaptive.Adaptive.sp(context, 20),
                   fontWeight: FontWeight.w800,
                   height: 1.15,
                   letterSpacing: 0.5,
@@ -665,11 +746,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           ).colorScheme.primaryContainer.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         ),
-        child: Icon(
-          icon,
-          color: context.colors.primary,
-          size: size,
-        ),
+        child: Icon(icon, color: context.colors.primary, size: size),
       ),
     );
   }
@@ -701,9 +778,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 ),
               )
             : Icon(
-                isSaved
-                    ? AppIcons.star
-                    : AppIcons.starOutline,
+                isSaved ? AppIcons.star : AppIcons.starOutline,
                 size: adaptive.Adaptive.icon(context, 20),
                 color: isSaved ? cs.primary : cs.onSurfaceVariant,
               ),
@@ -720,15 +795,18 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   Widget _buildChineseMeaning() {
     final definitions = widget.data.definitions;
-    final hasDefinitions = definitions.any((d) => d.chineseMeaning.trim().isNotEmpty);
+    final hasDefinitions = definitions.any(
+      (d) => d.chineseMeaning.trim().isNotEmpty,
+    );
     final rawTranslation = widget.data.translation?.trim() ?? '';
-    final hasTranslation = rawTranslation.isNotEmpty && !_isErrorContent(rawTranslation);
-    
+    final hasTranslation =
+        rawTranslation.isNotEmpty && !_isErrorContent(rawTranslation);
+
     if (!hasDefinitions && !hasTranslation) return const SizedBox.shrink();
-    
+
     final cs = context.colors;
     final List<Widget> items = [];
-    
+
     // 优先显示 definitions（结构化释义）
     for (final d in definitions) {
       var meaning = d.chineseMeaning.trim();
@@ -749,14 +827,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 children: [
                   if (d.partOfSpeech != null)
                     Container(
-                      margin: EdgeInsets.only(right: adaptive.Adaptive.w(context, 8), top: adaptive.Adaptive.h(context, 1)),
+                      margin: EdgeInsets.only(
+                        right: adaptive.Adaptive.w(context, 8),
+                        top: adaptive.Adaptive.h(context, 1),
+                      ),
                       padding: EdgeInsets.symmetric(
                         horizontal: adaptive.Adaptive.w(context, 5),
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: cs.primary.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 3)),
+                        borderRadius: BorderRadius.circular(
+                          adaptive.Adaptive.r(context, 3),
+                        ),
                       ),
                       child: Text(
                         d.partOfSpeech!,
@@ -794,14 +877,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             children: [
               if (d.partOfSpeech != null)
                 Container(
-                  margin: EdgeInsets.only(right: adaptive.Adaptive.w(context, 8), top: adaptive.Adaptive.h(context, 1)),
+                  margin: EdgeInsets.only(
+                    right: adaptive.Adaptive.w(context, 8),
+                    top: adaptive.Adaptive.h(context, 1),
+                  ),
                   padding: EdgeInsets.symmetric(
                     horizontal: adaptive.Adaptive.w(context, 5),
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: cs.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 3)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(context, 3),
+                    ),
                   ),
                   child: Text(
                     d.partOfSpeech!,
@@ -827,7 +915,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         ),
       );
     }
-    
+
     // 如果没有 definitions 但有 translation，显示 translation 作为兜底
     if (items.isEmpty && hasTranslation) {
       items.add(
@@ -859,7 +947,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     if (widget.data.isSentenceMode) {
       return _buildSentenceTranslationForSentenceMode();
     }
-    
+
     if (widget.data.contextSentence == null &&
         widget.data.sentenceTranslation == null &&
         widget.data.translation == null) {
@@ -885,16 +973,21 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               widget.data.wordMeaningInContext!.isNotEmpty) ...[
             SizedBox(height: adaptive.Adaptive.h(context, 6)),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 10), vertical: adaptive.Adaptive.h(context, 6)),
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.Adaptive.w(context, 10),
+                vertical: adaptive.Adaptive.h(context, 6),
+              ),
               decoration: BoxDecoration(
                 color: cs.primaryContainer.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
+                borderRadius: BorderRadius.circular(
+                  adaptive.Adaptive.r(context, 6),
+                ),
               ),
               child: Text(
                 '在此句中：${widget.data.wordMeaningInContext}',
                 style: TextStyle(
                   color: cs.onSurfaceVariant,
-                    fontSize: adaptive.Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(context, 12),
                   height: 1.4,
                 ),
               ),
@@ -907,11 +1000,12 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
   /// 短句模式下的当前句释义（仅显示中文翻译）
   Widget _buildSentenceTranslationForSentenceMode() {
-    final translation = widget.data.sentenceTranslation ?? widget.data.translation;
+    final translation =
+        widget.data.sentenceTranslation ?? widget.data.translation;
     if (translation == null || translation.trim().isEmpty) {
       return const SizedBox.shrink();
     }
-    
+
     final cs = context.colors;
     return _buildSectionContainer(
       title: WordDetailSection.sentenceTranslation.label,
@@ -934,7 +1028,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               ),
               SizedBox(width: adaptive.Adaptive.w(context, 8)),
               // 播放按钮
-              _buildPronounceButton(text: translation, size: adaptive.Adaptive.icon(context, 14)),
+              _buildPronounceButton(
+                text: translation,
+                size: adaptive.Adaptive.icon(context, 14),
+              ),
             ],
           ),
         ],
@@ -953,7 +1050,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
     // 检查是否已包含 AI 高亮标记【】
     if (sentence.contains('【') && sentence.contains('】')) {
-      return _buildHighlightedText(sentence, highlightColor: const Color(0xFF1976D2));
+      return _buildHighlightedText(
+        sentence,
+        highlightColor: const Color(0xFF1976D2),
+      );
     }
 
     // 降级：自动匹配并高亮
@@ -966,7 +1066,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         sentence,
         style: TextStyle(
           color: cs.onSurface.withValues(alpha: 0.7),
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+          fontSize: adaptive.Adaptive.sp(context, 14),
           height: 1.5,
         ),
       );
@@ -978,7 +1078,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       text: TextSpan(
         style: TextStyle(
           color: cs.onSurface.withValues(alpha: 0.7),
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+          fontSize: adaptive.Adaptive.sp(context, 14),
           height: 1.5,
         ),
         children: [
@@ -1001,12 +1101,16 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   /// 1. AI 已用【】包裹高亮 → 直接渲染
   /// 2. 原始翻译 → 直接显示
   Widget _buildRichChineseTranslation() {
-    final translation = widget.data.sentenceTranslation ?? widget.data.translation ?? '';
+    final translation =
+        widget.data.sentenceTranslation ?? widget.data.translation ?? '';
     final cs = context.colors;
 
     // 检查是否包含 AI 高亮标记
     if (translation.contains('【') && translation.contains('】')) {
-      return _buildHighlightedText(translation, highlightColor: const Color(0xFFE65100));
+      return _buildHighlightedText(
+        translation,
+        highlightColor: const Color(0xFFE65100),
+      );
     }
 
     // 无高亮标记，直接显示
@@ -1014,7 +1118,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       translation,
       style: TextStyle(
         color: cs.onSurfaceVariant,
-                    fontSize: adaptive.Adaptive.sp(context, 13),
+        fontSize: adaptive.Adaptive.sp(context, 13),
         height: 1.4,
       ),
     );
@@ -1031,19 +1135,19 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     for (final match in regex.allMatches(text)) {
       // 高亮前的普通文本
       if (match.start > lastEnd) {
-        parts.add(TextSpan(
-          text: text.substring(lastEnd, match.start),
-        ));
+        parts.add(TextSpan(text: text.substring(lastEnd, match.start)));
       }
       // 高亮文本
-      parts.add(TextSpan(
-        text: match.group(1) ?? '',
-        style: TextStyle(
-          color: highlightColor,
-          fontWeight: FontWeight.bold,
-          backgroundColor: highlightColor.withValues(alpha: 0.1),
+      parts.add(
+        TextSpan(
+          text: match.group(1) ?? '',
+          style: TextStyle(
+            color: highlightColor,
+            fontWeight: FontWeight.bold,
+            backgroundColor: highlightColor.withValues(alpha: 0.1),
+          ),
         ),
-      ));
+      );
       lastEnd = match.end;
     }
     // 剩余文本
@@ -1055,7 +1159,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       text: TextSpan(
         style: TextStyle(
           color: cs.onSurface.withValues(alpha: 0.7),
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+          fontSize: adaptive.Adaptive.sp(context, 14),
           height: 1.5,
         ),
         children: parts,
@@ -1085,7 +1189,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               children: [
                 Text(
                   '• ',
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 14)),
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: adaptive.Adaptive.sp(context, 14),
+                  ),
                 ),
                 Expanded(
                   child: Text(
@@ -1123,17 +1230,22 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         runSpacing: 6,
         children: posSet.map((pos) {
           return Container(
-            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 10), vertical: adaptive.Adaptive.h(context, 5)),
+            padding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(context, 10),
+              vertical: adaptive.Adaptive.h(context, 5),
+            ),
             decoration: BoxDecoration(
               color: cs.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(
+                adaptive.Adaptive.r(context, 12),
+              ),
               border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
             ),
             child: Text(
               pos,
               style: TextStyle(
                 color: cs.primary,
-                    fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(context, 13),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1148,20 +1260,20 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   Widget _buildExamples() {
     final cs = context.colors;
     final targetWord = widget.data.word;
-    
+
     // 收集所有例句：standalone_examples + definitions 中的 examples
     final List<WordExample> allExamples = [];
-    
+
     // 1. standalone_examples（独立例句区块）
     allExamples.addAll(widget.data.standaloneExamples);
-    
+
     // 2. definitions 中的 examples（每个词性下的例句）
     for (final d in widget.data.definitions) {
       allExamples.addAll(d.examples);
     }
-    
+
     if (allExamples.isEmpty) return const SizedBox.shrink();
-    
+
     // 去重：基于英文内容
     final seen = <String>{};
     final uniqueExamples = <WordExample>[];
@@ -1211,10 +1323,17 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   }
 
   /// 渲染例句英文，自动高亮目标单词
-  Widget _buildExampleEnglish(String english, String targetWord, AppColorsData cs) {
+  Widget _buildExampleEnglish(
+    String english,
+    String targetWord,
+    AppColorsData cs,
+  ) {
     // 检查是否已包含 AI 高亮标记【】
     if (english.contains('【') && english.contains('】')) {
-      return _buildHighlightedText(english, highlightColor: const Color(0xFF1976D2));
+      return _buildHighlightedText(
+        english,
+        highlightColor: const Color(0xFF1976D2),
+      );
     }
 
     // 自动匹配并高亮目标单词（忽略大小写、忽略标点后缀）
@@ -1227,7 +1346,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         english,
         style: TextStyle(
           color: cs.onSurfaceVariant,
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+          fontSize: adaptive.Adaptive.sp(context, 14),
           fontStyle: FontStyle.italic,
         ),
       );
@@ -1239,7 +1358,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       text: TextSpan(
         style: TextStyle(
           color: cs.onSurfaceVariant,
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+          fontSize: adaptive.Adaptive.sp(context, 14),
           fontStyle: FontStyle.italic,
         ),
         children: [
@@ -1274,16 +1393,25 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         runSpacing: 6,
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 14), vertical: adaptive.Adaptive.h(context, 6)),
+            padding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(context, 14),
+              vertical: adaptive.Adaptive.h(context, 6),
+            ),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+              borderRadius: BorderRadius.circular(
+                adaptive.Adaptive.r(context, 16),
+              ),
               border: Border.all(color: color.withValues(alpha: 0.4)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(AppIcons.school, size: adaptive.Adaptive.icon(context, 14), color: color),
+                Icon(
+                  AppIcons.school,
+                  size: adaptive.Adaptive.icon(context, 14),
+                  color: color,
+                ),
                 SizedBox(width: adaptive.Adaptive.w(context, 6)),
                 Text(
                   widget.data.difficulty.label,
@@ -1363,7 +1491,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                       ),
                       decoration: BoxDecoration(
                         color: cs.onSurface.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
+                        borderRadius: BorderRadius.circular(
+                          adaptive.Adaptive.r(context, 6),
+                        ),
                       ),
                       child: Text(
                         e.value!,
@@ -1395,7 +1525,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 width: 60,
                 child: Text(
                   '同义',
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 13)),
+                  style: TextStyle(
+                    color: cs.onSurfaceVariant,
+                    fontSize: adaptive.Adaptive.sp(context, 13),
+                  ),
                 ),
               ),
               Expanded(
@@ -1410,7 +1543,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                        borderRadius: BorderRadius.circular(
+                          adaptive.Adaptive.r(context, 8),
+                        ),
                       ),
                       child: Text(
                         s,
@@ -1439,7 +1574,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               width: 60,
               child: Text(
                 '反义',
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 13)),
+                style: TextStyle(
+                  color: cs.onSurfaceVariant,
+                  fontSize: adaptive.Adaptive.sp(context, 13),
+                ),
               ),
             ),
             Expanded(
@@ -1454,7 +1592,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFF5252).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(context, 8),
+                      ),
                     ),
                     child: Text(
                       a,
@@ -1495,14 +1635,18 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(AppIcons.lightbulbOutline, size: adaptive.Adaptive.icon(context, 16), color: cs.primary),
+          Icon(
+            AppIcons.lightbulbOutline,
+            size: adaptive.Adaptive.icon(context, 16),
+            color: cs.primary,
+          ),
           SizedBox(width: adaptive.Adaptive.w(context, 8)),
           Expanded(
             child: Text(
               widget.data.mnemonic!,
               style: TextStyle(
                 color: cs.onSurfaceVariant,
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+                fontSize: adaptive.Adaptive.sp(context, 14),
                 height: 1.5,
               ),
             ),
@@ -1516,7 +1660,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     if (widget.data.isSentenceMode) {
       return [WordDetailSection.sentenceTranslation];
     }
-    
+
     final raw = widget.config.sections;
     final out = <WordDetailSection>[];
     for (final section in raw) {
@@ -1631,7 +1775,12 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       children: [
         // 顶部栏：返回按钮 + 标题
         Padding(
-          padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 8), adaptive.Adaptive.h(context, 12), adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 0)),
+          padding: EdgeInsets.fromLTRB(
+            adaptive.Adaptive.w(context, 8),
+            adaptive.Adaptive.h(context, 12),
+            adaptive.Adaptive.w(context, 16),
+            adaptive.Adaptive.h(context, 0),
+          ),
           child: Row(
             children: [
               GestureDetector(
@@ -1639,7 +1788,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
                   padding: EdgeInsets.all(adaptive.Adaptive.w(context, 6)),
-          child: Icon(
+                  child: Icon(
                     AppIcons.arrowBackIosNew,
                     size: adaptive.Adaptive.icon(context, 18),
                     color: cs.onSurface,
@@ -1647,14 +1796,14 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                 ),
               ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
-                Text(
-                  '显示设置',
-                  style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(context, 15),
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface,
-                  ),
+              Text(
+                '显示设置',
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(context, 15),
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
                 ),
+              ),
               const Spacer(),
               if (_settingsSaving)
                 SizedBox(
@@ -1673,13 +1822,21 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         Expanded(
           child: SingleChildScrollView(
             controller: _settingsScrollController,
-            padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 0), adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 20)),
+            padding: EdgeInsets.fromLTRB(
+              adaptive.Adaptive.w(context, 16),
+              adaptive.Adaptive.h(context, 0),
+              adaptive.Adaptive.w(context, 16),
+              adaptive.Adaptive.h(context, 20),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '拖动调整顺序，点击开关控制显示',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: cs.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(context, 12),
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
                 SizedBox(height: adaptive.Adaptive.h(context, 12)),
                 // 已显示的区块
@@ -1687,7 +1844,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   final index = entry.key;
                   final section = entry.value;
                   return Padding(
-                    padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 2)),
+                    padding: EdgeInsets.only(
+                      bottom: adaptive.Adaptive.h(context, 2),
+                    ),
                     child: Row(
                       children: [
                         Icon(
@@ -1699,7 +1858,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                         Expanded(
                           child: Text(
                             section.label,
-                            style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: cs.onSurface),
+                            style: TextStyle(
+                              fontSize: adaptive.Adaptive.sp(context, 14),
+                              color: cs.onSurface,
+                            ),
                           ),
                         ),
                         IconButton(
@@ -1714,7 +1876,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                               ? null
                               : () => _settingsMoveUp(index),
                           visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 4)),
+                          padding: EdgeInsets.all(
+                            adaptive.Adaptive.w(context, 4),
+                          ),
                           constraints: const BoxConstraints(),
                         ),
                         IconButton(
@@ -1729,7 +1893,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                               ? null
                               : () => _settingsMoveDown(index),
                           visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 4)),
+                          padding: EdgeInsets.all(
+                            adaptive.Adaptive.w(context, 4),
+                          ),
                           constraints: const BoxConstraints(),
                         ),
                         Switch(
@@ -1759,7 +1925,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                   SizedBox(height: adaptive.Adaptive.h(context, 8)),
                   ...hidden.map((section) {
                     return Padding(
-                      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 2)),
+                      padding: EdgeInsets.only(
+                        bottom: adaptive.Adaptive.h(context, 2),
+                      ),
                       child: Row(
                         children: [
                           SizedBox(width: adaptive.Adaptive.w(context, 28)),
@@ -1774,10 +1942,15 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                           ),
                           OutlinedButton.icon(
                             onPressed: () => _settingsToggle(section),
-                            icon: Icon(AppIcons.add, size: adaptive.Adaptive.icon(context, 12)),
+                            icon: Icon(
+                              AppIcons.add,
+                              size: adaptive.Adaptive.icon(context, 12),
+                            ),
                             label: Text(
                               '添加',
-                                style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12)),
+                              style: TextStyle(
+                                fontSize: adaptive.Adaptive.sp(context, 12),
+                              ),
                             ),
                             style: OutlinedButton.styleFrom(
                               padding: EdgeInsets.symmetric(
@@ -1826,7 +1999,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
               : cs.surfaceContainerHigh.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
           border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: brightness == Brightness.dark ? 0.15 : 0.2),
+            color: cs.outlineVariant.withValues(
+              alpha: brightness == Brightness.dark ? 0.15 : 0.2,
+            ),
             width: 0.5,
           ),
         ),
@@ -1835,7 +2010,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           children: [
             // Section 标题行
             Padding(
-              padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
+              padding: EdgeInsets.only(
+                bottom: adaptive.Adaptive.h(context, 12),
+              ),
               child: Row(
                 children: [
                   Container(
@@ -1850,7 +2027,9 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                         end: Alignment.bottomCenter,
                         colors: [Color(0xFF6366F1), Color(0xFF3B82F6)],
                       ),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 3)),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(context, 3),
+                      ),
                     ),
                   ),
                   SizedBox(width: adaptive.Adaptive.w(context, 10)),

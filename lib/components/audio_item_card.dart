@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
-import 'package:vidlang/theme/app_colors.dart';
 
 class AudioItemCard extends StatefulWidget {
   final VideoInfo video;
@@ -155,7 +154,11 @@ class _AudioItemCardState extends State<AudioItemCard> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(AppIcons.schedule, size: Adaptive.icon(context, 10), color: Colors.white70),
+                Icon(
+                  AppIcons.schedule,
+                  size: Adaptive.icon(context, 10),
+                  color: Colors.white70,
+                ),
                 SizedBox(width: Adaptive.w(context, 4)),
                 Text(
                   widget.video.durationString,

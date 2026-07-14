@@ -12,8 +12,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
-import 'package:vidlang/views/player/player_page.dart';
-import 'package:vidlang/views/audio_player/audio_player_page.dart';
+import 'package:vidlang/views/player/unified/unified_player_page.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 
 /// 时间范围枚举
@@ -1045,7 +1044,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => PlayerPage(
+            builder: (_) => UnifiedPlayerPage(
               videoCode: record.resourceCode,
               folderVideos: [],
             ),
@@ -1056,7 +1055,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => AudioPlayerPage(
+            builder: (_) => UnifiedPlayerPage(
               videoCode: record.resourceCode,
               folderVideos: [],
               audioType: 'music',

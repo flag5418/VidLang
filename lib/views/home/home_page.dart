@@ -1,7 +1,8 @@
 /// 首页 v8.0 — 全面优化
 library;
 
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/article.dart';
@@ -14,17 +15,14 @@ import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/services/stats_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
-import 'package:vidlang/views/audio_player/audio_player_page.dart';
+import 'package:vidlang/views/player/unified/unified_player_page.dart';
 import 'package:vidlang/views/growth/learning_history_page.dart';
-import 'package:vidlang/views/player/player_page.dart';
-
 
 class HomePage extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToTab;
-  
+
   const HomePage({super.key, this.onNavigateToTab});
 
   @override
@@ -145,16 +143,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => isMusic
-                ? AudioPlayerPage(
-                    videoCode: firstVideo.code!,
-                    folderVideos: videos,
-                    audioType: 'music',
-                  )
-                : PlayerPage(
-                    videoCode: firstVideo.code!,
-                    folderVideos: videos,
-                  ),
+            builder: (_) => UnifiedPlayerPage(
+              videoCode: firstVideo.code!,
+              folderVideos: videos,
+              audioType: isMusic ? 'music' : null,
+            ),
           ),
         );
         if (!mounted) return;
@@ -198,7 +191,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     Color surfaceColor,
   ) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 16), adaptive.Adaptive.w(context, 16), 0),
+      padding: EdgeInsets.fromLTRB(
+        adaptive.Adaptive.w(context, 16),
+        adaptive.Adaptive.h(context, 16),
+        adaptive.Adaptive.w(context, 16),
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -227,7 +225,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const LearningHistoryPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const LearningHistoryPage(),
+                    ),
                   );
                 },
                 child: Row(
@@ -294,7 +294,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         children: [
           // 顶部品牌区
           Padding(
-            padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 20), adaptive.Adaptive.h(context, 24), adaptive.Adaptive.w(context, 20), adaptive.Adaptive.h(context, 20)),
+            padding: EdgeInsets.fromLTRB(
+              adaptive.Adaptive.w(context, 20),
+              adaptive.Adaptive.h(context, 24),
+              adaptive.Adaptive.w(context, 20),
+              adaptive.Adaptive.h(context, 20),
+            ),
             child: Row(
               children: [
                 // 大图标
@@ -303,7 +308,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   height: 56,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 14)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(context, 14),
+                    ),
                   ),
                   child: Icon(
                     AppIcons.schoolFill,
@@ -342,7 +349,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           // 底部统计区（白色背景）
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 16)),
+            padding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(context, 16),
+              vertical: adaptive.Adaptive.h(context, 16),
+            ),
             decoration: BoxDecoration(
               color: surfaceColor,
               borderRadius: const BorderRadius.vertical(
@@ -511,7 +521,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     return GestureDetector(
       onTap: () => _goToResources(type),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 14), vertical: adaptive.Adaptive.h(context, 12)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(context, 14),
+          vertical: adaptive.Adaptive.h(context, 12),
+        ),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
@@ -528,9 +541,15 @@ class _HomePageState extends ConsumerState<HomePage> {
               height: 36,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                borderRadius: BorderRadius.circular(
+                  adaptive.Adaptive.r(context, 8),
+                ),
               ),
-              child: Icon(icon, size: adaptive.Adaptive.sp(context, 20), color: color),
+              child: Icon(
+                icon,
+                size: adaptive.Adaptive.sp(context, 20),
+                color: color,
+              ),
             ),
             SizedBox(width: adaptive.Adaptive.w(context, 12)),
             // 中间内容区
@@ -540,10 +559,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       recentFolder: recentFolder,
                       colorScheme: colorScheme,
                     )
-                  : _buildResourceEmpty(
-                      title: title,
-                      colorScheme: colorScheme,
-                    ),
+                  : _buildResourceEmpty(title: title, colorScheme: colorScheme),
             ),
             // 右侧：数量 + 箭头
             if (hasFolders) ...[
@@ -662,7 +678,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (_recentResources.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 24)),
+        padding: EdgeInsets.symmetric(
+          vertical: adaptive.Adaptive.h(context, 24),
+        ),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
@@ -740,7 +758,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             // 第一行：图标 + 标题 + 时间
             Row(
               children: [
-                Icon(icon, size: adaptive.Adaptive.sp(context, 18), color: typeColor),
+                Icon(
+                  icon,
+                  size: adaptive.Adaptive.sp(context, 18),
+                  color: typeColor,
+                ),
                 SizedBox(width: adaptive.Adaptive.w(context, 8)),
                 Expanded(
                   child: Text(
@@ -825,7 +847,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   // 文章详情
-  Widget _buildArticleDetail(RecentResource resource, AppColorsData colorScheme) {
+  Widget _buildArticleDetail(
+    RecentResource resource,
+    AppColorsData colorScheme,
+  ) {
     return FutureBuilder<Article?>(
       future: _loadArticleInfo(resource.resourceCode),
       builder: (context, snapshot) {
@@ -883,13 +908,19 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
+                borderRadius: BorderRadius.circular(
+                  adaptive.Adaptive.r(context, 2),
+                ),
                 child: LinearProgressIndicator(
                   value: progress > 0 ? progress : null,
                   minHeight: 4,
-                  backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  backgroundColor: colorScheme.outlineVariant.withValues(
+                    alpha: 0.2,
+                  ),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    progress > 0 ? typeColor : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                    progress > 0
+                        ? typeColor
+                        : colorScheme.outlineVariant.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -942,8 +973,10 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (resource.resourceType == 'article') {
         final article = await _loadArticleInfo(resource.resourceCode);
         if (article != null && article.totalParagraphs > 0) {
-          return (article.lastParagraphIndex / article.totalParagraphs)
-              .clamp(0.0, 1.0);
+          return (article.lastParagraphIndex / article.totalParagraphs).clamp(
+            0.0,
+            1.0,
+          );
         }
       } else {
         final video = await _loadVideoInfo(resource.resourceCode);
@@ -969,7 +1002,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   String _getResourceTitle(RecentResource resource) {
     if (resource.folderCode != null && resource.folderCode!.isNotEmpty) {
       final folders = _recentFolders[resource.resourceType] ?? [];
-      final folder = folders.where((f) => f.code == resource.folderCode).firstOrNull;
+      final folder = folders
+          .where((f) => f.code == resource.folderCode)
+          .firstOrNull;
       if (folder != null) {
         return folder.name;
       }
@@ -1001,7 +1036,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _openRecentResource(RecentResource resource) async {
     if (resource.folderCode == null || resource.folderCode!.isEmpty) return;
     final folders = _recentFolders[resource.resourceType] ?? [];
-    final folder = folders.where((f) => f.code == resource.folderCode).firstOrNull;
+    final folder = folders
+        .where((f) => f.code == resource.folderCode)
+        .firstOrNull;
     if (folder == null) return;
     await _openFolder(folder);
   }
@@ -1021,7 +1058,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     // iPad 使用与 iPhone 相同的单列布局，只是间距更大
     return Padding(
-      padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 24), adaptive.Adaptive.h(context, 24), adaptive.Adaptive.w(context, 24), 0),
+      padding: EdgeInsets.fromLTRB(
+        adaptive.Adaptive.w(context, 24),
+        adaptive.Adaptive.h(context, 24),
+        adaptive.Adaptive.w(context, 24),
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1050,7 +1092,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const LearningHistoryPage()),
+                    MaterialPageRoute(
+                      builder: (_) => const LearningHistoryPage(),
+                    ),
                   );
                 },
                 child: Row(

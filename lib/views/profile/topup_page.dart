@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/topup_config.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/topup_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/topup_history_page.dart';
 import 'package:vidlang/views/profile/billing_rules_page.dart';
@@ -71,7 +71,10 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('充值', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16))),
+        title: Text(
+          '充值',
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16)),
+        ),
       ),
       body: ListView(
         padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
@@ -96,7 +99,8 @@ class _TopupPageState extends ConsumerState<TopupPage> {
           SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
           // 确认充值按钮
-          if (!_isLoading && _options.isNotEmpty) _buildConfirmButton(colorScheme),
+          if (!_isLoading && _options.isNotEmpty)
+            _buildConfirmButton(colorScheme),
           SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
           // 底部入口
@@ -125,7 +129,9 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                   height: 20,
                   decoration: BoxDecoration(
                     color: colorScheme.outline.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(context, 4),
+                    ),
                   ),
                 ),
                 SizedBox(height: adaptive.Adaptive.h(context, 8)),
@@ -134,7 +140,9 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                   height: 14,
                   decoration: BoxDecoration(
                     color: colorScheme.outline.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(context, 4),
+                    ),
                   ),
                 ),
               ],
@@ -164,7 +172,10 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     );
   }
 
-  Widget _buildBalanceCard(ColorScheme colorScheme, SubscriptionState subState) {
+  Widget _buildBalanceCard(
+    ColorScheme colorScheme,
+    SubscriptionState subState,
+  ) {
     return Container(
       padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
       decoration: BoxDecoration(
@@ -213,14 +224,19 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     );
   }
 
-  Widget _buildTopupOption(ColorScheme colorScheme, int index, TopupConfig option) {
+  Widget _buildTopupOption(
+    ColorScheme colorScheme,
+    int index,
+    TopupConfig option,
+  ) {
     final isSelected = _selectedIndex == index;
     final hasBonus = option.bonusAmount > 0;
     final displayText = hasBonus
         ? '得 ¥${option.actualAmount.toStringAsFixed(0)}（送 ¥${option.bonusAmount.toStringAsFixed(0)}）'
-        : (option.discountLabel ?? (option.actualAmount != option.originalAmount
-            ? '实付 ¥${option.actualAmount.toStringAsFixed(0)}'
-            : null));
+        : (option.discountLabel ??
+              (option.actualAmount != option.originalAmount
+                  ? '实付 ¥${option.actualAmount.toStringAsFixed(0)}'
+                  : null));
 
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
@@ -264,8 +280,13 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                             vertical: adaptive.Adaptive.h(context, 2),
                           ),
                           decoration: BoxDecoration(
-                            color: _labelColor(option.label, colorScheme).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+                            color: _labelColor(
+                              option.label,
+                              colorScheme,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(
+                              adaptive.Adaptive.r(context, 4),
+                            ),
                           ),
                           child: Text(
                             option.label!,
@@ -306,7 +327,11 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                 color: isSelected ? colorScheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? Icon(AppIcons.check, size: adaptive.Adaptive.sp(context, 12), color: Colors.white)
+                  ? Icon(
+                      AppIcons.check,
+                      size: adaptive.Adaptive.sp(context, 12),
+                      color: Colors.white,
+                    )
                   : null,
             ),
           ],
@@ -335,19 +360,27 @@ class _TopupPageState extends ConsumerState<TopupPage> {
         onPressed: () => _showTopupConfirmDialog(selectedOption, colorScheme),
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 12),
+            ),
           ),
         ),
         child: Text(
           '确认充值 ¥${selectedOption.actualAmount.toStringAsFixed(0)}',
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: adaptive.Adaptive.sp(context, 16),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
   }
 
   /// 充值确认弹窗 — 使用 AppConfirmDialog (TDesign 规范)
-  Future<void> _showTopupConfirmDialog(TopupConfig option, ColorScheme colorScheme) async {
+  Future<void> _showTopupConfirmDialog(
+    TopupConfig option,
+    ColorScheme colorScheme,
+  ) async {
     final confirmed = await AppConfirmDialog.show(
       context,
       title: '确认充值',
@@ -363,7 +396,9 @@ class _TopupPageState extends ConsumerState<TopupPage> {
             padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(
+                adaptive.Adaptive.r(context, 12),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -469,7 +504,11 @@ class _TopupPageState extends ConsumerState<TopupPage> {
         ),
         child: Row(
           children: [
-            Icon(icon, size: adaptive.Adaptive.sp(context, 20), color: colorScheme.onSurfaceVariant),
+            Icon(
+              icon,
+              size: adaptive.Adaptive.sp(context, 20),
+              color: colorScheme.onSurfaceVariant,
+            ),
             SizedBox(width: adaptive.Adaptive.w(context, 12)),
             Expanded(
               child: Text(

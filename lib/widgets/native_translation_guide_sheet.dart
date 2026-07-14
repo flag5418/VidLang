@@ -1,10 +1,8 @@
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:vidlang/services/ios_native_features.dart';
-import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/theme/app_colors.dart';
-
 
 /// 系统翻译引导弹窗
 ///
@@ -16,7 +14,10 @@ class NativeTranslationGuideSheet extends StatelessWidget {
   const NativeTranslationGuideSheet({super.key, this.onRetry});
 
   /// 显示弹窗并返回用户是否选择重试
-  static Future<bool> show(BuildContext context, {VoidCallback? onRetry}) async {
+  static Future<bool> show(
+    BuildContext context, {
+    VoidCallback? onRetry,
+  }) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -37,11 +38,20 @@ class NativeTranslationGuideSheet extends StatelessWidget {
     final maxHeight = screenHeight * 0.55;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, pad ? 16 : 8)),
-      padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, pad ? 20 : 16), adaptive.Adaptive.h(context, pad ? 16 : 12), adaptive.Adaptive.w(context, pad ? 20 : 16), bottom + adaptive.Adaptive.h(context, pad ? 16 : 12)),
+      margin: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(context, pad ? 16 : 8),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        adaptive.Adaptive.w(context, pad ? 20 : 16),
+        adaptive.Adaptive.h(context, pad ? 16 : 12),
+        adaptive.Adaptive.w(context, pad ? 20 : 16),
+        bottom + adaptive.Adaptive.h(context, pad ? 16 : 12),
+      ),
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(context, pad ? 20 : 16))),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(adaptive.Adaptive.r(context, pad ? 20 : 16)),
+        ),
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
@@ -57,7 +67,9 @@ class NativeTranslationGuideSheet extends StatelessWidget {
                   height: adaptive.Adaptive.h(context, 4),
                   decoration: BoxDecoration(
                     color: cs.onSurfaceVariant.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(context, 2),
+                    ),
                   ),
                 ),
               ),
@@ -66,7 +78,11 @@ class NativeTranslationGuideSheet extends StatelessWidget {
               // 标题行（带图标）
               Row(
                 children: [
-                  Icon(AppIcons.translate, size: adaptive.Adaptive.icon(context, pad ? 22 : 18), color: cs.primary),
+                  Icon(
+                    AppIcons.translate,
+                    size: adaptive.Adaptive.icon(context, pad ? 22 : 18),
+                    color: cs.primary,
+                  ),
                   SizedBox(width: adaptive.Adaptive.w(context, pad ? 10 : 8)),
                   Text(
                     '启用系统翻译',
@@ -94,9 +110,13 @@ class NativeTranslationGuideSheet extends StatelessWidget {
               // 建议路径卡片
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.all(adaptive.Adaptive.w(context, pad ? 16 : 12)),
+                padding: EdgeInsets.all(
+                  adaptive.Adaptive.w(context, pad ? 16 : 12),
+                ),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, pad ? 10 : 8)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, pad ? 10 : 8),
+                  ),
                   color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
                 child: Column(
@@ -141,16 +161,33 @@ class NativeTranslationGuideSheet extends StatelessWidget {
                         await IosNativeFeatures.openAppSettings();
                         if (context.mounted) Navigator.of(context).pop(false);
                       },
-                      icon: Icon(AppIcons.settings, size: adaptive.Adaptive.icon(context, pad ? 17 : 14)),
+                      icon: Icon(
+                        AppIcons.settings,
+                        size: adaptive.Adaptive.icon(context, pad ? 17 : 14),
+                      ),
                       label: Text(
                         '去设置',
-                        style: TextStyle(fontSize: adaptive.Adaptive.sp(context, pad ? 15 : 13), fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: adaptive.Adaptive.sp(
+                            context,
+                            pad ? 15 : 13,
+                          ),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, pad ? 12 : 10)),
+                        padding: EdgeInsets.symmetric(
+                          vertical: adaptive.Adaptive.h(context, pad ? 12 : 10),
+                        ),
                         foregroundColor: cs.primary,
-                        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, pad ? 10 : 8))),
+                        side: BorderSide(
+                          color: cs.outlineVariant.withValues(alpha: 0.4),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            adaptive.Adaptive.r(context, pad ? 10 : 8),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -158,15 +195,30 @@ class NativeTranslationGuideSheet extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () => Navigator.of(context).pop(true),
-                      icon: Icon(AppIcons.refresh, size: adaptive.Adaptive.icon(context, pad ? 17 : 14)),
+                      icon: Icon(
+                        AppIcons.refresh,
+                        size: adaptive.Adaptive.icon(context, pad ? 17 : 14),
+                      ),
                       label: Text(
                         '重试',
-                        style: TextStyle(fontSize: adaptive.Adaptive.sp(context, pad ? 15 : 13), fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: adaptive.Adaptive.sp(
+                            context,
+                            pad ? 15 : 13,
+                          ),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       style: FilledButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, pad ? 12 : 10)),
+                        padding: EdgeInsets.symmetric(
+                          vertical: adaptive.Adaptive.h(context, pad ? 12 : 10),
+                        ),
                         backgroundColor: cs.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, pad ? 10 : 8))),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            adaptive.Adaptive.r(context, pad ? 10 : 8),
+                          ),
+                        ),
                       ),
                     ),
                   ),

@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
-import 'package:vidlang/theme/app_colors.dart';
 
 class AudioHeroCard extends StatefulWidget {
   final VideoInfo video;

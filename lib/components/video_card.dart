@@ -13,7 +13,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -165,7 +164,11 @@ class _VideoCardState extends State<VideoCard> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(AppIcons.schedule, size: Adaptive.icon(context, 10), color: Colors.white70),
+                Icon(
+                  AppIcons.schedule,
+                  size: Adaptive.icon(context, 10),
+                  color: Colors.white70,
+                ),
                 SizedBox(width: Adaptive.w(context, 4)),
                 Text(
                   '${widget.video.currentPositionString} / ${widget.video.durationString}',
@@ -226,7 +229,11 @@ class _VideoCardState extends State<VideoCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(AppIcons.mic, size: Adaptive.icon(context, 9), color: Colors.white),
+            Icon(
+              AppIcons.mic,
+              size: Adaptive.icon(context, 9),
+              color: Colors.white,
+            ),
             SizedBox(width: Adaptive.w(context, 2)),
             Text(
               '${score.round()}',

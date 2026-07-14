@@ -4,7 +4,6 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -181,7 +180,9 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     if (_records.isEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 32)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 32),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -226,7 +227,10 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       onRefresh: _loadHistory,
       color: context.colors.primary,
       child: ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(context, 16),
+          vertical: adaptive.Adaptive.h(context, 12),
+        ),
         itemCount: _records.length,
         separatorBuilder: (_, _) => SizedBox(height: 10),
         itemBuilder: (context, index) {
@@ -386,7 +390,10 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(context, 6),
+        vertical: adaptive.Adaptive.h(context, 2),
+      ),
       decoration: BoxDecoration(
         color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
@@ -516,7 +523,10 @@ class ConversationDetailPage extends ConsumerWidget {
         children: [
           // 对话信息头部
           Container(
-            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 10)),
+            padding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(context, 16),
+              vertical: adaptive.Adaptive.h(context, 10),
+            ),
             decoration: BoxDecoration(
               color: colors.surface,
               border: Border(

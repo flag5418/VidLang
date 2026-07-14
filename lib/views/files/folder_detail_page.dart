@@ -47,8 +47,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
-import 'package:vidlang/views/audio_player/audio_player_page.dart';
-import 'package:vidlang/views/player/player_page.dart';
+import 'package:vidlang/views/player/unified/unified_player_page.dart';
 import 'package:vidlang/views/test/test_page.dart';
 
 
@@ -645,13 +644,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => isMusic
-            ? AudioPlayerPage(
+        builder: (_) => UnifiedPlayerPage(
                 videoCode: code,
                 folderVideos: state.videos,
-                audioType: 'music',
-              )
-            : PlayerPage(videoCode: code, folderVideos: state.videos),
+                audioType: isMusic ? 'music' : null,
+              ),
       ),
     );
   }

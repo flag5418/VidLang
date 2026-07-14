@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/evaluation_models.dart';
 import '../services/evaluation_service.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
@@ -43,15 +42,24 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
       children: [
         // 模式标识
         Container(
-          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 6)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 12),
+            vertical: adaptive.Adaptive.h(context, 6),
+          ),
           decoration: BoxDecoration(
             color: AppColors.info.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 16),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.mic, size: adaptive.Adaptive.icon(context, 16), color: Colors.blue.shade600),
+              Icon(
+                AppIcons.mic,
+                size: adaptive.Adaptive.icon(context, 16),
+                color: Colors.blue.shade600,
+              ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Text(
                 '免费语音识别',
@@ -157,10 +165,15 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
               ),
               const Spacer(),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 2)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(context, 8),
+                  vertical: adaptive.Adaptive.h(context, 2),
+                ),
                 decoration: BoxDecoration(
                   color: _currentResult!.scoreColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 12),
+                  ),
                 ),
                 child: Text(
                   '${_currentResult!.overallScore.toInt()}%',
@@ -214,11 +227,18 @@ class _NativeSTTContentState extends State<NativeSTTContent> {
       ),
       child: Column(
         children: [
-          Icon(AppIcons.keyboardVoice, size: adaptive.Adaptive.icon(context, 32), color: Colors.grey.shade500),
+          Icon(
+            AppIcons.keyboardVoice,
+            size: adaptive.Adaptive.icon(context, 32),
+            color: Colors.grey.shade500,
+          ),
           SizedBox(height: adaptive.Adaptive.h(context, 8)),
           Text(
             '点击下方录音按钮开始语音识别',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(context, 14),
+              color: Colors.grey.shade600,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -278,15 +298,24 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
       children: [
         // 模式标识
         Container(
-          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 6)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 12),
+            vertical: adaptive.Adaptive.h(context, 6),
+          ),
           decoration: BoxDecoration(
             color: AppColors.success.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 16),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.textFields, size: adaptive.Adaptive.icon(context, 16), color: Colors.green.shade600),
+              Icon(
+                AppIcons.textFields,
+                size: adaptive.Adaptive.icon(context, 16),
+                color: Colors.green.shade600,
+              ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Text(
                 '单词精准发音',
@@ -298,10 +327,15 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
               ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(context, 6),
+                  vertical: adaptive.Adaptive.h(context, 2),
+                ),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 8),
+                  ),
                 ),
                 child: Text(
                   'PRO',
@@ -322,7 +356,9 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
           padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 12),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -390,7 +426,10 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
             children: [
               Text(
                 '发音得分: ',
-                style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), color: Colors.grey.shade700),
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(context, 16),
+                  color: Colors.grey.shade700,
+                ),
               ),
               Text(
                 '${eval.score.toInt()}%',
@@ -528,15 +567,21 @@ class _WordEvaluationContentState extends State<WordEvaluationContent> {
   }
 
   Widget _buildPhonemeChip(String phoneme, int score) {
-final color = score >= 80
-    ? AppColors.success
-    : score >= 60
+    final color = score >= 80
+        ? AppColors.success
+        : score >= 60
         ? AppColors.warning
         : AppColors.error;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 2), vertical: adaptive.Adaptive.h(context, 2)),
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 4)),
+      margin: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(context, 2),
+        vertical: adaptive.Adaptive.h(context, 2),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(context, 8),
+        vertical: adaptive.Adaptive.h(context, 4),
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
@@ -552,7 +597,13 @@ final color = score >= 80
               color: color,
             ),
           ),
-          Text('$score%', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 10), color: color)),
+          Text(
+            '$score%',
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(context, 10),
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -569,7 +620,11 @@ final color = score >= 80
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(AppIcons.headphones, size: adaptive.Adaptive.icon(context, 48), color: Colors.grey.shade500),
+          Icon(
+            AppIcons.headphones,
+            size: adaptive.Adaptive.icon(context, 48),
+            color: Colors.grey.shade500,
+          ),
           SizedBox(height: adaptive.Adaptive.h(context, 16)),
           Text(
             '专业单词发音评测',
@@ -620,10 +675,15 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
       children: [
         // 模式标识
         Container(
-          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 6)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 12),
+            vertical: adaptive.Adaptive.h(context, 6),
+          ),
           decoration: BoxDecoration(
             color: AppColors.warning.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 16),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -644,10 +704,15 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
               ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(context, 6),
+                  vertical: adaptive.Adaptive.h(context, 2),
+                ),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 8),
+                  ),
                 ),
                 child: Text(
                   'PRO',
@@ -735,11 +800,16 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
             padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+              borderRadius: BorderRadius.circular(
+                adaptive.Adaptive.r(context, 8),
+              ),
             ),
             child: Text(
               widget.text,
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), height: 1.5),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(context, 14),
+                height: 1.5,
+              ),
             ),
           ),
           SizedBox(height: adaptive.Adaptive.h(context, 16)),
@@ -778,7 +848,9 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
             padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(
+                adaptive.Adaptive.r(context, 12),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -842,7 +914,9 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
                         ),
                         decoration: BoxDecoration(
                           color: eval.displayColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
+                          borderRadius: BorderRadius.circular(
+                            adaptive.Adaptive.r(context, 6),
+                          ),
                           border: Border.all(
                             color: eval.displayColor.withValues(alpha: 0.3),
                           ),
@@ -879,9 +953,9 @@ class _SentenceEvaluationContentState extends State<SentenceEvaluationContent> {
   }
 
   Widget _buildSimpleMetric(String label, double score) {
-final color = score >= 80
-    ? AppColors.success
-    : score >= 60
+    final color = score >= 80
+        ? AppColors.success
+        : score >= 60
         ? AppColors.warning
         : AppColors.error;
 
@@ -916,9 +990,9 @@ final color = score >= 80
   }
 
   Widget _buildDetailedMetric(String label, double score, String description) {
-final color = score >= 80
-    ? AppColors.success
-    : score >= 60
+    final color = score >= 80
+        ? AppColors.success
+        : score >= 60
         ? AppColors.warning
         : AppColors.error;
 
@@ -930,7 +1004,10 @@ final color = score >= 80
             width: 60,
             child: Text(
               label,
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: Colors.grey.shade700),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(context, 14),
+                color: Colors.grey.shade700,
+              ),
             ),
           ),
           Expanded(
@@ -969,7 +1046,11 @@ final color = score >= 80
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(AppIcons.analytics, size: adaptive.Adaptive.icon(context, 48), color: Colors.grey.shade500),
+          Icon(
+            AppIcons.analytics,
+            size: adaptive.Adaptive.icon(context, 48),
+            color: Colors.grey.shade500,
+          ),
           SizedBox(height: adaptive.Adaptive.h(context, 16)),
           Text(
             '专业句子评测',
@@ -998,7 +1079,9 @@ final color = score >= 80
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        ),
         child: Container(
           width: 320,
           padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
@@ -1026,7 +1109,10 @@ final color = score >= 80
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(AppIcons.close, size: adaptive.Adaptive.icon(context, 20)),
+                    icon: Icon(
+                      AppIcons.close,
+                      size: adaptive.Adaptive.icon(context, 20),
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -1040,7 +1126,9 @@ final color = score >= 80
                 padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                 decoration: BoxDecoration(
                   color: eval.displayColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 8),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -1097,11 +1185,16 @@ final color = score >= 80
                   padding: EdgeInsets.all(adaptive.Adaptive.w(context, 8)),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(context, 6),
+                    ),
                   ),
                   child: Text(
                     eval.suggestion!,
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: Colors.blue.shade700),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(context, 12),
+                      color: Colors.blue.shade700,
+                    ),
                   ),
                 ),
               ],
@@ -1120,18 +1213,23 @@ final color = score >= 80
         final score = (eval.score * 0.9 + (eval.word.indexOf(char) * 3))
             .clamp(50, 100)
             .toInt();
-final color = score >= 80
-    ? AppColors.success
-    : score >= 60
-        ? AppColors.warning
-        : AppColors.error;
+        final color = score >= 80
+            ? AppColors.success
+            : score >= 60
+            ? AppColors.warning
+            : AppColors.error;
 
         return Container(
           margin: EdgeInsets.all(adaptive.Adaptive.w(context, 2)),
-          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 3)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 6),
+            vertical: adaptive.Adaptive.h(context, 3),
+          ),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 4),
+            ),
             border: Border.all(color: color.withValues(alpha: 0.5)),
           ),
           child: Column(
@@ -1144,7 +1242,13 @@ final color = score >= 80
                   color: color,
                 ),
               ),
-              Text('$score%', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 8), color: color)),
+              Text(
+                '$score%',
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(context, 8),
+                  color: color,
+                ),
+              ),
             ],
           ),
         );
@@ -1178,15 +1282,24 @@ class _ParagraphEvaluationContentState
       children: [
         // 模式标识
         Container(
-          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 6)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 12),
+            vertical: adaptive.Adaptive.h(context, 6),
+          ),
           decoration: BoxDecoration(
             color: Colors.purple.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+            borderRadius: BorderRadius.circular(
+              adaptive.Adaptive.r(context, 16),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.article, size: adaptive.Adaptive.icon(context, 16), color: Colors.purple.shade600),
+              Icon(
+                AppIcons.article,
+                size: adaptive.Adaptive.icon(context, 16),
+                color: Colors.purple.shade600,
+              ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Text(
                 '段落流畅度评测',
@@ -1198,10 +1311,15 @@ class _ParagraphEvaluationContentState
               ),
               SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(context, 6),
+                  vertical: adaptive.Adaptive.h(context, 2),
+                ),
                 decoration: BoxDecoration(
                   color: Colors.purple.shade100,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                  borderRadius: BorderRadius.circular(
+                    adaptive.Adaptive.r(context, 8),
+                  ),
                 ),
                 child: Text(
                   'PRO',
@@ -1258,7 +1376,10 @@ class _ParagraphEvaluationContentState
               children: [
                 Text(
                   '段落流畅度: ',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 18), color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(context, 18),
+                    color: Colors.grey.shade700,
+                  ),
                 ),
                 Text(
                   '${_currentResult!.overallScore.toInt()}%',
@@ -1295,9 +1416,9 @@ class _ParagraphEvaluationContentState
 
   Widget _buildParagraphMetric(String label, double ratio, String description) {
     final score = (ratio * 100);
-final color = score >= 80
-    ? AppColors.success
-    : score >= 60
+    final color = score >= 80
+        ? AppColors.success
+        : score >= 60
         ? AppColors.warning
         : AppColors.error;
 
@@ -1337,7 +1458,10 @@ final color = score >= 80
           SizedBox(height: adaptive.Adaptive.h(context, 4)),
           Text(
             description,
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(context, 12),
+              color: Colors.grey.shade600,
+            ),
           ),
           SizedBox(height: adaptive.Adaptive.h(context, 8)),
         ],
@@ -1356,7 +1480,11 @@ final color = score >= 80
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(AppIcons.autoStories, size: adaptive.Adaptive.icon(context, 48), color: Colors.grey.shade500),
+          Icon(
+            AppIcons.autoStories,
+            size: adaptive.Adaptive.icon(context, 48),
+            color: Colors.grey.shade500,
+          ),
           SizedBox(height: adaptive.Adaptive.h(context, 16)),
           Text(
             '段落流畅度评测',
