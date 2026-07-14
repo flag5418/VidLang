@@ -1,4 +1,5 @@
-import 'dart:async';
+import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart' as ap;
@@ -21,12 +22,13 @@ import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
 import 'package:vidlang/widgets/article/selectable_paragraph_text.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 标记记录类
@@ -161,11 +163,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   ArticleTranslation? _translation;
   bool _showTranslation = false;
   bool _loadingTranslation = false;
+
+  /// 内部付费模式判定（用于翻译初始化、TTS 等非 WordCard 场景）
+  /// 注：WordCard.show() 已不需要传 isPaidMode，由组件内部自主判定
   bool get _isPaidMode {
     try {
       final container = ProviderScope.containerOf(context, listen: false);
-      return container.read(subscriptionProvider).mode ==
-          SubscriptionMode.premium;
+      return container.read(subscriptionProvider).mode == SubscriptionMode.premium;
     } catch (_) {
       return false;
     }
@@ -639,7 +643,6 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       context,
       word: text,
       contextSentence: contextSentence,
-      isPaidMode: _isPaidMode,
       sourceType: 'article',
       sourceCode: widget.articleCode,
       sourceTitle: _article?.title,
@@ -1125,11 +1128,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 ),
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 20,
+                      blurRadius: adaptive.Adaptive.w(context, 20),
                       offset: const Offset(0, 8),
                     ),
                   ],
@@ -1137,7 +1140,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 child: Text(
                   popoverText,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: adaptive.Adaptive.sp(context, 15),
                     color: Theme.of(ctx).colorScheme.onSurface,
                     height: 1.5,
                   ),
@@ -1206,16 +1209,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     );
   }
 
-  Widget _buildFontSizePopup(ColorScheme cs) {
+  Widget _buildFontSizePopup(AppColorsData cs) {
     return Positioned(
-      right: Adaptive.w(context, 16),
-      bottom: Adaptive.h(context, 180),
+      right: adaptive.Adaptive.w(context, 16),
+      bottom: adaptive.Adaptive.h(context, 180),
       child: Material(
         elevation: 8,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         color: cs.surface,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1223,15 +1226,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               Text(
                 'A',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 22),
+                  fontSize: adaptive.Adaptive.sp(context, 22),
                   fontWeight: FontWeight.bold,
                   color: cs.onSurfaceVariant,
                 ),
               ),
               // 竖直滑条
               SizedBox(
-                height: Adaptive.h(context, 160),
-                width: Adaptive.w(context, 40),
+                height: adaptive.Adaptive.h(context, 160),
+                width: adaptive.Adaptive.w(context, 40),
                 child: RotatedBox(
                   quarterTurns: 3,
                   child: SliderTheme(
@@ -1258,7 +1261,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               Text(
                 'A',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                   color: cs.onSurfaceVariant,
                 ),
               ),
@@ -1273,7 +1276,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
 
     if (_isLoading) {
       return Scaffold(
@@ -1315,13 +1318,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             backgroundColor: cs.surface,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(AppIcons.arrowBack, size: Adaptive.icon(context, 24)),
+              icon: Icon(AppIcons.arrowBack, size: adaptive.Adaptive.icon(context, 24)),
               onPressed: _onBackPressed,
             ),
             title: Text(
               _article!.title,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 18),
+                fontSize: adaptive.Adaptive.sp(context, 18),
                 fontWeight: FontWeight.w600,
               ),
               maxLines: 1,
@@ -1331,7 +1334,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               IconButton(
                 icon: Icon(
                   AppIcons.formatListBulleted,
-                  size: Adaptive.icon(context, 22),
+                  size: adaptive.Adaptive.icon(context, 22),
                   color: _showArticleList ? cs.primary : cs.onSurfaceVariant,
                 ),
                 onPressed: () => setState(() {
@@ -1378,11 +1381,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     ),
                     decoration: BoxDecoration(
                       color: cs.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
+                          blurRadius: adaptive.Adaptive.w(context, 8),
                           offset: const Offset(0, 2),
                         ),
                       ],
@@ -1398,10 +1401,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             color: cs.primary,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: adaptive.Adaptive.w(context, 8)),
                         Text(
                           '正在查询「${_loadingWordText ?? ''}」...',
-                          style: TextStyle(color: cs.onSurface, fontSize: 13),
+                          style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 13)),
                         ),
                       ],
                     ),
@@ -1429,7 +1432,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               // 段落导航按钮（右侧）
               if (_activeParagraphIndex != null)
                 Positioned(
-                  right: Adaptive.w(context, 8),
+                  right: adaptive.Adaptive.w(context, 8),
                   top: MediaQuery.of(context).size.height * 0.4,
                   child: _buildParagraphNavButtons(cs),
                 ),
@@ -1447,7 +1450,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    width: Adaptive.w(context, 320),
+                    width: adaptive.Adaptive.w(context, 320),
                     color: cs.surface,
                     child: _buildArticleListSidebar(cs),
                   ),
@@ -1460,7 +1463,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     );
   }
 
-  Widget _buildContent(ColorScheme cs) {
+  Widget _buildContent(AppColorsData cs) {
     final paraIndices = _getParagraphIndices();
     if (paraIndices.isEmpty) {
       return Center(
@@ -1472,20 +1475,20 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
       controller: _scrollController,
       physics: _isSelecting ? const NeverScrollableScrollPhysics() : null,
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, AppSpacing.md),
-        vertical: Adaptive.h(context, AppSpacing.sm),
+        horizontal: adaptive.Adaptive.w(context, AppSpacing.md),
+        vertical: adaptive.Adaptive.h(context, AppSpacing.sm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final paraIdx in paraIndices) _buildParagraphBlock(paraIdx, cs),
-          SizedBox(height: Adaptive.h(context, 120)), // 底部空间，避免被 FAB 遮挡
+          SizedBox(height: adaptive.Adaptive.h(context, 120)), // 底部空间，避免被 FAB 遮挡
         ],
       ),
     );
   }
 
-  Widget _buildParagraphBlock(int paragraphIndex, ColorScheme cs) {
+  Widget _buildParagraphBlock(int paragraphIndex, AppColorsData cs) {
     final sentences = _sentencesForParagraph(paragraphIndex);
     if (sentences.isEmpty) return const SizedBox.shrink();
 
@@ -1505,12 +1508,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          margin: EdgeInsets.only(bottom: Adaptive.h(context, 24)),
+          margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 24)),
           decoration: BoxDecoration(
             color: isActive
                 ? cs.primary.withValues(alpha: 0.08)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
             border: isActive
                 ? Border.all(
                     color: cs.primary.withValues(alpha: 0.3),
@@ -1521,17 +1524,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 ? [
                     BoxShadow(
                       color: cs.primary.withValues(alpha: 0.08),
-                      blurRadius: 12,
+                      blurRadius: adaptive.Adaptive.w(context, 12),
                       offset: const Offset(0, 4),
                     ),
                   ]
                 : null,
           ),
           padding: EdgeInsets.fromLTRB(
-            Adaptive.w(context, 16),
-            Adaptive.h(context, 16),
-            Adaptive.w(context, 16),
-            Adaptive.h(context, 16),
+            adaptive.Adaptive.w(context, 16),
+            adaptive.Adaptive.h(context, 16),
+            adaptive.Adaptive.w(context, 16),
+            adaptive.Adaptive.h(context, 16),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1548,13 +1551,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       return const SizedBox.shrink();
                     }
                     return Padding(
-                      padding: EdgeInsets.only(top: Adaptive.h(context, 8)),
+                      padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 8)),
                       child: _loadingTranslation
                           ? Padding(
-                              padding: EdgeInsets.all(Adaptive.h(context, 4)),
+                              padding: EdgeInsets.all(adaptive.Adaptive.h(context, 4)),
                               child: SizedBox(
-                                width: Adaptive.h(context, 16),
-                                height: Adaptive.h(context, 16),
+                                width: adaptive.Adaptive.h(context, 16),
+                                height: adaptive.Adaptive.h(context, 16),
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
@@ -1563,7 +1566,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                           : Text(
                               translation,
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, (_fontSize - 2)),
+                                fontSize: adaptive.Adaptive.sp(context, (_fontSize - 2)),
                                 color: cs.onSurface.withValues(alpha: 0.7),
                                 height: 1.6,
                               ),
@@ -1574,7 +1577,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
               if (isActive) ...[
                 Padding(
-                  padding: EdgeInsets.only(top: Adaptive.h(context, 8)),
+                  padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 8)),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1587,7 +1590,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                           () => _speakParagraph(paragraphIndex),
                           cs,
                         ),
-                      SizedBox(width: Adaptive.w(context, 16)),
+                      SizedBox(width: adaptive.Adaptive.w(context, 16)),
                       _paraBtn(
                         _showTranslation
                             ? AppIcons.translate
@@ -1611,7 +1614,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   Widget _buildParagraphText(
     String fullText,
     int paragraphIndex,
-    ColorScheme cs,
+    AppColorsData cs,
     bool isSpeakingPara,
   ) {
     if (_activeParagraphIndex == paragraphIndex) {
@@ -1662,12 +1665,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             _selectionEndIndex = endIdx;
             // 水平方向：确保工具栏不超出屏幕右边界
             final clampedDx = position.dx.clamp(
-              Adaptive.w(context, 20),
+              adaptive.Adaptive.w(context, 20),
               screenWidth - toolbarWidth,
             );
             // 垂直方向：工具栏在选中位置上方（dy - 60），确保不超出屏幕下边界
             final clampedDy = (position.dy - toolbarHeight).clamp(
-              Adaptive.h(context, 40),
+              adaptive.Adaptive.h(context, 40),
               screenHeight - toolbarHeight,
             );
             _toolbarOffset = Offset(clampedDx, clampedDy);
@@ -1679,7 +1682,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     return Text(
       fullText,
       style: TextStyle(
-        fontSize: Adaptive.sp(context, _fontSize),
+        fontSize: adaptive.Adaptive.sp(context, _fontSize),
         color: cs.onSurface,
         height: 1.8,
       ),
@@ -1690,29 +1693,29 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     IconData icon,
     String label,
     VoidCallback onTap,
-    ColorScheme cs,
+    AppColorsData cs,
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 14),
-          vertical: Adaptive.h(context, 8),
+          horizontal: adaptive.Adaptive.w(context, 14),
+          vertical: adaptive.Adaptive.h(context, 8),
         ),
         decoration: BoxDecoration(
           color: cs.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: Adaptive.sp(context, 16), color: cs.primary),
-            SizedBox(width: Adaptive.w(context, 6)),
+            Icon(icon, size: adaptive.Adaptive.sp(context, 16), color: cs.primary),
+            SizedBox(width: adaptive.Adaptive.w(context, 6)),
             Text(
               label,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(context, 12),
                 color: cs.primary,
                 fontWeight: FontWeight.w600,
               ),
@@ -1725,28 +1728,28 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   // ── 划词工具栏 ──
 
-  Widget _buildSelectionToolbar(ColorScheme cs) {
+  Widget _buildSelectionToolbar(AppColorsData cs) {
     return Material(
       color: Colors.transparent,
       child: GestureDetector(
         onTap: () {},
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: Adaptive.w(context, 6),
-            vertical: Adaptive.h(context, 6),
+            horizontal: adaptive.Adaptive.w(context, 6),
+            vertical: adaptive.Adaptive.h(context, 6),
           ),
           decoration: BoxDecoration(
             color: cs.surface,
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 16,
+                blurRadius: adaptive.Adaptive.w(context, 16),
                 offset: const Offset(0, 6),
               ),
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
+                blurRadius: adaptive.Adaptive.w(context, 4),
                 offset: const Offset(0, 2),
               ),
             ],
@@ -1799,25 +1802,25 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     IconData icon,
     String label,
     VoidCallback onTap,
-    ColorScheme cs,
+    AppColorsData cs,
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 12),
-          vertical: Adaptive.h(context, 8),
+          horizontal: adaptive.Adaptive.w(context, 12),
+          vertical: adaptive.Adaptive.h(context, 8),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: Adaptive.sp(context, 20), color: cs.primary),
-            SizedBox(height: Adaptive.h(context, 4)),
+            Icon(icon, size: adaptive.Adaptive.sp(context, 20), color: cs.primary),
+            SizedBox(height: adaptive.Adaptive.h(context, 4)),
             Text(
               label,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 11),
+                fontSize: adaptive.Adaptive.sp(context, 11),
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
@@ -1830,7 +1833,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   // ── 底部栏 ──
 
-  Widget _buildBottomBar(ColorScheme cs) {
+  Widget _buildBottomBar(AppColorsData cs) {
     final totalSentences = _sentences.length;
     final progress = totalSentences > 0
         ? (_readSentenceIndex + 1) / totalSentences
@@ -1838,15 +1841,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 24),
-        vertical: Adaptive.h(context, 12),
+        horizontal: adaptive.Adaptive.w(context, 24),
+        vertical: adaptive.Adaptive.h(context, 12),
       ),
       decoration: BoxDecoration(
         color: cs.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
+            blurRadius: adaptive.Adaptive.w(context, 10),
             offset: const Offset(0, -4),
           ),
         ],
@@ -1857,15 +1860,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           children: [
             // 进度条
             ClipRRect(
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
               child: LinearProgressIndicator(
                 value: progress.clamp(0.0, 1.0),
-                minHeight: Adaptive.h(context, 4),
+                minHeight: adaptive.Adaptive.h(context, 4),
                 backgroundColor: cs.outlineVariant.withValues(alpha: 0.3),
                 valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
               ),
             ),
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             // 操作按钮和信息
             Row(
               children: [
@@ -1876,14 +1879,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                         ? AppIcons.stopCircle
                         : AppIcons.playCircleFill,
                     color: _isReadingAll ? cs.error : cs.primary,
-                    size: Adaptive.sp(context, 36),
+                    size: adaptive.Adaptive.sp(context, 36),
                   ),
                   onPressed: _isReadingAll ? _stopReadingAll : _startReadAll,
                   tooltip: _isReadingAll ? '停止朗读' : '全文朗读',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
-                SizedBox(width: Adaptive.w(context, 16)),
+                SizedBox(width: adaptive.Adaptive.w(context, 16)),
                 // 文章字数和阅读时间
                 Expanded(
                   child: Column(
@@ -1892,16 +1895,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       Text(
                         '$_totalWords 字',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: adaptive.Adaptive.sp(context, 13),
                           color: cs.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: Adaptive.h(context, 2)),
+                      SizedBox(height: adaptive.Adaptive.h(context, 2)),
                       Text(
                         '阅读 ${_formatReadingTime(_readingSeconds)}',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 11),
+                          fontSize: adaptive.Adaptive.sp(context, 11),
                           color: cs.onSurfaceVariant.withValues(alpha: 0.7),
                         ),
                       ),
@@ -1910,8 +1913,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                 ),
                 // 书签按钮 + 角标（Stack 叠加）
                 SizedBox(
-                  width: Adaptive.w(context, 36),
-                  height: Adaptive.w(context, 36),
+                  width: adaptive.Adaptive.w(context, 36),
+                  height: adaptive.Adaptive.w(context, 36),
                   child: Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,
@@ -1923,7 +1926,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                           color: _showMarkManagerPopup
                               ? cs.primary
                               : cs.onSurfaceVariant,
-                          size: Adaptive.sp(context, 24),
+                          size: adaptive.Adaptive.sp(context, 24),
                         ),
                         onPressed: () => setState(() {
                           _showMarkManagerPopup = !_showMarkManagerPopup;
@@ -1936,8 +1939,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       ),
                       // 角标：右上角偏移
                       Positioned(
-                        top: -Adaptive.h(context, 2),
-                        right: -Adaptive.w(context, 2),
+                        top: -adaptive.Adaptive.h(context, 2),
+                        right: -adaptive.Adaptive.w(context, 2),
                         child: _buildMarkBadge(cs),
                       ),
                     ],
@@ -1949,7 +1952,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     color: _showFontSizePopup
                         ? cs.primary
                         : cs.onSurfaceVariant,
-                    size: Adaptive.sp(context, 24),
+                    size: adaptive.Adaptive.sp(context, 24),
                   ),
                   onPressed: () => setState(() {
                     _showFontSizePopup = !_showFontSizePopup;
@@ -1972,7 +1975,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   /// 在书签图标右上角显示数量角标
   /// 无书签时返回 SizedBox.shrink（Stack 内不占位）
-  Widget _buildMarkBadge(ColorScheme cs) {
+  Widget _buildMarkBadge(AppColorsData cs) {
     if (_markRecords.isEmpty) return const SizedBox.shrink();
 
     final count = _markRecords.length;
@@ -1980,16 +1983,16 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
     return Container(
       constraints: BoxConstraints(
-        minWidth: Adaptive.w(context, 16),
-        minHeight: Adaptive.w(context, 16),
+        minWidth: adaptive.Adaptive.w(context, 16),
+        minHeight: adaptive.Adaptive.w(context, 16),
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 4),
-        vertical: Adaptive.w(context, 1),
+        horizontal: adaptive.Adaptive.w(context, 4),
+        vertical: adaptive.Adaptive.w(context, 1),
       ),
       decoration: BoxDecoration(
         color: cs.primary,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
         border: Border.all(color: cs.surface, width: 1.5),
       ),
       child: Center(
@@ -1997,8 +2000,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
           label,
           style: TextStyle(
             fontSize: count > 9
-                ? Adaptive.sp(context, 9)
-                : Adaptive.sp(context, 10),
+                ? adaptive.Adaptive.sp(context, 9)
+                : adaptive.Adaptive.sp(context, 10),
             color: cs.onPrimary,
             fontWeight: FontWeight.bold,
             height: 1.2,
@@ -2010,7 +2013,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   // ── 段落导航按钮 ──
 
-  Widget _buildParagraphNavButtons(ColorScheme cs) {
+  Widget _buildParagraphNavButtons(AppColorsData cs) {
     final paraIndices = _getParagraphIndices();
     if (paraIndices.isEmpty) return const SizedBox.shrink();
 
@@ -2036,15 +2039,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: Adaptive.w(context, 36),
-            height: Adaptive.w(context, 36),
+            width: adaptive.Adaptive.w(context, 36),
+            height: adaptive.Adaptive.w(context, 36),
             decoration: BoxDecoration(
               color: hasPrev ? activeButtonBgColor : buttonBgColor,
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 18)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 18)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
+                  blurRadius: adaptive.Adaptive.w(context, 4),
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -2052,22 +2055,22 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             child: Icon(
               AppIcons.keyboardArrowUp,
               color: hasPrev ? iconColor : iconColor.withValues(alpha: 0.3),
-              size: Adaptive.sp(context, 24),
+              size: adaptive.Adaptive.sp(context, 24),
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         // 当前段落指示
         Container(
-          width: Adaptive.w(context, 40),
-          padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 4)),
+          width: adaptive.Adaptive.w(context, 40),
+          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 4)),
           decoration: BoxDecoration(
             color: activeButtonBgColor,
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 3,
+                blurRadius: adaptive.Adaptive.w(context, 3),
                 offset: const Offset(0, 1),
               ),
             ],
@@ -2076,14 +2079,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             child: Text(
               '${currentIndex + 1}/${paraIndices.length}',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 10),
+                fontSize: adaptive.Adaptive.sp(context, 10),
                 color: cs.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         // 下一段
         GestureDetector(
           onTap: hasNext
@@ -2094,15 +2097,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: Adaptive.w(context, 36),
-            height: Adaptive.w(context, 36),
+            width: adaptive.Adaptive.w(context, 36),
+            height: adaptive.Adaptive.w(context, 36),
             decoration: BoxDecoration(
               color: hasNext ? activeButtonBgColor : buttonBgColor,
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 18)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 18)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
+                  blurRadius: adaptive.Adaptive.w(context, 4),
                   offset: const Offset(0, 2),
                 ),
               ],
@@ -2110,7 +2113,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             child: Icon(
               AppIcons.keyboardArrowDown,
               color: hasNext ? iconColor : iconColor.withValues(alpha: 0.3),
-              size: Adaptive.sp(context, 24),
+              size: adaptive.Adaptive.sp(context, 24),
             ),
           ),
         ),
@@ -2120,12 +2123,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
 
   // ── 侧边栏 ──
 
-  Widget _buildArticleListSidebar(ColorScheme cs) {
+  Widget _buildArticleListSidebar(AppColorsData cs) {
     return Column(
       children: [
         // 标题
         Container(
-          padding: EdgeInsets.all(Adaptive.w(context, 16)),
+          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(color: cs.outline.withValues(alpha: 0.15)),
@@ -2136,22 +2139,22 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               Icon(
                 AppIcons.article,
                 color: cs.onSurface,
-                size: Adaptive.sp(context, 20),
+                size: adaptive.Adaptive.sp(context, 20),
               ),
-              SizedBox(width: Adaptive.w(context, 8)),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Text(
                 '文章列表',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 16),
+                  fontSize: adaptive.Adaptive.sp(context, 16),
                   fontWeight: FontWeight.bold,
                   color: cs.onSurface,
                 ),
               ),
-              SizedBox(width: Adaptive.w(context, 8)),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Text(
                 '(${_folderArticles.length}篇)',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(context, 12),
                   color: cs.onSurfaceVariant,
                 ),
               ),
@@ -2167,14 +2170,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     children: [
                       Icon(
                         AppIcons.article,
-                        size: Adaptive.sp(context, 48),
+                        size: adaptive.Adaptive.sp(context, 48),
                         color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                       ),
-                      SizedBox(height: Adaptive.h(context, 12)),
+                      SizedBox(height: adaptive.Adaptive.h(context, 12)),
                       Text(
                         '暂无文章',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 14),
+                          fontSize: adaptive.Adaptive.sp(context, 14),
                           color: cs.onSurfaceVariant,
                         ),
                       ),
@@ -2182,7 +2185,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   ),
                 )
               : ListView.builder(
-                  padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                  padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                   itemCount: _folderArticles.length,
                   itemBuilder: (_, i) {
                     final a = _folderArticles[i];
@@ -2196,10 +2199,10 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                       999,
                     );
                     return Padding(
-                      padding: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
+                      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
                       child: Material(
                         borderRadius: BorderRadius.circular(
-                          Adaptive.r(context, 12),
+                          adaptive.Adaptive.r(context, 12),
                         ),
                         color: isCurrent
                             ? cs.primaryContainer.withValues(alpha: 0.2)
@@ -2223,13 +2226,13 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                   }
                                 },
                           borderRadius: BorderRadius.circular(
-                            Adaptive.r(context, 12),
+                            adaptive.Adaptive.r(context, 12),
                           ),
                           child: Container(
-                            padding: EdgeInsets.all(Adaptive.w(context, 14)),
+                            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(
-                                Adaptive.r(context, 12),
+                                adaptive.Adaptive.r(context, 12),
                               ),
                               border: isCurrent
                                   ? Border.all(color: cs.primary, width: 2)
@@ -2244,7 +2247,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                       child: Text(
                                         a.title,
                                         style: TextStyle(
-                                          fontSize: Adaptive.sp(context, 14),
+                                          fontSize: adaptive.Adaptive.sp(context, 14),
                                           fontWeight: isCurrent
                                               ? FontWeight.w600
                                               : FontWeight.w500,
@@ -2257,29 +2260,29 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                     if (isCurrent)
                                       Container(
                                         padding: EdgeInsets.symmetric(
-                                          horizontal: Adaptive.w(context, 8),
-                                          vertical: Adaptive.h(context, 4),
+                                          horizontal: adaptive.Adaptive.w(context, 8),
+                                          vertical: adaptive.Adaptive.h(context, 4),
                                         ),
                                         decoration: BoxDecoration(
                                           color: cs.primary,
                                           borderRadius: BorderRadius.circular(
-                                            Adaptive.r(context, 6),
+                                            adaptive.Adaptive.r(context, 6),
                                           ),
                                         ),
                                         child: Text(
                                           '当前',
                                           style: TextStyle(
-                                            fontSize: Adaptive.sp(context, 12),
+                                            fontSize: adaptive.Adaptive.sp(context, 12),
                                             color: cs.onPrimary,
                                           ),
                                         ),
                                       ),
                                   ],
                                 ),
-                                SizedBox(height: Adaptive.h(context, 10)),
+                                SizedBox(height: adaptive.Adaptive.h(context, 10)),
                                 Wrap(
-                                  spacing: Adaptive.w(context, 8),
-                                  runSpacing: Adaptive.h(context, 6),
+                                  spacing: adaptive.Adaptive.w(context, 8),
+                                  runSpacing: adaptive.Adaptive.h(context, 6),
                                   children: [
                                     _statChip(
                                       AppIcons.layers,
@@ -2303,17 +2306,17 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: Adaptive.h(context, 10)),
+                                SizedBox(height: adaptive.Adaptive.h(context, 10)),
                                 Row(
                                   children: [
                                     Expanded(
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(
-                                          Adaptive.r(context, 4),
+                                          adaptive.Adaptive.r(context, 4),
                                         ),
                                         child: LinearProgressIndicator(
                                           value: a.progress.clamp(0.0, 1.0),
-                                          minHeight: Adaptive.h(context, 6),
+                                          minHeight: adaptive.Adaptive.h(context, 6),
                                           backgroundColor: cs.outline
                                               .withValues(alpha: 0.2),
                                           valueColor:
@@ -2325,11 +2328,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width: Adaptive.w(context, 10)),
+                                    SizedBox(width: adaptive.Adaptive.w(context, 10)),
                                     Text(
                                       '$progressPercent%',
                                       style: TextStyle(
-                                        fontSize: Adaptive.sp(context, 12),
+                                        fontSize: adaptive.Adaptive.sp(context, 12),
                                         fontWeight: FontWeight.w500,
                                         color: isCurrent
                                             ? cs.primary
@@ -2351,29 +2354,29 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
     );
   }
 
-  Widget _statChip(IconData icon, String label, ColorScheme cs) {
+  Widget _statChip(IconData icon, String label, AppColorsData cs) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 8),
-        vertical: Adaptive.h(context, 4),
+        horizontal: adaptive.Adaptive.w(context, 8),
+        vertical: adaptive.Adaptive.h(context, 4),
       ),
       decoration: BoxDecoration(
         color: cs.onSurfaceVariant.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 6)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
-            size: Adaptive.sp(context, 12),
+            size: adaptive.Adaptive.sp(context, 12),
             color: cs.onSurfaceVariant,
           ),
-          SizedBox(width: Adaptive.w(context, 4)),
+          SizedBox(width: adaptive.Adaptive.w(context, 4)),
           Text(
             label,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 12),
+              fontSize: adaptive.Adaptive.sp(context, 12),
               color: cs.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
@@ -2404,15 +2407,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         final cs = Theme.of(ctx).colorScheme;
         return Container(
           padding: EdgeInsets.fromLTRB(
-            Adaptive.w(context, 24),
-            Adaptive.h(context, 16),
-            Adaptive.w(context, 24),
-            MediaQuery.of(ctx).padding.bottom + Adaptive.h(context, 24),
+            adaptive.Adaptive.w(context, 24),
+            adaptive.Adaptive.h(context, 16),
+            adaptive.Adaptive.w(context, 24),
+            MediaQuery.of(ctx).padding.bottom + adaptive.Adaptive.h(context, 24),
           ),
           decoration: BoxDecoration(
             color: cs.surface,
             borderRadius: BorderRadius.vertical(
-              top: Radius.circular(Adaptive.r(context, 24)),
+              top: Radius.circular(adaptive.Adaptive.r(context, 24)),
             ),
           ),
           child: Column(
@@ -2421,44 +2424,44 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
             children: [
               Center(
                 child: Container(
-                  width: Adaptive.w(context, 40),
-                  height: Adaptive.h(context, 4),
-                  margin: EdgeInsets.only(bottom: Adaptive.h(context, 24)),
+                  width: adaptive.Adaptive.w(context, 40),
+                  height: adaptive.Adaptive.h(context, 4),
+                  margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 24)),
                   decoration: BoxDecoration(
                     color: cs.onSurfaceVariant.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(Adaptive.r(context, 2)),
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
                   ),
                 ),
               ),
               Text(
                 '标注',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 18),
+                  fontSize: adaptive.Adaptive.sp(context, 18),
                   fontWeight: FontWeight.bold,
                   color: cs.onSurface,
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 8)),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               Text(
                 trimmedText,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 15),
+                  fontSize: adaptive.Adaptive.sp(context, 15),
                   color: cs.onSurfaceVariant,
                   height: 1.5,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: Adaptive.h(context, 24)),
+              SizedBox(height: adaptive.Adaptive.h(context, 24)),
               Text(
                 '选择颜色',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                   fontWeight: FontWeight.w600,
                   color: cs.onSurface,
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 16)),
+              SizedBox(height: adaptive.Adaptive.h(context, 16)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(_markerColors.length, (i) {
@@ -2472,15 +2475,15 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   return GestureDetector(
                     onTap: () => Navigator.pop(ctx, i),
                     child: Container(
-                      width: Adaptive.w(context, 44),
-                      height: Adaptive.w(context, 44),
+                      width: adaptive.Adaptive.w(context, 44),
+                      height: adaptive.Adaptive.w(context, 44),
                       decoration: BoxDecoration(
                         color: _markerColors[i],
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: _markerColors[i].withValues(alpha: 0.3),
-                            blurRadius: 8,
+                            blurRadius: adaptive.Adaptive.w(context, 8),
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -2492,14 +2495,14 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                           ? Icon(
                               AppIcons.check,
                               color: Colors.white,
-                              size: Adaptive.sp(context, 22),
+                              size: adaptive.Adaptive.sp(context, 22),
                             )
                           : null,
                     ),
                   );
                 }),
               ),
-              SizedBox(height: Adaptive.h(context, 32)),
+              SizedBox(height: adaptive.Adaptive.h(context, 32)),
               if (_markRecords.any(
                 (r) =>
                     r.paragraphIndex == pIdx &&
@@ -2524,24 +2527,24 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     icon: Icon(
                       AppIcons.delete,
                       color: cs.error,
-                      size: Adaptive.sp(context, 20),
+                      size: adaptive.Adaptive.sp(context, 20),
                     ),
                     label: Text(
                       '删除标注',
                       style: TextStyle(
                         color: cs.error,
-                        fontSize: Adaptive.sp(context, 16),
+                        fontSize: adaptive.Adaptive.sp(context, 16),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.symmetric(
-                        vertical: Adaptive.h(context, 14),
+                        vertical: adaptive.Adaptive.h(context, 14),
                       ),
                       backgroundColor: cs.error.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
-                          Adaptive.r(context, 16),
+                          adaptive.Adaptive.r(context, 16),
                         ),
                       ),
                     ),
@@ -2580,7 +2583,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   }
 
   // ── 标记管理弹窗 (TDesign风格底部抽屉) ──
-  Widget _buildMarkManagerPopup(ColorScheme cs) {
+  Widget _buildMarkManagerPopup(AppColorsData cs) {
     return Positioned(
       left: 0,
       right: 0,
@@ -2599,12 +2602,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
               decoration: BoxDecoration(
                 color: cs.surface,
                 borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(Adaptive.r(context, 20)),
+                  top: Radius.circular(adaptive.Adaptive.r(context, 20)),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 20,
+                    blurRadius: adaptive.Adaptive.w(context, 20),
                     offset: const Offset(0, -4),
                   ),
                 ],
@@ -2615,22 +2618,22 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                   // 顶部横条
                   Container(
                     margin: EdgeInsets.only(
-                      top: Adaptive.h(context, 12),
-                      bottom: Adaptive.h(context, 8),
+                      top: adaptive.Adaptive.h(context, 12),
+                      bottom: adaptive.Adaptive.h(context, 8),
                     ),
-                    width: Adaptive.w(context, 32),
-                    height: Adaptive.h(context, 4),
+                    width: adaptive.Adaptive.w(context, 32),
+                    height: adaptive.Adaptive.h(context, 4),
                     decoration: BoxDecoration(
                       color: cs.onSurface.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(
-                        Adaptive.r(context, 2),
+                        adaptive.Adaptive.r(context, 2),
                       ),
                     ),
                   ),
                   // 标题栏
                   Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(context, 20),
+                      horizontal: adaptive.Adaptive.w(context, 20),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2638,27 +2641,27 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                         Row(
                           children: [
                             Container(
-                              width: Adaptive.w(context, 32),
-                              height: Adaptive.w(context, 32),
+                              width: adaptive.Adaptive.w(context, 32),
+                              height: adaptive.Adaptive.w(context, 32),
                               decoration: BoxDecoration(
                                 color: cs.primaryContainer.withValues(
                                   alpha: 0.2,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  Adaptive.r(context, 8),
+                                  adaptive.Adaptive.r(context, 8),
                                 ),
                               ),
                               child: Icon(
                                 AppIcons.bookmarkBorder,
-                                size: Adaptive.sp(context, 18),
+                                size: adaptive.Adaptive.sp(context, 18),
                                 color: cs.primary,
                               ),
                             ),
-                            SizedBox(width: Adaptive.w(context, 10)),
+                            SizedBox(width: adaptive.Adaptive.w(context, 10)),
                             Text(
                               '标记管理',
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 17),
+                                fontSize: adaptive.Adaptive.sp(context, 17),
                                 fontWeight: FontWeight.w600,
                                 color: cs.onSurface,
                               ),
@@ -2688,7 +2691,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     ),
                   ),
                   Divider(
-                    height: Adaptive.h(context, 1),
+                    height: adaptive.Adaptive.h(context, 1),
                     color: cs.outline.withValues(alpha: 0.1),
                   ),
                   // 内容区域
@@ -2699,8 +2702,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: Adaptive.w(context, 64),
-                              height: Adaptive.w(context, 64),
+                              width: adaptive.Adaptive.w(context, 64),
+                              height: adaptive.Adaptive.w(context, 64),
                               decoration: BoxDecoration(
                                 color: cs.surfaceContainerHighest.withValues(
                                   alpha: 0.5,
@@ -2709,23 +2712,23 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                               ),
                               child: Icon(
                                 AppIcons.bookmarkBorder,
-                                size: Adaptive.sp(context, 32),
+                                size: adaptive.Adaptive.sp(context, 32),
                                 color: cs.outline.withValues(alpha: 0.4),
                               ),
                             ),
-                            SizedBox(height: Adaptive.h(context, 16)),
+                            SizedBox(height: adaptive.Adaptive.h(context, 16)),
                             Text(
                               '暂无标记',
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 15),
+                                fontSize: adaptive.Adaptive.sp(context, 15),
                                 color: cs.onSurfaceVariant,
                               ),
                             ),
-                            SizedBox(height: Adaptive.h(context, 4)),
+                            SizedBox(height: adaptive.Adaptive.h(context, 4)),
                             Text(
                               '划词并标注开始学习吧',
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 13),
+                                fontSize: adaptive.Adaptive.sp(context, 13),
                                 color: cs.onSurfaceVariant.withValues(
                                   alpha: 0.6,
                                 ),
@@ -2739,11 +2742,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                     Expanded(
                       child: ListView.separated(
                         padding: EdgeInsets.symmetric(
-                          horizontal: Adaptive.w(context, 16),
-                          vertical: Adaptive.h(context, 8),
+                          horizontal: adaptive.Adaptive.w(context, 16),
+                          vertical: adaptive.Adaptive.h(context, 8),
                         ),
                         separatorBuilder: (_, _) => Divider(
-                          height: Adaptive.h(context, 1),
+                          height: adaptive.Adaptive.h(context, 1),
                           color: cs.outline.withValues(alpha: 0.08),
                         ),
                         itemCount: _markRecords.length,
@@ -2753,8 +2756,8 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             titleWidget: Row(
                               children: [
                                 Container(
-                                  width: Adaptive.w(context, 10),
-                                  height: Adaptive.w(context, 10),
+                                  width: adaptive.Adaptive.w(context, 10),
+                                  height: adaptive.Adaptive.w(context, 10),
                                   decoration: BoxDecoration(
                                     color: record.color,
                                     shape: BoxShape.circle,
@@ -2764,12 +2767,12 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: Adaptive.w(context, 12)),
+                                SizedBox(width: adaptive.Adaptive.w(context, 12)),
                                 Expanded(
                                   child: Text(
                                     record.text,
                                     style: TextStyle(
-                                      fontSize: Adaptive.sp(context, 14),
+                                      fontSize: adaptive.Adaptive.sp(context, 14),
                                       color: cs.onSurface,
                                     ),
                                     maxLines: 2,
@@ -2781,7 +2784,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
                             rightIconWidget: IconButton(
                               icon: Icon(
                                 AppIcons.close,
-                                size: Adaptive.sp(context, 18),
+                                size: adaptive.Adaptive.sp(context, 18),
                                 color: cs.error,
                               ),
                               onPressed: () async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/services/auth_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -265,7 +266,7 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
                 ),
                 decoration: BoxDecoration(
                   color: record.status == 'success'
-                      ? Colors.green.withValues(alpha: 0.12)
+                      ? AppColors.success.withValues(alpha: 0.12)
                       : record.status == 'failed'
                       ? colorScheme.error.withValues(alpha: 0.12)
                       : colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -276,7 +277,7 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
                   style: TextStyle(
                     fontSize: Adaptive.sp(context, 11),
                     color: record.status == 'success'
-                        ? Colors.green
+                        ? AppColors.success
                         : record.status == 'failed'
                         ? colorScheme.error
                         : colorScheme.onSurfaceVariant,

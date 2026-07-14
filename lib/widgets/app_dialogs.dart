@@ -3,10 +3,12 @@
 /// 所有弹窗使用 AppBaseDialog 统一样式，确保视觉一致性。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/theme/app_typography.dart';
+
 
 // ═══════════════════════════════════════════════════════════════
 // 统一弹窗基座
@@ -16,17 +18,19 @@ class AppBaseDialog extends StatelessWidget {
   final String? title;
   final Widget child;
   final List<Widget>? actions;
+  final double? width;
 
   const AppBaseDialog({
     super.key,
     this.title,
     required this.child,
     this.actions,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final isIpad = context.ipad;
 
     return Center(
@@ -35,14 +39,16 @@ class AppBaseDialog extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
+            constraints: BoxConstraints(
+              maxWidth: width ?? adaptive.Adaptive.w(context, isIpad ? 360 : 400),
+            ),
             decoration: BoxDecoration(
               color: cs.surface,
               borderRadius: BorderRadius.circular(isIpad ? 16 : 14),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 32,
+                  blurRadius: adaptive.Adaptive.w(context, 32),
                   offset: const Offset(0, 12),
                 ),
               ],
@@ -54,16 +60,16 @@ class AppBaseDialog extends StatelessWidget {
                 if (title != null)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      Adaptive.w(context, 24),
-                      Adaptive.h(context, 24),
-                      Adaptive.w(context, 24),
-                      Adaptive.h(context, 16),
+                      adaptive.Adaptive.w(context, 24),
+                      adaptive.Adaptive.h(context, 24),
+                      adaptive.Adaptive.w(context, 24),
+                      adaptive.Adaptive.h(context, 16),
                     ),
                     child: Text(
                       title!,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 17),
+                        fontSize: adaptive.Adaptive.sp(context, 17),
                         fontWeight: FontWeight.w600,
                         color: cs.onSurface,
                       ),
@@ -72,9 +78,9 @@ class AppBaseDialog extends StatelessWidget {
                 // ── 内容 ──
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    Adaptive.w(context, 24),
+                    adaptive.Adaptive.w(context, 24),
                     0,
-                    Adaptive.w(context, 24),
+                    adaptive.Adaptive.w(context, 24),
                     0,
                   ),
                   child: child,
@@ -83,15 +89,15 @@ class AppBaseDialog extends StatelessWidget {
                 if (actions != null && actions!.isNotEmpty)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      Adaptive.w(context, 24),
-                      Adaptive.h(context, 24),
-                      Adaptive.w(context, 24),
-                      Adaptive.h(context, 20),
+                      adaptive.Adaptive.w(context, 24),
+                      adaptive.Adaptive.h(context, 24),
+                      adaptive.Adaptive.w(context, 24),
+                      adaptive.Adaptive.h(context, 20),
                     ),
                     child: Row(
                       children: [
                         for (int i = 0; i < actions!.length; i++) ...[
-                          if (i > 0) SizedBox(width: Adaptive.w(context, 12)),
+                          if (i > 0) SizedBox(width: adaptive.Adaptive.w(context, 12)),
                           Expanded(child: actions![i]),
                         ],
                       ],
@@ -111,16 +117,21 @@ class AppBaseDialog extends StatelessWidget {
     required String text,
     VoidCallback? onTap,
   }) {
+    final cs = context.colors;
     return TDButton(
       text: text,
       size: TDButtonSize.large,
-      type: TDButtonType.outline,
+      type: TDButtonType.fill,
       shape: TDButtonShape.round,
-      height: Adaptive.h(context, 48),
+      height: adaptive.Adaptive.h(context, 48),
+      textStyle: TextStyle(
+        fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeBase),
+        fontWeight: FontWeight.w500,
+      ),
       style: TDButtonStyle(
-        backgroundColor: Colors.transparent,
-        textColor: AppColors.primary,
-        frameColor: AppColors.primary,
+        backgroundColor: cs.surfaceContainerHighest,
+        textColor: cs.onSurfaceVariant,
+        frameColor: Colors.transparent,
       ),
       onTap: onTap,
     );
@@ -133,14 +144,20 @@ class AppBaseDialog extends StatelessWidget {
     TDButtonTheme theme = TDButtonTheme.primary,
     VoidCallback? onTap,
   }) {
-    final bgColor = theme == TDButtonTheme.danger ? AppColors.error : AppColors.primary;
+    final bgColor = theme == TDButtonTheme.danger
+        ? AppColors.error
+        : AppColors.primary;
     return TDButton(
       text: text,
       size: TDButtonSize.large,
       type: TDButtonType.fill,
       theme: theme,
       shape: TDButtonShape.round,
-      height: Adaptive.h(context, 48),
+      height: adaptive.Adaptive.h(context, 48),
+      textStyle: TextStyle(
+        fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeBase),
+        fontWeight: FontWeight.w600,
+      ),
       style: TDButtonStyle(
         backgroundColor: bgColor,
         textColor: AppColors.onPrimary,
@@ -151,7 +168,7 @@ class AppBaseDialog extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 确认对话框（双按钮）
+// 确认对话框（双按钮）— 基于 TDAlertDialog
 // ═══════════════════════════════════════════════════════════════
 
 class AppConfirmDialog extends StatelessWidget {
@@ -178,7 +195,10 @@ class AppConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
+
+    // 统一使用 AppBaseDialog：宽度通过 Adaptive 自动适配 iPad/iPhone
+    // 不再使用 TDAlertDialog（其内部 TDDialogScaffold 固定宽度逻辑导致按钮文字截断）
     return AppBaseDialog(
       title: title,
       actions: [
@@ -205,7 +225,7 @@ class AppConfirmDialog extends StatelessWidget {
             content,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 15),
+              fontSize: adaptive.Adaptive.sp(context, 15),
               color: cs.onSurfaceVariant,
               height: 1.5,
             ),
@@ -230,7 +250,7 @@ class AppConfirmDialog extends StatelessWidget {
       barrierLabel: 'AppConfirmDialog',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) => AppConfirmDialog(
+      pageBuilder: (_, _, _) => AppConfirmDialog(
         title: title,
         content: content,
         confirmText: confirmText,
@@ -240,14 +260,14 @@ class AppConfirmDialog extends StatelessWidget {
         contentWidget: contentWidget,
         destructive: destructive,
       ),
-      transitionBuilder: (_, animation, __, child) =>
+      transitionBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 提示对话框（单按钮）
+// 提示对话框（单按钮）— 基于 TDConfirmDialog
 // ═══════════════════════════════════════════════════════════════
 
 class AppAlertDialog extends StatelessWidget {
@@ -266,28 +286,29 @@ class AppAlertDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AppBaseDialog(
+    final cs = context.colors;
+    return TDConfirmDialog(
       title: title,
-      actions: [
-        AppBaseDialog.confirmButton(
-          context,
-          text: buttonText,
-          onTap: () {
-            onAction?.call();
-            Navigator.of(context).pop();
-          },
-        ),
-      ],
-      child: Text(
+      content: null,
+      contentWidget: Text(
         content,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: Adaptive.sp(context, 15),
+          fontSize: adaptive.Adaptive.sp(context, 15),
           color: cs.onSurfaceVariant,
           height: 1.5,
         ),
       ),
+      buttonText: buttonText,
+      buttonStyleCustom: TDButtonStyle(
+        backgroundColor: cs.primary,
+        textColor: AppColors.onPrimary,
+      ),
+      action: () {
+        onAction?.call();
+        Navigator.of(context).pop();
+      },
+      radius: adaptive.Adaptive.r(context, 14),
     );
   }
 
@@ -304,13 +325,13 @@ class AppAlertDialog extends StatelessWidget {
       barrierLabel: 'AppAlertDialog',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) => AppAlertDialog(
+      pageBuilder: (_, _, _) => AppAlertDialog(
         title: title,
         content: content,
         buttonText: buttonText,
         onAction: onAction,
       ),
-      transitionBuilder: (_, animation, __, child) =>
+      transitionBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     );
   }
@@ -380,41 +401,43 @@ class AppInputDialog {
                   autofocus: true,
                   obscureText: obscureText,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(ctx, 15),
+                    fontSize: adaptive.Adaptive.sp(ctx, 15),
                     color: cs.onSurface,
                   ),
                   decoration: InputDecoration(
                     hintText: hintText,
                     hintStyle: TextStyle(
                       color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                      fontSize: Adaptive.sp(ctx, 15),
+                      fontSize: adaptive.Adaptive.sp(ctx, 15),
                     ),
                     filled: true,
-                    fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                    fillColor: cs.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(ctx, 16),
-                      vertical: Adaptive.h(ctx, 14),
+                      horizontal: adaptive.Adaptive.w(ctx, 16),
+                      vertical: adaptive.Adaptive.h(ctx, 14),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Adaptive.r(ctx, 10)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(ctx, 10)),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Adaptive.r(ctx, 10)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(ctx, 10)),
                       borderSide: BorderSide(color: cs.primary, width: 1.5),
                     ),
                     errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Adaptive.r(ctx, 10)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(ctx, 10)),
                       borderSide: BorderSide(color: cs.error, width: 1),
                     ),
                   ),
                 ),
                 if (error != null) ...[
-                  SizedBox(height: Adaptive.h(ctx, 8)),
+                  SizedBox(height: adaptive.Adaptive.h(ctx, 8)),
                   Text(
                     error!,
                     style: TextStyle(
-                      fontSize: Adaptive.sp(ctx, 12),
+                      fontSize: adaptive.Adaptive.sp(ctx, 12),
                       color: cs.error,
                     ),
                   ),
@@ -472,19 +495,19 @@ class AppComboboxDialog<T> {
               children: items.map((item) {
                 final isSelected = item == selectedValue;
                 return InkWell(
-                  borderRadius: BorderRadius.circular(Adaptive.r(ctx, 10)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(ctx, 10)),
                   onTap: () => setState(() => selectedValue = item),
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(ctx, 14),
-                      vertical: Adaptive.h(ctx, 12),
+                      horizontal: adaptive.Adaptive.w(ctx, 14),
+                      vertical: adaptive.Adaptive.h(ctx, 12),
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? cs.primaryContainer.withValues(alpha: 0.4)
                           : Colors.transparent,
-                      borderRadius: BorderRadius.circular(Adaptive.r(ctx, 10)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(ctx, 10)),
                     ),
                     child: Row(
                       children: [
@@ -492,9 +515,10 @@ class AppComboboxDialog<T> {
                           child: Text(
                             itemBuilder(item),
                             style: TextStyle(
-                              fontSize: Adaptive.sp(ctx, 15),
-                              fontWeight:
-                                  isSelected ? FontWeight.w600 : FontWeight.w400,
+                              fontSize: adaptive.Adaptive.sp(ctx, 15),
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
                               color: isSelected ? cs.primary : cs.onSurface,
                             ),
                           ),
@@ -502,7 +526,7 @@ class AppComboboxDialog<T> {
                         if (isSelected)
                           Icon(
                             Icons.check_circle_rounded,
-                            size: Adaptive.sp(ctx, 20),
+                            size: adaptive.Adaptive.sp(ctx, 20),
                             color: cs.primary,
                           ),
                       ],
@@ -561,13 +585,15 @@ class AppActionSheet {
   }) async {
     AppActionSheetItem? result;
     final tdItems = items
-        .map((item) => TDActionSheetItem(
-              label: item.text,
-              icon: item.icon != null ? Icon(item.icon!, size: 22) : null,
-              textStyle: item.destructive
-                  ? TextStyle(color: TDTheme.of(context).errorNormalColor)
-                  : null,
-            ))
+        .map(
+          (item) => TDActionSheetItem(
+            label: item.text,
+            icon: item.icon != null ? Icon(item.icon!, size: adaptive.Adaptive.icon(context, 22)) : null,
+            textStyle: item.destructive
+                ? TextStyle(color: context.colors.error)
+                : null,
+          ),
+        )
         .toList();
 
     TDActionSheet.showListActionSheet(
@@ -612,32 +638,35 @@ class AppBottomSheetMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
 
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          Adaptive.w(context, 16),
-          Adaptive.h(context, 8),
-          Adaptive.w(context, 16),
-          Adaptive.h(context, 16),
+          adaptive.Adaptive.w(context, 16),
+          adaptive.Adaptive.h(context, 8),
+          adaptive.Adaptive.w(context, 16),
+          adaptive.Adaptive.h(context, 16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (title != null) ...[
               Padding(
-                padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
                 child: Text(
                   title!,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 14),
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.w600,
                     color: cs.onSurfaceVariant,
                   ),
                 ),
               ),
-              Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
+              Divider(
+                height: 1,
+                color: cs.outlineVariant.withValues(alpha: 0.3),
+              ),
             ],
             Flexible(
               child: SingleChildScrollView(
@@ -648,15 +677,18 @@ class AppBottomSheetMenu extends StatelessWidget {
                     return TDCell(
                       title: item.text,
                       leftIconWidget: item.icon != null
-                          ? Icon(item.icon!, size: Adaptive.icon(context, 22))
+                          ? Icon(item.icon!, size: adaptive.Adaptive.icon(context, 22))
                           : null,
                       note: item.subtitle,
                       arrow: false,
                       style: TDCellStyle(
                         titleStyle: TextStyle(
-                          fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14),
+                          fontSize: adaptive.Adaptive.sp(
+                            context,
+                            adaptive.isIPad(context) ? 16 : 14,
+                          ),
                           color: item.destructive
-                              ? TDTheme.of(context).errorNormalColor
+                              ? context.colors.error
                               : cs.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
@@ -681,14 +713,14 @@ class AppBottomSheetMenu extends StatelessWidget {
     String? title,
     required List<AppBottomSheetMenuItem> items,
   }) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
     return showModalBottomSheet<AppBottomSheetMenuItem>(
       context: context,
       backgroundColor: cs.surface,
       isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(Adaptive.r(context, 16)),
+          top: Radius.circular(adaptive.Adaptive.r(context, 16)),
         ),
       ),
       builder: (_) => ConstrainedBox(

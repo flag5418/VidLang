@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/subtitles.dart';
@@ -187,7 +189,7 @@ class _SubtitleItem extends StatelessWidget {
         decoration: isCurrent
             ? BoxDecoration(
                 color: AppColors.onSurface.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
               )
             : null,
         child: Column(

@@ -11,7 +11,7 @@ import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/views/player/player_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
@@ -68,7 +68,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   List<LearningHistoryRecord> _records = [];
   bool _isLoading = true;
 
-  bool get _isIpad => isIPad(context);
+  bool get _isIpad => adaptive.isIPad(context);
 
   @override
   void initState() {
@@ -142,7 +142,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           return Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(
-                Adaptive.r(builderContext, 16),
+                adaptive.Adaptive.r(builderContext, 16),
               ),
             ),
             child: Container(
@@ -151,10 +151,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                 maxHeight: MediaQuery.of(builderContext).size.height * 0.6,
               ),
               padding: EdgeInsets.fromLTRB(
-                Adaptive.w(builderContext, 24),
-                Adaptive.h(builderContext, 24),
-                Adaptive.w(builderContext, 24),
-                Adaptive.h(builderContext, 20),
+                adaptive.Adaptive.w(builderContext, 24),
+                adaptive.Adaptive.h(builderContext, 24),
+                adaptive.Adaptive.w(builderContext, 24),
+                adaptive.Adaptive.h(builderContext, 20),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -166,14 +166,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                       Text(
                         '选择日期范围',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(builderContext, 17),
+                          fontSize: adaptive.Adaptive.sp(builderContext, 17),
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: Adaptive.h(builderContext, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(builderContext, 20)),
                   // 开始日期
                   _buildDatePickerRow(
                     pickerContext: dialogContext,
@@ -184,7 +184,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                     onChanged: (d) => setDialogState(() => tempStart = d),
                     colorScheme: colorScheme,
                   ),
-                  SizedBox(height: Adaptive.h(builderContext, 12)),
+                  SizedBox(height: adaptive.Adaptive.h(builderContext, 12)),
                   // 结束日期
                   _buildDatePickerRow(
                     pickerContext: dialogContext,
@@ -196,7 +196,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                     onChanged: (d) => setDialogState(() => tempEnd = d),
                     colorScheme: colorScheme,
                   ),
-                  SizedBox(height: Adaptive.h(builderContext, 24)),
+                  SizedBox(height: adaptive.Adaptive.h(builderContext, 24)),
                   // 底部按钮
                   Row(
                     children: [
@@ -206,18 +206,18 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                             ),
                           ),
                           child: Text(
                             '取消',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(builderContext, 15),
+                              fontSize: adaptive.Adaptive.sp(builderContext, 15),
                             ),
                           ),
                         ),
                       ),
-                      SizedBox(width: Adaptive.w(builderContext, 12)),
+                      SizedBox(width: adaptive.Adaptive.w(builderContext, 12)),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
@@ -240,13 +240,13 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                             ),
                           ),
                           child: Text(
                             '确定',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(builderContext, 15),
+                              fontSize: adaptive.Adaptive.sp(builderContext, 15),
                             ),
                           ),
                         ),
@@ -301,28 +301,28 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           onChanged(picked);
         }
       },
-      borderRadius: BorderRadius.circular(Adaptive.r(scaffoldContext, 10)),
+      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(scaffoldContext, 10)),
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(scaffoldContext, 16),
-          vertical: Adaptive.h(scaffoldContext, 14),
+          horizontal: adaptive.Adaptive.w(scaffoldContext, 16),
+          vertical: adaptive.Adaptive.h(scaffoldContext, 14),
         ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(Adaptive.r(scaffoldContext, 10)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(scaffoldContext, 10)),
         ),
         child: Row(
           children: [
             Icon(
               AppIcons.calendarToday,
-              size: Adaptive.sp(scaffoldContext, 20),
+              size: adaptive.Adaptive.sp(scaffoldContext, 20),
               color: colorScheme.primary,
             ),
-            SizedBox(width: Adaptive.w(scaffoldContext, 12)),
+            SizedBox(width: adaptive.Adaptive.w(scaffoldContext, 12)),
             Text(
               label,
               style: TextStyle(
-                fontSize: Adaptive.sp(scaffoldContext, 14),
+                fontSize: adaptive.Adaptive.sp(scaffoldContext, 14),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -330,15 +330,15 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
             Text(
               '${value.year}-${_pad(value.month)}-${_pad(value.day)}',
               style: TextStyle(
-                fontSize: Adaptive.sp(scaffoldContext, 15),
+                fontSize: adaptive.Adaptive.sp(scaffoldContext, 15),
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface,
               ),
             ),
-            SizedBox(width: Adaptive.w(scaffoldContext, 6)),
+            SizedBox(width: adaptive.Adaptive.w(scaffoldContext, 6)),
             Icon(
               Icons.chevron_right,
-              size: Adaptive.sp(scaffoldContext, 20),
+              size: adaptive.Adaptive.sp(scaffoldContext, 20),
               color: colorScheme.onSurfaceVariant,
             ),
           ],
@@ -382,13 +382,13 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
       backgroundColor: colors.surface,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: Adaptive.sp(context, 18)),
+          icon: Icon(Icons.arrow_back_ios_new, size: adaptive.Adaptive.sp(context, 18)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           '学习记录',
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 17),
+            fontSize: adaptive.Adaptive.sp(context, 17),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -410,8 +410,8 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   Widget _buildIphoneFilterBar(ColorScheme colorScheme) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 16),
-        vertical: Adaptive.h(context, 12),
+        horizontal: adaptive.Adaptive.w(context, 16),
+        vertical: adaptive.Adaptive.h(context, 12),
       ),
       child: Column(
         children: [
@@ -419,14 +419,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           Row(
             children: [
               Text('时间', style: _labelStyle(colorScheme)),
-              SizedBox(width: Adaptive.w(context, 10)),
+              SizedBox(width: adaptive.Adaptive.w(context, 10)),
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: TimeRange.values.map((r) {
                       return Padding(
-                        padding: EdgeInsets.only(right: Adaptive.w(context, 8)),
+                        padding: EdgeInsets.only(right: adaptive.Adaptive.w(context, 8)),
                         child: GestureDetector(
                           onTap: () => _onTimeRangeTap(r),
                           child: _buildChip(
@@ -442,19 +442,19 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
               ),
             ],
           ),
-          SizedBox(height: Adaptive.h(context, 10)),
+          SizedBox(height: adaptive.Adaptive.h(context, 10)),
           // 资源类型
           Row(
             children: [
               Text('类型', style: _labelStyle(colorScheme)),
-              SizedBox(width: Adaptive.w(context, 10)),
+              SizedBox(width: adaptive.Adaptive.w(context, 10)),
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: ResourceTypeFilter.values.map((t) {
                       return Padding(
-                        padding: EdgeInsets.only(right: Adaptive.w(context, 8)),
+                        padding: EdgeInsets.only(right: adaptive.Adaptive.w(context, 8)),
                         child: GestureDetector(
                           onTap: () {
                             setState(() => _selectedType = t);
@@ -513,16 +513,16 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                     child: Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.arrow_back_ios_new, size: Adaptive.sp(context, 20)),
+                          icon: Icon(Icons.arrow_back_ios_new, size: adaptive.Adaptive.sp(context, 20)),
                           onPressed: () => Navigator.pop(context),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: adaptive.Adaptive.w(context, 12)),
                         Text(
                           '学习记录',
                           style: TextStyle(
-                            fontSize: Adaptive.sp(context, 20),
+                            fontSize: adaptive.Adaptive.sp(context, 20),
                             fontWeight: FontWeight.w700,
                             color: colorScheme.onSurface,
                           ),
@@ -555,7 +555,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 80),
+          SizedBox(height: adaptive.Adaptive.h(context, 80)),
           // 筛选项列表
           Expanded(
             child: ListView(
@@ -580,28 +580,28 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 3)),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 10)),
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
         ),
         child: Row(
           children: [
             Icon(
               type.icon,
-              size: Adaptive.sp(context, 20),
+              size: adaptive.Adaptive.sp(context, 20),
               color: isSelected
                   ? Colors.white
                   : colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: adaptive.Adaptive.w(context, 8)),
             Text(
               type.label,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 15),
+                fontSize: adaptive.Adaptive.sp(context, 15),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected ? Colors.white : colorScheme.onSurface,
               ),
@@ -614,7 +614,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
 
   Widget _buildIpadHeader(ColorScheme colorScheme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 12, 24, 12),
+      padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 32), adaptive.Adaptive.h(context, 12), adaptive.Adaptive.w(context, 24), adaptive.Adaptive.h(context, 12)),
       child: Row(
         children: [
           // 时间范围 Chip 行
@@ -660,14 +660,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           children: [
             Icon(
               AppIcons.historyToggleOff,
-              size: Adaptive.sp(context, 48),
+              size: adaptive.Adaptive.sp(context, 48),
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
             ),
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Text(
               '暂无学习记录',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 15),
+                fontSize: adaptive.Adaptive.sp(context, 15),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -679,9 +679,9 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
     return RefreshIndicator(
       onRefresh: _loadRecords,
       child: ListView.separated(
-        padding: EdgeInsets.all(Adaptive.w(context, _isIpad ? 28 : 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, _isIpad ? 28 : 16)),
         itemCount: _records.length,
-        separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+        separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
         itemBuilder: (context, index) =>
             _buildRecordCard(_records[index], colorScheme),
       ),
@@ -696,14 +696,14 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   }) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 14),
-        vertical: Adaptive.h(context, 6),
+        horizontal: adaptive.Adaptive.w(context, 14),
+        vertical: adaptive.Adaptive.h(context, 6),
       ),
       decoration: BoxDecoration(
         color: isSelected
             ? colorScheme.primary.withValues(alpha: 0.1)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
         border: Border.all(
           color: isSelected
               ? colorScheme.primary
@@ -715,7 +715,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: Adaptive.sp(context, 13),
+          fontSize: adaptive.Adaptive.sp(context, 13),
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           color: isSelected
               ? colorScheme.primary
@@ -727,7 +727,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   }
 
   TextStyle _labelStyle(ColorScheme colorScheme) => TextStyle(
-    fontSize: Adaptive.sp(context, 13),
+    fontSize: adaptive.Adaptive.sp(context, 13),
     fontWeight: FontWeight.w600,
     color: colorScheme.onSurfaceVariant,
   );
@@ -753,10 +753,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
       onTap: () => _navigateToResource(record),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.all(Adaptive.w(context, 12)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
           border: Border.all(
             color: colorScheme.outlineVariant.withValues(alpha: 0.2),
             width: 0.5,
@@ -768,13 +768,13 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
             // 第一行：图标 + 标题 + 时间
             Row(
               children: [
-                Icon(icon, size: Adaptive.sp(context, 18), color: typeColor),
-                SizedBox(width: Adaptive.w(context, 8)),
+                Icon(icon, size: adaptive.Adaptive.sp(context, 18), color: typeColor),
+                SizedBox(width: adaptive.Adaptive.w(context, 8)),
                 Expanded(
                   child: Text(
                     record.resourceTitle ?? '未知资源',
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 14),
+                      fontSize: adaptive.Adaptive.sp(context, 14),
                       fontWeight: FontWeight.w600,
                       color: record.isDeleted
                           ? colorScheme.onSurfaceVariant
@@ -789,19 +789,19 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                 ),
                 if (record.isDeleted)
                   Container(
-                    margin: EdgeInsets.only(left: Adaptive.w(context, 8)),
+                    margin: EdgeInsets.only(left: adaptive.Adaptive.w(context, 8)),
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(context, 6),
-                      vertical: Adaptive.h(context, 2),
+                      horizontal: adaptive.Adaptive.w(context, 6),
+                      vertical: adaptive.Adaptive.h(context, 2),
                     ),
                     decoration: BoxDecoration(
                       color: colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
                     ),
                     child: Text(
                       '已删除',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 10),
+                        fontSize: adaptive.Adaptive.sp(context, 10),
                         color: colorScheme.error,
                         fontWeight: FontWeight.w600,
                       ),
@@ -811,16 +811,16 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                   Text(
                     _timeAgo(record.startTime),
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 11),
+                      fontSize: adaptive.Adaptive.sp(context, 11),
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
               ],
             ),
-            SizedBox(height: Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             // 第二行：详细信息（带图标）
             _buildDetailRow(record, colorScheme),
-            SizedBox(height: Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             // 第三行：进度条 + 百分比
             _buildProgressBar(record, typeColor, colorScheme),
           ],
@@ -883,10 +883,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         children: [
           Icon(
             AppIcons.playCircleOutline,
-            size: Adaptive.sp(context, 14),
+            size: adaptive.Adaptive.sp(context, 14),
             color: colorScheme.onSurfaceVariant,
           ),
-          SizedBox(width: Adaptive.w(context, 4)),
+          SizedBox(width: adaptive.Adaptive.w(context, 4)),
           Text(
             '${_fmtDur(lastPositionSec)} / ${_fmtDur(totalSec)}',
             style: _detailStyle(colorScheme),
@@ -918,19 +918,19 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
         children: [
           Icon(
             AppIcons.formatListNumbered,
-            size: Adaptive.sp(context, 14),
+            size: adaptive.Adaptive.sp(context, 14),
             color: colorScheme.onSurfaceVariant,
           ),
-          SizedBox(width: Adaptive.w(context, 4)),
+          SizedBox(width: adaptive.Adaptive.w(context, 4)),
           Text('$paras段', style: _detailStyle(colorScheme)),
           if (words > 0) ...[
-            SizedBox(width: Adaptive.w(context, 12)),
+            SizedBox(width: adaptive.Adaptive.w(context, 12)),
             Icon(
               AppIcons.textFields,
-              size: Adaptive.sp(context, 14),
+              size: adaptive.Adaptive.sp(context, 14),
               color: colorScheme.onSurfaceVariant,
             ),
-            SizedBox(width: Adaptive.w(context, 4)),
+            SizedBox(width: adaptive.Adaptive.w(context, 4)),
             Text('${_fmtNum(words)}字', style: _detailStyle(colorScheme)),
           ],
         ],
@@ -944,10 +944,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
     children: [
       Icon(
         Icons.info_outline,
-        size: Adaptive.sp(context, 14),
+        size: adaptive.Adaptive.sp(context, 14),
         color: colorScheme.onSurfaceVariant,
       ),
-      SizedBox(width: Adaptive.w(context, 4)),
+      SizedBox(width: adaptive.Adaptive.w(context, 4)),
       Text(text, style: _detailStyle(colorScheme)),
     ],
   );
@@ -967,7 +967,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
                 child: LinearProgressIndicator(
                   value: progress > 0 ? progress : null,
                   minHeight: 4,
@@ -982,11 +982,11 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
                 ),
               ),
             ),
-            SizedBox(width: Adaptive.w(context, 8)),
+            SizedBox(width: adaptive.Adaptive.w(context, 8)),
             Text(
               '$pct%',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 11),
+                fontSize: adaptive.Adaptive.sp(context, 11),
                 fontWeight: FontWeight.w600,
                 color: typeColor,
               ),
@@ -1035,7 +1035,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
   }
 
   TextStyle _detailStyle(ColorScheme cs) =>
-      TextStyle(fontSize: Adaptive.sp(context, 11), color: cs.onSurfaceVariant);
+      TextStyle(fontSize: adaptive.Adaptive.sp(context, 11), color: cs.onSurfaceVariant);
 
   /// 点击卡片跳转到对应播放器/阅读器
   void _navigateToResource(LearningHistoryRecord record) {

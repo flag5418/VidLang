@@ -45,18 +45,18 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                   onRefresh: () => ref.read(growthProvider.notifier).loadGrowthData(),
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildOverviewCard(context, summary),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         _buildStreakCard(context, summary),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         _buildHeatmap(context, summary),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         _buildScoreTrend(context, summary),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         _buildHistoryList(context, state),
                       ],
                     ),
@@ -68,11 +68,11 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
   Widget _buildOverviewCard(BuildContext context, dynamic summary) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           children: [
             Text('学习概览', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -93,7 +93,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
     return Column(
       children: [
         Icon(icon, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(value, style: Theme.of(context).textTheme.titleLarge),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
@@ -103,14 +103,14 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
   Widget _buildStreakCard(BuildContext context, dynamic summary) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Column(
               children: [
-                const Icon(AppIcons.localFireDepartment, color: AppColors.warning, size: 36),
-                const SizedBox(height: 4),
+                Icon(AppIcons.localFireDepartment, color: AppColors.warning, size: 36),
+                SizedBox(height: 4),
                 Text('当前连胜',
                     style: Theme.of(context).textTheme.bodySmall),
                 Text('${summary.currentStreak} 天',
@@ -120,8 +120,8 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
             Container(width: 1, height: 48, color: AppColors.borderLight),
             Column(
               children: [
-                const Icon(AppIcons.emojiEvents, color: AppColors.warning, size: 36),
-                const SizedBox(height: 4),
+                Icon(AppIcons.emojiEvents, color: AppColors.warning, size: 36),
+                SizedBox(height: 4),
                 Text('最佳纪录',
                     style: Theme.of(context).textTheme.bodySmall),
                 Text('${summary.bestStreak} 天',
@@ -146,12 +146,12 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('学习活跃度', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             SizedBox(
               height: 100,
               child: Row(
@@ -166,9 +166,9 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                     children: [
                       Text(
                         '${date.month}/${date.day}',
-                        style: const TextStyle(fontSize: 11),
+                        style: TextStyle(fontSize: 11),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Container(
                         width: 32,
                         height: 32,
@@ -185,10 +185,10 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         '${day.avgScore.toStringAsFixed(0)}分',
-                        style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
+                        style: TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
                       ),
                     ],
                   );
@@ -207,12 +207,12 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('分数趋势', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               height: 150,
               child: CustomPaint(
@@ -248,7 +248,7 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('历史记录', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         ...grouped.entries.map((entry) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,7 +392,7 @@ class _TrendLinePainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: labels[i],
-          style: const TextStyle(fontSize: 9, color: AppColors.onSurfaceVariant),
+          style: TextStyle(fontSize: 9, color: AppColors.onSurfaceVariant),
         ),
         textDirection: TextDirection.ltr,
       );

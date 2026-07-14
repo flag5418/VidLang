@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/theme/app_colors.dart';
 
 class LoadingWidget extends StatelessWidget {
   /// 加载提示文字（如已设置，TDLoading 会自动垂直排列图标和文字）
@@ -32,9 +33,9 @@ class LoadingWidget extends StatelessWidget {
       child: TDLoading(
         size: _mapSize(size),
         icon: TDLoadingIcon.circle,
-        iconColor: color ?? TDTheme.of(context).brandNormalColor,
+        iconColor: color ?? context.colors.primary,
         text: message,
-        textColor: TDTheme.of(context).fontGyColor3,
+        textColor: context.colors.textWeak,
         axis: Axis.vertical,
       ),
     );

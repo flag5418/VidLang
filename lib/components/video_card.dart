@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
@@ -133,7 +134,12 @@ class _VideoCardState extends State<VideoCard> {
       left: 0,
       right: 0,
       child: Container(
-        padding: EdgeInsets.fromLTRB(8, 20, 8, 8),
+        padding: EdgeInsets.fromLTRB(
+          Adaptive.w(context, 8),
+          Adaptive.h(context, 20),
+          Adaptive.w(context, 8),
+          Adaptive.h(context, 8),
+        ),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -155,12 +161,12 @@ class _VideoCardState extends State<VideoCard> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: Adaptive.h(context, 2)),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(AppIcons.schedule, size: 10, color: Colors.white70),
-                const SizedBox(width: 4),
+                Icon(AppIcons.schedule, size: Adaptive.icon(context, 10), color: Colors.white70),
+                SizedBox(width: Adaptive.w(context, 4)),
                 Text(
                   '${widget.video.currentPositionString} / ${widget.video.durationString}',
                   style: TextStyle(
@@ -182,7 +188,7 @@ class _VideoCardState extends State<VideoCard> {
       top: Adaptive.h(context, 4),
       left: Adaptive.w(context, 4),
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: EdgeInsets.all(Adaptive.w(context, 4)),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.small),
           color: widget.video.hasSubtitles
@@ -209,7 +215,10 @@ class _VideoCardState extends State<VideoCard> {
       top: Adaptive.h(context, 4),
       left: Adaptive.w(context, 28),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+        padding: EdgeInsets.symmetric(
+          horizontal: Adaptive.w(context, 5),
+          vertical: Adaptive.h(context, 2),
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.small),
           color: color.withValues(alpha: 0.85),
@@ -217,8 +226,8 @@ class _VideoCardState extends State<VideoCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(AppIcons.mic, size: 9, color: Colors.white),
-            const SizedBox(width: 2),
+            Icon(AppIcons.mic, size: Adaptive.icon(context, 9), color: Colors.white),
+            SizedBox(width: Adaptive.w(context, 2)),
             Text(
               '${score.round()}',
               style: TextStyle(
@@ -234,17 +243,17 @@ class _VideoCardState extends State<VideoCard> {
   }
 
   Color _scoreColor(double score) {
-    if (score >= 90) return Colors.green;
-    if (score >= 75) return Colors.orange;
-    if (score >= 60) return Colors.deepOrange;
-    return Colors.red;
+    if (score >= 90) return AppColors.success;
+    if (score >= 75) return AppColors.warning;
+    if (score >= 60) return const Color(0xFFEA580C); // deepOrange 替代
+    return AppColors.error;
   }
 
   Widget _buildMoreButton(BuildContext context, AppColorsData colors) {
     final _ = Adaptive.of(context);
     return Positioned(
-      bottom: 4,
-      right: 4,
+      bottom: Adaptive.h(context, 4),
+      right: Adaptive.w(context, 4),
       child: PopupMenuButton<String>(
         onSelected: (value) {
           switch (value) {
@@ -362,10 +371,13 @@ class _VideoCardState extends State<VideoCard> {
   ) {
     final _ = Adaptive.of(context);
     return Positioned(
-      bottom: 4,
-      left: 4,
+      bottom: Adaptive.h(context, 4),
+      left: Adaptive.w(context, 4),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: EdgeInsets.symmetric(
+          horizontal: Adaptive.w(context, 6),
+          vertical: Adaptive.h(context, 2),
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.small),
           color: colors.primary,
@@ -378,7 +390,7 @@ class _VideoCardState extends State<VideoCard> {
               size: Adaptive.sp(context, 10),
               color: Colors.white,
             ),
-            const SizedBox(width: 3),
+            SizedBox(width: Adaptive.w(context, 3)),
             Text(
               '播放中',
               style: TextStyle(
@@ -404,11 +416,11 @@ class _VideoCardState extends State<VideoCard> {
         child: FractionallySizedBox(
           widthFactor: 0.4,
           child: Container(
-            height: 3,
+            height: Adaptive.h(context, 3),
             decoration: BoxDecoration(
               color: colors.primary,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(1.5),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(Adaptive.r(context, 1.5)),
               ),
             ),
           ),

@@ -271,18 +271,18 @@ bool _,
         children: [
           // 进度条：4pt 高，20pt 拖动热区
           SizedBox(
-            height: 20,
+            height: Adaptive.h(context, 20),
             child: Center(
               child: Container(
-                height: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 12),
+                height: Adaptive.h(context, 4),
+                margin: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12)),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Adaptive.r(context, 2)),
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
-                    minHeight: 4,
+                    minHeight: Adaptive.h(context, 4),
                   ),
                 ),
               ),
@@ -313,9 +313,9 @@ bool _,
                 SizedBox(height: Adaptive.h(context, 2)),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       AppIcons.schedule,
-                      size: 10,
+                      size: Adaptive.icon(context, 10),
                       color: Colors.white70,
                     ),
                     SizedBox(width: Adaptive.w(context, 4)),

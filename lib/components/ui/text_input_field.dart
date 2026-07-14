@@ -149,7 +149,7 @@ class _TextInputFieldState extends State<TextInputField> {
 
             // Pencil Skill: 背景和边框样式
             filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
+            fillColor: context.colors.surface,
 
             // 默认边框
             enabledBorder: OutlineInputBorder(

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -406,13 +408,13 @@ class _AudioTestPageState extends State<AudioTestPage> {
         backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── DashScope TTS 测试 ────────────
             _buildSectionTitle('🔊 DashScope TTS 测试'),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             TextField(
               controller: _ttsTextController,
               decoration: const InputDecoration(
@@ -422,7 +424,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
               ),
               maxLines: 2,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Row(
               children: [
                 Expanded(
@@ -438,7 +440,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                     onChanged: (v) => setState(() => _ttsVoice = v!),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: adaptive.Adaptive.w(context, 12)),
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _ttsFormat,
@@ -454,7 +456,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Row(
               children: [
                 Expanded(
@@ -470,7 +472,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                     label: Text(_isTtsSynthesizing ? '合成中...' : '流式合成'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: adaptive.Adaptive.w(context, 12)),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isTtsSynthesizing ? null : _testTtsFile,
@@ -480,18 +482,18 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                 border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _ttsLog.isEmpty ? 'TTS 日志将显示在这里...' : _ttsLog,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                style: TextStyle(fontFamily: 'monospace', fontSize: adaptive.Adaptive.sp(context, 12)),
               ),
             ),
 
@@ -499,7 +501,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
 
             // ─── 声通评测测试 ──────────────────
             _buildSectionTitle('🎤 声通语音评测测试'),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             TextField(
               controller: _shengtongRefTextController,
               decoration: const InputDecoration(
@@ -508,7 +510,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 hintText: '输入要评测的参考文本',
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Row(
               children: [
                 Expanded(
@@ -526,7 +528,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                     label: Text(_isShengtongConnecting ? '连接中...' : '测试 WS'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: adaptive.Adaptive.w(context, 12)),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isShengtongConnecting
@@ -538,7 +540,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -559,7 +561,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -568,18 +570,18 @@ class _AudioTestPageState extends State<AudioTestPage> {
                 label: const Text('验证 sig 算法'),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                 border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _shengtongLog.isEmpty ? '声通日志将显示在这里...' : _shengtongLog,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                style: TextStyle(fontFamily: 'monospace', fontSize: adaptive.Adaptive.sp(context, 12)),
               ),
             ),
 
@@ -587,7 +589,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
 
             // ─── 使用说明 ──────────────────────
             _buildSectionTitle('📖 使用说明'),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             _buildInfoCard(
               'DashScope TTS',
               '• 使用 HTTP SSE 流式合成\n'
@@ -595,7 +597,7 @@ class _AudioTestPageState extends State<AudioTestPage> {
                   '• 支持流式播放和文件保存\n'
                   '• 需要配置 qwen_api_key',
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             _buildInfoCard(
               '声通评测',
               '• 使用测试密钥连接\n'
@@ -612,20 +614,20 @@ class _AudioTestPageState extends State<AudioTestPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 18), fontWeight: FontWeight.bold),
     );
   }
 
   Widget _buildInfoCard(String title, String content) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text(content, style: const TextStyle(fontSize: 13)),
+            SizedBox(height: adaptive.Adaptive.h(context, 4)),
+            Text(content, style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13))),
           ],
         ),
       ),

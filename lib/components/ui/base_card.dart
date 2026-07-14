@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 基础卡片组件
 /// 
@@ -68,7 +69,7 @@ class BaseCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
+            blurRadius: adaptive.Adaptive.w(context, 6),
             offset: Offset(0, 2),
           ),
         ],
@@ -131,7 +132,7 @@ class TitledCard extends StatelessWidget {
           Row(
             children: [
               if (leadingIcon != null)
-                Icon(leadingIcon, size: 20, color: AppColors.textSecondary),
+                Icon(leadingIcon, size: adaptive.Adaptive.icon(context, 20), color: AppColors.textSecondary),
               
               if (leadingIcon != null)
                 SizedBox(width: AppSpacing.sm),

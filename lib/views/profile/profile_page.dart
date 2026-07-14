@@ -7,7 +7,8 @@
 /// 4. 设置列表
 /// 5. 底部固定（退出登录）
 library;
-import 'dart:io';
+import 'dart:io';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +36,7 @@ import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/topup_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -116,21 +117,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  SizedBox(height: Adaptive.h(context, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
 
                   // 模式切换
                   _buildModeSwitch(colorScheme, subState),
-                  SizedBox(height: Adaptive.h(context, 24)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
                   // // 学习统计入口
                   // _buildSectionTitle('学习统计', colorScheme),
-                  // SizedBox(height: Adaptive.h(context, 10)),
+                  // SizedBox(height: adaptive.Adaptive.h(context, 10)),
                   // _buildLearningStats(colorScheme),
-                  // SizedBox(height: Adaptive.h(context, 24)),
+                  // SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
                   // 设置列表
                   _buildSectionTitle('设置', colorScheme),
-                  SizedBox(height: Adaptive.h(context, 10)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 10)),
                   _buildSettingsCard(colorScheme, [
                     _SettingItem(
                       icon: AppIcons.palette,
@@ -185,11 +186,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       onTap: () => _showWifiPortDialog(),
                     ),
                   ]),
-                  SizedBox(height: Adaptive.h(context, 24)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
                   // 底部操作
                   _buildBottomActions(colorScheme),
-                  SizedBox(height: Adaptive.h(context, 32)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 32)),
                 ]),
               ),
             ),
@@ -201,11 +202,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _buildSectionTitle(String title, ColorScheme colorScheme) {
     return Padding(
-      padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: Adaptive.sp(context, AppTypography.fontSizeSmall),
+          fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeSmall),
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
           color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
@@ -231,15 +232,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       width: double.infinity,
       margin: EdgeInsets.fromLTRB(
         AppSpacing.pagePadding,
-        Adaptive.h(context, 12),
+        adaptive.Adaptive.h(context, 12),
         AppSpacing.pagePadding,
         0,
       ),
       padding: EdgeInsets.fromLTRB(
         AppSpacing.space5,
-        Adaptive.h(context, 24),
+        adaptive.Adaptive.h(context, 24),
         AppSpacing.space5,
-        Adaptive.h(context, 24),
+        adaptive.Adaptive.h(context, 24),
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -249,14 +250,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             color: Colors.black.withValues(
               alpha: brightness == Brightness.dark ? 0.2 : 0.04,
             ),
-            blurRadius: 12,
+            blurRadius: adaptive.Adaptive.w(context, 12),
             offset: const Offset(0, 2),
           ),
           BoxShadow(
             color: Colors.black.withValues(
               alpha: brightness == Brightness.dark ? 0.1 : 0.02,
             ),
-            blurRadius: 4,
+            blurRadius: adaptive.Adaptive.w(context, 4),
             offset: const Offset(0, 1),
           ),
         ],
@@ -280,7 +281,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
               ),
-              SizedBox(width: Adaptive.w(context, 16)),
+              SizedBox(width: adaptive.Adaptive.w(context, 16)),
               // 信息区
               Expanded(
                 child: Column(
@@ -289,27 +290,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Text(
                       displayName,
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 20),
+                        fontSize: adaptive.Adaptive.sp(context, 20),
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: Adaptive.h(context, 6)),
+                    SizedBox(height: adaptive.Adaptive.h(context, 6)),
                     // 学习天数 — 简洁文字，不用红色标签
                     Row(
                       children: [
                         Icon(
                           AppIcons.schedule,
-                          size: Adaptive.sp(context, 14),
+                          size: adaptive.Adaptive.sp(context, 14),
                           color: colorScheme.primary.withValues(alpha: 0.7),
                         ),
-                        SizedBox(width: Adaptive.w(context, 4)),
+                        SizedBox(width: adaptive.Adaptive.w(context, 4)),
                         Text(
                           daysLabel,
                           style: TextStyle(
-                            fontSize: Adaptive.sp(context, 13),
+                            fontSize: adaptive.Adaptive.sp(context, 13),
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -322,32 +323,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               GestureDetector(
                 onTap: () => _navigateToEditProfile(),
                 child: Container(
-                  width: Adaptive.w(context, 36),
-                  height: Adaptive.w(context, 36),
+                  width: adaptive.Adaptive.w(context, 36),
+                  height: adaptive.Adaptive.w(context, 36),
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.3),
                     ),
                     borderRadius: BorderRadius.circular(
-                      Adaptive.r(context, 10),
+                      adaptive.Adaptive.r(context, 10),
                     ),
                   ),
                   child: Icon(
                     AppIcons.chevronRight,
-                    size: Adaptive.icon(context, 18),
+                    size: adaptive.Adaptive.icon(context, 18),
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: Adaptive.h(context, 20)),
+          SizedBox(height: adaptive.Adaptive.h(context, 20)),
 
           // 快速统计行（学习数据概览）
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: Adaptive.w(context, 16),
-              vertical: Adaptive.h(context, 14),
+              horizontal: adaptive.Adaptive.w(context, 16),
+              vertical: adaptive.Adaptive.h(context, 14),
             ),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
@@ -402,14 +403,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       children: [
         Icon(
           icon,
-          size: Adaptive.sp(context, 18),
+          size: adaptive.Adaptive.sp(context, 18),
           color: cs.primary.withValues(alpha: 0.7),
         ),
-        SizedBox(height: Adaptive.h(context, 4)),
+        SizedBox(height: adaptive.Adaptive.h(context, 4)),
         Text(
           value,
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 17),
+            fontSize: adaptive.Adaptive.sp(context, 17),
             fontWeight: FontWeight.w700,
             color: cs.onSurface,
           ),
@@ -417,7 +418,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         Text(
           label,
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 10),
+            fontSize: adaptive.Adaptive.sp(context, 10),
             color: cs.onSurfaceVariant,
           ),
         ),
@@ -427,7 +428,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _quickStatDivider(ColorScheme cs) {
     return Container(
-      height: Adaptive.h(context, 24),
+      height: adaptive.Adaptive.h(context, 24),
       width: 1,
       color: cs.outline.withValues(alpha: 0.2),
     );
@@ -472,12 +473,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       padding: EdgeInsets.all(AppSpacing.space5),
       decoration: BoxDecoration(
         color: isPremium
-            ? Colors.amber.withValues(alpha: 0.08)
+            ? AppColors.premium.withValues(alpha: 0.08)
             : colorScheme.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: isPremium
-              ? Colors.amber.withValues(alpha: 0.25)
+              ? AppColors.premium.withValues(alpha: 0.25)
               : colorScheme.primary.withValues(alpha: 0.15),
         ),
       ),
@@ -487,10 +488,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             children: [
               Icon(
                 isPremium ? AppIcons.workspacePremium : AppIcons.person,
-                color: isPremium ? Colors.amber : colorScheme.primary,
-                size: Adaptive.w(context, 22),
+                color: isPremium ? AppColors.premium : colorScheme.primary,
+                size: adaptive.Adaptive.w(context, 22),
               ),
-              SizedBox(width: Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(context, 12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,18 +499,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Text(
                       isPremium ? '收费模式' : '免费模式',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 15),
+                        fontSize: adaptive.Adaptive.sp(context, 15),
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
                     ),
-                    SizedBox(height: Adaptive.h(context, 2)),
+                    SizedBox(height: adaptive.Adaptive.h(context, 2)),
                     Text(
                       isPremium
                           ? '余额：¥${subState.balance.toStringAsFixed(2)}'
                           : '使用基础功能，不产生费用',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 12),
+                        fontSize: adaptive.Adaptive.sp(context, 12),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -529,15 +530,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         );
                   },
                 child: Container(
-                  width: Adaptive.w(context, 50),
-                  height: Adaptive.h(context, 28),
-                  padding: EdgeInsets.all(Adaptive.w(context, 2)),
+                  width: adaptive.Adaptive.w(context, 50),
+                  height: adaptive.Adaptive.h(context, 28),
+                  padding: EdgeInsets.all(adaptive.Adaptive.w(context, 2)),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(
-                      Adaptive.r(context, 14),
+                      adaptive.Adaptive.r(context, 14),
                     ),
                     color: isPremium
-                        ? Colors.amber
+                        ? AppColors.premium
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                   ),
                   child: AnimatedAlign(
@@ -546,8 +547,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ? Alignment.centerRight
                         : Alignment.centerLeft,
                     child: Container(
-                      width: Adaptive.w(context, 24),
-                      height: Adaptive.w(context, 24),
+                      width: adaptive.Adaptive.w(context, 24),
+                      height: adaptive.Adaptive.w(context, 24),
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
@@ -559,10 +560,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               // Android 显示锁定图标提示（强制 premium 不可切换）
               if (!subState.isIOS)
                 Padding(
-                  padding: EdgeInsets.only(right: Adaptive.w(context, 4)),
+                  padding: EdgeInsets.only(right: adaptive.Adaptive.w(context, 4)),
                   child: Icon(
                     AppIcons.lock,
-                    size: Adaptive.w(context, 16),
+                    size: adaptive.Adaptive.w(context, 16),
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                   ),
                 ),
@@ -570,13 +571,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           // 付费模式下额外显示今日消费和充值按钮
           if (isPremium) ...[
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Container(
-              padding: EdgeInsets.only(top: Adaptive.h(context, 12)),
+              padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 12)),
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: Colors.amber.withValues(alpha: 0.3),
+                    color: AppColors.premium.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -592,23 +593,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           Text(
                             '今日消费',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 13),
+                              fontSize: adaptive.Adaptive.sp(context, 13),
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          SizedBox(width: Adaptive.w(context, 8)),
+                          SizedBox(width: adaptive.Adaptive.w(context, 8)),
                           Text(
                             '¥${_todayCost.toStringAsFixed(2)}',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 14),
+                              fontSize: adaptive.Adaptive.sp(context, 14),
                               fontWeight: FontWeight.w600,
                               color: colorScheme.onSurface,
                             ),
                           ),
-                          SizedBox(width: Adaptive.w(context, 4)),
+                          SizedBox(width: adaptive.Adaptive.w(context, 4)),
                           Icon(
                             AppIcons.chevronRight,
-                            size: Adaptive.sp(context, 16),
+                            size: adaptive.Adaptive.sp(context, 16),
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ],
@@ -620,21 +621,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     onTap: _navigateToTopupPage,
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: Adaptive.w(context, 14),
-                        vertical: Adaptive.h(context, 6),
+                        horizontal: adaptive.Adaptive.w(context, 14),
+                        vertical: adaptive.Adaptive.h(context, 6),
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
+                        color: AppColors.premium.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(
-                          Adaptive.r(context, 8),
+                          adaptive.Adaptive.r(context, 8),
                         ),
                       ),
                       child: Text(
                         '充值',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: adaptive.Adaptive.sp(context, 13),
                           fontWeight: FontWeight.w600,
-                          color: Colors.amber,
+                          color: AppColors.premium,
                         ),
                       ),
                     ),
@@ -708,19 +709,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         children: [
           Icon(
             icon,
-            size: Adaptive.sp(context, 20),
+            size: adaptive.Adaptive.sp(context, 20),
             color: colorScheme.primary.withValues(alpha: 0.7),
           ),
-          SizedBox(height: Adaptive.h(context, 6)),
+          SizedBox(height: adaptive.Adaptive.h(context, 6)),
           Text(
             value,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 18),
+              fontSize: adaptive.Adaptive.sp(context, 18),
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
             ),
           ),
-          SizedBox(height: Adaptive.h(context, 2)),
+          SizedBox(height: adaptive.Adaptive.h(context, 2)),
           Text(
             label,
             style: TextStyle(
@@ -735,8 +736,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
   Widget _statDivider(ColorScheme colorScheme) {
     return Container(
-      height: Adaptive.h(context, 30),
-      width: Adaptive.w(context, 1),
+      height: adaptive.Adaptive.h(context, 30),
+      width: adaptive.Adaptive.w(context, 1),
       color: colorScheme.outline.withValues(alpha: 0.3),
     );
   }
@@ -766,17 +767,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   child: Row(
                     children: [
                       Container(
-                        width: Adaptive.w(context, 32),
-                        height: Adaptive.w(context, 32),
+                        width: adaptive.Adaptive.w(context, 32),
+                        height: adaptive.Adaptive.w(context, 32),
                         decoration: BoxDecoration(
                           color: colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(
-                            Adaptive.r(context, 8),
+                            adaptive.Adaptive.r(context, 8),
                           ),
                         ),
                         child: Icon(
                           item.icon,
-                          size: Adaptive.sp(context, 18),
+                          size: adaptive.Adaptive.sp(context, 18),
                           color: colorScheme.primary,
                         ),
                       ),
@@ -788,7 +789,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               item.title,
                               style: TextStyle(
-                                fontSize: Adaptive.sp(
+                                fontSize: adaptive.Adaptive.sp(
                                   context,
                                   AppTypography.fontSizeBase,
                                 ),
@@ -797,11 +798,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               ),
                             ),
                             if (item.subtitle != null) ...[
-                              SizedBox(height: Adaptive.h(context, 2)),
+                              SizedBox(height: adaptive.Adaptive.h(context, 2)),
                               Text(
                                 item.subtitle!,
                                 style: TextStyle(
-                                  fontSize: Adaptive.sp(
+                                  fontSize: adaptive.Adaptive.sp(
                                     context,
                                     AppTypography.fontSizeXSmall,
                                   ),
@@ -814,7 +815,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                       Icon(
                         AppIcons.chevronRight,
-                        size: Adaptive.sp(context, 20),
+                        size: adaptive.Adaptive.sp(context, 20),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ],
@@ -853,15 +854,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: Row(
             children: [
               Container(
-                width: Adaptive.w(context, 36),
-                height: Adaptive.w(context, 36),
+                width: adaptive.Adaptive.w(context, 36),
+                height: adaptive.Adaptive.w(context, 36),
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
                 ),
                 child: Icon(
                   AppIcons.info,
-                  size: Adaptive.sp(context, 18),
+                  size: adaptive.Adaptive.sp(context, 18),
                   color: colorScheme.primary.withValues(alpha: 0.8),
                 ),
               ),
@@ -874,16 +875,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Text(
                       '关于',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 16),
+                        fontSize: adaptive.Adaptive.sp(context, 16),
                         fontWeight: FontWeight.w500,
                         color: colorScheme.onSurface,
                       ),
                     ),
-                    SizedBox(height: Adaptive.h(context, 2)),
+                    SizedBox(height: adaptive.Adaptive.h(context, 2)),
                     Text(
                       'VidLang v1.0.0',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 13),
+                        fontSize: adaptive.Adaptive.sp(context, 13),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -892,7 +893,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               Icon(
                 AppIcons.chevronRight,
-                size: Adaptive.sp(context, 20),
+                size: adaptive.Adaptive.sp(context, 20),
                 color: colorScheme.outline.withValues(alpha: 0.5),
               ),
             ],
@@ -909,15 +910,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: Row(
             children: [
               Container(
-                width: Adaptive.w(context, 36),
-                height: Adaptive.w(context, 36),
+                width: adaptive.Adaptive.w(context, 36),
+                height: adaptive.Adaptive.w(context, 36),
                 decoration: BoxDecoration(
                   color: colorScheme.error.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
                 ),
                 child: Icon(
                   AppIcons.logout,
-                  size: Adaptive.sp(context, 18),
+                  size: adaptive.Adaptive.sp(context, 18),
                   color: colorScheme.error.withValues(alpha: 0.7),
                 ),
               ),
@@ -925,7 +926,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               Text(
                 '退出登录',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 16),
+                  fontSize: adaptive.Adaptive.sp(context, 16),
                   fontWeight: FontWeight.w500,
                   color: colorScheme.error,
                 ),
@@ -933,7 +934,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const Spacer(),
               Icon(
                 AppIcons.chevronRight,
-                size: Adaptive.sp(context, 20),
+                size: adaptive.Adaptive.sp(context, 20),
                 color: colorScheme.outline.withValues(alpha: 0.5),
               ),
             ],
@@ -998,7 +999,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ? Icon(
                 AppIcons.check,
                 color: Theme.of(context).colorScheme.primary,
-                size: Adaptive.sp(context, 20),
+                size: adaptive.Adaptive.sp(context, 20),
               )
             : null,
         onTap: () async =>
@@ -1020,7 +1021,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ? Icon(
                 AppIcons.check,
                 color: Theme.of(context).colorScheme.primary,
-                size: Adaptive.sp(context, 20),
+                size: adaptive.Adaptive.sp(context, 20),
               )
             : null,
         onTap: () async =>
@@ -1096,11 +1097,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: Material(
             color: Colors.transparent,
             child: Container(
-              width: Adaptive.w(context, 320),
-              padding: EdgeInsets.all(Adaptive.w(context, 20)),
+              width: adaptive.Adaptive.w(context, 320),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
               decoration: BoxDecoration(
                 color: cs.surface,
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 14)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1111,29 +1112,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       Icon(
                         AppIcons.volumeUp,
                         color: cs.primary,
-                        size: Adaptive.sp(context, 22),
+                        size: adaptive.Adaptive.sp(context, 22),
                       ),
-                      SizedBox(width: Adaptive.w(context, 8)),
+                      SizedBox(width: adaptive.Adaptive.w(context, 8)),
                       Text(
                         'TTS 缓存管理',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 17),
+                          fontSize: adaptive.Adaptive.sp(context, 17),
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
 
                   // 当前状态
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                    padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                     decoration: BoxDecoration(
                       color: cs.primaryContainer.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(
-                        Adaptive.r(context, 10),
+                        adaptive.Adaptive.r(context, 10),
                       ),
                     ),
                     child: Row(
@@ -1144,7 +1145,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               '${stats.count}',
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 20),
+                                fontSize: adaptive.Adaptive.sp(context, 20),
                                 fontWeight: FontWeight.bold,
                                 color: cs.primary,
                               ),
@@ -1152,7 +1153,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               '缓存条数',
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 11),
+                                fontSize: adaptive.Adaptive.sp(context, 11),
                                 color: cs.onSurfaceVariant,
                               ),
                             ),
@@ -1160,7 +1161,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         ),
                         Container(
                           width: 1,
-                          height: Adaptive.h(context, 30),
+                          height: adaptive.Adaptive.h(context, 30),
                           color: cs.outline.withValues(alpha: 0.3),
                         ),
                         Column(
@@ -1168,7 +1169,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               stats.sizeLabel,
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 16),
+                                fontSize: adaptive.Adaptive.sp(context, 16),
                                 fontWeight: FontWeight.bold,
                                 color: cs.primary,
                               ),
@@ -1176,7 +1177,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               '占用空间',
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 11),
+                                fontSize: adaptive.Adaptive.sp(context, 11),
                                 color: cs.onSurfaceVariant,
                               ),
                             ),
@@ -1185,7 +1186,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ],
                     ),
                   ),
-                  SizedBox(height: Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
 
                   // 最大条数设置
                   Align(
@@ -1193,53 +1194,53 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     child: Text(
                       '最大缓存条数（5-200）',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 13),
+                        fontSize: adaptive.Adaptive.sp(context, 13),
                         fontWeight: FontWeight.w500,
                         color: cs.onSurface,
                       ),
                     ),
                   ),
-                  SizedBox(height: Adaptive.h(context, 6)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 6)),
                   TextField(
                     controller: sizeController,
                     keyboardType: TextInputType.number,
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 15),
+                      fontSize: adaptive.Adaptive.sp(context, 15),
                       color: cs.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: '输入 5-200 之间的数字',
                       hintStyle: TextStyle(
-                        fontSize: Adaptive.sp(context, 13),
+                        fontSize: adaptive.Adaptive.sp(context, 13),
                         color: cs.outline,
                       ),
                       filled: true,
                       fillColor: cs.surfaceContainerHighest,
                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: Adaptive.w(context, 12),
-                        vertical: Adaptive.h(context, 10),
+                        horizontal: adaptive.Adaptive.w(context, 12),
+                        vertical: adaptive.Adaptive.h(context, 10),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                          Adaptive.r(context, 8),
+                          adaptive.Adaptive.r(context, 8),
                         ),
                         borderSide: BorderSide.none,
                       ),
                     ),
                   ),
-                  SizedBox(height: Adaptive.h(context, 6)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 6)),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       '提示：相同文本的 TTS 音频会缓存在本地，重复播放时秒开。',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 11),
+                        fontSize: adaptive.Adaptive.sp(context, 11),
                         color: cs.onSurfaceVariant,
                       ),
                     ),
                   ),
 
-                  SizedBox(height: Adaptive.h(context, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
 
                   // 按钮行
                   Row(
@@ -1260,27 +1261,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           },
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(
-                              vertical: Adaptive.h(context, 12),
+                              vertical: adaptive.Adaptive.h(context, 12),
                             ),
                             side: BorderSide(
                               color: cs.error.withValues(alpha: 0.5),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
-                                Adaptive.r(context, 8),
+                                adaptive.Adaptive.r(context, 8),
                               ),
                             ),
                           ),
                           child: Text(
                             '清除缓存',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 14),
+                              fontSize: adaptive.Adaptive.sp(context, 14),
                               color: cs.error,
                             ),
                           ),
                         ),
                       ),
-                      SizedBox(width: Adaptive.w(context, 12)),
+                      SizedBox(width: adaptive.Adaptive.w(context, 12)),
                       Expanded(
                         child: FilledButton(
                           onPressed: () async {
@@ -1313,18 +1314,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           },
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.symmetric(
-                              vertical: Adaptive.h(context, 12),
+                              vertical: adaptive.Adaptive.h(context, 12),
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
-                                Adaptive.r(context, 8),
+                                adaptive.Adaptive.r(context, 8),
                               ),
                             ),
                           ),
                           child: Text(
                             '保存',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 14),
+                              fontSize: adaptive.Adaptive.sp(context, 14),
                               color: Colors.white,
                             ),
                           ),
@@ -1454,7 +1455,7 @@ class _ElevatedCardState extends State<_ElevatedCard>
         builder: (context, child) =>
             Transform.scale(scale: _scaleAnimation.value, child: child),
         child: Container(
-          padding: widget.padding ?? const EdgeInsets.all(16.0),
+          padding: widget.padding ?? EdgeInsets.all(adaptive.Adaptive.w(context, 16.0)),
           decoration: BoxDecoration(
             color: AppColors.getSurface(brightness: brightness),
             borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -1463,14 +1464,14 @@ class _ElevatedCardState extends State<_ElevatedCard>
                 color: Colors.black.withValues(
                   alpha: brightness == Brightness.dark ? 0.3 : 0.06,
                 ),
-                blurRadius: 12,
+                blurRadius: adaptive.Adaptive.w(context, 12),
                 offset: const Offset(0, 2),
               ),
               BoxShadow(
                 color: Colors.black.withValues(
                   alpha: brightness == Brightness.dark ? 0.2 : 0.03,
                 ),
-                blurRadius: 4,
+                blurRadius: adaptive.Adaptive.w(context, 4),
                 offset: const Offset(0, 1),
               ),
             ],

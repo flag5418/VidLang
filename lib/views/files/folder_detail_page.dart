@@ -3,7 +3,8 @@
 /// 展示文件夹内的资源列表，适配视频/文章/音频3类资源。
 library;
 
-import 'dart:async';
+import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -49,7 +50,7 @@ import 'package:vidlang/views/files/wifi_transfer_page.dart';
 import 'package:vidlang/views/audio_player/audio_player_page.dart';
 import 'package:vidlang/views/player/player_page.dart';
 import 'package:vidlang/views/test/test_page.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 /// 文件夹详情页面
 class FolderDetailPage extends ConsumerStatefulWidget {
@@ -185,16 +186,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             children: [
               Material(
                 color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                   onTap: () => Navigator.pop(context),
                   child: SizedBox(
-                    width: Adaptive.r(context, 40),
-                    height: Adaptive.r(context, 40),
+                    width: adaptive.Adaptive.r(context, 40),
+                    height: adaptive.Adaptive.r(context, 40),
                     child: Icon(
                       AppIcons.arrowBack,
-                      size: Adaptive.sp(context, 18),
+                      size: adaptive.Adaptive.sp(context, 18),
                       color: colorScheme.onSurface,
                     ),
                   ),
@@ -205,7 +206,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, AppTypography.fontSizeLarge),
+                    fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeLarge),
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
@@ -221,16 +222,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             if (folderType != FolderContentType.article)
               Material(
                 color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                   onTap: _showSettings,
                   child: SizedBox(
-                    width: Adaptive.r(context, 40),
-                    height: Adaptive.r(context, 40),
+                    width: adaptive.Adaptive.r(context, 40),
+                    height: adaptive.Adaptive.r(context, 40),
                     child: Icon(
                       AppIcons.settings,
-                      size: Adaptive.sp(context, 18),
+                      size: adaptive.Adaptive.sp(context, 18),
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -243,18 +244,18 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               offset: const Offset(0, 44),
               color: colorScheme.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
               ),
               elevation: 8,
               child: Material(
                 color: colorScheme.primary,
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                 child: SizedBox(
-                  width: Adaptive.r(context, 40),
-                  height: Adaptive.r(context, 40),
+                  width: adaptive.Adaptive.r(context, 40),
+                  height: adaptive.Adaptive.r(context, 40),
                     child: Icon(
                       AppIcons.add,
-                    size: Adaptive.sp(context, 18),
+                    size: adaptive.Adaptive.sp(context, 18),
                     color: colorScheme.onPrimary,
                   ),
                 ),
@@ -346,39 +347,39 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
     return Center(
       child: Container(
-        margin: EdgeInsets.all(Adaptive.w(context, 24)),
+        margin: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 32),
-          vertical: Adaptive.h(context, 32),
+          horizontal: adaptive.Adaptive.w(context, 32),
+          vertical: adaptive.Adaptive.h(context, 32),
         ),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: EdgeInsets.all(Adaptive.w(context, 20)),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.08),
               ),
               child: Icon(
                 icon,
-                size: Adaptive.sp(context, 48),
+                size: adaptive.Adaptive.sp(context, 48),
                 color: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.6),
               ),
             ),
-            SizedBox(height: Adaptive.h(context, 20)),
+            SizedBox(height: adaptive.Adaptive.h(context, 20)),
             Text(
               '暂无${_typeLabel(folderType)}',
-              style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant),
+              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant),
             ),
-            SizedBox(height: Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Text(
               '点击 + 导入资源',
-              style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.outline),
+              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), color: colorScheme.outline),
             ),
           ],
         ),
@@ -393,14 +394,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         children: [
           Icon(
             AppIcons.error,
-            size: 56,
+            size: adaptive.Adaptive.icon(context, 56),
             color: colorScheme.error.withValues(alpha: 0.8),
           ),
           SizedBox(height: AppSpacing.md),
           Text(
             '加载失败',
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 18),
+              fontSize: adaptive.Adaptive.sp(context, 18),
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -412,7 +413,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(context, 13),
                 color: colorScheme.onSurfaceVariant,
               ),
               maxLines: 4,
@@ -659,11 +660,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Widget _popupMenuItem(IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: Adaptive.sp(context, 20), color: cs.onSurfaceVariant),
-        SizedBox(width: 10),
+        Icon(icon, size: adaptive.Adaptive.sp(context, 20), color: cs.onSurfaceVariant),
+        SizedBox(width: adaptive.Adaptive.w(context, 10)),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 14)),
+          style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
         ),
       ],
     );

@@ -1,13 +1,15 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/topup_config.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/topup_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/topup_history_page.dart';
 import 'package:vidlang/views/profile/billing_rules_page.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 import 'package:vidlang/widgets/app_dialogs.dart';
 
 class TopupPage extends ConsumerStatefulWidget {
@@ -69,18 +71,18 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('充值', style: TextStyle(fontSize: Adaptive.sp(context, 16))),
+        title: Text('充值', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16))),
       ),
       body: ListView(
-        padding: EdgeInsets.all(Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         children: [
           // 当前余额
           _buildBalanceCard(colorScheme, subState),
-          SizedBox(height: Adaptive.h(context, 20)),
+          SizedBox(height: adaptive.Adaptive.h(context, 20)),
 
           // 充值档位选择
           _buildSectionTitle('选择充值金额', colorScheme),
-          SizedBox(height: Adaptive.h(context, 12)),
+          SizedBox(height: adaptive.Adaptive.h(context, 12)),
 
           if (_isLoading)
             ...List.generate(3, (_) => _buildLoadingOption(colorScheme))
@@ -91,11 +93,11 @@ class _TopupPageState extends ConsumerState<TopupPage> {
               return _buildTopupOption(colorScheme, index, _options[index]);
             }),
 
-          SizedBox(height: Adaptive.h(context, 24)),
+          SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
           // 确认充值按钮
           if (!_isLoading && _options.isNotEmpty) _buildConfirmButton(colorScheme),
-          SizedBox(height: Adaptive.h(context, 24)),
+          SizedBox(height: adaptive.Adaptive.h(context, 24)),
 
           // 底部入口
           _buildBottomEntries(colorScheme),
@@ -106,10 +108,10 @@ class _TopupPageState extends ConsumerState<TopupPage> {
 
   Widget _buildLoadingOption(ColorScheme colorScheme) {
     return Container(
-      margin: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
-      padding: EdgeInsets.all(Adaptive.w(context, 16)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         color: _panelColor(colorScheme),
       ),
       child: Row(
@@ -123,16 +125,16 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                   height: 20,
                   decoration: BoxDecoration(
                     color: colorScheme.outline.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
                   ),
                 ),
-                SizedBox(height: Adaptive.h(context, 8)),
+                SizedBox(height: adaptive.Adaptive.h(context, 8)),
                 Container(
                   width: 80,
                   height: 14,
                   decoration: BoxDecoration(
                     color: colorScheme.outline.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
                   ),
                 ),
               ],
@@ -145,16 +147,16 @@ class _TopupPageState extends ConsumerState<TopupPage> {
 
   Widget _buildEmptyState(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.all(Adaptive.w(context, 32)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 32)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         color: _panelColor(colorScheme),
       ),
       child: Center(
         child: Text(
           '暂无可用充值档位',
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 14),
+            fontSize: adaptive.Adaptive.sp(context, 14),
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -164,9 +166,9 @@ class _TopupPageState extends ConsumerState<TopupPage> {
 
   Widget _buildBalanceCard(ColorScheme colorScheme, SubscriptionState subState) {
     return Container(
-      padding: EdgeInsets.all(Adaptive.w(context, 20)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
         gradient: LinearGradient(
           colors: [
             colorScheme.primary,
@@ -182,15 +184,15 @@ class _TopupPageState extends ConsumerState<TopupPage> {
           Text(
             '当前余额',
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(context, 14),
               color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
-          SizedBox(height: Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(context, 8)),
           Text(
             '¥${subState.balance.toStringAsFixed(2)}',
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 32),
+              fontSize: adaptive.Adaptive.sp(context, 32),
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -204,7 +206,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(context, 15),
         fontWeight: FontWeight.w600,
         color: colorScheme.onSurface,
       ),
@@ -223,10 +225,10 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
       child: Container(
-        margin: EdgeInsets.only(bottom: Adaptive.h(context, 12)),
-        padding: EdgeInsets.all(Adaptive.w(context, 16)),
+        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
           color: _panelColor(colorScheme),
           border: Border.all(
             color: isSelected
@@ -247,7 +249,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                       Text(
                         '¥${option.originalAmount.toStringAsFixed(0)}',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 20),
+                          fontSize: adaptive.Adaptive.sp(context, 20),
                           fontWeight: FontWeight.w700,
                           color: isSelected
                               ? colorScheme.primary
@@ -255,20 +257,20 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                         ),
                       ),
                       if (option.label != null) ...[
-                        SizedBox(width: Adaptive.w(context, 8)),
+                        SizedBox(width: adaptive.Adaptive.w(context, 8)),
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: Adaptive.w(context, 8),
-                            vertical: Adaptive.h(context, 2),
+                            horizontal: adaptive.Adaptive.w(context, 8),
+                            vertical: adaptive.Adaptive.h(context, 2),
                           ),
                           decoration: BoxDecoration(
                             color: _labelColor(option.label, colorScheme).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
+                            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
                           ),
                           child: Text(
                             option.label!,
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 11),
+                              fontSize: adaptive.Adaptive.sp(context, 11),
                               color: _labelColor(option.label, colorScheme),
                             ),
                           ),
@@ -277,11 +279,11 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                     ],
                   ),
                   if (displayText != null) ...[
-                    SizedBox(height: Adaptive.h(context, 4)),
+                    SizedBox(height: adaptive.Adaptive.h(context, 4)),
                     Text(
                       displayText,
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 12),
+                        fontSize: adaptive.Adaptive.sp(context, 12),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -291,8 +293,8 @@ class _TopupPageState extends ConsumerState<TopupPage> {
             ),
             // 选中指示器
             Container(
-              width: Adaptive.r(context, 20),
-              height: Adaptive.r(context, 20),
+              width: adaptive.Adaptive.r(context, 20),
+              height: adaptive.Adaptive.r(context, 20),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -304,7 +306,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                 color: isSelected ? colorScheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? Icon(AppIcons.check, size: Adaptive.sp(context, 12), color: Colors.white)
+                  ? Icon(AppIcons.check, size: adaptive.Adaptive.sp(context, 12), color: Colors.white)
                   : null,
             ),
           ],
@@ -316,9 +318,9 @@ class _TopupPageState extends ConsumerState<TopupPage> {
   Color _labelColor(String? label, ColorScheme colorScheme) {
     switch (label) {
       case '热门':
-        return Colors.orange;
+        return AppColors.warning;
       case '最划算':
-        return Colors.green;
+        return AppColors.success;
       default:
         return colorScheme.primary;
     }
@@ -328,17 +330,17 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     final selectedOption = _options[_selectedIndex];
     return SizedBox(
       width: double.infinity,
-      height: Adaptive.h(context, 48),
+      height: adaptive.Adaptive.h(context, 48),
       child: FilledButton(
         onPressed: () => _showTopupConfirmDialog(selectedOption, colorScheme),
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
           ),
         ),
         child: Text(
           '确认充值 ¥${selectedOption.actualAmount.toStringAsFixed(0)}',
-          style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -356,12 +358,12 @@ class _TopupPageState extends ConsumerState<TopupPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: Adaptive.h(context, 12)),
+          SizedBox(height: adaptive.Adaptive.h(context, 12)),
           Container(
-            padding: EdgeInsets.all(Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             decoration: BoxDecoration(
               color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -369,18 +371,18 @@ class _TopupPageState extends ConsumerState<TopupPage> {
                 Text(
                   '¥${option.originalAmount.toStringAsFixed(0)}',
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 24),
+                    fontSize: adaptive.Adaptive.sp(context, 24),
                     fontWeight: FontWeight.w700,
                     color: colorScheme.primary,
                   ),
                 ),
                 if (option.bonusAmount > 0) ...[
-                  SizedBox(width: Adaptive.w(context, 8)),
+                  SizedBox(width: adaptive.Adaptive.w(context, 8)),
                   Text(
                     '→ 到账 ¥${option.actualAmount.toStringAsFixed(0)}',
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 14),
-                      color: Colors.green.shade700,
+                      fontSize: adaptive.Adaptive.sp(context, 14),
+                      color: AppColors.success,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -389,13 +391,13 @@ class _TopupPageState extends ConsumerState<TopupPage> {
             ),
           ),
           if (option.bonusAmount > 0) ...[
-            SizedBox(height: Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Center(
               child: Text(
                 '赠送 ¥${option.bonusAmount.toStringAsFixed(0)}',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 13),
-                  color: Colors.green.shade600,
+                  fontSize: adaptive.Adaptive.sp(context, 13),
+                  color: AppColors.success,
                 ),
               ),
             ),
@@ -415,7 +417,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     return Container(
       decoration: BoxDecoration(
         color: _panelColor(colorScheme),
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
       ),
       child: Column(
         children: [
@@ -434,7 +436,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
             height: 1,
             thickness: 0.5,
             color: colorScheme.outline.withValues(alpha: 0.3),
-            indent: Adaptive.w(context, 48),
+            indent: adaptive.Adaptive.w(context, 48),
           ),
           _buildEntryItem(
             colorScheme,
@@ -462,25 +464,25 @@ class _TopupPageState extends ConsumerState<TopupPage> {
       onTap: onTap,
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 16),
-          vertical: Adaptive.h(context, 14),
+          horizontal: adaptive.Adaptive.w(context, 16),
+          vertical: adaptive.Adaptive.h(context, 14),
         ),
         child: Row(
           children: [
-            Icon(icon, size: Adaptive.sp(context, 20), color: colorScheme.onSurfaceVariant),
-            SizedBox(width: Adaptive.w(context, 12)),
+            Icon(icon, size: adaptive.Adaptive.sp(context, 20), color: colorScheme.onSurfaceVariant),
+            SizedBox(width: adaptive.Adaptive.w(context, 12)),
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                   color: colorScheme.onSurface,
                 ),
               ),
             ),
             Icon(
               AppIcons.chevronRight,
-              size: Adaptive.sp(context, 18),
+              size: adaptive.Adaptive.sp(context, 18),
               color: colorScheme.onSurfaceVariant,
             ),
           ],

@@ -1,4 +1,5 @@
-import 'dart:async';
+import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,7 +19,7 @@ import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 /// 测试范围枚举
 ///
@@ -259,44 +260,44 @@ class _TestPageState extends State<TestPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('综合测试', style: TextStyle(fontSize: Adaptive.sp(context, 16))),
+        title: Text('综合测试', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16))),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 顶部标题
           Padding(
-            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 16), Adaptive.h(context, 12), Adaptive.w(context, 16), Adaptive.h(context, 8)),
+            padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 12), adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 8)),
             child: Text(
               widget.videoTitle,
-              style: TextStyle(fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
             ),
           ),
           // 题型配置滚动区域
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16)),
+              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (widget.isWordBookMode) ...[
                     Container(
-                      padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                       decoration: BoxDecoration(
                         color: colorScheme.primaryContainer.withValues(
                           alpha: 0.3,
                         ),
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                       ),
                       child: Text(
                         '生词本测试按所选单词出题，提交后会累计复习次数。',
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 12),
+                          fontSize: adaptive.Adaptive.sp(context, 12),
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
-                    SizedBox(height: Adaptive.h(context, 12)),
+                    SizedBox(height: adaptive.Adaptive.h(context, 12)),
                   ],
                   // 听
                   _QuestionGroupSection(
@@ -325,7 +326,7 @@ class _TestPageState extends State<TestPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
                   // 读
                   _QuestionGroupSection(
                     icon: AppIcons.menuBook,
@@ -367,7 +368,7 @@ class _TestPageState extends State<TestPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
                   // 说
                   _QuestionGroupSection(
                     icon: AppIcons.mic,
@@ -394,31 +395,31 @@ class _TestPageState extends State<TestPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: Adaptive.h(context, 12)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 12)),
                   // 错误提示
                   if (_error != null)
                     Container(
-                      padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                       decoration: BoxDecoration(
                         color: colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                       ),
                       child: Text(
                         _error!,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: adaptive.Adaptive.sp(context, 13),
                           color: colorScheme.onErrorContainer,
                         ),
                       ),
                     ),
-                  SizedBox(height: Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
                 ],
               ),
             ),
           ),
           // 底部操作栏
           Container(
-            padding: EdgeInsets.fromLTRB(Adaptive.w(context, 16), Adaptive.h(context, 8), Adaptive.w(context, 16), Adaptive.h(context, 16)),
+            padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 8), adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 16)),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(
@@ -433,35 +434,35 @@ class _TestPageState extends State<TestPage> {
                   children: [
                     Icon(
                       AppIcons.quiz,
-                      size: Adaptive.sp(context, 14),
+                      size: adaptive.Adaptive.sp(context, 14),
                       color: colorScheme.onSurfaceVariant,
                     ),
-                    SizedBox(width: Adaptive.w(context, 6)),
+                    SizedBox(width: adaptive.Adaptive.w(context, 6)),
                     Text(
                       '共 $_totalCount 题 · 每次随机出题，请认真作答',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 12),
+                        fontSize: adaptive.Adaptive.sp(context, 12),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: Adaptive.h(context, 10)),
+                SizedBox(height: adaptive.Adaptive.h(context, 10)),
                 SizedBox(
-                  height: Adaptive.h(context, 48),
+                  height: adaptive.Adaptive.h(context, 48),
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: (_loading || _totalCount == 0) ? null : _start,
                     child: _loading
                         ? SizedBox(
-                            width: Adaptive.r(context, 18),
-                            height: Adaptive.r(context, 18),
+                            width: adaptive.Adaptive.r(context, 18),
+                            height: adaptive.Adaptive.r(context, 18),
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: colorScheme.onPrimary,
                             ),
                           )
-                        : Text('开始', style: TextStyle(fontSize: Adaptive.sp(context, 15))),
+                        : Text('开始', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15))),
                   ),
                 ),
               ],
@@ -494,20 +495,20 @@ class _QuestionGroupSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: Adaptive.sp(context, 18), color: colorScheme.primary),
-            SizedBox(width: Adaptive.w(context, 6)),
+            Icon(icon, size: adaptive.Adaptive.sp(context, 18), color: colorScheme.primary),
+            SizedBox(width: adaptive.Adaptive.w(context, 6)),
             Text(
               title,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 15),
+                fontSize: adaptive.Adaptive.sp(context, 15),
                 fontWeight: FontWeight.w700,
                 color: colorScheme.primary,
               ),
             ),
           ],
         ),
-        SizedBox(height: Adaptive.h(context, 10)),
-        ...children.expand((child) => [child, SizedBox(height: Adaptive.h(context, 8))]),
+        SizedBox(height: adaptive.Adaptive.h(context, 10)),
+        ...children.expand((child) => [child, SizedBox(height: adaptive.Adaptive.h(context, 8))]),
       ],
     );
   }
@@ -532,10 +533,10 @@ class _QuestionTypeCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 14)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 14)),
       decoration: BoxDecoration(
         color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.2 : 0.3),
           width: 0.5,
@@ -551,16 +552,16 @@ class _QuestionTypeCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 14),
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
                 ),
-                SizedBox(height: Adaptive.h(context, 4)),
+                SizedBox(height: adaptive.Adaptive.h(context, 4)),
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 12),
+                    fontSize: adaptive.Adaptive.sp(context, 12),
                     color: colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 2,
@@ -569,18 +570,18 @@ class _QuestionTypeCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: Adaptive.w(context, 12)),
+          SizedBox(width: adaptive.Adaptive.w(context, 12)),
           _StepButton(
             icon: AppIcons.remove,
             onTap: value <= 0 ? null : () => onChanged(value - 1),
           ),
           SizedBox(
-            width: Adaptive.w(context, 32),
+            width: adaptive.Adaptive.w(context, 32),
             child: Text(
               '$value',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 15),
+                fontSize: adaptive.Adaptive.sp(context, 15),
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
               ),
@@ -611,15 +612,15 @@ class _StepButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
         child: Container(
-          width: Adaptive.r(context, 28),
-          height: Adaptive.r(context, 28),
+          width: adaptive.Adaptive.r(context, 28),
+          height: adaptive.Adaptive.r(context, 28),
           decoration: BoxDecoration(
             color: disabled
                 ? colorScheme.surfaceContainerHighest
                 : colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
             border: Border.all(
               color: disabled
                   ? Colors.transparent
@@ -628,7 +629,7 @@ class _StepButton extends StatelessWidget {
           ),
           child: Icon(
             icon,
-            size: Adaptive.sp(context, 16),
+            size: adaptive.Adaptive.sp(context, 16),
             color: disabled
                 ? colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
                 : colorScheme.primary,
@@ -905,11 +906,11 @@ class _TestRunPageState extends State<_TestRunPage> {
       appBar: AppBar(
         title: Text(
           '测试：${widget.videoTitle}',
-          style: TextStyle(fontSize: Adaptive.sp(context, 16)),
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16)),
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -919,24 +920,24 @@ class _TestRunPageState extends State<_TestRunPage> {
                   child: Text(
                     '第 ${_index + 1} / $total 题',
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 13),
+                      fontSize: adaptive.Adaptive.sp(context, 13),
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Expanded(child: _buildQuestion()),
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             if (_submitted)
               Container(
-                padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                 decoration: BoxDecoration(
                   color: _isCorrect
                       ? AppColors.success.withValues(alpha: 0.1)
                       : colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                   border: Border.all(
                     color: _isCorrect
                         ? AppColors.success.withValues(alpha: 0.3)
@@ -946,16 +947,16 @@ class _TestRunPageState extends State<_TestRunPage> {
                 child: Text(
                   _isCorrect ? '正确' : '错误',
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 14),
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.w600,
                     color: _isCorrect ? AppColors.success : colorScheme.error,
                   ),
                 ),
               ),
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             // 底部操作栏
             Container(
-              padding: EdgeInsets.fromLTRB(Adaptive.w(context, 4), Adaptive.h(context, 12), Adaptive.w(context, 4), Adaptive.h(context, 12)),
+              padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 4), adaptive.Adaptive.h(context, 12), adaptive.Adaptive.w(context, 4), adaptive.Adaptive.h(context, 12)),
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(
@@ -966,25 +967,25 @@ class _TestRunPageState extends State<_TestRunPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    height: Adaptive.h(context, 46),
+                    height: adaptive.Adaptive.h(context, 46),
                     child: Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _submitted || _canSubmit() ? _goNext : null,
-                            icon: Icon(AppIcons.chevronRight, size: Adaptive.sp(context, 16)),
+                            icon: Icon(AppIcons.chevronRight, size: adaptive.Adaptive.sp(context, 16)),
                             label: Text(
                               _index >= total - 1 ? '完成' : '下一题',
-                              style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
+                              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: colorScheme.primary,
                               side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.4)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 10))),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10))),
                             ),
                           ),
                         ),
-                        SizedBox(width: Adaptive.w(context, 12)),
+                        SizedBox(width: adaptive.Adaptive.w(context, 12)),
                         Expanded(
                           flex: 2,
                           child: FilledButton(
@@ -992,28 +993,28 @@ class _TestRunPageState extends State<_TestRunPage> {
                             style: FilledButton.styleFrom(
                               backgroundColor: _submitted ? colorScheme.surfaceContainerHighest : colorScheme.primary,
                               foregroundColor: _submitted ? colorScheme.onSurfaceVariant : Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 10))),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10))),
                             ),
                             child: Text(
                               _submitted ? '已提交' : '提交',
-                              style: TextStyle(fontSize: Adaptive.sp(context, 14), fontWeight: FontWeight.w600),
+                              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: Adaptive.h(context, 8)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 8)),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(AppIcons.quiz, size: Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
-                      SizedBox(width: Adaptive.w(context, 4)),
+                      Icon(AppIcons.quiz, size: adaptive.Adaptive.sp(context, 13), color: colorScheme.onSurfaceVariant),
+                      SizedBox(width: adaptive.Adaptive.w(context, 4)),
                       Text(
                         '当前得分：$_correct / $answered',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 12),
+                          fontSize: adaptive.Adaptive.sp(context, 12),
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -1077,10 +1078,10 @@ class _TestRunPageState extends State<_TestRunPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: EdgeInsets.all(Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.2 : 0.3),
           width: 0.5,
@@ -1106,14 +1107,14 @@ class _TestRunPageState extends State<_TestRunPage> {
       children: [
         Text(
           prompt,
-          style: TextStyle(fontSize: Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         _buildQuestionContainer(
           context,
           Wrap(
-            spacing: Adaptive.w(context, 8),
-            runSpacing: Adaptive.h(context, 8),
+            spacing: adaptive.Adaptive.w(context, 8),
+            runSpacing: adaptive.Adaptive.h(context, 8),
             children: [
               for (final w in _reorderSelected)
                 Builder(
@@ -1135,18 +1136,18 @@ class _TestRunPageState extends State<_TestRunPage> {
                         : (isCorrect ? AppColors.success : colorScheme.primary);
                     return Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: Adaptive.w(context, 10),
-                        vertical: Adaptive.h(context, 8),
+                        horizontal: adaptive.Adaptive.w(context, 10),
+                        vertical: adaptive.Adaptive.h(context, 8),
                       ),
                       decoration: BoxDecoration(
                         color: bg,
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 999)),
                         border: Border.all(color: border),
                       ),
                       child: Text(
                         w,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: adaptive.Adaptive.sp(context, 13),
                           color: textCol,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1157,7 +1158,7 @@ class _TestRunPageState extends State<_TestRunPage> {
             ],
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 10)),
+        SizedBox(height: adaptive.Adaptive.h(context, 10)),
         Row(
           children: [
             Expanded(
@@ -1167,17 +1168,17 @@ class _TestRunPageState extends State<_TestRunPage> {
                     : () => setState(() {
                         _reorderSelected.removeLast();
                       }),
-                icon: Icon(AppIcons.backspace, size: Adaptive.sp(context, 14)),
-                label: Text('撤销', style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
+                icon: Icon(AppIcons.backspace, size: adaptive.Adaptive.sp(context, 14)),
+                label: Text('撤销', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
                   side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 8))),
-                  padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
+                  padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
                 ),
               ),
             ),
-            SizedBox(width: Adaptive.w(context, 12)),
+            SizedBox(width: adaptive.Adaptive.w(context, 12)),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _submitted
@@ -1185,32 +1186,32 @@ class _TestRunPageState extends State<_TestRunPage> {
                     : () => setState(() {
                         _reorderSelected.clear();
                       }),
-                icon: Icon(AppIcons.delete, size: Adaptive.sp(context, 14)),
-                label: Text('清空', style: TextStyle(fontSize: Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
+                icon: Icon(AppIcons.delete, size: adaptive.Adaptive.sp(context, 14)),
+                label: Text('清空', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
                   side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Adaptive.r(context, 8))),
-                  padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
+                  padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         Text(
           '可选词',
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 13),
+            fontSize: adaptive.Adaptive.sp(context, 13),
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         Expanded(
           child: SingleChildScrollView(
             child: Wrap(
-              spacing: Adaptive.w(context, 8),
-              runSpacing: Adaptive.h(context, 8),
+              spacing: adaptive.Adaptive.w(context, 8),
+              runSpacing: adaptive.Adaptive.h(context, 8),
               children: [
                 for (final w in remaining)
                   GestureDetector(
@@ -1223,12 +1224,12 @@ class _TestRunPageState extends State<_TestRunPage> {
                           }),
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: Adaptive.w(context, 10),
-                        vertical: Adaptive.h(context, 8),
+                        horizontal: adaptive.Adaptive.w(context, 10),
+                        vertical: adaptive.Adaptive.h(context, 8),
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 999)),
                         border: Border.all(
                           color: colorScheme.outlineVariant.withValues(
                             alpha: 0.3,
@@ -1239,7 +1240,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                       child: Text(
                         w,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: adaptive.Adaptive.sp(context, 13),
                           color: colorScheme.onSurface,
                         ),
                       ),
@@ -1251,11 +1252,11 @@ class _TestRunPageState extends State<_TestRunPage> {
         ),
         if (_submitted && !_isCorrect)
           Padding(
-            padding: EdgeInsets.only(top: Adaptive.h(context, 10)),
+            padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 10)),
             child: Text(
               '正确答案：${answer.join(' ')}',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(context, 13),
                 color: AppColors.success,
                 fontWeight: FontWeight.w500,
               ),
@@ -1279,21 +1280,21 @@ class _TestRunPageState extends State<_TestRunPage> {
       children: [
         Text(
           prompt,
-          style: TextStyle(fontSize: Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         _buildQuestionContainer(
           context,
           Text(
             masked,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 15),
+              fontSize: adaptive.Adaptive.sp(context, 15),
               height: 1.4,
               color: colorScheme.onSurface,
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         Row(
           children: [
             Expanded(
@@ -1318,19 +1319,19 @@ class _TestRunPageState extends State<_TestRunPage> {
                       : (isCorrect ? AppColors.success : colorScheme.primary);
                   return Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(context, 12),
-                      vertical: Adaptive.h(context, 10),
+                      horizontal: adaptive.Adaptive.w(context, 12),
+                      vertical: adaptive.Adaptive.h(context, 10),
                     ),
                     decoration: BoxDecoration(
                       color: bg,
-                      borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                       border: Border.all(color: border),
                     ),
                     child: Text(
                       _spellingTyped.padRight(answer.length, '•'),
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 18),
-                        letterSpacing: Adaptive.w(context, 3),
+                        fontSize: adaptive.Adaptive.sp(context, 18),
+                        letterSpacing: adaptive.Adaptive.w(context, 3),
                         color: textCol,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1339,7 +1340,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                 },
               ),
             ),
-            SizedBox(width: Adaptive.w(context, 12)),
+            SizedBox(width: adaptive.Adaptive.w(context, 12)),
             GestureDetector(
               onTap: _submitted || _spellingTyped.isEmpty
                   ? null
@@ -1350,17 +1351,17 @@ class _TestRunPageState extends State<_TestRunPage> {
                       );
                     }),
               child: Container(
-                width: Adaptive.r(context, 44),
-                height: Adaptive.r(context, 44),
+                width: adaptive.Adaptive.r(context, 44),
+                height: adaptive.Adaptive.r(context, 44),
                 decoration: BoxDecoration(
                   color: _submitted || _spellingTyped.isEmpty
                       ? colorScheme.surfaceContainerHighest
                       : colorScheme.primary,
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                 ),
                 child: Icon(
                           AppIcons.backspace,
-                  size: Adaptive.sp(context, 18),
+                  size: adaptive.Adaptive.sp(context, 18),
                   color: _submitted || _spellingTyped.isEmpty
                       ? colorScheme.onSurfaceVariant
                       : colorScheme.onPrimary,
@@ -1369,12 +1370,12 @@ class _TestRunPageState extends State<_TestRunPage> {
             ),
           ],
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         Expanded(
           child: SingleChildScrollView(
             child: Wrap(
-              spacing: Adaptive.w(context, 8),
-              runSpacing: Adaptive.h(context, 8),
+              spacing: adaptive.Adaptive.w(context, 8),
+              runSpacing: adaptive.Adaptive.h(context, 8),
               children: [
                 for (final l in letters)
                   GestureDetector(
@@ -1384,12 +1385,12 @@ class _TestRunPageState extends State<_TestRunPage> {
                             _spellingTyped += l;
                           }),
                     child: Container(
-                      width: Adaptive.r(context, 44),
-                      height: Adaptive.r(context, 44),
+                      width: adaptive.Adaptive.r(context, 44),
+                      height: adaptive.Adaptive.r(context, 44),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                         border: Border.all(
                           color: colorScheme.outlineVariant.withValues(
                             alpha: 0.5,
@@ -1398,7 +1399,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.textPrimary.withValues(alpha: 0.02),
-                            blurRadius: 4,
+                            blurRadius: adaptive.Adaptive.w(context, 4),
                             offset: const Offset(0, 2),
                           ),
                         ],
@@ -1406,7 +1407,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                       child: Text(
                         l,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 16),
+                          fontSize: adaptive.Adaptive.sp(context, 16),
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
                         ),
@@ -1419,11 +1420,11 @@ class _TestRunPageState extends State<_TestRunPage> {
         ),
         if (_submitted && !_isCorrect)
           Padding(
-            padding: EdgeInsets.only(top: Adaptive.h(context, 10)),
+            padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 10)),
             child: Text(
               '正确答案：$answer',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(context, 13),
                 color: AppColors.success,
                 fontWeight: FontWeight.w500,
               ),
@@ -1447,25 +1448,25 @@ class _TestRunPageState extends State<_TestRunPage> {
       children: [
         Text(
           prompt,
-          style: TextStyle(fontSize: Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: FontWeight.w600),
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         _buildQuestionContainer(
           context,
           Text(
             masked,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 15),
+              fontSize: adaptive.Adaptive.sp(context, 15),
               height: 1.4,
               color: colorScheme.onSurface,
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(context, 12)),
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
-            separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+            separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
             itemBuilder: (context, i) =>
                 _buildOptionTile(colorScheme, i, options[i], answerIndex),
           ),
@@ -1495,8 +1496,8 @@ class _TestRunPageState extends State<_TestRunPage> {
               GestureDetector(
                 onTap: _isPlayingTts ? null : () => _playTtsAudio(),
                 child: Container(
-                  width: Adaptive.r(context, 56),
-                  height: Adaptive.r(context, 56),
+                  width: adaptive.Adaptive.r(context, 56),
+                  height: adaptive.Adaptive.r(context, 56),
                   decoration: BoxDecoration(
                     color: _ttsPlayed
                         ? colorScheme.primary.withValues(alpha: 0.15)
@@ -1505,8 +1506,8 @@ class _TestRunPageState extends State<_TestRunPage> {
                   ),
                   child: _isPlayingTts
                       ? SizedBox(
-                          width: Adaptive.sp(context, 24),
-                          height: Adaptive.sp(context, 24),
+                          width: adaptive.Adaptive.sp(context, 24),
+                          height: adaptive.Adaptive.sp(context, 24),
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
                             color: colorScheme.onPrimary,
@@ -1514,32 +1515,32 @@ class _TestRunPageState extends State<_TestRunPage> {
                         )
                       : Icon(
                           _ttsPlayed ? AppIcons.replay : AppIcons.volumeUp,
-                          size: Adaptive.sp(context, 24),
+                          size: adaptive.Adaptive.sp(context, 24),
                           color: _ttsPlayed
                               ? colorScheme.primary
                               : colorScheme.onPrimary,
                         ),
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 8)),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               Text(
                 _isPlayingTts ? '正在播放...' : (_ttsPlayed ? '点击重新播放' : '点击播放音频'),
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 13),
+                  fontSize: adaptive.Adaptive.sp(context, 13),
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         if (promptCn.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+            padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
             child: Text(
               promptCn,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(context, 12),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1547,7 +1548,7 @@ class _TestRunPageState extends State<_TestRunPage> {
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
-            separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+            separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
             itemBuilder: (context, i) =>
                 _buildOptionTile(colorScheme, i, options[i], answerIndex),
           ),
@@ -1578,30 +1579,30 @@ class _TestRunPageState extends State<_TestRunPage> {
               Text(
                 displayText,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 22),
+                  fontSize: adaptive.Adaptive.sp(context, 22),
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 6)),
+              SizedBox(height: adaptive.Adaptive.h(context, 6)),
               Text(
                 prompt,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         if (promptCn.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+            padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
             child: Text(
               promptCn,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(context, 12),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1609,7 +1610,7 @@ class _TestRunPageState extends State<_TestRunPage> {
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
-            separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+            separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
             itemBuilder: (context, i) =>
                 _buildOptionTile(colorScheme, i, options[i], answerIndex),
           ),
@@ -1637,20 +1638,20 @@ class _TestRunPageState extends State<_TestRunPage> {
           Text(
             displayText,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 15),
+              fontSize: adaptive.Adaptive.sp(context, 15),
               height: 1.5,
               color: colorScheme.onSurface,
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         if (promptCn.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+            padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
             child: Text(
               promptCn,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(context, 12),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1658,7 +1659,7 @@ class _TestRunPageState extends State<_TestRunPage> {
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
-            separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+            separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
             itemBuilder: (context, i) => _buildOptionTile(
               colorScheme,
               i,
@@ -1695,45 +1696,45 @@ class _TestRunPageState extends State<_TestRunPage> {
               Text(
                 displayText,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 20),
+                  fontSize: adaptive.Adaptive.sp(context, 20),
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 6)),
+              SizedBox(height: adaptive.Adaptive.h(context, 6)),
               Text(
                 prompt,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(context, 8)),
         if (promptCn.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(bottom: Adaptive.h(context, 4)),
+            padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 4)),
             child: Text(
               promptCn,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(context, 12),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
         Padding(
-          padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+          padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
           child: Text(
             '（可多选）',
-            style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.primary),
+            style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), color: colorScheme.primary),
           ),
         ),
         Expanded(
           child: ListView.separated(
             itemCount: options.length,
-            separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+            separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
             itemBuilder: (context, i) {
               final selected = _multiSelected.contains(i);
               final isCorrect = _submitted && answerIndices.contains(i);
@@ -1768,19 +1769,19 @@ class _TestRunPageState extends State<_TestRunPage> {
                       }),
                 child: Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: Adaptive.w(context, 12),
-                    vertical: Adaptive.h(context, 12),
+                    horizontal: adaptive.Adaptive.w(context, 12),
+                    vertical: adaptive.Adaptive.h(context, 12),
                   ),
                   decoration: BoxDecoration(
                     color: bg,
-                    borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                     border: Border.all(color: border),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: Adaptive.r(context, 22),
-                        height: Adaptive.r(context, 22),
+                        width: adaptive.Adaptive.r(context, 22),
+                        height: adaptive.Adaptive.r(context, 22),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: selected
@@ -1794,22 +1795,22 @@ class _TestRunPageState extends State<_TestRunPage> {
                                   ),
                             width: 1.5,
                           ),
-                          borderRadius: BorderRadius.circular(Adaptive.r(context, 6)),
+                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
                         ),
                         child: selected
                             ? Icon(
                                 AppIcons.check,
-                                size: Adaptive.sp(context, 14),
+                                size: adaptive.Adaptive.sp(context, 14),
                                 color: colorScheme.onPrimary,
                               )
                             : null,
                       ),
-                      SizedBox(width: Adaptive.w(context, 10)),
+                      SizedBox(width: adaptive.Adaptive.w(context, 10)),
                       Expanded(
                         child: Text(
                           options[i],
                           style: TextStyle(
-                            fontSize: Adaptive.sp(context, 15),
+                            fontSize: adaptive.Adaptive.sp(context, 15),
                             color: isWrong
                                 ? colorScheme.error
                                 : (isCorrect
@@ -1864,44 +1865,44 @@ class _TestRunPageState extends State<_TestRunPage> {
           Column(
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 4)),
+                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 10), vertical: adaptive.Adaptive.h(context, 4)),
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 999)),
                 ),
                 child: Text(
                   typeLabel,
-                  style: TextStyle(fontSize: Adaptive.sp(context, 13), color: colorScheme.primary),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), color: colorScheme.primary),
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 12)),
+              SizedBox(height: adaptive.Adaptive.h(context, 12)),
               Text(
                 refText,
                 style: TextStyle(
-                  fontSize: type == 'word_pron' ? Adaptive.sp(context, 24) : Adaptive.sp(context, 18),
+                  fontSize: type == 'word_pron' ? adaptive.Adaptive.sp(context, 24) : adaptive.Adaptive.sp(context, 18),
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: Adaptive.h(context, 8)),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               if (promptCn.isNotEmpty)
                 Text(
                   promptCn,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 13),
+                    fontSize: adaptive.Adaptive.sp(context, 13),
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
             ],
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 20)),
+        SizedBox(height: adaptive.Adaptive.h(context, 20)),
 
         // 跟读控制区域
         if (isScored && _pronScore != null) ...[
           _buildPronScoreResult(colorScheme),
-          SizedBox(height: Adaptive.h(context, 16)),
+          SizedBox(height: adaptive.Adaptive.h(context, 16)),
         ],
 
         Center(
@@ -1910,8 +1911,8 @@ class _TestRunPageState extends State<_TestRunPage> {
             onTapUp: (_) => _stopAndEvaluatePronunciation(),
             onTapCancel: () => _cancelPronRecording(),
             child: Container(
-              width: Adaptive.r(context, 80),
-              height: Adaptive.r(context, 80),
+              width: adaptive.Adaptive.r(context, 80),
+              height: adaptive.Adaptive.r(context, 80),
               decoration: BoxDecoration(
                 color: isRecording
                     ? AppColors.error
@@ -1921,7 +1922,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                     ? [
                         BoxShadow(
                           color: AppColors.error.withValues(alpha: 0.4),
-                          blurRadius: 12,
+                          blurRadius: adaptive.Adaptive.w(context, 12),
                           spreadRadius: 4,
                         ),
                       ]
@@ -1931,12 +1932,12 @@ class _TestRunPageState extends State<_TestRunPage> {
                   ? Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(AppIcons.mic, size: Adaptive.sp(context, 28), color: AppColors.surface),
-                        SizedBox(height: Adaptive.h(context, 2)),
+                        Icon(AppIcons.mic, size: adaptive.Adaptive.sp(context, 28), color: AppColors.surface),
+                        SizedBox(height: adaptive.Adaptive.h(context, 2)),
                         Text(
                           '${_pronRecordingSeconds}s',
                           style: TextStyle(
-                            fontSize: Adaptive.sp(context, 11),
+                            fontSize: adaptive.Adaptive.sp(context, 11),
                             color: AppColors.onSurface.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w600,
                           ),
@@ -1946,19 +1947,19 @@ class _TestRunPageState extends State<_TestRunPage> {
                   : isScored
                   ? Icon(
                       AppIcons.replay,
-                      size: Adaptive.sp(context, 32),
+                      size: adaptive.Adaptive.sp(context, 32),
                       color: colorScheme.onPrimary,
                     )
-                  : Icon(AppIcons.mic, size: Adaptive.sp(context, 32), color: colorScheme.onPrimary),
+                  : Icon(AppIcons.mic, size: adaptive.Adaptive.sp(context, 32), color: colorScheme.onPrimary),
             ),
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 10)),
+        SizedBox(height: adaptive.Adaptive.h(context, 10)),
         Text(
           isRecording ? '松开结束录音' : (isScored ? '点击重新录音' : '按住录音'),
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 12),
+            fontSize: adaptive.Adaptive.sp(context, 12),
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -1978,17 +1979,17 @@ class _TestRunPageState extends State<_TestRunPage> {
         : const Color(0xFFFF453A);
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 12)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
       decoration: BoxDecoration(
         color: scoreColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
-            width: Adaptive.r(context, 44),
-            height: Adaptive.r(context, 44),
+            width: adaptive.Adaptive.r(context, 44),
+            height: adaptive.Adaptive.r(context, 44),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: scoreColor.withValues(alpha: 0.15),
@@ -1997,14 +1998,14 @@ class _TestRunPageState extends State<_TestRunPage> {
               child: Text(
                 '${score.round()}',
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 16),
+                  fontSize: adaptive.Adaptive.sp(context, 16),
                   fontWeight: FontWeight.bold,
                   color: scoreColor,
                 ),
               ),
             ),
           ),
-          SizedBox(width: Adaptive.w(context, 12)),
+          SizedBox(width: adaptive.Adaptive.w(context, 12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2018,7 +2019,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                       ? '及格'
                       : '继续加油',
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 14),
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
@@ -2027,7 +2028,7 @@ class _TestRunPageState extends State<_TestRunPage> {
                   Text(
                     _pronFeedback!,
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 12),
+                      fontSize: adaptive.Adaptive.sp(context, 12),
                       color: colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 2,
@@ -2292,17 +2293,17 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
 return GestureDetector(
 onTap: _submitted ? null : () => setState(() => _mcqSelected = i),
 child: Container(
-padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12), vertical: Adaptive.h(context, 12)),
+padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 12)),
 decoration: BoxDecoration(
 color: bg,
-borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
 border: Border.all(color: border, width: 0.5),
 ),
         child: Row(
           children: [
             Container(
-              width: Adaptive.r(context, 24),
-              height: Adaptive.r(context, 24),
+              width: adaptive.Adaptive.r(context, 24),
+              height: adaptive.Adaptive.r(context, 24),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: selected ? colorScheme.primary : colorScheme.surface,
@@ -2311,12 +2312,12 @@ border: Border.all(color: border, width: 0.5),
                       ? colorScheme.primary
                       : colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 999)),
               ),
               child: Text(
                 String.fromCharCode(65 + i),
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(context, 12),
                   fontWeight: FontWeight.w600,
                   color: selected
                       ? colorScheme.onPrimary
@@ -2324,12 +2325,12 @@ border: Border.all(color: border, width: 0.5),
                 ),
               ),
             ),
-            SizedBox(width: Adaptive.w(context, 10)),
+            SizedBox(width: adaptive.Adaptive.w(context, 10)),
             Expanded(
               child: Text(
                 text,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 15),
+                  fontSize: adaptive.Adaptive.sp(context, 15),
                   color: isWrong
                       ? colorScheme.error
                       : (isCorrect ? AppColors.success : colorScheme.onSurface),

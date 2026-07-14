@@ -4,7 +4,8 @@
 /// 头像支持从相册选择/拍照，按用户ID存为本地PNG。
 library;
 
-import 'dart:io';
+import 'dart:io';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,7 +16,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -61,11 +62,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       items: [
         TDActionSheetItem(
           label: '相册',
-          icon: Icon(AppIcons.photoLibrary, size: Adaptive.sp(context, 22)),
+          icon: Icon(AppIcons.photoLibrary, size: adaptive.Adaptive.sp(context, 22)),
         ),
         TDActionSheetItem(
           label: '拍照',
-          icon: Icon(AppIcons.cameraAlt, size: Adaptive.sp(context, 22)),
+          icon: Icon(AppIcons.cameraAlt, size: adaptive.Adaptive.sp(context, 22)),
         ),
       ],
       onSelected: (item, _) {
@@ -139,7 +140,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         title: Text(
           '编辑资料',
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 18),
+            fontSize: adaptive.Adaptive.sp(context, 18),
             fontWeight: FontWeight.w600,
             color: cs.onSurface,
           ),
@@ -148,7 +149,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: cs.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(AppIcons.arrowBackIos, color: cs.onSurface, size: 20),
+          icon: Icon(AppIcons.arrowBackIos, color: cs.onSurface, size: adaptive.Adaptive.icon(context, 20)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -189,19 +190,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return ClipOval(
         child: Image.file(
           _avatarFile!,
-          width: Adaptive.w(context, 44),
-          height: Adaptive.w(context, 44),
+          width: adaptive.Adaptive.w(context, 44),
+          height: adaptive.Adaptive.w(context, 44),
           fit: BoxFit.cover,
         ),
       );
     }
     return CircleAvatar(
-      radius: Adaptive.r(context, 22),
+      radius: adaptive.Adaptive.r(context, 22),
       backgroundColor: cs.primary.withValues(alpha: 0.12),
       child: Text(
         initial,
         style: TextStyle(
-          fontSize: Adaptive.sp(context, 18),
+          fontSize: adaptive.Adaptive.sp(context, 18),
           fontWeight: FontWeight.bold,
           color: cs.primary,
         ),
@@ -221,15 +222,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         children: [
           // 左侧图标 + 标签
           Container(
-            width: Adaptive.w(context, 40),
-            height: Adaptive.w(context, 40),
+            width: adaptive.Adaptive.w(context, 40),
+            height: adaptive.Adaptive.w(context, 40),
             decoration: BoxDecoration(
               color: cs.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
             ),
             child: Icon(
               AppIcons.photoCamera,
-              size: Adaptive.sp(context, 20),
+              size: adaptive.Adaptive.sp(context, 20),
               color: cs.primary,
             ),
           ),
@@ -242,16 +243,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 Text(
                   '头像',
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 16),
+                    fontSize: adaptive.Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                     color: cs.onSurface,
                   ),
                 ),
-                SizedBox(height: Adaptive.h(context, 2)),
+                SizedBox(height: adaptive.Adaptive.h(context, 2)),
                 Text(
                   '点击更换头像',
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 12),
+                    fontSize: adaptive.Adaptive.sp(context, 12),
                     color: cs.onSurfaceVariant,
                   ),
                 ),
@@ -260,10 +261,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           // 右侧头像预览
           _buildAvatar(cs, initial),
-          SizedBox(width: Adaptive.w(context, 6)),
+          SizedBox(width: adaptive.Adaptive.w(context, 6)),
           Icon(
             AppIcons.chevronRight,
-            size: Adaptive.sp(context, 20),
+            size: adaptive.Adaptive.sp(context, 20),
             color: cs.outline.withValues(alpha: 0.5),
           ),
         ],
@@ -294,15 +295,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: Adaptive.w(context, 36),
-                height: Adaptive.w(context, 36),
+                width: adaptive.Adaptive.w(context, 36),
+                height: adaptive.Adaptive.w(context, 36),
                 decoration: BoxDecoration(
                   color: cs.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
                 ),
                 child: Icon(
                   icon,
-                  size: Adaptive.sp(context, 18),
+                  size: adaptive.Adaptive.sp(context, 18),
                   color: cs.primary.withValues(alpha: 0.8),
                 ),
               ),
@@ -310,7 +311,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 16),
+                  fontSize: adaptive.Adaptive.sp(context, 16),
                   fontWeight: FontWeight.w500,
                   color: cs.onSurface,
                 ),
@@ -330,16 +331,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 15),
+                      fontSize: adaptive.Adaptive.sp(context, 15),
                       color: interactive ? cs.onSurface : cs.onSurfaceVariant,
                     ),
                   ),
                 ),
               if (interactive) ...[
-                SizedBox(width: Adaptive.w(context, 6)),
+                SizedBox(width: adaptive.Adaptive.w(context, 6)),
                 Icon(
                   AppIcons.chevronRight,
-                  size: Adaptive.sp(context, 20),
+                  size: adaptive.Adaptive.sp(context, 20),
                   color: cs.outline.withValues(alpha: 0.5),
                 ),
               ],
@@ -408,7 +409,7 @@ class _ElevatedCardState extends State<_ElevatedCard>
         builder: (context, child) =>
             Transform.scale(scale: _scaleAnimation.value, child: child),
         child: Container(
-          padding: widget.padding ?? const EdgeInsets.all(16.0),
+          padding: widget.padding ?? EdgeInsets.all(adaptive.Adaptive.w(context, 16.0)),
           decoration: BoxDecoration(
             color: AppColors.getSurface(brightness: brightness),
             borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -417,14 +418,14 @@ class _ElevatedCardState extends State<_ElevatedCard>
                 color: Colors.black.withValues(
                   alpha: brightness == Brightness.dark ? 0.3 : 0.06,
                 ),
-                blurRadius: 12,
+                blurRadius: adaptive.Adaptive.w(context, 12),
                 offset: const Offset(0, 2),
               ),
               BoxShadow(
                 color: Colors.black.withValues(
                   alpha: brightness == Brightness.dark ? 0.2 : 0.03,
                 ),
-                blurRadius: 4,
+                blurRadius: adaptive.Adaptive.w(context, 4),
                 offset: const Offset(0, 1),
               ),
             ],

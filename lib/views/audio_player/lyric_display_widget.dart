@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/subtitles.dart';
@@ -30,10 +32,10 @@ class LyricDisplayWidget extends StatelessWidget {
     final hasAlignedPron = pronMap != null && pronMap.isNotEmpty && pronunciationVisible;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
       decoration: BoxDecoration(
         color: AppColors.playerSubtitleBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// AI 对话消息气泡 - 微信风格
 class ChatBubble extends StatelessWidget {
@@ -27,7 +28,7 @@ class ChatBubble extends StatelessWidget {
             ? MainAxisAlignment.start
             : MainAxisAlignment.end,
         children: [
-          if (isAi) _buildAvatar(),
+          if (isAi) _buildAvatar(context),
           SizedBox(width: AppSpacing.space2),
           Flexible(
             child: Column(
@@ -35,7 +36,7 @@ class ChatBubble extends StatelessWidget {
                   ? CrossAxisAlignment.start
                   : CrossAxisAlignment.end,
               children: [
-                _buildBubble(isAi),
+                _buildBubble(context, isAi),
                 if (isAi &&
                     showTranslation &&
                     message.translation != null &&
@@ -48,7 +49,7 @@ class ChatBubble extends StatelessWidget {
                         color: isDark
                             ? AppColors.onSurfaceVariant
                             : AppColors.lightOnSurfaceVariant,
-                        fontSize: 12,
+                        fontSize: adaptive.Adaptive.sp(context, 12),
                       ),
                     ),
                   ),
@@ -56,37 +57,37 @@ class ChatBubble extends StatelessWidget {
             ),
           ),
           SizedBox(width: AppSpacing.space2),
-          if (!isAi) _buildUserAvatar(),
+          if (!isAi) _buildUserAvatar(context),
         ],
       ),
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: adaptive.Adaptive.w(context, 36),
+      height: adaptive.Adaptive.w(context, 36),
       decoration: BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: const Icon(AppIcons.smartToy, color: Colors.white, size: 20),
+      child: Icon(AppIcons.smartToy, color: Colors.white, size: adaptive.Adaptive.icon(context, 20)),
     );
   }
 
-  Widget _buildUserAvatar() {
+  Widget _buildUserAvatar(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: adaptive.Adaptive.w(context, 36),
+      height: adaptive.Adaptive.w(context, 36),
       decoration: BoxDecoration(
         color: AppColors.secondary,
         borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: const Icon(AppIcons.person, color: Colors.white, size: 20),
+      child: Icon(AppIcons.person, color: Colors.white, size: adaptive.Adaptive.icon(context, 20)),
     );
   }
 
-  Widget _buildBubble(bool isAi) {
+  Widget _buildBubble(BuildContext context, bool isAi) {
     final bgColor = isAi
         ? (isDark ? AppColors.surfaceHighest : AppColors.lightSurfaceHighest)
         : AppColors.primary;
@@ -109,14 +110,14 @@ class ChatBubble extends StatelessWidget {
         children: [
           Text(
             message.text,
-            style: TextStyle(color: textColor, fontSize: 15, height: 1.5),
+            style: TextStyle(color: textColor, fontSize: adaptive.Adaptive.sp(context, 15), height: 1.5),
           ),
           if (message.isStreaming)
             Padding(
               padding: EdgeInsets.only(top: AppSpacing.space1),
               child: SizedBox(
-                width: 14,
-                height: 14,
+                width: adaptive.Adaptive.w(context, 14),
+                height: adaptive.Adaptive.w(context, 14),
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   color: isAi ? AppColors.primary : Colors.white,
@@ -166,7 +167,7 @@ class TranscriptionPreview extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.mic, size: 16, color: AppColors.primary),
+                  Icon(AppIcons.mic, size: adaptive.Adaptive.icon(context, 16), color: AppColors.primary),
                   SizedBox(width: AppSpacing.space2),
                   Flexible(
                     child: Text(
@@ -175,7 +176,7 @@ class TranscriptionPreview extends StatelessWidget {
                         color: isDark
                             ? AppColors.onSurfaceVariant
                             : AppColors.lightOnSurfaceVariant,
-                        fontSize: 14,
+                        fontSize: adaptive.Adaptive.sp(context, 14),
                         fontStyle: FontStyle.italic,
                       ),
                     ),

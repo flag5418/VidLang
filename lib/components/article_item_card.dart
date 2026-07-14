@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/theme/app_colors.dart';
 
 class ArticleItemCard extends StatefulWidget {
   final Article article;
@@ -34,7 +35,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final cardColor = AppColors.articleColorFor(widget.article.title);
     final hasActions = widget.onRename != null || widget.onDelete != null;
     final letter = widget.article.title.isNotEmpty
@@ -56,7 +57,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
           boxShadow: [
             BoxShadow(
               color: Color(0x18000000),
-              blurRadius: 8,
+              blurRadius: Adaptive.w(context, 8),
               offset: const Offset(0, 2),
             ),
           ],
@@ -77,12 +78,12 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
                   ),
                 ),
               ),
-              _buildBottomOverlay(colorScheme),
+              _buildBottomOverlay(cs),
               if (hasActions)
                 Positioned(
                   bottom: AppSpacing.space2,
                   right: AppSpacing.space2,
-                  child: _buildMoreButton(colorScheme),
+                  child: _buildMoreButton(cs),
                 ),
             ],
           ),
@@ -91,7 +92,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
     );
   }
 
-  Widget _buildBottomOverlay(ColorScheme colorScheme) {
+  Widget _buildBottomOverlay(AppColorsData cs) {
     final metaParts = <String>[];
     if (widget.article.totalParagraphs > 0) {
       metaParts.add('${widget.article.totalParagraphs}段');
@@ -154,7 +155,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
     );
   }
 
-  Widget _buildMoreButton(ColorScheme colorScheme) {
+  Widget _buildMoreButton(AppColorsData cs) {
     return PopupMenuButton<String>(
       onSelected: (value) {
         switch (value) {
@@ -167,7 +168,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
         }
       },
       offset: const Offset(-120, 0),
-      color: colorScheme.surface,
+      color: cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
@@ -191,13 +192,13 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
         if (widget.onRename != null)
           PopupMenuItem(
             value: 'rename',
-            child: _menuRow(context, AppIcons.edit, '重命名', colorScheme),
+            child: _menuRow(context, AppIcons.edit, '重命名', cs),
           ),
         if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
           PopupMenuItem(
             value: 'delete',
-            child: _menuRow(context, AppIcons.delete, '删除', colorScheme),
+            child: _menuRow(context, AppIcons.delete, '删除', cs),
           ),
         ],
       ],
@@ -208,7 +209,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
     BuildContext context,
     IconData icon,
     String title,
-    ColorScheme cs,
+    AppColorsData cs,
   ) {
     return Row(
       children: [

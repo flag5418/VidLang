@@ -149,6 +149,9 @@ extension AdaptiveContext on BuildContext {
   /// 通用尺寸 (width/height scale)
   double s(num value) => Adaptive.w(this, value);
 
+  /// 垂直尺寸 (height scale)
+  double h(num value) => Adaptive.h(this, value);
+
   /// 圆角尺寸 (radius scale)
   double rs(num value) => Adaptive.r(this, value);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 骨架屏组件——用于加载态。
 ///
@@ -100,20 +101,22 @@ class ShimmerVideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const ShimmerCard(height: 100.0, borderRadius: 14.0),
-        const SizedBox(height: 10.0),
-        const ShimmerCard(height: 16.0, borderRadius: 4.0),
-        const SizedBox(height: 6.0),
-        ShimmerCard(
-          height: 12.0,
-          width: 120.0,
-          borderRadius: 4.0,
-        ),
-      ],
+    return Builder(
+      builder: (context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShimmerCard(height: adaptive.Adaptive.h(context, 100), borderRadius: adaptive.Adaptive.r(context, 14)),
+          SizedBox(height: adaptive.Adaptive.h(context, 10)),
+          ShimmerCard(height: adaptive.Adaptive.h(context, 16), borderRadius: adaptive.Adaptive.r(context, 4)),
+          SizedBox(height: adaptive.Adaptive.h(context, 6)),
+          ShimmerCard(
+            height: adaptive.Adaptive.h(context, 12),
+            width: adaptive.Adaptive.w(context, 120),
+            borderRadius: adaptive.Adaptive.r(context, 4),
+          ),
+        ],
+      ),
     );
   }
 }

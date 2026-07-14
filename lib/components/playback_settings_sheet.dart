@@ -3,6 +3,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/playback_settings.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 片头/片尾/封面截图设置底部面板
 class PlaybackSettingsSheet extends StatefulWidget {
@@ -26,7 +28,7 @@ class PlaybackSettingsSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.bottomSheet),
@@ -68,7 +70,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final bottom = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -85,33 +87,33 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
           Text(widget.title, style: Theme.of(context).textTheme.titleLarge),
           SizedBox(height: AppSpacing.md),
           _switchRow(
-            colorScheme,
+            cs,
             '跳过片头',
             _skipOpening,
             (v) => setState(() => _skipOpening = v),
           ),
           if (_skipOpening)
             _secondsRow(
-              colorScheme,
+              cs,
               '片头时长（秒）',
               _openingSec,
               (v) => setState(() => _openingSec = v),
             ),
           _switchRow(
-            colorScheme,
+            cs,
             '跳过片尾',
             _skipEnding,
             (v) => setState(() => _skipEnding = v),
           ),
           if (_skipEnding)
-            _secondsRow(
-              colorScheme,
+              _secondsRow(
+              cs,
               '片尾时长（秒）',
               _endingSec,
               (v) => setState(() => _endingSec = v),
             ),
           _secondsRow(
-            colorScheme,
+            cs,
             '封面截图时间（秒）',
             _thumbnailSec,
             (v) => setState(() => _thumbnailSec = v),
@@ -132,7 +134,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
   }
 
   Widget _switchRow(
-    ColorScheme colorScheme,
+    AppColorsData cs,
     String label,
     bool value,
     ValueChanged<bool> onChanged,
@@ -142,12 +144,12 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
       title: Text(label),
       value: value,
       onChanged: onChanged,
-      activeThumbColor: colorScheme.primary,
+      activeThumbColor: cs.primary,
     );
   }
 
   Widget _secondsRow(
-    ColorScheme colorScheme,
+    AppColorsData cs,
     String label,
     int value,
     ValueChanged<int> onChanged, {
@@ -162,12 +164,12 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
             child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
           ),
           IconButton(
-            icon: const Icon(AppIcons.remove, size: 20),
+            icon: Icon(AppIcons.remove, size: adaptive.Adaptive.icon(context, 20)),
             onPressed: value > min ? () => onChanged(value - 1) : null,
           ),
           Text('$value', style: Theme.of(context).textTheme.titleMedium),
           IconButton(
-            icon: AppIcons.getIcon(AppIcons.add, size: 20),
+            icon: AppIcons.getIcon(AppIcons.add, size: adaptive.Adaptive.icon(context, 20)),
             onPressed: value < max ? () => onChanged(value + 1) : null,
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 空状态组件——居中图标 + 标题 + 描述 + 可选操作按钮。
 ///
@@ -28,31 +29,34 @@ class EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 32.0),
+        padding: EdgeInsets.symmetric(
+          vertical: adaptive.Adaptive.h(context, 40),
+          horizontal: adaptive.Adaptive.w(context, 32),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 48.0,
+              size: adaptive.Adaptive.icon(context, 48),
               color: colors.textWeak,
             ),
-            const SizedBox(height: 16.0),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
             Text(
               title,
               style: TextStyle(
-                fontSize: 16.0,
+                fontSize: adaptive.Adaptive.sp(context, 16),
                 fontWeight: FontWeight.w400,
                 color: colors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
             if (description != null) ...[
-              const SizedBox(height: 8.0),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               Text(
                 description!,
                 style: TextStyle(
-                  fontSize: 13.0,
+                  fontSize: adaptive.Adaptive.sp(context, 13),
                   fontWeight: FontWeight.w400,
                   color: colors.textWeak,
                 ),
@@ -60,14 +64,14 @@ class EmptyState extends StatelessWidget {
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 20.0),
+              SizedBox(height: adaptive.Adaptive.h(context, 20)),
               OutlinedButton(
                 onPressed: onAction,
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: colors.primary),
                   foregroundColor: colors.primary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
                   ),
                 ),
                 child: Text(actionLabel!),

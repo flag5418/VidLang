@@ -15,7 +15,7 @@ class DeviceUtils {
   DeviceUtils._();
 
   /// 初始化（已废弃，由 DeviceTypeProvider 接管）
-  static Future<void> initialize() async {}
+  // static Future<void> initialize() async {}
 
   /// 获取当前设备类型
   static AppDeviceType getDeviceType(WidgetRef ref) {

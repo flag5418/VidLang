@@ -14,8 +14,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
-import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
 class ErrorDisplayWidget extends StatelessWidget {
@@ -51,7 +51,7 @@ class ErrorDisplayWidget extends StatelessWidget {
             Icon(
               AppIcons.error,
               size: Adaptive.sp(context, 64),
-              color: TDTheme.of(context).errorNormalColor,
+              color: context.colors.error,
             ),
             SizedBox(height: Adaptive.h(context, 16)),
             Text(
@@ -59,7 +59,7 @@ class ErrorDisplayWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: Adaptive.sp(context, 18),
                 fontWeight: FontWeight.w600,
-                color: TDTheme.of(context).fontGyColor1,
+                color: context.colors.textPrimary,
               ),
             ),
             SizedBox(height: Adaptive.h(context, 8)),
@@ -68,7 +68,7 @@ class ErrorDisplayWidget extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: Adaptive.sp(context, 14),
-                color: TDTheme.of(context).fontGyColor3,
+                color: context.colors.textWeak,
                 height: 1.4,
               ),
             ),

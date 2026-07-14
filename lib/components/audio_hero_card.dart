@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/theme/app_colors.dart';
 
 class AudioHeroCard extends StatefulWidget {
   final VideoInfo video;
@@ -55,7 +56,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final screenWidth = MediaQuery.of(context).size.width;
     final cardHeight = (screenWidth - AppSpacing.space8) * 9 / 16;
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
@@ -82,7 +83,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
           boxShadow: [
             BoxShadow(
               color: Color(0x20000000),
-              blurRadius: 12,
+              blurRadius: Adaptive.w(context, 12),
               offset: const Offset(0, 4),
             ),
           ],
@@ -109,13 +110,13 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
                 ),
               ),
             ),
-            _buildBottomSection(colorScheme, cardColor),
-            _buildPlayButton(colorScheme),
+            _buildBottomSection(cs, cardColor),
+            _buildPlayButton(cs),
             if (hasActions)
               Positioned(
                 bottom: AppSpacing.space4,
                 right: AppSpacing.space3,
-                child: _buildMenu(colorScheme),
+                child: _buildMenu(cs),
               ),
           ],
         ),
@@ -123,7 +124,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
     );
   }
 
-  Widget _buildBottomSection(ColorScheme colorScheme, Color cardColor) {
+  Widget _buildBottomSection(AppColorsData cs, Color cardColor) {
     final progress = widget.video.duration > 0
         ? widget.video.currentPosition / widget.video.duration
         : 0.0;
@@ -140,7 +141,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
               value: progress,
               backgroundColor: Colors.white.withValues(alpha: 0.2),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 2,
+              minHeight: Adaptive.h(context, 2),
             ),
           Container(
             width: double.infinity,
@@ -178,9 +179,9 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
                 SizedBox(height: Adaptive.h(context, 2)),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       AppIcons.schedule,
-                      size: 10,
+                      size: Adaptive.icon(context, 10),
                       color: Colors.white70,
                     ),
                     SizedBox(width: Adaptive.w(context, 4)),
@@ -200,9 +201,9 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
                 if (progress > 0) ...[
                   SizedBox(height: Adaptive.h(context, 4)),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Adaptive.w(context, 6),
+                      vertical: Adaptive.h(context, 1),
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -229,7 +230,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
     );
   }
 
-  Widget _buildPlayButton(ColorScheme colorScheme) {
+  Widget _buildPlayButton(AppColorsData cs) {
     return Center(
       child: Container(
         width: Adaptive.w(context, 36),
@@ -240,7 +241,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 12,
+              blurRadius: Adaptive.w(context, 12),
               offset: const Offset(0, 4),
             ),
           ],
@@ -254,7 +255,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
     );
   }
 
-  Widget _buildMenu(ColorScheme colorScheme) {
+  Widget _buildMenu(AppColorsData cs) {
     return PopupMenuButton<String>(
       onSelected: (value) {
         switch (value) {
@@ -267,7 +268,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
         }
       },
       offset: const Offset(-120, 0),
-      color: colorScheme.surface,
+      color: cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
@@ -291,13 +292,13 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
         if (widget.onRename != null)
           PopupMenuItem(
             value: 'rename',
-            child: _menuRow(context, AppIcons.edit, '重命名', colorScheme),
+            child: _menuRow(context, AppIcons.edit, '重命名', cs),
           ),
         if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
           PopupMenuItem(
             value: 'delete',
-            child: _menuRow(context, AppIcons.delete, '删除', colorScheme),
+            child: _menuRow(context, AppIcons.delete, '删除', cs),
           ),
         ],
       ],
@@ -308,7 +309,7 @@ class _AudioHeroCardState extends State<AudioHeroCard> {
     BuildContext context,
     IconData icon,
     String title,
-    ColorScheme cs,
+    AppColorsData cs,
   ) {
     return Row(
       children: [

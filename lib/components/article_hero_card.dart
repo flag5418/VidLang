@@ -37,7 +37,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final screenWidth = MediaQuery.of(context).size.width;
     final cardHeight = (screenWidth - AppSpacing.space8) * 9 / 16;
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
@@ -64,7 +64,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
           boxShadow: [
             BoxShadow(
               color: Color(0x20000000),
-              blurRadius: 12,
+              blurRadius: Adaptive.w(context, 12),
               offset: const Offset(0, 4),
             ),
           ],
@@ -84,13 +84,13 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                 ),
               ),
             ),
-            _buildBottomSection(colorScheme, cardColor),
-            _buildPlayButton(colorScheme),
+            _buildBottomSection(cs, cardColor),
+            _buildPlayButton(cs),
             if (hasActions)
               Positioned(
                 bottom: AppSpacing.space4,
                 right: AppSpacing.space3,
-                child: _buildMenu(colorScheme),
+                child: _buildMenu(cs),
               ),
           ],
         ),
@@ -98,7 +98,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     );
   }
 
-  Widget _buildBottomSection(ColorScheme colorScheme, Color cardColor) {
+  Widget _buildBottomSection(AppColorsData cs, Color cardColor) {
     final progress = widget.article.progress.clamp(0.0, 1.0);
     final percent = (progress * 100).round();
 
@@ -125,7 +125,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
               value: progress,
               backgroundColor: Colors.white.withValues(alpha: 0.2),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: 2,
+              minHeight: Adaptive.h(context, 2),
             ),
           Container(
             width: double.infinity,
@@ -180,9 +180,9 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                   SizedBox(height: Adaptive.h(context, 4)),
                 if (progress > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: Adaptive.w(context, 6),
+                      vertical: Adaptive.h(context, 1),
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -208,7 +208,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     );
   }
 
-  Widget _buildPlayButton(ColorScheme colorScheme) {
+  Widget _buildPlayButton(AppColorsData cs) {
     return Center(
       child: Container(
         width: Adaptive.w(context, 36),
@@ -219,7 +219,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 12,
+              blurRadius: Adaptive.w(context, 12),
               offset: const Offset(0, 4),
             ),
           ],
@@ -233,7 +233,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     );
   }
 
-  Widget _buildMenu(ColorScheme colorScheme) {
+  Widget _buildMenu(AppColorsData cs) {
     return PopupMenuButton<String>(
       onSelected: (value) {
         switch (value) {
@@ -246,7 +246,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
         }
       },
       offset: const Offset(-120, 0),
-      color: colorScheme.surface,
+      color: cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
@@ -270,13 +270,13 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
         if (widget.onRename != null)
           PopupMenuItem(
             value: 'rename',
-            child: _menuRow(context, AppIcons.edit, '重命名', colorScheme),
+            child: _menuRow(context, AppIcons.edit, '重命名', cs),
           ),
         if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
           PopupMenuItem(
             value: 'delete',
-            child: _menuRow(context, AppIcons.delete, '删除', colorScheme),
+            child: _menuRow(context, AppIcons.delete, '删除', cs),
           ),
         ],
       ],
@@ -287,7 +287,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
     BuildContext context,
     IconData icon,
     String title,
-    ColorScheme cs,
+    AppColorsData cs,
   ) {
     return Row(
       children: [

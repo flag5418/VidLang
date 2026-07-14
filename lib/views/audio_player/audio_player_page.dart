@@ -28,6 +28,7 @@ import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/translation_init_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/views/audio_player/recognition_prompt_dialog.dart';
@@ -448,37 +449,37 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
   ) async {
     final titleCtrl = TextEditingController(text: currentName);
     final artistCtrl = TextEditingController();
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
     return DialogUtils.show<Map<String, String>>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(
         backgroundColor: cs.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16))),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.lyrics, color: cs.primary, size: 28),
-              const SizedBox(height: 12),
+              Icon(AppIcons.lyrics, color: cs.primary, size: adaptive.Adaptive.icon(context, 28)),
+              SizedBox(height: adaptive.Adaptive.h(context, 12)),
               Text(
                 '请输入歌曲信息',
                 style: TextStyle(
                   color: cs.onSurface,
-                  fontSize: Adaptive.sp(context, 15),
+                  fontSize: adaptive.Adaptive.sp(context, 15),
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: adaptive.Adaptive.h(context, 4)),
               Text(
                 '以便搜索歌词',
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: Adaptive.sp(context, 12)),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 12)),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: adaptive.Adaptive.h(context, 16)),
               TextField(
                 controller: titleCtrl,
-                style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 14)),
+                style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
                 decoration: InputDecoration(
                   labelText: '歌曲名',
                   labelStyle: TextStyle(color: cs.onSurfaceVariant),
@@ -490,10 +491,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               TextField(
                 controller: artistCtrl,
-                style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 14)),
+                style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
                 decoration: InputDecoration(
                   labelText: '演唱者',
                   labelStyle: TextStyle(color: cs.onSurfaceVariant),
@@ -505,7 +506,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: adaptive.Adaptive.h(context, 20)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -516,7 +517,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       style: TextStyle(color: cs.onSurfaceVariant),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: adaptive.Adaptive.w(context, 12)),
                   TextButton(
                     onPressed: () => Navigator.pop(ctx, {
                       'title': titleCtrl.text.trim(),
@@ -540,31 +541,31 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
   }
 
   Widget _buildProgressDialog() {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
     return PopScope(
       canPop: false,
       child: Center(
         child: Material(
           color: Colors.transparent,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 32), vertical: adaptive.Adaptive.h(context, 24)),
             decoration: BoxDecoration(
               color: cs.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 CircularProgressIndicator(color: cs.primary),
-                const SizedBox(height: 16),
+                SizedBox(height: adaptive.Adaptive.h(context, 16)),
                 Text(
                   widget.audioType == 'music' ? '正在搜索歌词...' : '正在识别音频...',
-                  style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 14)),
+                  style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: adaptive.Adaptive.h(context, 8)),
                 Text(
                   '识别期间您可以继续收听',
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: Adaptive.sp(context, 12)),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 12)),
                 ),
               ],
             ),
@@ -699,15 +700,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   if (words.isNotEmpty) {
                     final wasPlaying = state.playerState == PlayerState.playing;
                     notifier.player.pause();
-                    final selectedText = words.join(' ');
-                    final canSave = WordBookService.isSingleWord(selectedText);
-                    final subState = ref.read(subscriptionProvider);
-                    final isPremium = subState.mode == SubscriptionMode.premium;
-                    WordCard.show(
-                      context,
-                      word: selectedText,
-                      contextSentence: sub.content,
-                      isPaidMode: isPremium,
+    final selectedText = words.join(' ');
+    final canSave = WordBookService.isSingleWord(selectedText);
+    WordCard.show(
+      context,
+      word: selectedText,
+      contextSentence: sub.content,
                       onSpeak: () => TtsService().speakWord(selectedText),
                       onSaveWord: canSave ? _handleSaveWord : null,
                       sourceType: 'music',
@@ -726,11 +724,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.musicNote, size: Adaptive.icon(context, 48), color: AppColors.onSurface.withValues(alpha: 0.24)),
-                  SizedBox(height: Adaptive.h(context, 8)),
+                  Icon(AppIcons.musicNote, size: adaptive.Adaptive.icon(context, 48), color: AppColors.onSurface.withValues(alpha: 0.24)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 8)),
                   Text(
                     '暂无字幕，可在菜单中添加',
-                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: Adaptive.sp(context, 14)),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: adaptive.Adaptive.sp(context, 14)),
                   ),
                 ],
               ),
@@ -783,7 +781,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    width: MediaQuery.of(context).size.width > 600 ? 440 : 320,
+                    width: context.ipad ? adaptive.Adaptive.w(context, 440) : adaptive.Adaptive.w(context, 320),
                     decoration: BoxDecoration(
                       color: AppColors.surface.withValues(alpha: 0.85),
                       border: Border(
@@ -857,10 +855,10 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
     return Container(
       padding:
           EdgeInsets.only(
-            top: topPadding > 0 ? topPadding : Adaptive.h(context, 32),
-            bottom: Adaptive.h(context, 8),
+            top: topPadding > 0 ? topPadding : adaptive.Adaptive.h(context, 32),
+            bottom: adaptive.Adaptive.h(context, 8),
           ) +
-          const EdgeInsets.symmetric(horizontal: 8),
+          EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8)),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -874,17 +872,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             color: Colors.transparent,
             child: InkWell(
               onTap: () => Navigator.pop(context),
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 22)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 22)),
               child: Padding(
-                padding: EdgeInsets.only(right: Adaptive.w(context, 8)),
+                padding: EdgeInsets.only(right: adaptive.Adaptive.w(context, 8)),
                 child: SizedBox(
-                  width: Adaptive.r(context, 44),
-                  height: Adaptive.r(context, 44),
+                  width: adaptive.Adaptive.r(context, 44),
+                  height: adaptive.Adaptive.r(context, 44),
                   child: Center(
                     child: Icon(
                       AppIcons.arrowBackIosNew,
                       color: AppColors.onSurface,
-                      size: Adaptive.sp(context, 20),
+                      size: adaptive.Adaptive.sp(context, 20),
                     ),
                   ),
                 ),
@@ -900,7 +898,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   s.title,
                   style: TextStyle(
                     color: AppColors.onSurface,
-                    fontSize: Adaptive.sp(context, 20),
+                    fontSize: adaptive.Adaptive.sp(context, 20),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -910,7 +908,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 if (n.currentVideo?.artist != null)
                   Text(
                     n.currentVideo!.artist!,
-                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 12)),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 12)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -919,17 +917,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           ),
           if (s.lastFollowScore != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              margin: const EdgeInsets.only(right: 4),
+              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
+              margin: EdgeInsets.only(right: adaptive.Adaptive.w(context, 4)),
               decoration: BoxDecoration(
                 color: _scoreColor(s.lastFollowScore!).withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
               ),
               child: Text(
                 '🎤${s.lastFollowScore!.round()}',
                 style: TextStyle(
                   color: _scoreColor(s.lastFollowScore!),
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -942,7 +940,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             }),
             active: _showAudioList,
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: adaptive.Adaptive.w(context, 4)),
           _topBtn(
             AppIcons.settings,
             () => setState(() {
@@ -1008,7 +1006,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           _buildProgressBar(s, n),
           // Control row
           _buildControlRow(s, n, hasSubtitles, followLabel, currentSub),
-          const SizedBox(height: 4),
+          SizedBox(height: adaptive.Adaptive.h(context, 4)),
         ],
       ),
     );
@@ -1019,12 +1017,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
         ? s.position.inMilliseconds / s.duration.inMilliseconds
         : 0.0;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 20)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 20)),
       child: Row(
         children: [
           Text(
             _fmtDuration(s.position),
-            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 13)),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 13)),
           ),
           Expanded(
             child: SliderTheme(
@@ -1045,7 +1043,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           ),
           Text(
             _fmtDuration(s.duration),
-            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 13)),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 13)),
           ),
         ],
       ),
@@ -1067,7 +1065,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
     final playIconSize = isIPad(context) ? 42.0 : 34.0;
     final skipIconSize = isIPad(context) ? 38.0 : 30.0;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 4)),
+      padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 4)),
       child: Row(
         children: [
           // Left: main playback controls
@@ -1096,7 +1094,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               s.singleSentencePause,
               () => n.toggleSingleSentencePause(),
             ),
-          if (hasSubtitles) SizedBox(width: Adaptive.w(context, 6)),
+          if (hasSubtitles) SizedBox(width: adaptive.Adaptive.w(context, 6)),
           PopupMenuButton<double>(
             initialValue: s.speed,
             onSelected: (sp) {
@@ -1105,7 +1103,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             offset: const Offset(0, -220),
             color: AppColors.surfaceElevated,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
             ),
             child: _miniBtn(
               '${s.speed.toStringAsFixed(1)}X',
@@ -1123,7 +1121,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       '${sp}X',
                       style: TextStyle(
                         color: active ? AppColors.primary : AppColors.onSurface,
-                        fontSize: Adaptive.sp(context, 14),
+                        fontSize: adaptive.Adaptive.sp(context, 14),
                         fontWeight: active
                             ? FontWeight.bold
                             : FontWeight.normal,
@@ -1135,7 +1133,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             },
           ),
           if (hasSubtitles && evalSupported) ...[
-            SizedBox(width: Adaptive.w(context, 6)),
+            SizedBox(width: adaptive.Adaptive.w(context, 6)),
             _miniBtn(followLabel, _showFollow, () {
               if (_showFollow) {
                 setState(() => _showFollow = false);
@@ -1157,7 +1155,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           ],
           // 清晰朗读按钮
           if (hasSubtitles) ...[
-            SizedBox(width: Adaptive.w(context, 6)),
+            SizedBox(width: adaptive.Adaptive.w(context, 6)),
             _miniBtn(
               '朗读',
               _isTtsSpeaking,
@@ -1195,19 +1193,19 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12), vertical: Adaptive.h(context, 6)),
+          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 6)),
           decoration: BoxDecoration(
             color: active ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.7),
-              fontSize: Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(context, 14),
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -1226,11 +1224,11 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
   ) {
     final pad = isIPad(context) ? 20.0 : 16.0;
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: pad, vertical: Adaptive.h(context, 4)),
+      margin: EdgeInsets.symmetric(horizontal: pad, vertical: adaptive.Adaptive.h(context, 4)),
       padding: EdgeInsets.all(isIPad(context) ? 16.0 : 12.0),
       decoration: BoxDecoration(
         color: AppColors.onSurface.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1239,21 +1237,21 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
             children: [
               Icon(
                 s.isRecording ? AppIcons.micRounded : AppIcons.micNone,
-                color: s.isRecording ? Colors.redAccent : AppColors.primary,
-                size: Adaptive.sp(context, 18),
+                color: s.isRecording ? AppColors.error : AppColors.primary,
+                size: adaptive.Adaptive.sp(context, 18),
               ),
-              SizedBox(width: Adaptive.w(context, 8)),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Text(
                 s.isRecording ? '录音中' : '准备$followLabel',
-                style: TextStyle(color: AppColors.onSurface, fontSize: Adaptive.sp(context, 14)),
+                style: TextStyle(color: AppColors.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
               ),
               const Spacer(),
               Text(
                 '原音:',
-                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 13)),
+                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 13)),
               ),
               SizedBox(
-                width: Adaptive.w(context, 100),
+                width: adaptive.Adaptive.w(context, 100),
                 child: SliderTheme(
                   data: SliderThemeData(
                     trackHeight: isIPad(context) ? 3 : 2,
@@ -1272,26 +1270,26 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               ),
               Text(
                 '${(s.originalVolume * 100).round()}%',
-                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 13)),
+                style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 13)),
               ),
             ],
           ),
-          SizedBox(height: Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(context, 8)),
           if (_hasHeadphone == false)
             Padding(
-              padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
+              padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 6)),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     AppIcons.headphones,
-                    size: Adaptive.sp(context, 16),
+                    size: adaptive.Adaptive.sp(context, 16),
                     color: AppColors.warning,
                   ),
-                  SizedBox(width: Adaptive.w(context, 4)),
+                  SizedBox(width: adaptive.Adaptive.w(context, 4)),
                   Text(
                     '建议佩戴耳机',
-                    style: TextStyle(color: AppColors.warning, fontSize: Adaptive.sp(context, 13)),
+                    style: TextStyle(color: AppColors.warning, fontSize: adaptive.Adaptive.sp(context, 13)),
                   ),
                 ],
               ),
@@ -1305,21 +1303,21 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   onTap: s.isRecording
                       ? null
                       : () => _startFollowRecording(s, n, currentSub),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                   child: Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(context, 24),
-                      vertical: Adaptive.h(context, 10),
+                      horizontal: adaptive.Adaptive.w(context, 24),
+                      vertical: adaptive.Adaptive.h(context, 10),
                     ),
                     decoration: BoxDecoration(
                       color: s.isRecording ? AppColors.onSurface.withValues(alpha: 0.24) : AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                     ),
                     child: Text(
                       s.isRecording ? '录音中...' : '开始$followLabel',
                       style: TextStyle(
                         color: AppColors.onSurface,
-                        fontSize: Adaptive.sp(context, 14),
+                        fontSize: adaptive.Adaptive.sp(context, 14),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1327,26 +1325,26 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 ),
               ),
               if (s.isRecording) ...[
-                SizedBox(width: Adaptive.w(context, 12)),
+                SizedBox(width: adaptive.Adaptive.w(context, 12)),
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () => _stopFollowRecording(s, n, currentSub),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: Adaptive.w(context, 24),
-                        vertical: Adaptive.h(context, 10),
+                        horizontal: adaptive.Adaptive.w(context, 24),
+                        vertical: adaptive.Adaptive.h(context, 10),
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.error.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                       ),
                       child: Text(
                         '停止',
                         style: TextStyle(
                           color: AppColors.onSurface,
-                          fontSize: Adaptive.sp(context, 14),
+                          fontSize: adaptive.Adaptive.sp(context, 14),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1426,9 +1424,9 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
       ('sequence_play', '顺序播放', AppIcons.playlistPlay),
     ];
     // 侧边栏通用间距
-    final hp = Adaptive.w(context, 16);
-    final vp = Adaptive.h(context, 12);
-    final ip = Adaptive.w(context, 12); // 内部间距
+    final hp = adaptive.Adaptive.w(context, 16);
+    final vp = adaptive.Adaptive.h(context, 12);
+    final ip = adaptive.Adaptive.w(context, 12); // 内部间距
     return Column(
       children: [
         Container(
@@ -1439,7 +1437,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 '设置',
                 style: TextStyle(
                   color: _drawerText(),
-                  fontSize: Adaptive.sp(context, 17),
+                  fontSize: adaptive.Adaptive.sp(context, 17),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1449,7 +1447,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 child: Icon(
                   AppIcons.close,
                   color: _drawerTextVariant(),
-                  size: Adaptive.icon(context, 24),
+                  size: adaptive.Adaptive.icon(context, 24),
                 ),
               ),
             ],
@@ -1457,16 +1455,16 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
         ),
         Expanded(
           child: ListView(
-            padding: EdgeInsets.symmetric(horizontal: ip, vertical: Adaptive.h(context, 4)),
+            padding: EdgeInsets.symmetric(horizontal: ip, vertical: adaptive.Adaptive.h(context, 4)),
             children: [
               _settingSwitch('字幕显示', s.subtitleVisible, () => n.toggleSubtitleVisible()),
-              SizedBox(height: Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(context, 4)),
               _settingSwitch('中文注音', s.pronunciationVisible, () => n.togglePronunciationVisible()),
-              SizedBox(height: Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(context, 4)),
               _settingSwitch('中文翻译', s.translateVisible, () => n.toggleTranslateVisible()),
-              SizedBox(height: Adaptive.h(context, 14)),
+              SizedBox(height: adaptive.Adaptive.h(context, 14)),
               _settingLabel('字幕字号'),
-              SizedBox(height: Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(context, 4)),
               SliderTheme(
                 data: SliderThemeData(
                   trackHeight: isIPad(context) ? 4 : 3,
@@ -1484,12 +1482,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   onChanged: (v) => n.setSubtitleFontSize(v.roundToDouble()),
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 8)),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               _settingLabel('循环模式'),
-              SizedBox(height: Adaptive.h(context, 6)),
+              SizedBox(height: adaptive.Adaptive.h(context, 6)),
               Wrap(
-                spacing: Adaptive.w(context, 8),
-                runSpacing: Adaptive.h(context, 8),
+                spacing: adaptive.Adaptive.w(context, 8),
+                runSpacing: adaptive.Adaptive.h(context, 8),
                 children: loopModes.map((entry) {
                   final mode = entry.$1;
                   final label = entry.$2;
@@ -1499,22 +1497,22 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () => n.setLoopingMode(mode),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: Adaptive.w(context, 12),
-                          vertical: Adaptive.h(context, 6),
+                          horizontal: adaptive.Adaptive.w(context, 12),
+                          vertical: adaptive.Adaptive.h(context, 6),
                         ),
                         decoration: BoxDecoration(
                           color: active ? AppColors.primary : AppColors.onSurface.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(icon, size: Adaptive.sp(context, 16), color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.54)),
-                            SizedBox(width: Adaptive.w(context, 5)),
-                            Text(label, style: TextStyle(color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.7), fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13))),
+                            Icon(icon, size: adaptive.Adaptive.sp(context, 16), color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.54)),
+                            SizedBox(width: adaptive.Adaptive.w(context, 5)),
+                            Text(label, style: TextStyle(color: active ? AppColors.onSurface : AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 15 : 13))),
                           ],
                         ),
                       ),
@@ -1522,40 +1520,40 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   );
                 }).toList(),
               ),
-              SizedBox(height: Adaptive.h(context, 14)),
+              SizedBox(height: adaptive.Adaptive.h(context, 14)),
               _settingLabel('智能匹配字幕'),
-              SizedBox(height: Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(context, 4)),
               Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () { setState(() => _showSettings = false); _startSmartMatch(); },
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12), vertical: Adaptive.h(context, 8)),
-                    decoration: BoxDecoration(color: AppColors.onSurface.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                    padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 8)),
+                    decoration: BoxDecoration(color: AppColors.onSurface.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
                     child: Row(children: [
-                      Icon(AppIcons.autoAwesome, size: Adaptive.sp(context, 16), color: AppColors.primary),
-                      SizedBox(width: Adaptive.w(context, 8)),
-                      Text('开始智能匹配', style: TextStyle(color: _drawerTextVariant(), fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14))),
+                      Icon(AppIcons.autoAwesome, size: adaptive.Adaptive.sp(context, 16), color: AppColors.primary),
+                      SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                      Text('开始智能匹配', style: TextStyle(color: _drawerTextVariant(), fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 16 : 14))),
                     ]),
                   ),
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, 8)),
+              SizedBox(height: adaptive.Adaptive.h(context, 8)),
               _settingLabel('手动导入字幕'),
-              SizedBox(height: Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(context, 4)),
               Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () { setState(() => _showSettings = false); _importSubtitle(); },
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12), vertical: Adaptive.h(context, 8)),
-                    decoration: BoxDecoration(color: AppColors.onSurface.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+                    padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 8)),
+                    decoration: BoxDecoration(color: AppColors.onSurface.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
                     child: Row(children: [
-                      Icon(AppIcons.upload, size: Adaptive.sp(context, 16), color: AppColors.primary),
-                      SizedBox(width: Adaptive.w(context, 8)),
-                      Text('选择字幕文件', style: TextStyle(color: _drawerTextVariant(), fontSize: Adaptive.sp(context, isIPad(context) ? 16 : 14))),
+                      Icon(AppIcons.upload, size: adaptive.Adaptive.sp(context, 16), color: AppColors.primary),
+                      SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                      Text('选择字幕文件', style: TextStyle(color: _drawerTextVariant(), fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 16 : 14))),
                     ]),
                   ),
                 ),
@@ -1572,12 +1570,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
       color: Colors.transparent,
       child: InkWell(
         onTap: onChanged,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 5), horizontal: Adaptive.w(context, 4)),
+          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 5), horizontal: adaptive.Adaptive.w(context, 4)),
           child: Row(
             children: [
-              Text(label, style: TextStyle(color: _drawerText(), fontSize: Adaptive.sp(context, 15))),
+              Text(label, style: TextStyle(color: _drawerText(), fontSize: adaptive.Adaptive.sp(context, 15))),
               const Spacer(),
               SizedBox(
                 height: isIPad(context) ? 32.0 : 28.0,
@@ -1600,12 +1598,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
 
   Widget _settingLabel(String label) {
     return Padding(
-      padding: EdgeInsets.only(bottom: Adaptive.h(context, 2)),
+      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 2)),
       child: Text(
         label,
         style: TextStyle(
           color: _drawerTextVariant(),
-          fontSize: Adaptive.sp(context, 14),
+          fontSize: adaptive.Adaptive.sp(context, 14),
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -1622,17 +1620,17 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 16)),
+          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 16)),
           decoration: BoxDecoration(color: Colors.transparent),
           child: Row(
             children: [
-              Text('音频列表', style: TextStyle(color: _drawerText(), fontSize: Adaptive.sp(context, 17), fontWeight: FontWeight.bold)),
+              Text('音频列表', style: TextStyle(color: _drawerText(), fontSize: adaptive.Adaptive.sp(context, 17), fontWeight: FontWeight.bold)),
               const Spacer(),
-              Text('共 ${list.length} 首', style: TextStyle(color: _drawerTextVariant(), fontSize: Adaptive.sp(context, 14))),
-              SizedBox(width: Adaptive.w(context, 12)),
+              Text('共 ${list.length} 首', style: TextStyle(color: _drawerTextVariant(), fontSize: adaptive.Adaptive.sp(context, 14))),
+              SizedBox(width: adaptive.Adaptive.w(context, 12)),
               GestureDetector(
                 onTap: () => setState(() => _showAudioList = false),
-                child: Padding(padding: EdgeInsets.all(Adaptive.w(context, 4)), child: Icon(AppIcons.close, color: _drawerTextVariant(), size: Adaptive.icon(context, 24))),
+                child: Padding(padding: EdgeInsets.all(adaptive.Adaptive.w(context, 4)), child: Icon(AppIcons.close, color: _drawerTextVariant(), size: adaptive.Adaptive.icon(context, 24))),
               ),
             ],
           ),
@@ -1640,12 +1638,12 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
         Expanded(
           child: list.isEmpty
               ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(AppIcons.musicOff, size: Adaptive.icon(context, 52), color: AppColors.onSurface.withValues(alpha: 0.24)),
-                  SizedBox(height: Adaptive.h(context, 10)),
-                  Text('暂无可播音频', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 15))),
+                  Icon(AppIcons.musicOff, size: adaptive.Adaptive.icon(context, 52), color: AppColors.onSurface.withValues(alpha: 0.24)),
+                  SizedBox(height: adaptive.Adaptive.h(context, 10)),
+                  Text('暂无可播音频', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 15))),
                 ]))
               : ListView.builder(
-                  padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                  padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                   itemCount: list.length,
                   itemBuilder: (_, i) {
                     final v = list[i];
@@ -1655,45 +1653,45 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () { if (v.code != null && v.code != s.videoCode) { setState(() => _showAudioList = false); _switchToAudio(v.code!); } },
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                         child: Container(
-                          margin: EdgeInsets.symmetric(vertical: Adaptive.h(context, 4)),
-                          padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                          margin: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 4)),
+                          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                           decoration: BoxDecoration(
                             color: isCurrent ? AppColors.primary.withValues(alpha: 0.15) : AppColors.onSurface.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                             border: isCurrent ? Border.all(color: AppColors.primary.withValues(alpha: 0.4)) : null,
                           ),
                           child: Row(children: [
                               // 封面/序号
-                              Container(width: thumbSize, height: thumbSize, decoration: BoxDecoration(color: isCurrent ? AppColors.primary.withValues(alpha: 0.3) : AppColors.onSurface.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)), child: Center(child: isCurrent ? Icon(AppIcons.equalizer, color: AppColors.primary, size: Adaptive.icon(context, 24)) : Text('${i + 1}', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 15), fontWeight: FontWeight.w500)))),
-                              SizedBox(width: Adaptive.w(context, 12)),
+                              Container(width: thumbSize, height: thumbSize, decoration: BoxDecoration(color: isCurrent ? AppColors.primary.withValues(alpha: 0.3) : AppColors.onSurface.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10))), child: Center(child: isCurrent ? Icon(AppIcons.equalizer, color: AppColors.primary, size: adaptive.Adaptive.icon(context, 24)) : Text('${i + 1}', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: FontWeight.w500)))),
+                              SizedBox(width: adaptive.Adaptive.w(context, 12)),
                               // 标题+信息
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(v.name, style: TextStyle(color: isCurrent ? AppColors.primary : AppColors.onSurface, fontSize: Adaptive.sp(context, 15), fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                SizedBox(height: Adaptive.h(context, 5)),
+                                Text(v.name, style: TextStyle(color: isCurrent ? AppColors.primary : AppColors.onSurface, fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                SizedBox(height: adaptive.Adaptive.h(context, 5)),
                                 Row(children: [
-                                  Icon(v.hasSubtitles ? AppIcons.subtitles : AppIcons.subtitlesOff, size: Adaptive.sp(context, 15), color: v.hasSubtitles ? AppColors.success.withValues(alpha: 0.7) : AppColors.onSurface.withValues(alpha: 0.24)),
-                                  SizedBox(width: Adaptive.w(context, 4)),
-                                  Text(v.hasSubtitles ? '有字幕' : '无字幕', style: TextStyle(color: v.hasSubtitles ? AppColors.success.withValues(alpha: 0.7) : AppColors.onSurface.withValues(alpha: 0.3), fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13))),
-                                  SizedBox(width: Adaptive.w(context, 10)),
-                                  Icon(AppIcons.accessTime, size: Adaptive.icon(context, isIPad(context) ? 16 : 13), color: AppColors.onSurface.withValues(alpha: 0.3)),
-                                  SizedBox(width: Adaptive.w(context, 4)),
-                                  Text(durationStr, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13))),
+                                  Icon(v.hasSubtitles ? AppIcons.subtitles : AppIcons.subtitlesOff, size: adaptive.Adaptive.sp(context, 15), color: v.hasSubtitles ? AppColors.success.withValues(alpha: 0.7) : AppColors.onSurface.withValues(alpha: 0.24)),
+                                  SizedBox(width: adaptive.Adaptive.w(context, 4)),
+                                  Text(v.hasSubtitles ? '有字幕' : '无字幕', style: TextStyle(color: v.hasSubtitles ? AppColors.success.withValues(alpha: 0.7) : AppColors.onSurface.withValues(alpha: 0.3), fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 15 : 13))),
+                                  SizedBox(width: adaptive.Adaptive.w(context, 10)),
+                                  Icon(AppIcons.accessTime, size: adaptive.Adaptive.icon(context, isIPad(context) ? 16 : 13), color: AppColors.onSurface.withValues(alpha: 0.3)),
+                                  SizedBox(width: adaptive.Adaptive.w(context, 4)),
+                                  Text(durationStr, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 15 : 13))),
                                   if (v.artist != null && v.artist!.isNotEmpty) ...[
-                                    SizedBox(width: Adaptive.w(context, 10)),
-                                    Expanded(child: Text(v.artist!, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.3), fontSize: Adaptive.sp(context, isIPad(context) ? 15 : 13)), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                    SizedBox(width: adaptive.Adaptive.w(context, 10)),
+                                    Expanded(child: Text(v.artist!, style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.3), fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 15 : 13)), maxLines: 1, overflow: TextOverflow.ellipsis)),
                                   ],
                                 ]),
                               ])),
                               // 分数角标
                               if (v.lastFollowScore != null)
-                                Container(padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 6), vertical: Adaptive.h(context, 2)), decoration: BoxDecoration(color: _scoreColor(v.lastFollowScore!).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
+                                Container(padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)), decoration: BoxDecoration(color: _scoreColor(v.lastFollowScore!).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
                                   child: Text(
                                     '${v.lastFollowScore!.round()}',
                                     style: TextStyle(
                                       color: _scoreColor(v.lastFollowScore!),
-                                      fontSize: Adaptive.sp(context, isIPad(context) ? 14 : 12),
+                                      fontSize: adaptive.Adaptive.sp(context, isIPad(context) ? 14 : 12),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -1920,7 +1918,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1928,21 +1926,21 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
               '跟读评分',
               style: TextStyle(
                 color: AppColors.onSurface,
-                fontSize: Adaptive.sp(context, 16),
+                fontSize: adaptive.Adaptive.sp(context, 16),
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             if (overall != null)
               Text(
                 '${overall.round()}',
                 style: TextStyle(
                   color: _scoreColor(overall),
-                  fontSize: Adaptive.sp(context, 48),
+                  fontSize: adaptive.Adaptive.sp(context, 48),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -1951,7 +1949,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                 if (completeness != null) _scoreDim('完整', completeness),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1959,7 +1957,7 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
                   onPressed: () => Navigator.pop(ctx),
                   child: Text('重录', style: TextStyle(color: AppColors.primary)),
                 ),
-                const SizedBox(width: 20),
+                SizedBox(width: adaptive.Adaptive.w(context, 20)),
                 TextButton(
                   onPressed: () {
                     Navigator.pop(ctx);
@@ -1985,14 +1983,14 @@ class _AudioPlayerPageState extends ConsumerState<AudioPlayerPage>
           '${score.round()}',
           style: TextStyle(
             color: _scoreColor(score),
-            fontSize: Adaptive.sp(context, 20),
+            fontSize: adaptive.Adaptive.sp(context, 20),
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: adaptive.Adaptive.h(context, 2)),
         Text(
           label,
-          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: Adaptive.sp(context, 12)),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 12)),
         ),
       ],
     );

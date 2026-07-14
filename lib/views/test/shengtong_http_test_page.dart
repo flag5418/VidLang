@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -168,7 +170,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
         backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -181,7 +183,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                 hintText: '如: sent.eval, word.eval',
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             TextField(
               controller: _refTextController,
               decoration: const InputDecoration(
@@ -189,7 +191,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
 
             // 测试按钮
             ElevatedButton.icon(
@@ -203,19 +205,19 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                   : const Icon(AppIcons.send),
               label: Text(_isLoading ? '评测中...' : '发送 HTTP 评测请求'),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
 
             // 日志显示
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                 border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _log.isEmpty ? '日志将显示在这里...' : _log,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                style: TextStyle(fontFamily: 'monospace', fontSize: adaptive.Adaptive.sp(context, 12)),
               ),
             ),
           ],

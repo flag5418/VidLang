@@ -350,6 +350,105 @@ class AuthService {
     }
   }
 
+  /// Supabase 发送密码重置 OTP（App 内闭环，无需网页跳转）
+  ///
+  /// 调用 Supabase Auth 的 resetPasswordForEmail API，
+  /// 向用户邮箱发送用于密码恢复的 OTP 验证码。
+  /// 用户在 App 内输入验证码后调用 [verifyResetOtp] 完成身份验证，
+  /// 再调用 [updateResetPassword] 设置新密码。
+  ///
+  /// 整个流程无需配置 Site URL 或域名。
+  Future<void> sendResetOtp({required String email}) async {
+    try {
+      await _client.auth.resetPasswordForEmail(email.trim().toLowerCase());
+    } on sb.AuthApiException catch (e) {
+      throw AuthException(_mapSupabaseError(e.message));
+    } on SocketException {
+      throw AuthException('网络异常，请检查网络后重试');
+    } catch (e) {
+      throw AuthException('发送验证码失败，请稍后重试');
+    }
+  }
+
+  /// 验证密码重置 OTP
+  ///
+  /// 验证用户从邮箱收到的 6 位验证码，验证通过后获得一个临时 session，
+  /// 随后可调用 [updateResetPassword] 更新密码。
+  Future<void> verifyResetOtp({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      await _client.auth.verifyOTP(
+        email: email.trim().toLowerCase(),
+        token: token.trim(),
+        type: sb.OtpType.recovery,
+      );
+    } on sb.AuthApiException catch (e) {
+      throw AuthException(_mapSupabaseError(e.message));
+    } on SocketException {
+      throw AuthException('网络异常，请检查网络后重试');
+    } catch (e) {
+      throw AuthException('验证失败，请检查验证码是否正确');
+    }
+  }
+
+  /// 在 OTP 验证通过后更新密码
+  ///
+  /// 必须先成功调用 [verifyResetOtp] 获得临时 session 后才能调用此方法。
+  Future<void> updateResetPassword({required String newPassword}) async {
+    try {
+      await _client.auth.updateUser(sb.UserAttributes(password: newPassword));
+    } on sb.AuthApiException catch (e) {
+      throw AuthException(_mapSupabaseError(e.message));
+    } on SocketException {
+      throw AuthException('网络异常，请检查网络后重试');
+    } catch (e) {
+      throw AuthException('密码更新失败，请稍后重试');
+    }
+  }
+
+  /// Supabase 发送密码重置邮件（旧方案：邮件链接跳转，需配置域名）
+  ///
+  /// ⚠️ 已废弃：推荐使用 [sendResetOtp] + [verifyResetOtp] + [updateResetPassword]
+  /// 的 App 内 OTP 方案，无需配置域名。
+  Future<void> resetSupabasePassword({
+    required String email,
+    String? redirectTo,
+  }) async {
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        redirectTo: redirectTo,
+      );
+    } on sb.AuthApiException catch (e) {
+      throw AuthException(_mapSupabaseError(e.message));
+    } on SocketException {
+      throw AuthException('网络异常，请检查网络后重试');
+    } catch (e) {
+      throw AuthException('发送重置邮件失败，请稍后重试');
+    }
+  }
+
+  /// 本地用户重置密码（需管理员操作）
+  ///
+  /// 本地账号没有邮箱绑定，无法自动重置密码。
+  /// 此方法仅做校验，实际重置需要管理员介入：
+  /// - 管理员可通过 profile 页面的用户管理功能调用 changeLocalPassword
+  /// - 或通过 updateLocalPassword 直接设置新密码
+  ///
+  /// 返回本地用户信息（用于 UI 提示）
+  Future<local.User?> lookupLocalUser({required String username}) async {
+    final users = await BaseEntityExtension.findByCondition<local.User>(
+      () => local.User(),
+      where: 'username = ? AND auth_provider = ? AND is_deleted = 0',
+      whereArgs: [username.trim(), 'local'],
+      limit: 1,
+    );
+    if (users.isEmpty) return null;
+    return users.first;
+  }
+
   /// Supabase 完全登出（清除安全存储 + 本地当前用户 + 停止 Realtime）
   Future<void> signOut() async {
     _stopSessionWatch();

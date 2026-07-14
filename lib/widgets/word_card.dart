@@ -46,7 +46,6 @@ extension WordBookWordCardMapper on WordBook {
 ///   context,
 ///   word: 'example',
 ///   contextSentence: 'This is an example sentence.',
-///   isPaidMode: ref.read(subscriptionProvider).isPremium,
 ///   onSpeak: () => doSomething(),
 ///   onSaveWord: (word, contextSentence, sourceType, sourceCode, sourceTitle) async { ... },
 ///   sourceType: 'video',
@@ -54,10 +53,12 @@ extension WordBookWordCardMapper on WordBook {
 ///   sourceTitle: 'xxx',
 /// );
 /// ```
+///
+/// 付费模式由组件内部自主读取 subscriptionProvider 判定，
+/// 调用方无需传入 isPaidMode 参数。
 class WordCard extends ConsumerStatefulWidget {
   final String word;
   final String? contextSentence;
-  final bool isPaidMode;
   final VoidCallback? onSpeak;
 
   /// 收藏回调
@@ -78,7 +79,6 @@ class WordCard extends ConsumerStatefulWidget {
   const WordCard._internal({
     required this.word,
     this.contextSentence,
-    this.isPaidMode = false,
     this.onSpeak,
     this.onSaveWord,
     this.sourceType = 'video',
@@ -95,7 +95,6 @@ class WordCard extends ConsumerStatefulWidget {
     BuildContext context, {
     required String word,
     String? contextSentence,
-    bool isPaidMode = false,
     VoidCallback? onSpeak,
     Future<bool> Function({
       required String word,
@@ -117,7 +116,6 @@ class WordCard extends ConsumerStatefulWidget {
       builder: (ctx) => WordCard._internal(
         word: word,
         contextSentence: contextSentence,
-        isPaidMode: isPaidMode,
         onSpeak: onSpeak,
         onSaveWord: onSaveWord,
         sourceType: sourceType,
@@ -143,6 +141,9 @@ class _WordCardState extends ConsumerState<WordCard> {
   bool _rechargeShown = false;
   late final bool _isSingleWord;
 
+  /// 内部自主判定付费模式，不再依赖外部传入
+  bool get _isPaidMode => ref.read(subscriptionProvider).mode == SubscriptionMode.premium;
+
   @override
   void initState() {
     super.initState();
@@ -150,9 +151,7 @@ class _WordCardState extends ConsumerState<WordCard> {
     if (widget.onSpeak != null) {
       widget.onSpeak!.call();
     } else {
-      final mode = widget.isPaidMode
-          ? SubscriptionMode.premium
-          : SubscriptionMode.free;
+      final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
       if (_isSingleWord) {
         TtsService().speakWord(widget.word, mode: mode);
       } else {
@@ -191,7 +190,7 @@ class _WordCardState extends ConsumerState<WordCard> {
   Future<void> _fetchDefinition() async {
     try {
       WordDetail detail;
-      final isPremium = widget.isPaidMode;
+      final isPremium = _isPaidMode;
       final mode = isPremium ? SubscriptionMode.premium : SubscriptionMode.free;
 
       if (_isSingleWord) {

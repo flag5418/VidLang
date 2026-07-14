@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -130,7 +132,7 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
         backgroundColor: AppColors.primary,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -139,33 +141,33 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
               icon: const Icon(AppIcons.dns),
               label: const Text('测试 DNS 解析'),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             ElevatedButton.icon(
               onPressed: _testHttpConnection,
               icon: const Icon(AppIcons.http),
               label: const Text('测试 HTTP 连接'),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             ElevatedButton.icon(
               onPressed: _testRawSocket,
               icon: const Icon(AppIcons.cable),
               label: const Text('测试原始 Socket'),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
             Expanded(
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                 decoration: BoxDecoration(
                   color: AppColors.lightBackground,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                   border: Border.all(color: AppColors.borderLight),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(
                     _log.isEmpty ? '点击上方按钮开始测试...' : _log,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: 12,
+                      fontSize: adaptive.Adaptive.sp(context, 12),
                     ),
                   ),
                 ),

@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 import 'package:vidlang/utils/dialog_utils.dart';
 
 /// 余额不足充值引导弹窗
@@ -23,30 +24,30 @@ class RechargeDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pad = isIPad(context);
+    final pad = adaptive.isIPad(context);
     return Center(
       child: Material(
         color: Colors.transparent,
         child: Container(
           margin: EdgeInsets.symmetric(
-            horizontal: Adaptive.w(context, pad ? 48 : 32),
+            horizontal: adaptive.Adaptive.w(context, pad ? 48 : 32),
           ),
           padding: EdgeInsets.fromLTRB(
-            Adaptive.w(context, 24),
-            Adaptive.h(context, pad ? 34 : 28),
-            Adaptive.w(context, 24),
-            Adaptive.h(context, pad ? 24 : 20),
+            adaptive.Adaptive.w(context, 24),
+            adaptive.Adaptive.h(context, pad ? 34 : 28),
+            adaptive.Adaptive.w(context, 24),
+            adaptive.Adaptive.h(context, pad ? 24 : 20),
           ),
           decoration: BoxDecoration(
             color: AppColors.surfaceElevated,
             borderRadius: BorderRadius.circular(
-              Adaptive.r(context, pad ? 20 : 16),
+              adaptive.Adaptive.r(context, pad ? 20 : 16),
             ),
             border: Border.all(color: Colors.white12),
             boxShadow: [
               BoxShadow(
                 color: Colors.black54,
-                blurRadius: 20,
+                blurRadius: adaptive.Adaptive.w(context, 20),
                 offset: Offset(0, 8),
               ),
             ],
@@ -55,8 +56,8 @@ class RechargeDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: Adaptive.icon(context, 48),
-                height: Adaptive.icon(context, 48),
+                width: adaptive.Adaptive.icon(context, 48),
+                height: adaptive.Adaptive.icon(context, 48),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.orange.withValues(alpha: 0.15),
@@ -64,27 +65,27 @@ class RechargeDialog extends StatelessWidget {
                 child: Icon(
                   AppIcons.accountBalanceWallet,
                   color: Colors.orangeAccent,
-                  size: Adaptive.icon(context, pad ? 30 : 26),
+                  size: adaptive.Adaptive.icon(context, pad ? 30 : 26),
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, pad ? 20 : 16)),
+              SizedBox(height: adaptive.Adaptive.h(context, pad ? 20 : 16)),
 
               Text(
                 '余额不足',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: Adaptive.sp(context, pad ? 20 : 18),
+                  fontSize: adaptive.Adaptive.sp(context, pad ? 20 : 18),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, pad ? 10 : 8)),
+              SizedBox(height: adaptive.Adaptive.h(context, pad ? 10 : 8)),
 
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: Adaptive.sp(context, pad ? 16 : 14),
+                    fontSize: adaptive.Adaptive.sp(context, pad ? 16 : 14),
                     height: 1.5,
                   ),
                   children: [
@@ -112,7 +113,7 @@ class RechargeDialog extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: Adaptive.h(context, pad ? 24 : 20)),
+              SizedBox(height: adaptive.Adaptive.h(context, pad ? 24 : 20)),
 
               Row(
                 children: [
@@ -121,12 +122,12 @@ class RechargeDialog extends StatelessWidget {
                       onTap: dismiss,
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          vertical: Adaptive.h(context, pad ? 12 : 10),
+                          vertical: adaptive.Adaptive.h(context, pad ? 12 : 10),
                         ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.white24),
                           borderRadius: BorderRadius.circular(
-                            Adaptive.r(context, pad ? 28 : 24),
+                            adaptive.Adaptive.r(context, pad ? 28 : 24),
                           ),
                         ),
                         child: Text(
@@ -134,25 +135,25 @@ class RechargeDialog extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white54,
-                            fontSize: Adaptive.sp(context, pad ? 16 : 14),
+                            fontSize: adaptive.Adaptive.sp(context, pad ? 16 : 14),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(width: Adaptive.w(context, pad ? 14 : 12)),
+                  SizedBox(width: adaptive.Adaptive.w(context, pad ? 14 : 12)),
                   Expanded(
                     flex: 2,
                     child: GestureDetector(
                       onTap: goRecharge,
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          vertical: Adaptive.h(context, pad ? 12 : 10),
+                          vertical: adaptive.Adaptive.h(context, pad ? 12 : 10),
                         ),
                         decoration: BoxDecoration(
                           gradient: AppColors.sunsetGradient,
                           borderRadius: BorderRadius.circular(
-                            Adaptive.r(context, pad ? 28 : 24),
+                            adaptive.Adaptive.r(context, pad ? 28 : 24),
                           ),
                         ),
                         child: Text(
@@ -160,7 +161,7 @@ class RechargeDialog extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: Adaptive.sp(context, pad ? 16 : 14),
+                            fontSize: adaptive.Adaptive.sp(context, pad ? 16 : 14),
                             fontWeight: FontWeight.w600,
                           ),
                         ),

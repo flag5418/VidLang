@@ -1,4 +1,5 @@
-import 'dart:async';
+import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:ui';
@@ -19,7 +20,7 @@ import 'package:vidlang/services/tts_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 import 'package:vidlang/widgets/word_card.dart';
@@ -215,7 +216,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     final state = ref.watch(playerEngineProvider);
     final notifier = ref.read(playerEngineProvider.notifier);
     final subtitlesList = notifier.subtitles;
-    final isPad = Adaptive.of(context);
+    final isPad = adaptive.Adaptive.of(context);
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
     final hasSubtitles = subtitlesList.isNotEmpty;
@@ -341,14 +342,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                               _unlockOrientation();
                               Navigator.pop(context);
                             },
-                            borderRadius: BorderRadius.circular(22),
+                            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 22)),
                             child: SizedBox(
-                              width: Adaptive.w(context, 44),
-                              height: Adaptive.h(context, 44),
+                              width: adaptive.Adaptive.w(context, 44),
+                              height: adaptive.Adaptive.h(context, 44),
                               child: Icon(
                                 AppIcons.arrowBackIosNew,
                                 color: Colors.white,
-                                size: Adaptive.icon(context, 20),
+                                size: adaptive.Adaptive.icon(context, 20),
                               ),
                             ),
                           ),
@@ -358,7 +359,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                             state.title,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: Adaptive.sp(context, 16),
+                              fontSize: adaptive.Adaptive.sp(context, 16),
                               fontWeight: FontWeight.w600,
                             ),
                             maxLines: 1,
@@ -372,11 +373,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                             onTap: () {
                               setState(() => _showVideoList = !_showVideoList);
                             },
-                            borderRadius: BorderRadius.circular(22),
+                            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 22)),
                             child: Container(
-                              height: Adaptive.h(context, 44),
+                              height: adaptive.Adaptive.h(context, 44),
                               padding: EdgeInsets.only(
-                                left: Adaptive.w(context, 16),
+                                left: adaptive.Adaptive.w(context, 16),
                               ),
                               alignment: Alignment.centerRight,
                               child: Icon(
@@ -384,7 +385,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                                 color: _showVideoList
                                     ? colors.primary
                                     : Colors.white,
-                                size: Adaptive.icon(context, 24),
+                                size: adaptive.Adaptive.icon(context, 24),
                               ),
                             ),
                           ),
@@ -406,7 +407,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                   child: Container(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 4)),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -450,9 +451,9 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    width: MediaQuery.of(context).size.width > 600 ? 400 : 320,
+                    width: context.ipad ? adaptive.Adaptive.w(context, 400) : adaptive.Adaptive.w(context, 320),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.85),
+                      color: Colors.black.withValues(alpha: 0.72),
                       border: Border(
                         left: BorderSide(
                           color: Colors.white.withValues(alpha: 0.1),
@@ -505,14 +506,14 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             child: Row(
               children: [
                 Text(
                   '推荐视频',
                   style: TextStyle(
                     color: colors.textPrimary,
-                    fontSize: Adaptive.sp(context, 16),
+                    fontSize: adaptive.Adaptive.sp(context, 16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -529,7 +530,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                     ),
                   )
                 : ListView.builder(
-                    padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                    padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                     itemCount: list.length,
                     itemBuilder: (_, i) => _VideoListItem(
                       video: list[i],
@@ -692,7 +693,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               ? Column(
                   children: [
                     playbackControls,
-                    const SizedBox(height: 12),
+                    SizedBox(height: adaptive.Adaptive.h(context, 12)),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -704,7 +705,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               : Row(
                   children: [
                     playbackControls,
-                    const SizedBox(width: 12),
+                    SizedBox(width: adaptive.Adaptive.w(context, 12)),
                     Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -713,7 +714,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                           children: featureButtons
                               .map(
                                 (btn) => Padding(
-                                  padding: const EdgeInsets.only(right: 8),
+                                  padding: EdgeInsets.only(right: adaptive.Adaptive.w(context, 8)),
                                   child: btn,
                                 ),
                               )
@@ -763,8 +764,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
     double size = 28,
   }) {
     // 参考首页图标标准，iPad 上放大
-    final actualSize = isIPad(context) ? size * 1.35 : size;
-    final padding = isIPad(context) ? 12.0 : 8.0;
+    final actualSize = adaptive.isIPad(context) ? size * 1.35 : size;
+    final padding = adaptive.isIPad(context) ? 12.0 : 8.0;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -792,11 +793,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: Adaptive.w(context, 4),
-            vertical: Adaptive.h(context, 6),
+            horizontal: adaptive.Adaptive.w(context, 4),
+            vertical: adaptive.Adaptive.h(context, 6),
           ),
           child: Text(
             label,
@@ -804,7 +805,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               color: active
                   ? colors.primary
                   : (onTap == null ? Colors.white24 : Colors.white70),
-              fontSize: Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(context, 14),
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -841,7 +842,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       },
       offset: const Offset(0, -220),
       color: Colors.grey[900],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
       child: _plainTextBtn(
         _loopModeLabel(s.loopingMode),
         s.loopingMode != 'single_play',
@@ -852,13 +853,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         final active = s.loopingMode == opt['value'];
         return PopupMenuItem<String>(
           value: opt['value'],
-          height: isIPad(context) ? 44 : 36,
+          height: adaptive.isIPad(context) ? 44 : 36,
           child: Center(
             child: Text(
               opt['label']!,
               style: TextStyle(
                 color: active ? colors.primary : Colors.white,
-                fontSize: Adaptive.sp(context, 14),
+                fontSize: adaptive.Adaptive.sp(context, 14),
                 fontWeight: active ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -881,7 +882,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       },
       offset: const Offset(0, -220),
       color: Colors.grey[900],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
       child: _plainTextBtn(
         "${s.speed.toString().replaceAll(RegExp(r'\.0$'), '')}X",
         s.speed != 1.0,
@@ -892,13 +893,13 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
         final active = s.speed == sp;
         return PopupMenuItem<double>(
           value: sp,
-          height: isIPad(context) ? 44 : 36,
+          height: adaptive.isIPad(context) ? 44 : 36,
           child: Center(
             child: Text(
               '${sp}X',
               style: TextStyle(
                 color: active ? colors.primary : Colors.white,
-                fontSize: Adaptive.sp(context, 14),
+                fontSize: adaptive.Adaptive.sp(context, 14),
                 fontWeight: active ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -918,11 +919,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       alignment: Alignment.center,
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 4)),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 8)),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -942,8 +943,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                         ref.read(playerEngineProvider).playerState ==
                         PlayerState.playing;
                     notifier.player.pause();
-                    final subState = ref.read(subscriptionProvider);
-                    final isPremium = subState.mode == SubscriptionMode.premium;
                     final state2 = ref.read(playerEngineProvider);
                     final currentSub = _getCurrentSubtitle();
                     final canSave = WordBookService.isSingleWord(selectedText);
@@ -951,7 +950,6 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                       context,
                       word: selectedText,
                       contextSentence: currentSub?.content,
-                      isPaidMode: isPremium,
                       onSpeak: () => _speakSelectedWord(selectedText),
                       onSaveWord: canSave ? _handleSaveWord : null,
                       sourceType: 'video',
@@ -968,7 +966,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 sub.contentTranslate != null &&
                 sub.contentTranslate!.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 4)),
                 child: Text(
                   sub.contentTranslate!,
                   style: TextStyle(
@@ -1046,15 +1044,15 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       padding: EdgeInsets.symmetric(horizontal: _horizontalMargin),
       child: Row(
         children: [
-          const SizedBox(width: 24),
+          SizedBox(width: adaptive.Adaptive.w(context, 24)),
           Text(
             _fmtDuration(s.position),
             style: TextStyle(
               color: Colors.white70,
-              fontSize: Adaptive.sp(context, 13),
+              fontSize: adaptive.Adaptive.sp(context, 13),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: adaptive.Adaptive.w(context, 8)),
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -1080,10 +1078,10 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 height: 20, // 热区 20pt
                 alignment: Alignment.center,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
                   child: LinearProgressIndicator(
                     value: p,
-                    minHeight: isIPad(context) ? 6.0 : 4.0,
+                    minHeight: adaptive.isIPad(context) ? 6.0 : 4.0,
                     backgroundColor: Colors.white10,
                     valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
                   ),
@@ -1091,12 +1089,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: adaptive.Adaptive.w(context, 8)),
           Text(
             _fmtDuration(s.duration),
             style: TextStyle(
               color: Colors.white70,
-              fontSize: Adaptive.sp(context, 13),
+              fontSize: adaptive.Adaptive.sp(context, 13),
             ),
           ),
         ],
@@ -1116,8 +1114,8 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
       children: [
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: Adaptive.w(context, 16),
-            vertical: Adaptive.h(context, 16),
+            horizontal: adaptive.Adaptive.w(context, 16),
+            vertical: adaptive.Adaptive.h(context, 16),
           ),
           child: Row(
             children: [
@@ -1125,7 +1123,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 '视频列表',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: Adaptive.sp(context, 17),
+                  fontSize: adaptive.Adaptive.sp(context, 17),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1134,16 +1132,16 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                 '共 ${list.length} 集',
                 style: TextStyle(
                   color: Colors.white70,
-                  fontSize: Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(context, 14),
                 ),
               ),
-              SizedBox(width: Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(context, 12)),
               GestureDetector(
                 onTap: () => setState(() => _showVideoList = false),
                 child: Icon(
                   AppIcons.close,
                   color: Colors.white70,
-                  size: Adaptive.icon(context, 24),
+                  size: adaptive.Adaptive.icon(context, 24),
                 ),
               ),
             ],
@@ -1157,22 +1155,25 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                     children: [
                       Icon(
                         AppIcons.videoLibrary,
-                        size: Adaptive.icon(context, 52),
+                        size: adaptive.Adaptive.icon(context, 52),
                         color: Colors.white24,
                       ),
-                      SizedBox(height: Adaptive.h(context, 10)),
+                      SizedBox(height: adaptive.Adaptive.h(context, 10)),
                       Text(
                         '暂无可播视频',
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: Adaptive.sp(context, 15),
+                          fontSize: adaptive.Adaptive.sp(context, 15),
                         ),
                       ),
                     ],
                   ),
                 )
               : ListView.builder(
-                  padding: EdgeInsets.all(Adaptive.w(context, 12)),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: adaptive.Adaptive.w(context, 12),
+                    vertical: adaptive.Adaptive.h(context, 6),
+                  ),
                   itemCount: list.length,
                   itemBuilder: (_, i) => _VideoListItem(
                     video: list[i],
@@ -1240,7 +1241,7 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
                     height: 180,
                     decoration: BoxDecoration(
                       color: Colors.grey[900],
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                     ),
                     child: _buildVerticalFontSlider(s, n, colors),
                   ),
@@ -1273,12 +1274,12 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
           Text(
             'A',
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 20),
+              fontSize: adaptive.Adaptive.sp(context, 20),
               fontWeight: FontWeight.bold,
               color: colors.primary,
             ),
           ),
-          SizedBox(height: Adaptive.h(context, 4)),
+          SizedBox(height: adaptive.Adaptive.h(context, 4)),
           Expanded(
             child: RotatedBox(
               quarterTurns: 3,
@@ -1307,11 +1308,11 @@ class _PlayerPageState extends ConsumerState<PlayerPage>
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: adaptive.Adaptive.h(context, 4)),
           Text(
             'A',
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(context, 14),
               color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
@@ -1473,36 +1474,43 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.only(bottom: Adaptive.h(context, 8)),
+        padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
               curve: Curves.easeInOut,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 14)),
                 color: cur
-                    ? colors.primary.withValues(alpha: 0.12)
-                    : Colors.grey[850],
-                border: cur
-                    ? Border.all(
-                        color: colors.primary.withValues(alpha: 0.5),
-                        width: 1.5,
-                      )
-                    : null,
+                    ? colors.primary.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: cur
+                      ? colors.primary.withValues(alpha: 0.5)
+                      : Colors.white.withValues(alpha: 0.06),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.horizontal(
-                      left: Radius.circular(12),
+                      left: Radius.circular(14),
                     ),
                     child: SizedBox(
-                      width: isIPad(context) ? 130 : 110,
-                      height: isIPad(context) ? 88 : 76,
+                      width: adaptive.isIPad(context) ? 140 : 120,
+                      height: adaptive.isIPad(context) ? 100 : 86,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -1517,18 +1525,18 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                             top: 4,
                             left: 4,
                             child: Container(
-                              padding: const EdgeInsets.all(3),
+                              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 3)),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
                                 color: v.hasSubtitles
                                     ? colors.primary
                                     : Colors.black.withValues(alpha: 0.5),
                               ),
                               child: Icon(
                                 AppIcons.subtitles,
-                                size: Adaptive.icon(
+                                size: adaptive.Adaptive.icon(
                                   context,
-                                  isIPad(context) ? 13 : 10,
+                                  adaptive.isIPad(context) ? 13 : 10,
                                 ),
                                 color: v.hasSubtitles
                                     ? Colors.white
@@ -1546,16 +1554,16 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
                                   color: colors.primary,
                                 ),
                                 child: Text(
                                   '播放中',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: Adaptive.sp(
+                                    fontSize: adaptive.Adaptive.sp(
                                       context,
-                                      isIPad(context) ? 11 : 9,
+                                      adaptive.isIPad(context) ? 11 : 9,
                                     ),
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1568,7 +1576,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                   ),
                   Expanded(
                     child: Padding(
-                      padding: EdgeInsets.all(Adaptive.w(context, 8)),
+                      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 8)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1577,9 +1585,9 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                             v.name,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: Adaptive.sp(
+                              fontSize: adaptive.Adaptive.sp(
                                 context,
-                                isIPad(context) ? 17 : 15,
+                                adaptive.isIPad(context) ? 17 : 15,
                               ),
                               fontWeight: cur
                                   ? FontWeight.bold
@@ -1589,22 +1597,22 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: adaptive.Adaptive.h(context, 4)),
                           Row(
                             children: [
                               Icon(
                                 AppIcons.schedule,
-                                size: Adaptive.sp(context, 14),
+                                size: adaptive.Adaptive.sp(context, 14),
                                 color: Colors.white70,
                               ),
-                              SizedBox(width: Adaptive.w(context, 4)),
+                              SizedBox(width: adaptive.Adaptive.w(context, 4)),
                               Text(
                                 v.durationString,
                                 style: TextStyle(
                                   color: Colors.white70,
-                                  fontSize: Adaptive.sp(
+                                  fontSize: adaptive.Adaptive.sp(
                                     context,
-                                    isIPad(context) ? 15 : 13,
+                                    adaptive.isIPad(context) ? 15 : 13,
                                   ),
                                 ),
                               ),
@@ -1626,7 +1634,7 @@ class _VideoListItemState extends ConsumerState<_VideoListItem> {
   Widget _placeholder() => Center(
     child: Icon(
       AppIcons.movie,
-      size: Adaptive.icon(context, 48),
+      size: adaptive.Adaptive.icon(context, 48),
       color: Colors.white24,
     ),
   );

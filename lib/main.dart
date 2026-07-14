@@ -17,6 +17,7 @@ library;
 
 import 'dart:async';
 
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
@@ -55,13 +56,13 @@ import 'package:vidlang/services/global_error_handler.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
-import 'package:vidlang/utils/device_utils.dart';
 import 'package:vidlang/views/test/audio_test_page.dart';
 import 'package:vidlang/views/test/shengtong_http_test_page.dart';
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
-import 'package:tdesign_flutter/src/util/adaptive_extension.dart' as plugin_adaptive;
+import 'package:tdesign_flutter/src/util/adaptive_extension.dart'
+    as plugin_adaptive;
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -76,7 +77,7 @@ Future<AppDeviceType> _loadDeviceType() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString('device_type');
-    
+
     if (stored != null && stored.isNotEmpty) {
       // 有存储值，直接使用
       final type = AppDeviceType.values.firstWhere(
@@ -86,7 +87,7 @@ Future<AppDeviceType> _loadDeviceType() async {
       debugPrint('[Main] Loaded device type from storage: $type');
       return type;
     }
-    
+
     // 无存储值，检测并写入
     final detected = await DeviceInfoService.instance.detectDeviceType();
     await prefs.setString('device_type', detected.name);
@@ -108,20 +109,20 @@ void main() {
 
       // 1. 先读取本地存储的设备类型
       final deviceType = await _loadDeviceType();
-      
-      // 2. 根据设备类型设置屏幕方向
-      if (deviceType.isTablet) {
-        // iPad: 支持所有方向
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-          DeviceOrientation.portraitDown,
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-      } else {
-        // iPhone: 仅竖屏
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      }
+
+      //   // 2. 根据设备类型设置屏幕方向
+      //   if (deviceType.isTablet) {
+      //     // iPad: 支持所有方向
+      //     SystemChrome.setPreferredOrientations([
+      //       DeviceOrientation.portraitUp,
+      //       DeviceOrientation.portraitDown,
+      //       DeviceOrientation.landscapeLeft,
+      //       DeviceOrientation.landscapeRight,
+      //     ]);
+      //   } else {
+      //     // iPhone: 仅竖屏
+      //  }
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
       VscodeLogger.instance.init(
         appName: 'VidLang',
@@ -135,8 +136,8 @@ void main() {
 
       // 3. 初始化插件缓存 (转换为插件的枚举类型)
       plugin_adaptive.Adaptive.updateCache(
-        deviceType.isTablet 
-            ? plugin_adaptive.AppDeviceType.ipad 
+        deviceType.isTablet
+            ? plugin_adaptive.AppDeviceType.ipad
             : plugin_adaptive.AppDeviceType.iphone,
       );
 
@@ -242,7 +243,7 @@ Future<void> _initializeAsyncDependencies() async {
       );
     }
 
-    await DeviceUtils.initialize();
+    // await DeviceUtils.initialize();
 
     // 注意：本地模型（LocalAiService/LocalModelService）已移除
     // - iOS 免费模式：使用 IosNativeFeatures（系统 MLTranslation / AVSpeechSynthesizer / Vision）
@@ -311,13 +312,13 @@ class _VidLangAppState extends State<VidLangApp> {
       builder: (context, ref, _) {
         // 监听设备类型，当用户修改时重新构建 MaterialApp
         final deviceType = ref.watch(deviceTypeProvider);
-        
+
         // 同步更新插件缓存 (转换为插件的枚举类型)
-        plugin_adaptive.Adaptive.updateCache(
-          deviceType.isTablet 
-              ? plugin_adaptive.AppDeviceType.ipad 
-              : plugin_adaptive.AppDeviceType.iphone,
-        );
+        // plugin_adaptive.Adaptive.updateCache(
+        //   deviceType.isTablet
+        //       ? plugin_adaptive.AppDeviceType.ipad
+        //       : plugin_adaptive.AppDeviceType.iphone,
+        // );
 
         final designSize = DeviceConfig.getDesignSize(deviceType);
 
@@ -478,31 +479,27 @@ class _SchemaErrorPage extends StatelessWidget {
       backgroundColor: const Color(0xFF1F2937),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
+          padding: EdgeInsets.all(plugin_adaptive.Adaptive.w(context, 32)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                AppIcons.error,
-                color: Color(0xFFEF4444),
-                size: 64,
-              ),
-              const SizedBox(height: 24),
-              const Text(
+              Icon(AppIcons.error, color: const Color(0xFFEF4444), size: plugin_adaptive.Adaptive.icon(context, 64)),
+              SizedBox(height: plugin_adaptive.Adaptive.h(context, 24)),
+              Text(
                 '数据库初始化异常',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: plugin_adaptive.Adaptive.sp(context, 22),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
+               SizedBox(height: plugin_adaptive.Adaptive.h(context, 12)),
+              Text(
                 '应用启动时检测到数据库结构不一致，自动修复失败。\n请尝试重启应用，或联系技术支持。',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                style: TextStyle(color: const Color(0xFF9CA3AF), fontSize: plugin_adaptive.Adaptive.sp(context, 14)),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: plugin_adaptive.Adaptive.h(context, 32)),
               // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
               TDButton(
                 text: '重试',

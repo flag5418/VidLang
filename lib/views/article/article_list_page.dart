@@ -3,6 +3,7 @@ import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/views/article/article_import_page.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -62,7 +63,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -90,7 +91,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
     );
   }
 
-  Widget _buildEmptyState(ColorScheme colorScheme) {
+  Widget _buildEmptyState(AppColorsData colorScheme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -121,7 +122,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
     );
   }
 
-  Widget _buildList(ColorScheme colorScheme) {
+  Widget _buildList(AppColorsData colorScheme) {
     return RefreshIndicator(
       onRefresh: _loadArticles,
       child: ListView.builder(
@@ -135,7 +136,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
     );
   }
 
-  Widget _buildArticleCard(Article article, ColorScheme colorScheme) {
+  Widget _buildArticleCard(Article article, AppColorsData colorScheme) {
     final estimatedMinutes = (article.wordCount / 200).ceil().clamp(1, 999);
 
     return Card(
@@ -217,7 +218,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
     );
   }
 
-  Widget _buildStatChip(String text, ColorScheme colorScheme) {
+  Widget _buildStatChip(String text, AppColorsData colorScheme) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: Adaptive.w(context, 8),

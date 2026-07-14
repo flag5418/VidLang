@@ -1,37 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/unified_translation_service.dart';
 import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
-class WordBookLookupSheet extends StatefulWidget {
+class WordBookLookupSheet extends ConsumerStatefulWidget {
   final String word;
-  final bool isPaidMode;
 
   const WordBookLookupSheet({
     super.key,
     required this.word,
-    required this.isPaidMode,
   });
 
   @override
-  State<WordBookLookupSheet> createState() => _WordBookLookupSheetState();
+  ConsumerState<WordBookLookupSheet> createState() => _WordBookLookupSheetState();
 }
 
-class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
+class _WordBookLookupSheetState extends ConsumerState<WordBookLookupSheet> {
   bool _loading = false;
   String? _error;
   WordDetail? _result;
   bool _alreadySaved = false;
 
+  /// 内部自主判定付费模式
+  bool get _isPaidMode => ref.read(subscriptionProvider).mode == SubscriptionMode.premium;
+
   @override
   void initState() {
     super.initState();
     _checkSaved();
-    if (widget.isPaidMode) {
+    if (_isPaidMode) {
       _lookup();
     }
   }
@@ -51,7 +54,7 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
       _error = null;
     });
     try {
-      final mode = widget.isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+      final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
       final result = await UnifiedTranslationService.instance.translate(
         text: widget.word,
         mode: mode,
@@ -74,7 +77,7 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.4,
@@ -135,9 +138,9 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
   }
 
   Widget _buildContent(BuildContext context, ScrollController scrollController) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
 
-    if (!widget.isPaidMode) {
+    if (!_isPaidMode) {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(Adaptive.r(context, 40)),
@@ -289,12 +292,12 @@ class _WordBookLookupSheetState extends State<WordBookLookupSheet> {
     );
   }
 
-  Widget _buildDivider(ColorScheme cs) {
+  Widget _buildDivider(AppColorsData cs) {
     return Divider(height: Adaptive.h(context, 1), color: cs.outlineVariant.withValues(alpha: 0.4));
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     return SafeArea(
       top: false,
       child: Container(

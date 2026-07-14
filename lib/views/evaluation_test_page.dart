@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import '../widgets/pronunciation_evaluation_modal.dart';
 import '../models/evaluation_models.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -34,7 +36,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
         elevation: 2,
       ),
       body: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -42,17 +44,17 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
             Text(
               '评测功能演示',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: adaptive.Adaptive.sp(context, 24),
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).primaryColor,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Text(
               '点击下方按钮测试不同类型的跟读评测',
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: adaptive.Adaptive.h(context, 32)),
 
             // 测试按钮网格
             Expanded(
@@ -126,7 +128,7 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
       child: Container(
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
           border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
         ),
         child: Column(
@@ -136,23 +138,23 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(icon, color: AppColors.surface, size: 24),
+              child: Icon(icon, color: AppColors.surface, size: adaptive.Adaptive.icon(context, 24)),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Text(
               title,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: adaptive.Adaptive.sp(context, 16),
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: adaptive.Adaptive.h(context, 4)),
             Text(
               subtitle,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: adaptive.Adaptive.sp(context, 12),
                 color: color.withValues(alpha: 0.8),
               ),
               textAlign: TextAlign.center,
@@ -166,10 +168,10 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
   Widget _buildLastResult() {
     return Container(
       margin: const EdgeInsets.only(top: 24),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
       decoration: BoxDecoration(
         color: _lastResult!.scoreColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
         border: Border.all(
           color: _lastResult!.scoreColor.withValues(alpha: 0.3),
         ),
@@ -182,13 +184,13 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               Icon(
                 AppIcons.analytics,
                 color: _lastResult!.scoreColor,
-                size: 20,
+                size: adaptive.Adaptive.icon(context, 20),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Text(
                 '最近评测结果',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: adaptive.Adaptive.sp(context, 16),
                   fontWeight: FontWeight.bold,
                   color: _lastResult!.scoreColor,
                 ),
@@ -201,12 +203,12 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
                 ),
                 decoration: BoxDecoration(
                   color: _lastResult!.scoreColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                 ),
                 child: Text(
                   '${_lastResult!.overallScore.toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.bold,
                     color: AppColors.surface,
                   ),
@@ -214,14 +216,14 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: adaptive.Adaptive.h(context, 12)),
 
           // 文本预览
           Text(
             '评测文本: ${_lastResult!.referenceText.length > 50 ? "${_lastResult!.referenceText.substring(0, 50)}..." : _lastResult!.referenceText}',
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: adaptive.Adaptive.h(context, 8)),
 
           // 维度得分
           Row(
@@ -229,11 +231,11 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
               Expanded(
                 child: _buildScoreChip('流利度', _lastResult!.fluencyScore),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Expanded(
                 child: _buildScoreChip('准确度', _lastResult!.accuracyScore),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Expanded(
                 child: _buildScoreChip('完整度', _lastResult!.completenessScore),
               ),
@@ -252,22 +254,22 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
         : AppColors.error;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 4)),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
       ),
       child: Column(
         children: [
           Text(
             '${score.toInt()}%',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: adaptive.Adaptive.sp(context, 12),
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          Text(label, style: TextStyle(fontSize: 10, color: color)),
+          Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 10), color: color)),
         ],
       ),
     );

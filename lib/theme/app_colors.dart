@@ -31,6 +31,27 @@ class AppColorsData {
   final Color articleType;
   final Color audioType;
 
+  // ─── 扩展语义色（覆盖 colorScheme 全集）─────
+  final Color onSurface;
+  final Color onSurfaceVariant;
+  final Color onPrimary;
+  final Color primaryContainer;
+  final Color outline;
+  final Color outlineVariant;
+  final Color surfaceContainerLow;
+  final Color surfaceContainer;
+  final Color surfaceContainerHigh;
+  final Color surfaceContainerHighest;
+  final Color errorColor;
+  final Color tertiary;
+  final Color tertiaryContainer;
+  final Color onTertiaryContainer;
+  final Color inversePrimary;
+  final Color onError;
+  final Color onErrorContainer;
+  final Color onPrimaryContainer;
+  final Color errorContainer;
+
   const AppColorsData({
     required this.background,
     required this.surface,
@@ -45,6 +66,26 @@ class AppColorsData {
     required this.videoType,
     required this.articleType,
     required this.audioType,
+    // ─── 扩展语义色 ──────────────────────────────
+    required this.onSurface,
+    required this.onSurfaceVariant,
+    required this.onPrimary,
+    required this.primaryContainer,
+    required this.outline,
+    required this.outlineVariant,
+    required this.surfaceContainerLow,
+    required this.surfaceContainer,
+    required this.surfaceContainerHigh,
+    required this.surfaceContainerHighest,
+    required this.errorColor,
+    required this.tertiary,
+    required this.tertiaryContainer,
+    required this.onTertiaryContainer,
+    required this.inversePrimary,
+    required this.onError,
+    required this.onErrorContainer,
+    required this.onPrimaryContainer,
+    required this.errorContainer,
   });
 
   static const light = AppColorsData(
@@ -61,6 +102,26 @@ class AppColorsData {
     videoType:    Color(0xFF3B6EFF),
     articleType:  Color(0xFFF97316),
     audioType:    Color(0xFF8B5CF6),
+    // ─── 扩展语义色（亮色）──────────────────────────
+    onSurface:           Color(0xFF0F172A),
+    onSurfaceVariant:    Color(0xFF475569),
+    onPrimary:           Color(0xFFFFFFFF),
+    primaryContainer:    Color(0xFFDBEAFE),
+    outline:             Color(0xFFCBD5E1),
+    outlineVariant:       Color(0xFF94A3B8),
+    surfaceContainerLow:     Color(0xFFF8FAFC),
+    surfaceContainer:        Color(0xFFF1F5F9),
+    surfaceContainerHigh:    Color(0xFFE2E8F0),
+    surfaceContainerHighest:  Color(0xFFEFF6FF),
+    errorColor:           Color(0xFFEF4444),
+    tertiary:             Color(0xFF3B6EFF),
+    tertiaryContainer:    Color(0xFFDCE8FF),
+    onTertiaryContainer:  Color(0xFF001946),
+    inversePrimary:       Color(0xFF2563EB),
+    onError:              Color(0xFFFFFFFF),
+    onErrorContainer:     Color(0xFF9B0021),
+    onPrimaryContainer:   Color(0xFF001B3E),
+    errorContainer:       Color(0xFFFFDAD6),
   );
 
   static const dark = AppColorsData(
@@ -77,14 +138,41 @@ class AppColorsData {
     videoType:    Color(0xFF60A5FA),
     articleType:  Color(0xFFFB923C),
     audioType:    Color(0xFFA78BFA),
+    // ─── 扩展语义色（暗色）──────────────────────────
+    onSurface:           Color(0xFFFFFFFF),
+    onSurfaceVariant:    Color(0xFFA1A1AA),
+    onPrimary:           Color(0xFFFFFFFF),
+    primaryContainer:    Color(0xFF0D2D68),
+    outline:             Color(0xFF3A3A3A),
+    outlineVariant:       Color(0xFF484848),
+    surfaceContainerLow:     Color(0xFF141414),
+    surfaceContainer:        Color(0xFF1E1E1E),
+    surfaceContainerHigh:    Color(0xFF27272A),
+    surfaceContainerHighest:  Color(0xFF27272A),
+    errorColor:           Color(0xFFF87171),
+    tertiary:             Color(0xFFAAC7FF),
+    tertiaryContainer:    Color(0xFF00306A),
+    onTertiaryContainer:  Color(0xFFD2E2FF),
+    inversePrimary:       Color(0xFF60A5FA),
+    onError:              Color(0xFFFFFFFF),
+    onErrorContainer:     Color(0xFF69000F),
+    onPrimaryContainer:   Color(0xFFD2E2FF),
+    errorContainer:       Color(0xFF69000F),
   );
 }
 
 extension AppColorsExtension on BuildContext {
+  /// 语义颜色（自动适配亮/暗主题）
   AppColorsData get colors {
     final brightness = Theme.of(this).brightness;
     return brightness == Brightness.dark ? AppColorsData.dark : AppColorsData.light;
   }
+
+  /// 当前主题亮度（统一入口，禁止再使用 Theme.of(context).brightness）
+  Brightness get brightness => Theme.of(this).brightness;
+
+  /// 是否暗色模式
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -104,6 +192,7 @@ class AppColors {
   static const Color error   = Color(0xFFEF4444);
   static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFF59E0B);
+  static const Color premium = Color(0xFFF59E0B); // VIP/高级会员金色
 
   // ─── 中性色（亮色）──────────────────────────────
   static const Color textPrimary    = Color(0xFF0F172A);

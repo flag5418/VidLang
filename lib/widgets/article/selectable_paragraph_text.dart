@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
 /// 段落内单词信息
@@ -40,7 +41,7 @@ class SelectableParagraphText extends StatefulWidget {
   final double fontSize;
   final FontWeight? fontWeight;
   final Color textColor;
-  final ColorScheme colorScheme;
+  final AppColorsData colorScheme;
 
   /// 控制器（用于外部清除选区）
   final SelectableParagraphTextController? controller;

@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 class RecognitionPromptDialog extends StatelessWidget {
   final String audioType;
@@ -22,47 +23,47 @@ class RecognitionPromptDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMusic = audioType == 'music';
     final matchLabel = isMusic ? '智能搜索歌词' : '智能识别字幕';
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
 
     return Dialog(
       backgroundColor: cs.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16))),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 24), vertical: adaptive.Adaptive.h(context, 20)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isMusic ? AppIcons.lyrics : AppIcons.subtitlesOutline,
               color: cs.primary,
-              size: 36,
+              size: adaptive.Adaptive.icon(context, 36),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             Text(
               isMusic ? '暂无歌词' : '暂无字幕',
-              style: TextStyle(color: cs.onSurface, fontSize: Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
+              style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             Text(
               isMusic
                   ? '可以选择搜索歌词或手动导入LRC文件'
                   : '可以选择AI识别音频内容或手动导入字幕文件',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: Adaptive.sp(context, 12)),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 12)),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
-            _actionBtn(matchLabel, AppIcons.autoAwesome, cs.primary, onSmartMatch, cs),
-            const SizedBox(height: 10),
-            _actionBtn('手动导入', AppIcons.upload, cs.secondary, onManualImport, cs),
-            const SizedBox(height: 10),
-            _actionBtn('先欣赏吧', AppIcons.headphones, cs.onSurfaceVariant, onAppreciate, cs),
+            SizedBox(height: adaptive.Adaptive.h(context, 20)),
+            _actionBtn(matchLabel, AppIcons.autoAwesome, cs.primary, onSmartMatch, cs, context),
+            SizedBox(height: adaptive.Adaptive.h(context, 10)),
+            _actionBtn('手动导入', AppIcons.upload, cs.primaryDark, onManualImport, cs, context),
+            SizedBox(height: adaptive.Adaptive.h(context, 10)),
+            _actionBtn('先欣赏吧', AppIcons.headphones, cs.onSurfaceVariant, onAppreciate, cs, context),
           ],
         ),
       ),
     );
   }
 
-  Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap, ColorScheme cs) {
+  Widget _actionBtn(String label, IconData icon, Color color, VoidCallback onTap, AppColorsData cs, BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: GestureDetector(
@@ -71,17 +72,17 @@ class RecognitionPromptDialog extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
             border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 8),
+              Icon(icon, color: color, size: adaptive.Adaptive.icon(context, 18)),
+              SizedBox(width: adaptive.Adaptive.w(context, 8)),
               Text(
                 label,
-                style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(color: color, fontSize: adaptive.Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
               ),
             ],
           ),

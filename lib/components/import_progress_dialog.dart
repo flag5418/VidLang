@@ -3,6 +3,8 @@
 /// 提供美观的进度展示，包含动画效果和进度条
 library;
 import 'package:flutter/material.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 导入进度弹窗
 /// 
@@ -53,59 +55,59 @@ class _ImportProgressDialogState extends State<ImportProgressDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
+      insetPadding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+          color: cs.surface,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
+              blurRadius: adaptive.Adaptive.w(context, 20),
               offset: const Offset(0, 10),
             ),
           ],
         ),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 动画图标
-            _buildAnimationIcon(colorScheme),
-            const SizedBox(height: 20),
+            _buildAnimationIcon(cs),
+            SizedBox(height: adaptive.Adaptive.h(context, 20)),
             // 标题
             Text(
               widget.title,
               style: TextStyle(
-                fontSize: 18,
+                fontSize: adaptive.Adaptive.sp(context, 18),
                 fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
+                color: cs.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             // 状态文本
             Text(
               '正在处理视频文件...',
               style: TextStyle(
-                fontSize: 14,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: adaptive.Adaptive.sp(context, 14),
+                color: cs.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: adaptive.Adaptive.h(context, 24)),
             // 进度条
-            _buildProgressBar(colorScheme),
-            const SizedBox(height: 12),
+            _buildProgressBar(cs),
+            SizedBox(height: adaptive.Adaptive.h(context, 12)),
             // 进度文字
             Text(
               '$_current / $_total',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: adaptive.Adaptive.sp(context, 14),
                 fontWeight: FontWeight.w500,
-                color: colorScheme.onSurfaceVariant,
+                color: cs.onSurfaceVariant,
               ),
             ),
           ],
@@ -115,16 +117,16 @@ class _ImportProgressDialogState extends State<ImportProgressDialog> {
   }
 
   /// 构建动画图标
-  Widget _buildAnimationIcon(ColorScheme colorScheme) {
+  Widget _buildAnimationIcon(AppColorsData cs) {
     return Container(
-      width: 80,
-      height: 80,
+      width: adaptive.Adaptive.w(context, 80),
+      height: adaptive.Adaptive.w(context, 80),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(40),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 40)),
         gradient: LinearGradient(
           colors: [
-            colorScheme.primary,
-            colorScheme.primaryContainer,
+            cs.primary,
+            cs.primaryContainer,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -140,19 +142,19 @@ class _ImportProgressDialogState extends State<ImportProgressDialog> {
   }
 
   /// 构建进度条
-  Widget _buildProgressBar(ColorScheme colorScheme) {
+  Widget _buildProgressBar(AppColorsData cs) {
     return Container(
-      height: 8,
+      height: adaptive.Adaptive.h(context, 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+        color: cs.surfaceContainerHighest,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
         child: LinearProgressIndicator(
           value: _progress,
           backgroundColor: Colors.transparent,
-          valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+          valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
           minHeight: 8,
         ),
       ),

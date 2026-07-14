@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/providers/conversation_provider.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -124,7 +126,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TDLoading(size: TDLoadingSize.medium, icon: TDLoadingIcon.circle),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               '加载中...',
               style: TextStyle(
@@ -140,12 +142,12 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(AppIcons.error, color: context.colors.error, size: 48),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 '加载失败',
                 style: TextStyle(
@@ -153,7 +155,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                   fontSize: 14,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 _error!,
                 style: TextStyle(
@@ -162,7 +164,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
               TDButton(
                 text: '重试',
@@ -179,7 +181,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     if (_records.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 32)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -196,7 +198,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                   color: context.colors.primary,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Text(
                 '暂无对话记录',
                 style: TextStyle(
@@ -205,7 +207,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                   color: context.colors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 '开始和 AI 练习口语后，对话记录会显示在这里',
                 style: TextStyle(
@@ -224,9 +226,9 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       onRefresh: _loadHistory,
       color: context.colors.primary,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
         itemCount: _records.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => SizedBox(height: 10),
         itemBuilder: (context, index) {
           return _buildRecordCard(_records[index]);
         },
@@ -241,7 +243,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       onTap: () => _navigateToDetail(record),
       onLongPress: () => _deleteRecord(record),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.outlinedCard),
@@ -270,7 +272,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                 size: 22,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             // 中间内容
             Expanded(
               child: Column(
@@ -294,7 +296,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                       _buildStatusBadge(record.status, colors),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   // 预览文本
                   if (record.firstMessagePreview != null)
                     Text(
@@ -307,7 +309,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   // 底部信息行
                   Row(
                     children: [
@@ -329,18 +331,18 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       // 轮数
                       Icon(AppIcons.forum, size: 13, color: colors.textWeak),
-                      const SizedBox(width: 2),
+                      SizedBox(width: 2),
                       Text(
                         '${record.turnCount}轮',
                         style: TextStyle(fontSize: 12, color: colors.textWeak),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       // 时长
                       Icon(AppIcons.schedule, size: 13, color: colors.textWeak),
-                      const SizedBox(width: 2),
+                      SizedBox(width: 2),
                       Text(
                         record.formattedDuration,
                         style: TextStyle(fontSize: 12, color: colors.textWeak),
@@ -367,7 +369,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     String label;
     switch (status) {
       case 'completed':
-        badgeColor = Colors.green;
+        badgeColor = AppColors.success;
         label = '已完成';
         break;
       case 'interrupted':
@@ -384,7 +386,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
       decoration: BoxDecoration(
         color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
@@ -416,7 +418,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       case 'subtitle':
         return colors.primary;
       case 'article':
-        return Colors.orange;
+        return AppColors.warning;
       default:
         return colors.textSecondary;
     }
@@ -514,7 +516,7 @@ class ConversationDetailPage extends ConsumerWidget {
         children: [
           // 对话信息头部
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 10)),
             decoration: BoxDecoration(
               color: colors.surface,
               border: Border(
@@ -527,11 +529,11 @@ class ConversationDetailPage extends ConsumerWidget {
             child: Row(
               children: [
                 _infoChip('${record.turnCount} 轮', AppIcons.forum, colors),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 _infoChip(record.formattedDuration, AppIcons.schedule, colors),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 _infoChip(record.difficultyLabel, AppIcons.school, colors),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 _infoChip(record.voice, AppIcons.recordVoiceOver, colors),
               ],
             ),
@@ -569,7 +571,7 @@ class ConversationDetailPage extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: colors.textSecondary),
-        const SizedBox(width: 3),
+        SizedBox(width: 3),
         Text(text, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
       ],
     );
@@ -646,9 +648,9 @@ class ConversationDetailPage extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 48),
+            SizedBox(width: 48),
           ] else ...[
-            const SizedBox(width: 48),
+            SizedBox(width: 48),
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(

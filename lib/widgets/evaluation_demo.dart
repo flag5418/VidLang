@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../views/evaluation_test_page.dart';
 import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 /// 评测功能演示组件 - 可直接在应用中使用
 class EvaluationDemo extends StatelessWidget {
@@ -18,27 +19,27 @@ class EvaluationDemo extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(AppIcons.recordVoiceOver, size: 80, color: Colors.green),
-            const SizedBox(height: 24),
+            Icon(AppIcons.recordVoiceOver, size: adaptive.Adaptive.icon(context, 80), color: Colors.green),
+            SizedBox(height: adaptive.Adaptive.h(context, 24)),
             Text(
               'VidLang 跟读评测系统',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: adaptive.Adaptive.sp(context, 24),
                 fontWeight: FontWeight.bold,
                 color: Colors.green,
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
             Text(
               '多维度智能发音评测\n支持免费STT和付费精听模式',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: adaptive.Adaptive.sp(context, 16),
                 color: Colors.grey.shade600,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: adaptive.Adaptive.h(context, 40)),
 
             // 开始测试按钮
             ElevatedButton.icon(
@@ -55,36 +56,36 @@ class EvaluationDemo extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(context, 32),
+                  vertical: adaptive.Adaptive.h(context, 16),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: adaptive.Adaptive.h(context, 20)),
 
             // 功能特色
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.all(20),
+              margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 40)),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
               decoration: BoxDecoration(
                 color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
               ),
               child: Column(
                 children: [
                   Text(
                     '功能特色',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: adaptive.Adaptive.sp(context, 18),
                       fontWeight: FontWeight.bold,
                       color: Colors.green.shade700,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
                   _buildFeatureItem(AppIcons.micNone, '免费STT识别', '基础语音识别和对比'),
                   _buildFeatureItem(AppIcons.textFields, '单词精听', '音素级精准发音分析'),
                   _buildFeatureItem(
@@ -103,20 +104,21 @@ class EvaluationDemo extends StatelessWidget {
   }
 
   Widget _buildFeatureItem(IconData icon, String title, String description) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return Builder(
+      builder: (context) => Padding(
+        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: adaptive.Adaptive.w(context, 32),
+            height: adaptive.Adaptive.w(context, 32),
             decoration: BoxDecoration(
               color: Colors.green,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
             ),
-            child: Icon(icon, color: Colors.white, size: 16),
+            child: Icon(icon, color: Colors.white, size: adaptive.Adaptive.icon(context, 16)),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: adaptive.Adaptive.w(context, 12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,19 +126,20 @@ class EvaluationDemo extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.w600,
                     color: Colors.green.shade700,
                   ),
                 ),
                 Text(
                   description,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: Colors.grey.shade600),
                 ),
               ],
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -168,29 +171,29 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
         children: [
           // 模拟视频播放区域
           Container(
-            height: 200,
+            height: adaptive.Adaptive.h(context, 200),
             color: Colors.black,
-            child: const Center(
+            child: Center(
               child: Text(
                 '视频播放区域',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(context, 18)),
               ),
             ),
           ),
 
           // 字幕显示区域
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             child: Column(
               children: [
                 Text(
                   '当前字幕',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: Colors.grey.shade600),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: adaptive.Adaptive.h(context, 8)),
                 Text(
                   _currentSubtitle,
-                  style: const TextStyle(fontSize: 16, height: 1.5),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), height: 1.5),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -201,7 +204,7 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
 
           // 播放控制和评测按钮
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -209,29 +212,25 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                 IconButton(
                   onPressed: () {},
                   icon: const Icon(AppIcons.skipPrevious),
-                  iconSize: 32,
+                  iconSize: adaptive.Adaptive.icon(context, 32),
                 ),
                 IconButton(
                   onPressed: () {},
                   icon: const Icon(AppIcons.play),
-                  iconSize: 48,
+                  iconSize: adaptive.Adaptive.icon(context, 48),
                   color: Colors.blue,
                 ),
                 IconButton(
                   onPressed: () {},
                   icon: const Icon(AppIcons.skipNext),
-                  iconSize: 32,
+                  iconSize: adaptive.Adaptive.icon(context, 32),
                 ),
 
                 // 评测功能按钮
                 Container(
-                  margin: const EdgeInsets.only(left: 20),
+                  margin: EdgeInsets.only(left: adaptive.Adaptive.w(context, 20)),
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // 在实际应用中，这里应该调用:
-                      // showPronunciationEvaluation(context, text: _currentSubtitle);
-
-                      // 临时演示用测试页面
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -239,17 +238,17 @@ class _PlayerWithEvaluationDemoState extends State<PlayerWithEvaluationDemo> {
                         ),
                       );
                     },
-                    icon: const Icon(AppIcons.mic, size: 20),
+                    icon: Icon(AppIcons.mic, size: adaptive.Adaptive.icon(context, 20)),
                     label: const Text('跟读评测'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: adaptive.Adaptive.w(context, 16),
+                        vertical: adaptive.Adaptive.h(context, 12),
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
                       ),
                     ),
                   ),

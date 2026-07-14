@@ -1,6 +1,7 @@
 library;
 
-import 'dart:io';
+import 'dart:io';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,8 +20,9 @@ import 'package:vidlang/views/word_book/widgets/snippet_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_nav_panel.dart';
 import 'package:vidlang/widgets/word_card.dart';
+import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 import 'word_book_detail_sheet.dart';
 import 'word_book_review_page.dart';
@@ -154,9 +156,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final brightness = Theme.of(context).brightness;
-    final isNarrow = MediaQuery.of(context).size.width < 900;
+    final isNarrow = !context.ipad; // iPhone 下使用 Drawer 布局，iPad 使用侧边栏布局
 
     return GestureDetector(
       onTap: _selectionMode ? _cancelSelection : null,
@@ -175,26 +177,26 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
               Container(
                 color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
                 padding: EdgeInsets.fromLTRB(
-                  Adaptive.r(context, 16),
-                  Adaptive.h(context, 12),
-                  Adaptive.r(context, 16),
-                  Adaptive.h(context, 14),
+                  adaptive.Adaptive.r(context, 16),
+                  adaptive.Adaptive.h(context, 12),
+                  adaptive.Adaptive.r(context, 16),
+                  adaptive.Adaptive.h(context, 14),
                 ),
                 child: _buildHeader(context, isNarrow),
               ),
               // ── Tab + 搜索：紧凑工具栏层 ──
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  Adaptive.r(context, 16),
-                  Adaptive.h(context, 12),
-                  Adaptive.r(context, 16),
+                  adaptive.Adaptive.r(context, 16),
+                  adaptive.Adaptive.h(context, 12),
+                  adaptive.Adaptive.r(context, 16),
                   0,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildTabBar(context),
-                    SizedBox(height: Adaptive.h(context, 8)),
+                    SizedBox(height: adaptive.Adaptive.h(context, 8)),
                     _buildSearchBar(context),
                   ],
                 ),
@@ -203,28 +205,28 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
               if (_selectionMode)
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: Adaptive.r(context, 16),
-                    vertical: Adaptive.h(context, 6),
+                    horizontal: adaptive.Adaptive.r(context, 16),
+                    vertical: adaptive.Adaptive.h(context, 6),
                   ),
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(context, 12),
-                      vertical: Adaptive.h(context, 8),
+                      horizontal: adaptive.Adaptive.w(context, 12),
+                      vertical: adaptive.Adaptive.h(context, 8),
                     ),
                     decoration: BoxDecoration(
                       color: colorScheme.primaryContainer.withValues(
                         alpha: 0.3,
                       ),
                       borderRadius: BorderRadius.circular(
-                        Adaptive.r(context, 10),
+                        adaptive.Adaptive.r(context, 10),
                       ),
                     ),
                     child: Text(
                       '已选择 ${_selectedWordCodes.length}/${_words.length}，点击下方按钮开始，或点击任意位置取消',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 12),
+                        fontSize: adaptive.Adaptive.sp(context, 12),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -236,24 +238,24 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                     ? const Center(child: CircularProgressIndicator())
                     : Padding(
                         padding: EdgeInsets.fromLTRB(
-                          Adaptive.r(context, 16),
-                          Adaptive.h(context, 12),
-                          Adaptive.r(context, 16),
-                          Adaptive.h(context, 8),
+                          adaptive.Adaptive.r(context, 16),
+                          adaptive.Adaptive.h(context, 12),
+                          adaptive.Adaptive.r(context, 16),
+                          adaptive.Adaptive.h(context, 8),
                         ),
                         child: LayoutBuilder(
                           builder: (context, constraints) {
                             final wide =
                                 constraints.maxWidth >=
-                                Adaptive.w(context, 900);
+                                adaptive.Adaptive.w(context, 900);
                             if (wide) {
                               return Row(
                                 children: [
                                   SizedBox(
-                                    width: Adaptive.w(context, 240),
+                                    width: adaptive.Adaptive.w(context, 240),
                                     child: _buildNavPanel(),
                                   ),
-                                  SizedBox(width: Adaptive.w(context, 16)),
+                                  SizedBox(width: adaptive.Adaptive.w(context, 16)),
                                   Expanded(
                                     child: _words.isEmpty
                                         ? _buildEmptyState(context)
@@ -273,8 +275,8 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
               if (!_selectionMode && _allWords.isNotEmpty)
                 Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: Adaptive.r(context, 16),
-                    vertical: Adaptive.h(context, 10),
+                    horizontal: adaptive.Adaptive.r(context, 16),
+                    vertical: adaptive.Adaptive.h(context, 10),
                   ),
                   decoration: BoxDecoration(
                     border: Border(
@@ -303,10 +305,10 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
 
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
-      width: Adaptive.w(context, 280),
+      width: adaptive.Adaptive.w(context, 280),
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(Adaptive.r(context, 12)),
+          padding: EdgeInsets.all(adaptive.Adaptive.r(context, 12)),
           child: _buildNavPanel(),
         ),
       ),
@@ -314,7 +316,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   }
 
   Widget _buildHeader(BuildContext context, bool isNarrow) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final title = _isKnowledgeBase ? '知识库' : '生词本';
     final unitLabel = _isKnowledgeBase ? '句' : '词';
 
@@ -322,14 +324,14 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
       children: [
         if (isNarrow)
           Padding(
-            padding: EdgeInsets.only(right: Adaptive.w(context, 4)),
+            padding: EdgeInsets.only(right: adaptive.Adaptive.w(context, 4)),
             child: IconButton(
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               icon: const Icon(AppIcons.menu),
               tooltip: '导航',
               constraints: BoxConstraints(
-                minWidth: Adaptive.w(context, 36),
-                minHeight: Adaptive.h(context, 36),
+                minWidth: adaptive.Adaptive.w(context, 36),
+                minHeight: adaptive.Adaptive.h(context, 36),
               ),
               padding: EdgeInsets.zero,
             ),
@@ -337,25 +339,25 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         Text(
           title,
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 22),
+            fontSize: adaptive.Adaptive.sp(context, 22),
             fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
           ),
         ),
-        SizedBox(width: Adaptive.w(context, 8)),
+        SizedBox(width: adaptive.Adaptive.w(context, 8)),
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: Adaptive.w(context, 8),
-            vertical: Adaptive.h(context, 3),
+            horizontal: adaptive.Adaptive.w(context, 8),
+            vertical: adaptive.Adaptive.h(context, 3),
           ),
           decoration: BoxDecoration(
             color: colorScheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 999)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 999)),
           ),
           child: Text(
             '${_allWords.length}$unitLabel',
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 13),
+              fontSize: adaptive.Adaptive.sp(context, 13),
               fontWeight: FontWeight.w600,
               color: colorScheme.primary,
             ),
@@ -365,7 +367,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         Text(
           '今日 $_todayReviewed/$_totalWords',
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 12),
+            fontSize: adaptive.Adaptive.sp(context, 12),
             color: colorScheme.onSurfaceVariant,
           ),
         ),
@@ -374,17 +376,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   }
 
   Widget _buildTabBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
       ),
-      padding: EdgeInsets.all(Adaptive.r(context, 3)),
+      padding: EdgeInsets.all(adaptive.Adaptive.r(context, 3)),
       child: Row(
         children: [
           _buildTabChip(context, '单词', AppIcons.spellcheck, 0),
-          SizedBox(width: Adaptive.w(context, 3)),
+          SizedBox(width: adaptive.Adaptive.w(context, 3)),
           _buildTabChip(context, '知识库', AppIcons.libraryBooks, 1),
         ],
       ),
@@ -397,17 +399,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     IconData icon,
     int tabIndex,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final selected = _currentTab == tabIndex;
     return Expanded(
       child: GestureDetector(
         onTap: () => _onTabChanged(tabIndex),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: Adaptive.h(context, 8)),
+          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
           decoration: BoxDecoration(
             color: selected ? colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(Adaptive.r(context, 8)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
           ),
           alignment: Alignment.center,
           child: Row(
@@ -415,16 +417,16 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
             children: [
               Icon(
                 icon,
-                size: Adaptive.sp(context, 16),
+                size: adaptive.Adaptive.sp(context, 16),
                 color: selected
                     ? colorScheme.onPrimary
                     : colorScheme.onSurfaceVariant,
               ),
-              SizedBox(width: Adaptive.w(context, 4)),
+              SizedBox(width: adaptive.Adaptive.w(context, 4)),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 13),
+                  fontSize: adaptive.Adaptive.sp(context, 13),
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: selected
                       ? colorScheme.onPrimary
@@ -439,7 +441,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   }
 
   Widget _buildSearchBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final hint = _isKnowledgeBase ? '搜索句子或备注' : '搜索单词或上下文';
     final hasText = _searchController.text.isNotEmpty;
     final isIOS = Platform.isIOS;
@@ -463,29 +465,29 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
       controller: _searchController,
       onSubmitted: (_) => _handleSearchSubmit(),
       style: TextStyle(
-        fontSize: Adaptive.sp(context, 16),
+        fontSize: adaptive.Adaptive.sp(context, 16),
         color: colorScheme.onSurface,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          fontSize: Adaptive.sp(context, 15),
+          fontSize: adaptive.Adaptive.sp(context, 15),
           color: colorScheme.onSurfaceVariant,
         ),
         prefixIcon: Icon(
           AppIcons.search,
-          size: Adaptive.icon(context, 22),
+          size: adaptive.Adaptive.icon(context, 22),
           color: colorScheme.onSurfaceVariant,
         ),
         suffixIcon: suffix,
         filled: true,
         fillColor: colorScheme.surfaceContainerLow,
         contentPadding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 14),
-          vertical: Adaptive.h(context, 14),
+          horizontal: adaptive.Adaptive.w(context, 14),
+          vertical: adaptive.Adaptive.h(context, 14),
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 14)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 14)),
           borderSide: BorderSide.none,
         ),
       ),
@@ -504,18 +506,11 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     final wordPattern = RegExp(r"^[a-zA-Z']+$");
     if (!wordPattern.hasMatch(keyword)) return;
 
-    // 弹出翻译弹窗（复用 WordCard 组件）
-    bool isPaid = false;
-    try {
-      final container = ProviderScope.containerOf(context, listen: false);
-      isPaid =
-          container.read(subscriptionProvider).mode == SubscriptionMode.premium;
-    } catch (_) {}
+    // 弹出翻译弹窗（复用 WordCard 组件，付费模式由组件内部自主判定）
     if (!mounted) return;
     await WordCard.show(
       context,
       word: keyword,
-      isPaidMode: isPaid,
       onSpeak: () => _speakWord(keyword),
       sourceType: 'word_book',
       sourceCode: '',
@@ -528,7 +523,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
 
   /// 功能按钮行：测试、复习
   Widget _buildActionBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final isPremium =
         ref.watch(subscriptionProvider).mode == SubscriptionMode.premium;
 
@@ -538,29 +533,29 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         if (!_isKnowledgeBase && isPremium) ...[
           FilledButton.icon(
             onPressed: () => _enterSelectionMode('test'),
-            icon: const Icon(AppIcons.quiz, size: 18),
+            icon: Icon(AppIcons.quiz, size: adaptive.Adaptive.icon(context, 18)),
             label: const Text('测试'),
             style: FilledButton.styleFrom(
               backgroundColor: colorScheme.tertiaryContainer,
               foregroundColor: colorScheme.onTertiaryContainer,
               padding: EdgeInsets.symmetric(
-                horizontal: Adaptive.w(context, 16),
-                vertical: Adaptive.h(context, 10),
+                horizontal: adaptive.Adaptive.w(context, 16),
+                vertical: adaptive.Adaptive.h(context, 10),
               ),
             ),
           ),
-          SizedBox(width: Adaptive.w(context, 12)),
+          SizedBox(width: adaptive.Adaptive.w(context, 12)),
         ],
         FilledButton.icon(
           onPressed: () => _enterSelectionMode('review'),
-          icon: const Icon(AppIcons.refresh, size: 18),
+          icon: Icon(AppIcons.refresh, size: adaptive.Adaptive.icon(context, 18)),
           label: const Text('复习'),
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.primaryContainer,
             foregroundColor: colorScheme.onPrimaryContainer,
             padding: EdgeInsets.symmetric(
-              horizontal: Adaptive.w(context, 16),
-              vertical: Adaptive.h(context, 10),
+              horizontal: adaptive.Adaptive.w(context, 16),
+              vertical: adaptive.Adaptive.h(context, 10),
             ),
           ),
         ),
@@ -604,45 +599,45 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final message = _isKnowledgeBase ? '当前分类下暂无句子' : '当前分类下暂无单词';
     final hint = _isKnowledgeBase
         ? '在播放器或文章阅读时收藏句子即可加入知识库'
         : '在播放器里长按单词即可加入生词本';
     return Center(
       child: Container(
-        margin: EdgeInsets.all(Adaptive.w(context, 24)),
+        margin: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 32),
-          vertical: Adaptive.h(context, 32),
+          horizontal: adaptive.Adaptive.w(context, 32),
+          vertical: adaptive.Adaptive.h(context, 32),
         ),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               AppIcons.menuBook,
-              size: Adaptive.sp(context, 48),
+              size: adaptive.Adaptive.sp(context, 48),
               color: colorScheme.outline.withValues(alpha: 0.6),
             ),
-            SizedBox(height: Adaptive.h(context, 16)),
+            SizedBox(height: adaptive.Adaptive.h(context, 16)),
             Text(
               message,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 16),
+                fontSize: adaptive.Adaptive.sp(context, 16),
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            SizedBox(height: Adaptive.h(context, 6)),
+            SizedBox(height: adaptive.Adaptive.h(context, 6)),
             Text(
               hint,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(context, 13),
                 color: colorScheme.outline,
               ),
             ),
@@ -655,7 +650,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   Widget _buildWordList() {
     return ListView.separated(
       itemCount: _words.length,
-      separatorBuilder: (_, _) => SizedBox(height: Adaptive.h(context, 10)),
+      separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(context, 10)),
       itemBuilder: (context, index) {
         final item = _words[index];
         final tags = _tagsByWordCode[item.code] ?? const <WordTag>[];
@@ -793,7 +788,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         .whereType<String>()
         .toSet();
     final newTagController = TextEditingController();
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
 
     await showDialog<void>(
       context: context,
@@ -804,15 +799,15 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
             return Dialog(
               backgroundColor: cs.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
               ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: Adaptive.w(context, 360),
-                  maxHeight: Adaptive.h(context, 420),
+                  maxWidth: adaptive.Adaptive.w(context, 360),
+                  maxHeight: adaptive.Adaptive.h(context, 420),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(Adaptive.r(context, 20)),
+                  padding: EdgeInsets.all(adaptive.Adaptive.r(context, 20)),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,31 +817,31 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                         children: [
                           Icon(
                             AppIcons.labelOutline,
-                            size: Adaptive.sp(context, 20),
+                            size: adaptive.Adaptive.sp(context, 20),
                             color: cs.primary,
                           ),
-                          SizedBox(width: Adaptive.w(context, 8)),
+                          SizedBox(width: adaptive.Adaptive.w(context, 8)),
                           Text(
                             '管理标签',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 16),
+                              fontSize: adaptive.Adaptive.sp(context, 16),
                               fontWeight: FontWeight.w700,
                               color: cs.onSurface,
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: Adaptive.h(context, 12)),
+                      SizedBox(height: adaptive.Adaptive.h(context, 12)),
                       // 标签下拉列表
                       if (tags.isEmpty)
                         Padding(
                           padding: EdgeInsets.symmetric(
-                            vertical: Adaptive.h(context, 8),
+                            vertical: adaptive.Adaptive.h(context, 8),
                           ),
                           child: Text(
                             '暂无标签，请在下方输入创建。',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 13),
+                              fontSize: adaptive.Adaptive.sp(context, 13),
                               color: cs.onSurfaceVariant,
                             ),
                           ),
@@ -854,12 +849,12 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                       else
                         Container(
                           constraints: BoxConstraints(
-                            maxHeight: Adaptive.h(context, 200),
+                            maxHeight: adaptive.Adaptive.h(context, 200),
                           ),
                           decoration: BoxDecoration(
                             color: cs.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(
-                              Adaptive.r(context, 12),
+                              adaptive.Adaptive.r(context, 12),
                             ),
                             border: Border.all(
                               color: cs.outlineVariant.withValues(alpha: 0.3),
@@ -868,7 +863,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                           child: ListView.builder(
                             shrinkWrap: true,
                             padding: EdgeInsets.symmetric(
-                              vertical: Adaptive.h(context, 4),
+                              vertical: adaptive.Adaptive.h(context, 4),
                             ),
                             itemCount: tags.length,
                             itemBuilder: (_, index) {
@@ -879,7 +874,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                   selectedCodes.contains(tagCode);
                               return InkWell(
                                 borderRadius: BorderRadius.circular(
-                                  Adaptive.r(context, 8),
+                                  adaptive.Adaptive.r(context, 8),
                                 ),
                                 onTap: tagCode == null
                                     ? null
@@ -894,8 +889,8 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                       },
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: Adaptive.w(context, 12),
-                                    vertical: Adaptive.h(context, 8),
+                                    horizontal: adaptive.Adaptive.w(context, 12),
+                                    vertical: adaptive.Adaptive.h(context, 8),
                                   ),
                                   child: Row(
                                     children: [
@@ -903,17 +898,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                         selected
                                             ? AppIcons.checkBox
                                             : AppIcons.checkBoxOutlineBlank,
-                                        size: Adaptive.sp(context, 20),
+                                        size: adaptive.Adaptive.sp(context, 20),
                                         color: selected
                                             ? cs.primary
                                             : cs.onSurfaceVariant,
                                       ),
-                                      SizedBox(width: Adaptive.w(context, 10)),
+                                      SizedBox(width: adaptive.Adaptive.w(context, 10)),
                                       Expanded(
                                         child: Text(
                                           tag.name,
                                           style: TextStyle(
-                                            fontSize: Adaptive.sp(context, 14),
+                                            fontSize: adaptive.Adaptive.sp(context, 14),
                                             fontWeight: selected
                                                 ? FontWeight.w600
                                                 : FontWeight.w400,
@@ -930,7 +925,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                             },
                           ),
                         ),
-                      SizedBox(height: Adaptive.h(context, 12)),
+                      SizedBox(height: adaptive.Adaptive.h(context, 12)),
                       // 新增标签输入行
                       Row(
                         children: [
@@ -938,37 +933,37 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                             child: TextField(
                               controller: newTagController,
                               style: TextStyle(
-                                fontSize: Adaptive.sp(context, 14),
+                                fontSize: adaptive.Adaptive.sp(context, 14),
                                 color: cs.onSurface,
                               ),
                               decoration: InputDecoration(
                                 hintText: '新标签名称',
                                 hintStyle: TextStyle(
-                                  fontSize: Adaptive.sp(context, 13),
+                                  fontSize: adaptive.Adaptive.sp(context, 13),
                                   color: cs.onSurfaceVariant,
                                 ),
                                 isDense: true,
                                 filled: true,
                                 fillColor: cs.surfaceContainerLow,
                                 contentPadding: EdgeInsets.symmetric(
-                                  horizontal: Adaptive.w(context, 12),
-                                  vertical: Adaptive.h(context, 10),
+                                  horizontal: adaptive.Adaptive.w(context, 12),
+                                  vertical: adaptive.Adaptive.h(context, 10),
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(
-                                    Adaptive.r(context, 10),
+                                    adaptive.Adaptive.r(context, 10),
                                   ),
                                   borderSide: BorderSide.none,
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(
-                                    Adaptive.r(context, 10),
+                                    adaptive.Adaptive.r(context, 10),
                                   ),
                                   borderSide: BorderSide.none,
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(
-                                    Adaptive.r(context, 10),
+                                    adaptive.Adaptive.r(context, 10),
                                   ),
                                   borderSide: BorderSide(
                                     color: cs.primary,
@@ -993,9 +988,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                               },
                             ),
                           ),
-                          SizedBox(width: Adaptive.w(context, 8)),
+                          SizedBox(width: adaptive.Adaptive.w(context, 8)),
                           SizedBox(
-                            height: Adaptive.h(context, 38),
+                            height: adaptive.Adaptive.h(context, 38),
                             child: FilledButton.tonal(
                               onPressed: () async {
                                 final name = newTagController.text.trim();
@@ -1014,29 +1009,29 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                               },
                               style: FilledButton.styleFrom(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: Adaptive.w(context, 14),
+                                  horizontal: adaptive.Adaptive.w(context, 14),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(
-                                    Adaptive.r(context, 10),
+                                    adaptive.Adaptive.r(context, 10),
                                   ),
                                 ),
                               ),
                               child: Text(
                                 '添加',
                                 style: TextStyle(
-                                  fontSize: Adaptive.sp(context, 13),
+                                  fontSize: adaptive.Adaptive.sp(context, 13),
                                 ),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: Adaptive.h(context, 16)),
+                      SizedBox(height: adaptive.Adaptive.h(context, 16)),
                       // 确定按钮
                       SizedBox(
                         width: double.infinity,
-                        height: Adaptive.h(context, 44),
+                        height: adaptive.Adaptive.h(context, 44),
                         child: FilledButton(
                           onPressed: () async {
                             final navigator = Navigator.of(context);
@@ -1051,14 +1046,14 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                           style: FilledButton.styleFrom(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
-                                Adaptive.r(context, 12),
+                                adaptive.Adaptive.r(context, 12),
                               ),
                             ),
                           ),
                           child: Text(
                             '确定',
                             style: TextStyle(
-                              fontSize: Adaptive.sp(context, 15),
+                              fontSize: adaptive.Adaptive.sp(context, 15),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1086,7 +1081,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   }
 
   Widget _buildSelectionBar(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
     final actionLabel = _isKnowledgeBase || _selectionAction == 'review'
         ? '开始复习'
         : '开始测试';
@@ -1099,8 +1094,8 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
       top: false,
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: Adaptive.w(context, 12),
-          vertical: Adaptive.h(context, 8),
+          horizontal: adaptive.Adaptive.w(context, 12),
+          vertical: adaptive.Adaptive.h(context, 8),
         ),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,
@@ -1114,8 +1109,8 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
           children: [
             // 左侧：Checkbox 全选/反选
             SizedBox(
-              width: Adaptive.w(context, 36),
-              height: Adaptive.h(context, 36),
+              width: adaptive.Adaptive.w(context, 36),
+              height: adaptive.Adaptive.h(context, 36),
               child: Checkbox(
                 value: allSelected ? true : (someSelected ? null : false),
                 tristate: true,
@@ -1134,11 +1129,11 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                 },
               ),
             ),
-            SizedBox(width: Adaptive.w(context, 4)),
+            SizedBox(width: adaptive.Adaptive.w(context, 4)),
             Text(
               '$selectedCount/$totalCount',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(context, 13),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -1205,16 +1200,16 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                     },
               icon: Icon(
                 _selectionAction == 'review' ? AppIcons.refresh : AppIcons.quiz,
-                size: Adaptive.sp(context, 18),
+                size: adaptive.Adaptive.sp(context, 18),
               ),
               label: Text(actionLabel),
               style: FilledButton.styleFrom(
                 padding: EdgeInsets.symmetric(
-                  horizontal: Adaptive.w(context, 20),
-                  vertical: Adaptive.h(context, 10),
+                  horizontal: adaptive.Adaptive.w(context, 20),
+                  vertical: adaptive.Adaptive.h(context, 10),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 20)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
                 ),
               ),
             ),

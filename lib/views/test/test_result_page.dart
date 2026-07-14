@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,16 +18,16 @@ class TestResultPage extends ConsumerWidget {
 
     if (session == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('评测结果')),
-        body: const Center(child: Text('暂无结果')),
+        appBar: AppBar(title: Text('评测结果')),
+        body: Center(child: Text('暂无结果')),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('评测结果'),
+        title: Text('评测结果'),
         leading: IconButton(
-          icon: const Icon(AppIcons.close),
+          icon: Icon(AppIcons.close),
           onPressed: () {
             ref.read(testProvider.notifier).reset();
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -36,7 +35,7 @@ class TestResultPage extends ConsumerWidget {
         ),
       ),
       body: state.isGeneratingEvaluation
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -47,20 +46,20 @@ class TestResultPage extends ConsumerWidget {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildScoreCard(context, session),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   if (evaluation != null) ...[
                     _buildEvaluationCard(context, evaluation),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                   ],
                   _buildCategoryRadar(context, evaluation),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   _buildItemsSummary(context, state.items),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   _buildActions(context, ref, state),
                 ],
               ),
@@ -78,11 +77,11 @@ class TestResultPage extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           children: [
             Text('综合得分', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               '$score',
               style: Theme.of(context).textTheme.displayLarge?.copyWith(
@@ -90,7 +89,7 @@ class TestResultPage extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               '完成 ${session.completedItems}/${session.totalItems} 题 · 用时 ${_formatDuration(session.durationSeconds)}',
               style: Theme.of(context).textTheme.bodySmall,
@@ -104,14 +103,14 @@ class TestResultPage extends ConsumerWidget {
   Widget _buildEvaluationCard(BuildContext context, TestEvaluation eval) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(AppIcons.autoAwesome, color: AppColors.warning),
-                const SizedBox(width: 8),
+                Icon(AppIcons.autoAwesome, color: AppColors.warning),
+                SizedBox(width: 8),
                 Text('AI 评价报告',
                     style: Theme.of(context).textTheme.titleMedium),
               ],
@@ -120,14 +119,14 @@ class TestResultPage extends ConsumerWidget {
             if (eval.weakPoints != null) ...[
               Text('薄弱环节',
                   style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(eval.weakPoints!),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
             ],
             if (eval.suggestions != null) ...[
               Text('训练建议',
                   style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(eval.suggestions!),
             ],
           ],
@@ -143,12 +142,12 @@ class TestResultPage extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('能力分布', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               height: 200,
               child: CustomPaint(
@@ -161,7 +160,7 @@ class TestResultPage extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: ['听', '说', '读', '写'].map((label) {
@@ -188,12 +187,12 @@ class TestResultPage extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('答题统计', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -202,7 +201,7 @@ class TestResultPage extends ConsumerWidget {
                 _statItem('总题数', items.length, AppColors.primary),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             ...items.map((item) => ListTile(
                   dense: true,
                   leading: Icon(
@@ -220,11 +219,11 @@ class TestResultPage extends ConsumerWidget {
                   ),
                   title: Text(
                     item.refText,
-                    style: const TextStyle(fontSize: 14),
+                    style: TextStyle(fontSize: 14),
                   ),
                   subtitle: Text(
                     '${item.type.label} · ${(item.score ?? 0).round()}分',
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 12),
                   ),
                 )),
           ],
@@ -239,7 +238,7 @@ class TestResultPage extends ConsumerWidget {
         Text('$value',
             style: TextStyle(
                 fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(label, style: TextStyle(fontSize: 12)),
       ],
     );
   }
@@ -253,10 +252,10 @@ class TestResultPage extends ConsumerWidget {
               ref.read(testProvider.notifier).reset();
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
-            child: const Text('返回'),
+            child: Text('返回'),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Expanded(
           child: FilledButton(
             onPressed: () {
@@ -264,7 +263,7 @@ class TestResultPage extends ConsumerWidget {
               Navigator.of(context)
                   .popUntil((route) => route.isFirst);
             },
-            child: const Text('再来一次'),
+            child: Text('再来一次'),
           ),
         ),
       ],
@@ -374,7 +373,7 @@ class _RadarChartPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: labels[i],
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
         ),
         textDirection: TextDirection.ltr,
       );

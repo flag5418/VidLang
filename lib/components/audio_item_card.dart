@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/theme/app_colors.dart';
 
 class AudioItemCard extends StatefulWidget {
   final VideoInfo video;
@@ -52,7 +53,7 @@ class _AudioItemCardState extends State<AudioItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final cardColor = _cardColor();
     final hasActions = widget.onRename != null || widget.onDelete != null;
     final letter = widget.video.name.isNotEmpty
@@ -74,7 +75,7 @@ class _AudioItemCardState extends State<AudioItemCard> {
           boxShadow: [
             BoxShadow(
               color: Color(0x18000000),
-              blurRadius: 8,
+              blurRadius: Adaptive.w(context, 8),
               offset: const Offset(0, 2),
             ),
           ],
@@ -102,12 +103,12 @@ class _AudioItemCardState extends State<AudioItemCard> {
                   ),
                 ),
               ),
-              _buildBottomOverlay(colorScheme),
+              _buildBottomOverlay(cs),
               if (hasActions)
                 Positioned(
                   bottom: AppSpacing.space2,
                   right: AppSpacing.space2,
-                  child: _buildMoreButton(colorScheme),
+                  child: _buildMoreButton(cs),
                 ),
             ],
           ),
@@ -116,7 +117,7 @@ class _AudioItemCardState extends State<AudioItemCard> {
     );
   }
 
-  Widget _buildBottomOverlay(ColorScheme colorScheme) {
+  Widget _buildBottomOverlay(AppColorsData cs) {
     return Positioned(
       bottom: 0,
       left: 0,
@@ -154,8 +155,8 @@ class _AudioItemCardState extends State<AudioItemCard> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(AppIcons.schedule, size: 10, color: Colors.white70),
-                const SizedBox(width: 4),
+                Icon(AppIcons.schedule, size: Adaptive.icon(context, 10), color: Colors.white70),
+                SizedBox(width: Adaptive.w(context, 4)),
                 Text(
                   widget.video.durationString,
                   style: TextStyle(
@@ -175,7 +176,7 @@ class _AudioItemCardState extends State<AudioItemCard> {
     );
   }
 
-  Widget _buildMoreButton(ColorScheme colorScheme) {
+  Widget _buildMoreButton(AppColorsData cs) {
     return PopupMenuButton<String>(
       onSelected: (value) {
         switch (value) {
@@ -188,7 +189,7 @@ class _AudioItemCardState extends State<AudioItemCard> {
         }
       },
       offset: const Offset(-120, 0),
-      color: colorScheme.surface,
+      color: cs.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
@@ -212,13 +213,13 @@ class _AudioItemCardState extends State<AudioItemCard> {
         if (widget.onRename != null)
           PopupMenuItem(
             value: 'rename',
-            child: _menuRow(context, AppIcons.edit, '重命名', colorScheme),
+            child: _menuRow(context, AppIcons.edit, '重命名', cs),
           ),
         if (widget.onDelete != null) ...[
           const PopupMenuDivider(height: 1),
           PopupMenuItem(
             value: 'delete',
-            child: _menuRow(context, AppIcons.delete, '删除', colorScheme),
+            child: _menuRow(context, AppIcons.delete, '删除', cs),
           ),
         ],
       ],
@@ -229,7 +230,7 @@ class _AudioItemCardState extends State<AudioItemCard> {
     BuildContext context,
     IconData icon,
     String title,
-    ColorScheme cs,
+    AppColorsData cs,
   ) {
     return Row(
       children: [

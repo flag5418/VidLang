@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_radius.dart';
+import 'package:vidlang/theme/app_colors.dart';
 
 /// 默认卡片内边距
 const double _kCardPadding = 16.0;
@@ -67,7 +68,7 @@ class _OutlinedCardState extends State<OutlinedCard>
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final cs = context.colors;
 
     return GestureDetector(
       onTapDown: widget.onTap != null ? _onTapDown : null,
@@ -83,11 +84,11 @@ class _OutlinedCardState extends State<OutlinedCard>
           padding:
               widget.padding ?? const EdgeInsets.all(_kCardPadding),
           decoration: BoxDecoration(
-            color: colors.surface,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(
                 widget.borderRadius ?? AppRadius.outlinedCard),
             border: Border.all(
-              color: colors.outlineVariant,
+              color: cs.outlineVariant,
               width: 0.5,
             ),
           ),

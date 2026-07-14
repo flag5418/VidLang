@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -495,7 +497,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
             child: Column(
               children: [
                 SizedBox(
@@ -515,7 +517,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                     label: Text(_isRunning ? '自动修复中...' : '🚀 一键诊断+自动修复'),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: adaptive.Adaptive.h(context, 8)),
                 Row(
                   children: [
                     Expanded(
@@ -533,12 +535,12 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                         child: const Text('🔬 详细诊断'),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: adaptive.Adaptive.w(context, 8)),
                     Expanded(
                       child: FilledButton.tonal(
                         onPressed: _isRunning ? null : _forceRebuild,
                         style: FilledButton.styleFrom(
-                          foregroundColor: Colors.red,
+                          foregroundColor: AppColors.error,
                         ),
                         child: const Text('⚠️ 强制重建'),
                       ),
@@ -559,7 +561,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
                     itemCount: _logs.length,
                     itemBuilder: (c, i) {
                       final l = _logs[i];
@@ -577,7 +579,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                         l,
                         style: TextStyle(
                           color: color,
-                          fontSize: 12,
+                          fontSize: adaptive.Adaptive.sp(context, 12),
                           fontFamily: 'monospace',
                           height: 1.4,
                         ),

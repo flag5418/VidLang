@@ -22,6 +22,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/theme/app_colors.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 // ═══════════════════════════════════════════════════════════════
 // TDesign Toast 封装 (AppTToast)
@@ -104,23 +106,28 @@ class _TDActionSheetContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        margin: const EdgeInsets.all(16),
+        margin: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (title != null) ...[
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                padding: EdgeInsets.fromLTRB(
+                  adaptive.Adaptive.w(context, 24),
+                  adaptive.Adaptive.h(context, 20),
+                  adaptive.Adaptive.w(context, 24),
+                  adaptive.Adaptive.h(context, 8),
+                ),
                 child: Text(
                   title!,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: adaptive.Adaptive.sp(context, 14),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: context.colors.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -134,7 +141,7 @@ class _TDActionSheetContent extends StatelessWidget {
                   item.text,
                   style: TextStyle(
                     color: item.destructive 
-                        ? Theme.of(context).colorScheme.error 
+                        ? context.colors.error 
                         : null,
                   ),
                 ),
@@ -144,14 +151,14 @@ class _TDActionSheetContent extends StatelessWidget {
                 },
               );
             }),
-            SizedBox(height: 8),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
             // 取消按钮
             Divider(height: 1),
             ListTile(
               title: Text('取消'),
               onTap: () => Navigator.of(context).pop(null),
             ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 0 : 16),
+            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 0 : adaptive.Adaptive.h(context, 16)),
           ],
         ),
       ),

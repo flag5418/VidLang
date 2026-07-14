@@ -18,7 +18,7 @@ bool isIPad(BuildContext context) {
 }
 
 /// 从 ProviderContainer 获取当前设备类型
-/// 
+///
 /// 用于在非 Widget 上下文中获取设备类型
 AppDeviceType getDeviceTypeFromProvider(ProviderContainer container) {
   return container.read(deviceTypeProvider);
@@ -89,11 +89,11 @@ class DeviceScale {
   // ─── 各维度独立系数（可单独调参） ──────────────────
   /// 各类型对应的缩放系数表
   static const Map<ScaleType, double> _scales = {
-    ScaleType.font:   1.38,  // 字体稍大一些，保证可读性
-    ScaleType.width:  1.30,  // 水平尺寸适中放大
-    ScaleType.height: 1.30,  // 垂直尺寸同水平
-    ScaleType.radius: 1.20,  // 圆角微调即可
-    ScaleType.icon:   1.28,  // 图标介于字体和间距之间
+    ScaleType.font: 1.38, // 字体稍大一些，保证可读性
+    ScaleType.width: 1.30, // 水平尺寸适中放大
+    ScaleType.height: 1.30, // 垂直尺寸同水平
+    ScaleType.radius: 1.20, // 圆角微调即可
+    ScaleType.icon: 1.28, // 图标介于字体和间距之间
   };
 }
 
@@ -109,7 +109,7 @@ class Adaptive {
   Adaptive._();
 
   /// 判断当前设备是否为 iPad
-  /// 
+  ///
   /// 使用 ProviderContainer 读取设备类型
   static bool of(BuildContext context) {
     final container = ProviderScope.containerOf(context);
@@ -171,7 +171,7 @@ class Adaptive {
       final scaled = value.toDouble() * DeviceScale.of(type);
       final result = screenUtilFn(scaled);
       // 调试日志
-      debugPrint('[Adaptive] $type: $value → $scaled → ${result.toStringAsFixed(2)} (iPad)');
+      // debugPrint('[Adaptive] $type: $value → $scaled → ${result.toStringAsFixed(2)} (iPad)');
       return result;
     }
     return value.toDouble();

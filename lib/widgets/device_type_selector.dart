@@ -4,13 +4,14 @@
 /// 修改后会立即触发 MaterialApp 重新布局
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 
 /// 设备类型选择器组件
 ///
@@ -32,7 +33,7 @@ class DeviceTypeSelector extends ConsumerWidget {
           vertical: context.s(12),
         ),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(context.rs(8)),
         ),
         child: Row(
@@ -40,7 +41,7 @@ class DeviceTypeSelector extends ConsumerWidget {
             Icon(
               currentType.isTablet ? Icons.tablet_mac : Icons.phone_iphone,
               size: context.is_(24),
-              color: Theme.of(context).colorScheme.primary,
+              color: context.colors.primary,
             ),
             SizedBox(width: context.s(12)),
             Expanded(
@@ -59,7 +60,7 @@ class DeviceTypeSelector extends ConsumerWidget {
                     currentType.isTablet ? 'iPad 布局' : 'iPhone 布局',
                     style: TextStyle(
                       fontSize: context.ts(12),
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.colors.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -71,14 +72,14 @@ class DeviceTypeSelector extends ConsumerWidget {
                 height: context.is_(20),
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.colors.primary,
                 ),
               )
             else
               Icon(
                 Icons.chevron_right,
                 size: context.is_(20),
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.colors.onSurfaceVariant,
               ),
           ],
         ),
@@ -93,14 +94,14 @@ class DeviceTypeSelector extends ConsumerWidget {
       barrierLabel: 'DeviceTypeDialog',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) => _DeviceTypeDialog(
+      pageBuilder: (_, _, _) => _DeviceTypeDialog(
         currentType: ref.read(deviceTypeProvider),
         onTypeSelected: (type) async {
           Navigator.of(context).pop();
           await ref.read(deviceTypeProvider.notifier).setDeviceType(type);
         },
       ),
-      transitionBuilder: (_, animation, __, child) =>
+      transitionBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     );
   }
@@ -131,12 +132,12 @@ class _DeviceTypeDialogState extends State<_DeviceTypeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final isIpad = context.ipad;
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: isIpad ? 80 : 32),
+        padding: EdgeInsets.symmetric(horizontal: isIpad ? adaptive.Adaptive.w(context, 80) : adaptive.Adaptive.w(context, 32)),
         child: Material(
           color: Colors.transparent,
           child: Container(
@@ -147,7 +148,7 @@ class _DeviceTypeDialogState extends State<_DeviceTypeDialog> {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 32,
+                  blurRadius: adaptive.Adaptive.w(context, 32),
                   offset: const Offset(0, 12),
                 ),
               ],
@@ -297,7 +298,7 @@ class _DeviceTypeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colors;
 
     return GestureDetector(
       onTap: onTap,

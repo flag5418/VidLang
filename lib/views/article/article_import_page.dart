@@ -93,7 +93,7 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colors;
 
     return Scaffold(
       backgroundColor: colorScheme.surface,

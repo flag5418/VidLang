@@ -2,9 +2,10 @@
 /// 用于验证 Adaptive 缩放是否正确工作
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vidlang/utils/adaptive.dart';
+
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/providers/device_type_provider.dart';
 
@@ -32,7 +33,7 @@ class AdaptiveTestPage extends ConsumerWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -44,17 +45,17 @@ class AdaptiveTestPage extends ConsumerWidget {
               _buildInfoRow('屏幕高度', MediaQuery.of(context).size.height.toStringAsFixed(1)),
               _buildInfoRow('最短边', MediaQuery.of(context).size.shortestSide.toStringAsFixed(1)),
             ]),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // 缩放系数测试
             _buildSection('缩放系数测试', [
-              _buildScaleRow('sp(16)', Adaptive.sp(context, 16), '字体'),
-              _buildScaleRow('w(16)', Adaptive.w(context, 16), '宽度'),
-              _buildScaleRow('h(16)', Adaptive.h(context, 16), '高度'),
-              _buildScaleRow('r(12)', Adaptive.r(context, 12), '圆角'),
-              _buildScaleRow('icon(24)', Adaptive.icon(context, 24), '图标'),
+              _buildScaleRow('sp(16)', 16, '字体'),
+              _buildScaleRow('w(16)', 16, '宽度'),
+              _buildScaleRow('h(16)', 16, '高度'),
+              _buildScaleRow('r(12)', 12, '圆角'),
+              _buildScaleRow('icon(24)', 24, '图标'),
             ]),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // 扩展方法测试
             _buildSection('扩展方法测试', [
@@ -63,7 +64,7 @@ class AdaptiveTestPage extends ConsumerWidget {
               _buildScaleRow('context.rs(12)', context.rs(12), '圆角'),
               _buildScaleRow('context.is_(24)', context.is_(24), '图标'),
             ]),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // 实际组件测试
             _buildSection('实际组件测试', [
@@ -86,7 +87,7 @@ class AdaptiveTestPage extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // 输入框测试
               const TextField(
                 decoration: InputDecoration(
@@ -95,7 +96,7 @@ class AdaptiveTestPage extends ConsumerWidget {
                 ),
               ),
             ]),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             // 对话框测试
             _buildSection('对话框测试', [
@@ -116,12 +117,12 @@ class AdaptiveTestPage extends ConsumerWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         ...children,
       ],
     );
@@ -148,7 +149,7 @@ class AdaptiveTestPage extends ConsumerWidget {
         children: [
           Text('$method ($type)'),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
