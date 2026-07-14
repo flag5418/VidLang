@@ -177,8 +177,8 @@ class MediaArea extends StatelessWidget {
               bottom: false, // BottomControls 会自行处理 safe area
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: adaptive.Adaptive.h(context, 60), // TopBar 高度
-                  bottom: adaptive.Adaptive.h(context, 180), // BottomControls 预留
+                  top: adaptive.Adaptive.h(context, 52), // TopBar 高度（紧凑）
+                  bottom: adaptive.Adaptive.h(context, 160), // BottomControls 预留（紧凑）
                 ),
                 child: _buildSubtitleListView(context, showCurrentHighlight: true),
               ),
@@ -251,13 +251,32 @@ class MediaArea extends StatelessWidget {
   // 字幕列表（音频模式和竖屏视频下部共用）
   // ═══════════════════════════════════════════════════════════
 
-  /// 字幕列表视图
+  /// 字幕列表视图（带自动滚动）
   Widget _buildSubtitleListView(BuildContext context, {required bool showCurrentHighlight}) {
+    // 自动滚动到当前句的 ScrollController
+    final scrollController = ScrollController();
+
+    // 当 currentIndex 变化时，延迟一帧后滚动到当前句
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (currentIndex != null && currentIndex! >= 0 && currentIndex! < subtitlesList.length) {
+        // 计算大致的偏移量：每个 item 高约 60-80pt
+        final estimatedItemHeight = adaptive.Adaptive.h(context, showCurrentHighlight ? 70 : 55);
+        final targetOffset = currentIndex! * estimatedItemHeight;
+        // 动画滚动到目标位置
+        scrollController.animateTo(
+          targetOffset.clamp(0.0, scrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+
     return ListView.builder(
+      controller: scrollController,
       itemCount: subtitlesList.length,
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 16),
-        vertical: adaptive.Adaptive.h(context, 8),
+        horizontal: adaptive.Adaptive.w(context, 12), // 减小左右边距 16→12
+        vertical: adaptive.Adaptive.h(context, 6),
       ),
       itemBuilder: (context, index) {
         final sub = subtitlesList[index];
@@ -270,8 +289,8 @@ class MediaArea extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(context, 16),
-              vertical: adaptive.Adaptive.h(context, showCurrentHighlight ? 14 : 10),
+              horizontal: adaptive.Adaptive.w(context, 10), // 减小内部左右边距
+              vertical: adaptive.Adaptive.h(context, showCurrentHighlight ? 12 : 9),
             ),
             margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 6)),
             decoration: BoxDecoration(

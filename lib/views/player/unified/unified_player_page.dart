@@ -132,18 +132,19 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
     ]);
 
     // 沉浸式：隐藏状态栏和导航栏
-    // edge-to-edge 模式，用户从屏幕边缘滑动可临时恢复
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.immersiveSticky,
-    );
-
-    // 设置状态栏/导航栏样式（透明 + 浅色图标）
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ));
+    // immersiveSticky: 完全隐藏，用户从边缘滑动可临时显示
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.immersiveSticky,
+      );
+      // 再次确认样式
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ));
+    });
   }
 
   /// 页面退出时恢复系统 UI
@@ -249,7 +250,9 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
     }
 
     return Scaffold(
-      backgroundColor: widget.isVideo ? Colors.black : colors.background,
+      backgroundColor: Colors.black, // 统一黑色背景，沉浸式
+      resizeToAvoidBottomInset: false, // 不因键盘/导航栏调整布局
+      extendBodyBehindAppBar: true, // body 延伸到 AppBar 后面
       body: _buildPlayerStack(
         state: state,
         notifier: notifier,
@@ -379,15 +382,23 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
   void _toggleFullscreen() {
     final isCurrentlyLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     if (isCurrentlyLandscape) {
+      // 切回竖屏
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
         DeviceOrientation.portraitDown,
       ]);
     } else {
+      // 切换到横屏
       SystemChrome.setPreferredOrientations([
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
+      // 横屏时重新应用沉浸式（方向切换后系统可能会重置）
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        }
+      });
     }
   }
 
