@@ -12,11 +12,9 @@ import 'package:vidlang/views/player/unified/unified_player_logic.dart';
 /// 统一底部控制栏
 ///
 /// 布局设计（基于 V1.2 文档）:
-/// - 竖屏: 2行结构
-///   第1行(始终): [👁字幕] [|◀上] [▶/⏸播] [▶|下] [⚙️设置]
-///   第2行(⚙️展开,仅字幕): [跟读][清晰朗读][由慢→快][翻译][倍速▾][单句循环][单句暂停][字号]
+/// - 竖屏: 2行结构（统一黑色容器填充整个底部）
+///   [进度条(带时间)] [第1行控制按钮] [第2行功能面板]
 /// - 横屏: 1行结构
-///   [|◀] [▶] [▶|] 时间 [翻译][单句停][倍速▾] [⊞全屏]
 class BottomControls extends ConsumerWidget {
   final bool isVideo;
   final bool isLandscape;
@@ -26,11 +24,11 @@ class BottomControls extends ConsumerWidget {
   final Subtitles? currentSub;
   final bool showFollow;
   final bool isTtsSpeaking;
-  final bool settingsExpanded; // 设置面板是否展开
+  final bool settingsExpanded;
   final VoidCallback onToggleFollow;
   final VoidCallback? onClaritySpeak;
   final VoidCallback? onStopSpeak;
-  final VoidCallback? onToggleSettings; // 切换设置面板
+  final VoidCallback? onToggleSettings;
   final void Function(List<String> words, Subtitles sub)? onWordSelected;
   final void Function(double speed)? onSpeedChanged;
   final void Function(double fontSize)? onFontSizeChanged;
@@ -66,40 +64,29 @@ class BottomControls extends ConsumerWidget {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 竖屏布局 (Portrait)
+  // 竖屏布局 (Portrait) — 统一黑色容器，填充底部
   // ═══════════════════════════════════════════════════════════
 
   Widget _buildPortraitLayout(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 16),
-          vertical: adaptive.Adaptive.h(context, 8),
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.75),
-              Colors.black.withValues(alpha: 0.45),
-              Colors.transparent,
-            ],
-          ),
-        ),
+    return Container(
+      color: Colors.black, // 纯黑背景，填充整个底部宽度
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom, // 仅处理 Home Indicator 区域
+      ),
+      child: SafeArea(
+        top: false, // 不处理顶部（TopBar 已处理）
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 进度条
-            _buildProgressBar(context),
+            // 进度条 + 时间（第一行）
+            _buildProgressBarWithTime(context),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 10)),
+            SizedBox(height: adaptive.Adaptive.h(context, 8)),
 
-            // 第1行：基础控制按钮（始终显示）
+            // 第1行：基础控制按钮
             _buildPrimaryControlRow(context),
 
-            // 第2行：功能按钮（设置展开时显示，仅字幕模式）
+            // 第2行：功能按钮（设置展开时显示）
             if (settingsExpanded && hasSubtitles) ...[
               SizedBox(height: adaptive.Adaptive.h(context, 8)),
               _buildSettingsPanelRow(context),
@@ -110,10 +97,46 @@ class BottomControls extends ConsumerWidget {
     );
   }
 
-  /// 第1行：基础控制按钮
+  /// 进度条 + 两端时间显示
+  Widget _buildProgressBarWithTime(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(context, 16),
+      ),
+      child: Row(
+        children: [
+          // 当前时间
+          Text(
+            UnifiedPlayerLogic.fmtDuration(state.position),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: adaptive.Adaptive.sp(context, 11),
+            ),
+          ),
+
+          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+
+          // 进度条
+          Expanded(child: _buildProgressBar(context)),
+
+          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+
+          // 总时长
+          Text(
+            UnifiedPlayerLogic.fmtDuration(state.duration),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: adaptive.Adaptive.sp(context, 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 第1行：基础控制按钮（始终显示）
   Widget _buildPrimaryControlRow(BuildContext context) {
     final btnSize = adaptive.Adaptive.w(context, 44);
-    final playBtnSize = adaptive.Adaptive.w(context, 56);
     final iconSize = adaptive.Adaptive.icon(context, 22);
 
     return Row(
@@ -127,7 +150,6 @@ class BottomControls extends ConsumerWidget {
             size: btnSize,
             iconSize: iconSize,
             onTap: () => notifier.toggleSubtitleVisible(),
-            tooltip: state.subtitleVisible ? '隐藏字幕' : '显示字幕',
           )
         else
           SizedBox(width: btnSize),
@@ -139,11 +161,16 @@ class BottomControls extends ConsumerWidget {
           size: btnSize,
           iconSize: iconSize,
           onTap: () => notifier.previousSentence(),
-          tooltip: '上一句',
         ),
 
-        // 播放/暂停（大按钮）
-        _buildPlayButton(context, playBtnSize),
+        // 播放/暂停（统一样式，无特殊背景）
+        _buildIconButton(
+          context: context,
+          icon: state.playerState == PlayerState.playing ? AppIcons.pause : AppIcons.play,
+          size: btnSize,
+          iconSize: adaptive.Adaptive.icon(context, 26), // 稍大一点
+          onTap: () => notifier.togglePlayPause(),
+        ),
 
         // 下一句
         _buildIconButton(
@@ -152,34 +179,27 @@ class BottomControls extends ConsumerWidget {
           size: btnSize,
           iconSize: iconSize,
           onTap: () => notifier.nextSentence(),
-          tooltip: '下一句',
         ),
 
-        // 设置按钮（仅字幕模式有设置面板可展开）
+        // 设置按钮或倍速（无字幕时显示倍速入口）
         if (hasSubtitles && onToggleSettings != null)
           _buildIconButton(
             context: context,
             icon: AppIcons.settings,
             size: btnSize,
             iconSize: iconSize,
-            onTap: onToggleSettings!,
-            tooltip: settingsExpanded ? '收起设置' : '更多设置',
             isActive: settingsExpanded,
+            onTap: onToggleSettings!,
           )
         else if (!hasSubtitles)
-          // 无字幕时仍显示倍速入口
-          _buildTextButton(
-            context: context,
-            text: '${state.speed.toStringAsFixed(1)}X',
-            onTap: () => _showSpeedPicker(context),
-          )
+          _buildTextButton(context, '${state.speed.toStringAsFixed(1)}X', () => _showSpeedPicker(context))
         else
           SizedBox(width: btnSize),
       ],
     );
   }
 
-  /// 第2行：设置面板（点击⚙️展开）
+  /// 第2行：设置面板（点击⚙️展开，仅字幕模式）
   Widget _buildSettingsPanelRow(BuildContext context) {
     return AnimatedSize(
       duration: const Duration(milliseconds: 250),
@@ -189,71 +209,17 @@ class BottomControls extends ConsumerWidget {
         spacing: adaptive.Adaptive.w(context, 8),
         runSpacing: adaptive.Adaptive.h(context, 8),
         children: [
-          // 跟读
-          _buildToggleButton(
-            context: context,
-            text: '跟读',
-            active: showFollow,
-            activeColor: AppColors.primary,
-            onTap: onToggleFollow,
-          ),
-
-          // 清晰朗读
-          _buildToggleButton(
-            context: context,
-            text: isTtsSpeaking ? '停止' : '朗读',
-            active: isTtsSpeaking,
-            activeColor: Colors.orangeAccent,
-            onTap: isTtsSpeaking ? (onStopSpeak ?? () {}) : (onClaritySpeak ?? () {}),
-          ),
-
-          // 由慢到快
-          _buildToggleButton(
-            context: context,
-            text: '由慢→快',
-            active: state.slowToFastActive,
-            activeColor: AppColors.primary,
-            onTap: () => notifier.toggleSlowToFastCurrentSentence(),
-          ),
-
-          // 翻译开关
-          _buildToggleButton(
-            context: context,
-            text: '翻译',
-            active: state.translateVisible,
-            activeColor: AppColors.primary,
-            onTap: () => notifier.toggleTranslateVisible(),
-          ),
-
-          // 倍速
-          _buildTextButton(
-            context: context,
-            text: '${state.speed.toStringAsFixed(1)}X',
-            onTap: () => _showSpeedPicker(context),
-          ),
-
-          // 循环模式（通过状态文字显示当前模式）
-          _buildTextButton(
-            context: context,
-            text: _getLoopModeLabel(),
-            onTap: () => _showLoopModePicker(context),
-          ),
-
-          // 单句暂停
-          _buildToggleButton(
-            context: context,
-            text: '单句暂停',
-            active: state.singleSentencePause,
-            activeColor: AppColors.primary,
-            onTap: () => notifier.toggleSingleSentencePause(),
-          ),
-
-          // 字号
-          _buildTextButton(
-            context: context,
-            text: '字号',
-            onTap: () => _showFontSizePicker(context),
-          ),
+          _buildToggleButton(context, '跟读', showFollow, AppColors.primary, onToggleFollow),
+          _buildToggleButton(context, '停止', isTtsSpeaking, Colors.orangeAccent, onStopSpeak ?? () {}),
+          _buildToggleButton(context, '由慢→快', state.slowToFastActive, AppColors.primary,
+              () => notifier.toggleSlowToFastCurrentSentence()),
+          _buildToggleButton(context, '翻译', state.translateVisible, AppColors.primary,
+              () => notifier.toggleTranslateVisible()),
+          _buildTextButton(context, '${state.speed.toStringAsFixed(1)}X', () => _showSpeedPicker(context)),
+          _buildTextButton(context, _getLoopModeLabel(), () => _showLoopModePicker(context)),
+          _buildToggleButton(context, '单句停', state.singleSentencePause, AppColors.primary,
+              () => notifier.toggleSingleSentencePause()),
+          _buildTextButton(context, '字号', () => _showFontSizePicker(context)),
         ],
       ),
     );
@@ -267,94 +233,75 @@ class BottomControls extends ConsumerWidget {
     final btnSize = adaptive.Adaptive.w(context, 40);
     final iconSize = adaptive.Adaptive.icon(context, 20);
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 12),
-          vertical: adaptive.Adaptive.h(context, 6),
-        ),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.6),
-        ),
-        child: Row(
-          children: [
-            // 左侧：播放控制
-            _buildIconButton(
-              context: context,
-              icon: AppIcons.skipPrevious,
-              size: btnSize,
-              iconSize: iconSize,
-              onTap: () => notifier.previousSentence(),
-            ),
-            _buildPlayButton(context, btnSize + 8),
-            _buildIconButton(
-              context: context,
-              icon: AppIcons.skipNext,
-              size: btnSize,
-              iconSize: iconSize,
-              onTap: () => notifier.nextSentence(),
-            ),
+    return Container(
+      color: Colors.black.withValues(alpha: 0.6),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(context, 12),
+            vertical: adaptive.Adaptive.h(context, 6),
+          ),
+          child: Row(
+            children: [
+              _buildIconButton(context: context, icon: AppIcons.skipPrevious, size: btnSize, iconSize: iconSize,
+                  onTap: () => notifier.previousSentence()),
+              // 播放/暂停（统一样式）
+              _buildIconButton(context: context,
+                  icon: state.playerState == PlayerState.playing ? AppIcons.pause : AppIcons.play,
+                  size: btnSize + 8, iconSize: iconSize + 2,
+                  onTap: () => notifier.togglePlayPause()),
+              _buildIconButton(context: context, icon: AppIcons.skipNext, size: btnSize, iconSize: iconSize,
+                  onTap: () => notifier.nextSentence()),
 
-            SizedBox(width: adaptive.Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(context, 12)),
 
-            // 时间
-            Text(
-              '${UnifiedPlayerLogic.fmtDuration(state.position)} / ${UnifiedPlayerLogic.fmtDuration(state.duration)}',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: adaptive.Adaptive.sp(context, 11),
+              // 时间
+              Text(
+                '${UnifiedPlayerLogic.fmtDuration(state.position)} / ${UnifiedPlayerLogic.fmtDuration(state.duration)}',
+                style: TextStyle(color: Colors.white70, fontSize: adaptive.Adaptive.sp(context, 11)),
               ),
-            ),
 
-            SizedBox(width: adaptive.Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(context, 12)),
 
-            // 右侧：功能按钮（仅字幕时显示部分）
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (hasSubtitles) ...[
-                    _buildCompactTextBtn(context, '翻译', () => notifier.toggleTranslateVisible()),
-                    SizedBox(width: adaptive.Adaptive.w(context, 8)),
-                    _buildCompactTextBtn(context, '单句停', () => notifier.toggleSingleSentencePause()),
-                    SizedBox(width: adaptive.Adaptive.w(context, 8)),
-                  ],
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (hasSubtitles) ...[
+                      _buildCompactTextBtn(context, '翻译', () => notifier.toggleTranslateVisible()),
+                      SizedBox(width: adaptive.Adaptive.w(context, 6)),
+                      _buildCompactTextBtn(context, '单句停', () => notifier.toggleSingleSentencePause()),
+                      SizedBox(width: adaptive.Adaptive.w(context, 6)),
+                    ],
 
-                  // 倍速（始终显示）
-                  GestureDetector(
-                    onTap: () => _showSpeedPicker(context),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: adaptive.Adaptive.w(context, 8),
-                        vertical: adaptive.Adaptive.h(context, 4),
-                      ),
-                      child: Text(
-                        '${state.speed.toStringAsFixed(1)}X',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: adaptive.Adaptive.sp(context, 12),
+                    // 倍速（始终显示）
+                    GestureDetector(
+                      onTap: () => _showSpeedPicker(context),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: adaptive.Adaptive.w(context, 6),
+                          vertical: adaptive.Adaptive.h(context, 4),
                         ),
+                        child: Text('${state.speed.toStringAsFixed(1)}X',
+                            style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(context, 12))),
                       ),
                     ),
-                  ),
 
-                  if (hasSubtitles) ...[
-                    SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                    if (hasSubtitles)
+                      SizedBox(width: adaptive.Adaptive.w(context, 8)),
+
+                    // 全屏切换
+                    _buildIconButton(context: context, icon: AppIcons.fullscreen, size: btnSize, iconSize: iconSize,
+                        onTap: onToggleFullscreen ?? () {}),
                   ],
-
-                  // 全屏切换
-                  _buildIconButton(
-                    context: context,
-              icon: AppIcons.fullscreen,
-                    size: btnSize,
-                    iconSize: iconSize,
-                    onTap: onToggleFullscreen ?? () {},
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -366,25 +313,24 @@ class BottomControls extends ConsumerWidget {
 
   /// 进度条
   Widget _buildProgressBar(BuildContext context) {
-    final trackHeight = adaptive.isIPad(context) ? 6.0 : 4.0;
+    final trackHeight = adaptive.isIPad(context) ? 5.0 : 3.5;
     final thumbRadius = adaptive.isIPad(context) ? 7.0 : 5.5;
 
     return SizedBox(
-      height: adaptive.Adaptive.h(context, 20), // 热区高度
+      height: adaptive.Adaptive.h(context, 22), // 触控热区
       child: SliderTheme(
         data: SliderThemeData(
           trackHeight: trackHeight,
           thumbShape: RoundSliderThumbShape(enabledThumbRadius: thumbRadius),
-          overlayShape: RoundSliderOverlayShape(overlayRadius: thumbRadius + 8),
+          overlayShape: RoundSliderOverlayShape(overlayRadius: thumbRadius + 10),
           activeTrackColor: AppColors.primary,
           inactiveTrackColor: Colors.white24,
           thumbColor: AppColors.primary,
-          overlayColor: AppColors.primary.withValues(alpha: 0.2),
+          overlayColor: AppColors.primary.withValues(alpha: 0.15),
         ),
         child: Slider(
           value: state.duration.inMilliseconds > 0
-              ? (state.position.inMilliseconds / state.duration.inMilliseconds)
-                    .clamp(0.0, 1.0)
+              ? (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(0.0, 1.0)
               : 0.0,
           onChanged: (v) {
             final ms = (v * state.duration.inMilliseconds).toInt();
@@ -395,35 +341,7 @@ class BottomControls extends ConsumerWidget {
     );
   }
 
-  /// 播放/暂停大按钮
-  Widget _buildPlayButton(BuildContext context, double size) {
-    final isPlaying = state.playerState == PlayerState.playing;
-    final iconSize = size * 0.5;
-
-    return GestureDetector(
-      onTap: () => notifier.togglePlayPause(),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.primary.withValues(alpha: 0.15),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.5),
-            width: 1.5,
-          ),
-        ),
-        child: Icon(
-          isPlaying ? AppIcons.pause : AppIcons.play,
-          color: AppColors.primary,
-          size: iconSize,
-        ),
-      ),
-    );
-  }
-
-  /// 图标按钮（圆形触控区）
+  /// 图标按钮（统一样式，无特殊背景）
   Widget _buildIconButton({
     required BuildContext context,
     required IconData icon,
@@ -443,14 +361,10 @@ class BottomControls extends ConsumerWidget {
         decoration: isActive
             ? BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: Colors.white.withValues(alpha: 0.12),
               )
             : null,
-        child: Icon(
-          icon,
-          color: isActive ? AppColors.primary : Colors.white,
-          size: iconSize,
-        ),
+        child: Icon(icon, color: isActive ? AppColors.primary : Colors.white, size: iconSize),
       ),
     );
 
@@ -460,14 +374,8 @@ class BottomControls extends ConsumerWidget {
     return widget;
   }
 
-  /// Toggle 文字按钮（跟读、朗读等）
-  Widget _buildToggleButton({
-    required BuildContext context,
-    required String text,
-    required bool active,
-    required Color activeColor,
-    required VoidCallback onTap,
-  }) {
+  /// Toggle 文字按钮
+  Widget _buildToggleButton(BuildContext context, String text, bool active, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -478,46 +386,28 @@ class BottomControls extends ConsumerWidget {
           vertical: adaptive.Adaptive.h(context, 6),
         ),
         decoration: BoxDecoration(
-          color: active ? activeColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.1),
+          color: active ? color.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
-          border: active
-              ? Border.all(color: activeColor.withValues(alpha: 0.5), width: 1)
-              : null,
         ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: active ? activeColor : Colors.white70,
-            fontSize: adaptive.Adaptive.sp(context, 13),
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
+        child: Text(text,
+            style: TextStyle(
+              color: active ? color : Colors.white70,
+              fontSize: adaptive.Adaptive.sp(context, 13),
+              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+            )),
       ),
     );
   }
 
-  /// 文字按钮（倍速、字号等触发弹窗）
-  Widget _buildTextButton({
-    required BuildContext context,
-    required String text,
-    required VoidCallback onTap,
-  }) {
+  /// 文字按钮
+  Widget _buildTextButton(BuildContext context, String text, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 10),
-          vertical: adaptive.Adaptive.h(context, 6),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: adaptive.Adaptive.sp(context, 13),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 10), vertical: adaptive.Adaptive.h(context, 6)),
+        child: Text(text,
+            style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -528,26 +418,16 @@ class BottomControls extends ConsumerWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 6),
-          vertical: adaptive.Adaptive.h(context, 4),
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: adaptive.Adaptive.sp(context, 12),
-          ),
-        ),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 4)),
+        child: Text(text, style: TextStyle(color: Colors.white70, fontSize: adaptive.Adaptive.sp(context, 12))),
       ),
     );
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 弹窗选择器（使用 TDesign 组件）
+  // 弹窗选择器
   // ═══════════════════════════════════════════════════════════
 
-  /// 倍速选择器
   void _showSpeedPicker(BuildContext context) {
     final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
@@ -558,30 +438,22 @@ class BottomControls extends ConsumerWidget {
         return TDActionSheetItem(label: label);
       }).toList(),
       onSelected: (item, index) {
-        final selected = speeds[index];
-        notifier.setSpeed(selected);
-        onSpeedChanged?.call(selected);
+        notifier.setSpeed(speeds[index]);
+        onSpeedChanged?.call(speeds[index]);
       },
     );
   }
 
-  /// 循环模式标签
   String _getLoopModeLabel() {
     switch (state.loopingMode) {
-      case 'single_loop':
-        return '单集循环';
-      case 'list_loop':
-        return '列表循环';
-      case 'single_play':
-        return '单集播放';
-      case 'sequence_play':
-        return '顺序播放';
-      default:
-        return '循环模式';
+      case 'single_loop': return '单集循环';
+      case 'list_loop': return '列表循环';
+      case 'single_play': return '单集播放';
+      case 'sequence_play': return '顺序播放';
+      default: return '循环模式';
     }
   }
 
-  /// 循环模式选择器
   void _showLoopModePicker(BuildContext context) {
     const modes = ['single_loop', 'list_loop', 'single_play', 'sequence_play'];
     const labels = ['单集循环', '列表循环', '单集播放', '顺序播放'];
@@ -589,13 +461,10 @@ class BottomControls extends ConsumerWidget {
     TDActionSheet.showListActionSheet(
       context,
       items: List.generate(modes.length, (i) => TDActionSheetItem(label: labels[i])),
-      onSelected: (item, index) {
-        notifier.setLoopingMode(modes[index]);
-      },
+      onSelected: (item, index) => notifier.setLoopingMode(modes[index]),
     );
   }
 
-  /// 字号选择器
   void _showFontSizePicker(BuildContext context) {
     double tempValue = state.subtitleFontSize;
 
@@ -609,47 +478,26 @@ class BottomControls extends ConsumerWidget {
           builder: (context, setDialogState) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                '${tempValue.toInt()}',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: adaptive.Adaptive.sp(context, 32),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text('${tempValue.toInt()}',
+                  style: TextStyle(color: AppColors.primary, fontSize: adaptive.Adaptive.sp(context, 32), fontWeight: FontWeight.bold)),
               SizedBox(height: adaptive.Adaptive.h(context, 16)),
               Slider(
-                value: tempValue,
+                value: tempValue.clamp(12.0, 40.0),
                 min: 12,
                 max: 40,
                 divisions: 28,
-                onChanged: (v) {
-                  setDialogState(() => tempValue = v);
-                },
-                onChangeEnd: (v) {
-                  notifier.setSubtitleFontSize(v);
-                  onFontSizeChanged?.call(v);
-                },
+                onChanged: (v) => setDialogState(() => tempValue = v),
+                onChangeEnd: (v) { notifier.setSubtitleFontSize(v); onFontSizeChanged?.call(v); },
                 activeColor: AppColors.primary,
                 inactiveColor: Colors.white24,
                 thumbColor: AppColors.primary,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('小', style: TextStyle(color: Colors.white54, fontSize: adaptive.Adaptive.sp(context, 12))),
-                  Text('大', style: TextStyle(color: Colors.white54, fontSize: adaptive.Adaptive.sp(context, 12))),
-                ],
-              ),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [Text('小', style: TextStyle(color: Colors.white54)), Text('大', style: TextStyle(color: Colors.white54))]),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('确定', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text('确定', style: TextStyle(color: AppColors.primary)))],
       ),
     );
   }

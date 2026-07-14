@@ -133,17 +133,26 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
 
     // 沉浸式：隐藏状态栏和导航栏
     // immersiveSticky: 完全隐藏，用户从边缘滑动可临时显示
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // 使用延迟确保在 widget mount 后生效
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
       SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.immersiveSticky,
       );
-      // 再次确认样式
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarIconBrightness: Brightness.light,
       ));
+    });
+  }
+
+  /// 强制刷新沉浸式（在 build 中调用，确保每次重建都保持沉浸式）
+  void _enforceImmersive() {
+    Future.microtask(() {
+      if (!mounted) return;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     });
   }
 
@@ -201,6 +210,9 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
 
   @override
   Widget build(BuildContext context) {
+    // 每次构建都强制保持沉浸式
+    _enforceImmersive();
+
     final state = ref.watch(playerEngineProvider);
     final notifier = ref.read(playerEngineProvider.notifier);
     final subtitlesList = notifier.subtitles;

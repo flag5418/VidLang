@@ -58,24 +58,24 @@ class MediaArea extends StatelessWidget {
   // 视频模式 — 竖屏 (Portrait)
   // ═══════════════════════════════════════════════════════════
 
-  /// 竖屏视频：上部视频(~1/3) + 下部字幕区域
+  /// 竖屏视频：上部视频(~1/3，完整宽度无边距）+ 下部字幕区域
   Widget _buildVideoPortrait(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final videoAreaHeight = screenHeight * 0.38; // 视频占约 38%
 
     return Column(
       children: [
-        // 上部：视频播放器
+        // 上部：视频播放器（完整填充整个宽度，无边距）
         SizedBox(
           height: videoAreaHeight,
           width: double.infinity,
           child: VideoWidget(player: player),
         ),
 
-        // 下部：字幕区域（有字幕时显示）
+        // 下部：字幕区域（有字幕时显示，使用 ClipRect 防止字幕贯穿控制栏）
         if (subtitleVisible && subtitlesList.isNotEmpty)
           Expanded(
-            child: _buildSubtitleOverlayArea(context),
+            child: ClipRect(child: _buildSubtitleOverlayArea(context)),
           )
         else
           Expanded(child: const SizedBox.shrink()),
@@ -88,11 +88,9 @@ class MediaArea extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: adaptive.Adaptive.w(context, 16),
-        vertical: adaptive.Adaptive.h(context, 12),
+        vertical: adaptive.Adaptive.h(context, 8),
       ),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
-      ),
+      color: Colors.black.withValues(alpha: 0.4),
       child: _buildSubtitleListView(context, showCurrentHighlight: true),
     );
   }
