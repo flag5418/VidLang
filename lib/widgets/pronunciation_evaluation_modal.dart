@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart'; // TODO: 后续集成 Riverpod 时启用
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:vidlang/theme/theme.dart';
-import '../services/evaluation_service.dart';
+import '../services/evaluation/unified_evaluation_service.dart';
+// import '../providers/subscription_provider.dart'; // TODO: 后续获取订阅模式时启用
 import '../models/evaluation_models.dart';
-import 'evaluation_content_widgets.dart';
+// import 'evaluation_content_widgets.dart'; // TODO: 后续重构各模式 UI 时启用
 
 /// 跟读评测弹窗主组件
 /// 统一容器，包含固定区域和可变内容区域
@@ -31,15 +33,20 @@ class PronunciationEvaluationModal extends StatefulWidget {
 
 class _PronunciationEvaluationModalState
     extends State<PronunciationEvaluationModal> {
-  late EvaluationService _evaluationService;
-  EvaluationResult? _currentResult;
+  /// 统一评测服务（单例）
+  /// 
+  /// TODO: 当前未直接使用，保留供后续录音功能集成时使用
+  // ignore: unused_field
+  final _unifiedEvaluationService = UnifiedEvaluationService.instance;
+  
+  UnifiedEvaluationResult? _currentResult;
   bool _isRecording = false;
   double _audioVolume = 0.6; // 默认60%
 
   @override
   void initState() {
     super.initState();
-    _evaluationService = EvaluationService();
+    // 使用统一评测服务，不再需要手动创建实例
   }
 
   @override
@@ -61,11 +68,11 @@ class _PronunciationEvaluationModalState
                 ),
                 decoration: BoxDecoration(
                   color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
                   boxShadow: [
                     BoxShadow(
                       color: theme.shadowColor,
-                      blurRadius: adaptive.Adaptive.w(context, 20),
+                      blurRadius: adaptive.Adaptive.w(20),
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -98,7 +105,7 @@ class _PronunciationEvaluationModalState
   Widget _buildHeader(ThemeData theme) {
     return Container(
       height: 56,
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
         color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: const BorderRadius.only(
@@ -108,33 +115,33 @@ class _PronunciationEvaluationModalState
       ),
       child: Row(
         children: [
-          Icon(AppIcons.recordVoiceOver, color: theme.primaryColor, size: adaptive.Adaptive.icon(context, 24)),
-          SizedBox(width: adaptive.Adaptive.w(context, 12)),
+          Icon(AppIcons.recordVoiceOver, color: theme.primaryColor, size: adaptive.Adaptive.icon(24)),
+          SizedBox(width: adaptive.Adaptive.w(12)),
           Text(
             '跟读评测',
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 18),
+              fontSize: adaptive.Adaptive.sp(18),
               fontWeight: FontWeight.bold,
               color: theme.primaryColor,
             ),
           ),
           const Spacer(),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 4)),
+            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(8), vertical: adaptive.Adaptive.h(4)),
             decoration: BoxDecoration(
               color: _getModeColor().withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
             ),
             child: Text(
               _getModeLabel(),
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(12),
                 color: _getModeColor(),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(AppIcons.close),
@@ -149,46 +156,81 @@ class _PronunciationEvaluationModalState
   /// 中间可变区
   Widget _buildContentArea(ThemeData theme) {
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       child: _buildEvaluationContent(),
     );
   }
 
   /// 根据评测模式显示不同内容
+  /// 
+  /// TODO: 后续重构为使用 UnifiedEvaluationService，当前暂时显示占位内容
   Widget _buildEvaluationContent() {
+    // 暂时返回一个占位组件，后续根据模式渲染不同的评测内容
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            AppIcons.mic,
+            size: adaptive.Adaptive.icon(48),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          SizedBox(height: adaptive.Adaptive.h(16)),
+          Text(
+            '点击下方麦克风开始${_getModeLabel()}',
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(16),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          SizedBox(height: adaptive.Adaptive.h(8)),
+          Text(
+            widget.referenceText,
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(14),
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // TODO: 移除此方法，后续直接在 _buildEvaluationContent 中实现各模式的 UI
+  /*
+  Widget _buildEvaluationContentForMode() {
     switch (widget.mode) {
       case EvaluationMode.freeSTT:
         return NativeSTTContent(
           referenceText: widget.referenceText,
-          evaluationService: _evaluationService,
-          onResultUpdate: _onResultUpdate,
+          onResultUpdate: _onUnifiedResultUpdate,
         );
       case EvaluationMode.word:
         return WordEvaluationContent(
           word: widget.referenceText,
-          evaluationService: _evaluationService,
-          onResultUpdate: _onResultUpdate,
+          onResultUpdate: _onUnifiedResultUpdate,
         );
       case EvaluationMode.sentence:
         return SentenceEvaluationContent(
           sentence: widget.referenceText,
-          evaluationService: _evaluationService,
-          onResultUpdate: _onResultUpdate,
+          onResultUpdate: _onUnifiedResultUpdate,
         );
       case EvaluationMode.paragraph:
         return ParagraphEvaluationContent(
           text: widget.referenceText,
-          evaluationService: _evaluationService,
-          onResultUpdate: _onResultUpdate,
+          onResultUpdate: _onUnifiedResultUpdate,
         );
     }
   }
+  */
 
   /// 综合评分区 (高度: 80dp)
   Widget _buildScoreArea(ThemeData theme) {
     return Container(
       height: 80,
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16)),
       child: _currentResult != null
           ? Row(
               children: [
@@ -197,15 +239,15 @@ class _PronunciationEvaluationModalState
                   width: 60,
                   height: 60,
                   child: CircularProgressIndicator(
-                    value: _currentResult!.overallScore / 100,
+                    value: (_currentResult?.overallScore ?? 0) / 100,
                     strokeWidth: 6,
                     backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation(
-                      _getScoreColor(_currentResult!.overallScore),
+                      _getScoreColor(_currentResult?.overallScore ?? 0),
                     ),
                   ),
                 ),
-                SizedBox(width: adaptive.Adaptive.w(context, 16)),
+                SizedBox(width: adaptive.Adaptive.w(16)),
                 // 评分信息
                 Expanded(
                   child: Column(
@@ -213,20 +255,20 @@ class _PronunciationEvaluationModalState
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '综合评分: ${_currentResult!.overallScore.toInt()}%',
+                        '综合评分: ${(_currentResult?.overallScore ?? 0).toInt()}%',
                         style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(context, 18),
+                          fontSize: adaptive.Adaptive.sp(18),
                           fontWeight: FontWeight.bold,
                           color: _getScoreColor(_currentResult!.overallScore),
                         ),
                       ),
-                      SizedBox(height: adaptive.Adaptive.h(context, 4)),
+                      SizedBox(height: adaptive.Adaptive.h(4)),
                       LinearProgressIndicator(
-                        value: _currentResult!.overallScore / 100,
+                        value: (_currentResult?.overallScore ?? 0) / 100,
                         backgroundColor:
                             theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation(
-                          _getScoreColor(_currentResult!.overallScore),
+                          _getScoreColor(_currentResult?.overallScore ?? 0),
                         ),
                         minHeight: 6,
                       ),
@@ -239,7 +281,7 @@ class _PronunciationEvaluationModalState
               child: Text(
                 '点击录音开始评测',
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 16),
+                  fontSize: adaptive.Adaptive.sp(16),
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -251,7 +293,7 @@ class _PronunciationEvaluationModalState
   Widget _buildControlArea(ThemeData theme) {
     return Container(
       height: 120,
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         borderRadius: const BorderRadius.only(
@@ -264,13 +306,13 @@ class _PronunciationEvaluationModalState
           // 音频控制行
           Row(
             children: [
-              Icon(AppIcons.volumeUp, color: theme.primaryColor, size: adaptive.Adaptive.icon(context, 20)),
-              SizedBox(width: adaptive.Adaptive.w(context, 8)),
+              Icon(AppIcons.volumeUp, color: theme.primaryColor, size: adaptive.Adaptive.icon(20)),
+              SizedBox(width: adaptive.Adaptive.w(8)),
               Text(
                 '原音音量',
-                style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: theme.primaryColor),
+                style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: theme.primaryColor),
               ),
-              SizedBox(width: adaptive.Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(12)),
               Expanded(
                 child: Slider(
                   value: _audioVolume,
@@ -297,13 +339,13 @@ class _PronunciationEvaluationModalState
                   icon: Icon(
                     _isRecording ? AppIcons.stop : AppIcons.mic,
                     color: Colors.white,
-                    size: adaptive.Adaptive.icon(context, 20),
+                    size: adaptive.Adaptive.icon(20),
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 16)),
+          SizedBox(height: adaptive.Adaptive.h(16)),
           // 控制按钮行
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -370,17 +412,17 @@ class _PronunciationEvaluationModalState
             ),
             child: Icon(
               icon,
-              size: adaptive.Adaptive.icon(context, 18),
+              size: adaptive.Adaptive.icon(18),
               color: isEnabled
                   ? theme.primaryColor
                   : theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 4)),
+          SizedBox(height: adaptive.Adaptive.h(4)),
           Text(
             label,
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 10),
+              fontSize: adaptive.Adaptive.sp(10),
               color: isEnabled
                   ? theme.primaryColor
                   : theme.colorScheme.onSurfaceVariant,
@@ -438,14 +480,26 @@ class _PronunciationEvaluationModalState
     }
   }
 
-  void _startRecording() {
-    // TODO: 实现开始录音逻辑
-    _evaluationService.startRecording();
+  void _startRecording() async {
+    // TODO: 集成录音功能，录制完成后调用统一评测服务
+    debugPrint('🎤 [PronunciationModal] 开始录音...');
+    
+    // Free 模式：使用原生 STT 流式识别
+    if (widget.mode == EvaluationMode.freeSTT) {
+      // TODO: 调用 IosNativeFeatures.startSpeechRecognition()
+      // 然后监听 onSpeechResult Stream
+      // 最后调用 UnifiedEvaluationService.processNativeSttResult()
+    }
+    
+    // Premium 模式：使用声通评测（需要先录音再上传）
+    else {
+      // TODO: 录音完成后调用 _unifiedEvaluationService.evaluate()
+    }
   }
 
   void _stopRecording() {
     // TODO: 实现停止录音逻辑
-    _evaluationService.stopRecording();
+    debugPrint('⏹️ [PronunciationModal] 停止录音');
   }
 
   void _resetRecording() {
@@ -457,27 +511,46 @@ class _PronunciationEvaluationModalState
 
   void _playRecording() {
     // TODO: 实现播放录音逻辑
-    _evaluationService.playRecording();
+    debugPrint('▶️ [PronunciationModal] 播放录音');
   }
 
   void _saveRecording() {
-    // TODO: 实现保存录音逻辑
-    if (_currentResult != null) {
-      _evaluationService.saveRecording(_currentResult!);
+    // TODO: 实现保存录音逻辑（保存到学习记录）
+    if (_currentResult != null && _currentResult!.success) {
+      debugPrint('💾 [PronunciationModal] 保存评测结果: ${_currentResult!.overallScore.toInt()}%');
     }
   }
 
   void _showDetails() {
-    if (_currentResult != null) {
-      // TODO: 显示详细评测结果
+    if (_currentResult != null && _currentResult!.hasDetail) {
+      // TODO: 显示详细评测结果面板（Premium 模式专属）
+      debugPrint('📊 [PronunciationModal] 显示详细评分: ${_currentResult!.detail}');
     }
   }
 
-  void _onResultUpdate(EvaluationResult result) {
+  /// 处理统一评测结果更新
+  /// 
+  /// TODO: 当前未直接调用，保留供后续各模式 UI 组件集成时使用
+  // ignore: unused_element
+  void _onUnifiedResultUpdate(UnifiedEvaluationResult result) {
     setState(() {
       _currentResult = result;
     });
-    widget.onEvaluationComplete?.call(result);
+    
+    // 如果有回调，转换为旧格式（兼容性处理，后续移除）
+    if (result.success) {
+      final legacyResult = EvaluationResult(
+        referenceText: result.referenceText,
+        mode: widget.mode,
+        overallScore: result.overallScore,
+        fluencyScore: result.detail?.fluency ?? 0.0,
+        accuracyScore: result.detail?.accuracy ?? 0.0,
+        completenessScore: result.detail?.completeness ?? 0.0,
+        wordEvaluations: result.detail?.wordEvaluations ?? [],
+        createdAt: DateTime.now(),
+      );
+      widget.onEvaluationComplete?.call(legacyResult);
+    }
   }
 }
 
@@ -488,7 +561,8 @@ void showPronunciationEvaluation(
   EvaluationMode? mode,
   Function(EvaluationResult)? onComplete,
 }) {
-  final detectedMode = mode ?? EvaluationModeDetector.detectMode(text);
+  // TODO: 实现 EvaluationModeDetector 或使用默认模式
+  final detectedMode = mode ?? EvaluationMode.sentence; // 默认句子模式
 
   showDialog(
     context: context,

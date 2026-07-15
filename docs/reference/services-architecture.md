@@ -92,12 +92,19 @@
 
 | 序号 | 服务类 | 文件 | 职责 | 状态 |
 |------|--------|------|------|------|
-| 30 | **EvaluationService** | `evaluation_service.dart` | 发音评测协调器 | ✅ 已实现 |
-| 31 | **EvaluationApi** | `evaluation_api.dart` | 评测 API 封装 | ✅ 已实现 |
-| 32 | **EvaluationStorageService** | `evaluation_storage_service.dart` | 评测结果存储 | ✅ 已实现 |
-| 33 | **AiEvaluationService** | `ai_evaluation_service.dart` | AI 学习评价 | ✅ 已实现 |
-| 34 | **ScoreService** | `score_service.dart` | 评分计算 | ✅ 已实现 |
-| 35 | **ShengtongEvaluator** | `shengtong_evaluator.dart` | 声通评测器（WebSocket 连接，App 端评测） | ✅ 已实现 |
+| 30 | **UnifiedEvaluationService** | `evaluation/unified_evaluation_service.dart` | **统一评测入口**（Free/Premium 自动分流） | ✅ V1.0 新增 |
+| 31 | **ShengtongHttpEvaluator** | `evaluation/shengtong_http_evaluator.dart` | 声通 HTTP 评测器（Premium 模式） | ✅ 已实现 |
+| 32 | **ShengtongEvaluator** | `evaluation/shengtong_evaluator.dart` | 声通 WebSocket 评测器（备用） | ✅ 已实现 |
+| 33 | **AiEvaluationService** | `evaluation/ai_evaluation_service.dart` | AI 学习评价分析 | ✅ 已实现 |
+| 34 | **EvaluationApi** | `evaluation/evaluation_api.dart` | 评测 API 封装 | ✅ 已实现 |
+| 35 | **EvaluationStorageService** | `evaluation/evaluation_storage_service.dart` | 评测结果存储 | ✅ 已实现 |
+| 36 | **ScoreService** | `score_service.dart` | 评分计算 | ✅ 已实现 |
+
+> **📌 重要变更 (2026-07-15)**：
+> - 新增 `UnifiedEvaluationService` 作为统一评测入口（对标 UnifiedTtsService / UnifiedTranslationService）
+> - 删除旧的 Mock `EvaluationService`（原 `evaluation_service.dart`）
+> - 所有评测相关文件已迁移到 `lib/services/evaluation/` 目录
+> - 详细设计文档：[unified-evaluation-service-V1.0.md](../developer/design/unified-evaluation-service-V1.0.md)
 | 36 | **ShengtongHttpEvaluator** | `shengtong_http_evaluator.dart` | 声通 HTTP 模式评测 | ✅ 已实现 |
 
 ### 2.7 用户/认证/计费服务
