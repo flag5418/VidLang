@@ -9,7 +9,7 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 import 'package:vidlang/theme/theme.dart';
 
 

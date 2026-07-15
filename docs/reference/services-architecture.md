@@ -1,6 +1,6 @@
 # VidLang - 服务层架构详解
 
-> **版本**: V2.1 | **日期**: 2026-07-13
+> **版本**: V2.2 | **日期**: 2026-07-15
 > **状态**: 当前有效
 > **适用读者**: 后端开发者、架构师、AI 辅助工具
 
@@ -28,6 +28,73 @@
 | **错误隔离** | 每个服务独立处理异常，不向上抛出原始异常 |
 | **可测试性** | 核心逻辑可通过 mock 进行单元测试 |
 | **单例模式** | 全局共享的服务使用单例（如 DatabaseService） |
+
+### 1.3 目录结构（模块化重构后）
+
+```
+lib/services/
+├── ai/                          # AI 服务层
+│   ├── ai_service.dart          # AI 代理调用（Edge Function）
+│   ├── dictionary_service.dart  # 查词服务（本地词典 + AI）
+│   └── unified_translation_service.dart  # 统一翻译服务
+├── billing/                      # 计费服务
+│   └── billing_service.dart     # 计费/余额/扣费
+├── evaluation/                   # 评测服务
+│   ├── unified_evaluation_service.dart  # 统一评测入口 ⭐
+│   ├── shengtong_evaluator.dart # 声通 WebSocket 评测器
+│   ├── ai_evaluation_service.dart       # AI 学习评价分析
+│   ├── evaluation_api.dart      # 评测 API 封装
+│   └── evaluation_storage_service.dart  # 评测结果存储
+├── files/                        # 文件/媒体服务
+│   ├── file_manager_service.dart # 物理文件 CRUD
+│   ├── file_picker_service.dart  # 文件导入/扫描
+│   ├── folder_stats_service.dart # 文件夹统计
+│   ├── thumbnail_service.dart    # 缩略图生成
+│   ├── wifi_transfer_service.dart# WiFi 文件传输
+│   ├── id3_parser.dart           # ID3 标签解析
+│   └── initial_letter_cover.dart # 首字母封面
+├── forum/                        # 论坛服务
+│   └── forum_service.dart        # 论坛 CRUD
+├── learning/                     # 学习统计服务
+│   ├── learning_stats_service.dart  # 统一学习统计 ⭐
+│   └── stats_service.dart        # @Deprecated 别名类
+├── native/                       # 原生服务
+│   ├── native_service.dart       # 原生通道封装
+│   └── ios_native_features.dart  # iOS 原生能力
+├── parsers/                      # 内容解析服务
+│   ├── article_parser.dart       # 文章解析
+│   └── lrc_parser.dart           # LRC 歌词解析
+├── tts/                          # TTS 服务
+│   ├── unified_tts_service.dart  # 统一 TTS 入口 ⭐
+│   ├── dashscope_tts_service.dart# 阿里云 TTS
+│   └── local_tts_service.dart    # 本地 TTS 引擎
+├── utils/                        # 工具类
+│   └── service_logger.dart       # 统一日志工具 ⭐
+├── word_book/                    # 单词本服务
+│   ├── word_book_service.dart    # 单词本 CRUD
+│   └── word_tag_service.dart     # 单词标签管理
+├── database_service.dart         # 数据库核心服务
+├── settings_service.dart         # 应用设置
+├── app_keys_service.dart         # 配置/密钥管理
+├── device_info_service.dart      # 设备检测
+├── auth_service.dart             # 认证服务
+├── topup_service.dart            # 充值服务
+├── translation_service.dart      # 翻译服务入口
+├── huggingface_translation_service.dart  # HuggingFace 翻译
+├── translation_init_service.dart # 翻译初始化
+├── tts_service.dart              # TTS 入口（免费/收费切换）
+├── speech_to_text_service.dart   # STT 入口
+├── unified_stt_service.dart      # 统一 STT 服务
+├── local_stt_service.dart        # 本地 STT 引擎
+├── audio_recognition_service.dart# 音频识别
+├── score_service.dart            # 评分计算
+├── test_generator.dart           # 测试题目生成
+├── conversation_service.dart     # AI 对话管理
+├── qwen_realtime_service.dart    # 通义千问实时对话
+├── local_model_service.dart      # 本地模型管理
+├── model_path_service.dart       # 模型路径管理
+└── local_ai_service.dart         # 本地 AI 统一入口
+```
 
 ---
 
@@ -93,19 +160,19 @@
 | 序号 | 服务类 | 文件 | 职责 | 状态 |
 |------|--------|------|------|------|
 | 30 | **UnifiedEvaluationService** | `evaluation/unified_evaluation_service.dart` | **统一评测入口**（Free/Premium 自动分流） | ✅ V1.0 新增 |
-| 31 | **ShengtongHttpEvaluator** | `evaluation/shengtong_http_evaluator.dart` | 声通 HTTP 评测器（Premium 模式） | ✅ 已实现 |
-| 32 | **ShengtongEvaluator** | `evaluation/shengtong_evaluator.dart` | 声通 WebSocket 评测器（备用） | ✅ 已实现 |
-| 33 | **AiEvaluationService** | `evaluation/ai_evaluation_service.dart` | AI 学习评价分析 | ✅ 已实现 |
-| 34 | **EvaluationApi** | `evaluation/evaluation_api.dart` | 评测 API 封装 | ✅ 已实现 |
-| 35 | **EvaluationStorageService** | `evaluation/evaluation_storage_service.dart` | 评测结果存储 | ✅ 已实现 |
-| 36 | **ScoreService** | `score_service.dart` | 评分计算 | ✅ 已实现 |
+| 31 | **ShengtongEvaluator** | `evaluation/shengtong_evaluator.dart` | 声通 WebSocket 评测器（Premium 模式） | ✅ 已实现 |
+| 32 | **AiEvaluationService** | `evaluation/ai_evaluation_service.dart` | AI 学习评价分析 | ✅ 已实现 |
+| 33 | **EvaluationApi** | `evaluation/evaluation_api.dart` | 评测 API 封装 | ✅ 已实现 |
+| 34 | **EvaluationStorageService** | `evaluation/evaluation_storage_service.dart` | 评测结果存储 | ✅ 已实现 |
+| 35 | **ScoreService** | `score_service.dart` | 评分计算 | ✅ 已实现 |
 
 > **📌 重要变更 (2026-07-15)**：
-> - 新增 `UnifiedEvaluationService` 作为统一评测入口（对标 UnifiedTtsService / UnifiedTranslationService）
-> - 删除旧的 Mock `EvaluationService`（原 `evaluation_service.dart`）
-> - 所有评测相关文件已迁移到 `lib/services/evaluation/` 目录
-> - 详细设计文档：[unified-evaluation-service-V1.0.md](../developer/design/unified-evaluation-service-V1.0.md)
-| 36 | **ShengtongHttpEvaluator** | `shengtong_http_evaluator.dart` | 声通 HTTP 模式评测 | ✅ 已实现 |
+> - ✅ `UnifiedEvaluationService` 作为统一评测入口（对标 UnifiedTtsService / UnifiedTranslationService）
+> - 🗑️ 删除旧的 Mock `EvaluationService`（原 `evaluation_service.dart`）
+> - 🗑️ 删除 `ShengtongHttpEvaluator`（HTTP 版声通评测器，不再使用）
+> - 📦 所有评测相关文件已迁移到 `lib/services/evaluation/` 目录
+> - ⚠️ Premium 模式评测功能待实现（当前返回占位结果）
+> - 详细设计文档：[unified-evaluation-service-V1.0.md](../developer/design/unified-evaluation-service-V1.0.md) |
 
 ### 2.7 用户/认证/计费服务
 
@@ -119,8 +186,15 @@
 
 | 序号 | 服务类 | 文件 | 职责 | 状态 |
 |------|--------|------|------|------|
-| 42 | **StatsService** | `stats_service.dart` | 统计服务入口 | ✅ 已实现 |
-| 43 | **LearningStatsService** | `learning_stats_service.dart` | 学习统计、会话管理、指标归集 | ✅ 已实现 |
+| 42 | **LearningStatsService** | `learning/learning_stats_service.dart` | **统一学习统计**（会话管理/指标归集/详情页） | ✅ V2.2 合并 |
+| 43 | **StatsService** | `learning/stats_service.dart` | @Deprecated 别名类（兼容旧代码） | ⚠️ 废弃中 |
+
+> **📌 重要变更 (2026-07-15)**：
+> - ✅ `StatsService` 已合并到 `LearningStatsService`
+> - 📦 原有 `StatsService` 的所有方法（首页统计/详情统计/趋势分析）已迁移
+> - 🔧 `StatsService` 类保留为 `@Deprecated` 别名，保持向后兼容
+> - 🆕 新增数据模型：`DetailOverview`, `TypeStats`, `DailyTrend`, `AiSuggestion`
+> - 🆕 新增首页数据模型：`HomeStats`, `SummaryStats`, `RecentFolderGroup`
 
 ### 2.9 对话/AI 实时服务
 
@@ -574,7 +648,7 @@ Future<ResultType> doSomethingAsync() async {
 
 ---
 
-## 八、服务层统计（截至 2026-07-13）
+## 八、服务层统计（截至 2026-07-15）
 
 | 类别 | 数量 | 说明 |
 |------|------|------|
@@ -583,16 +657,17 @@ Future<ResultType> doSomethingAsync() async {
 | AI 服务 | 9 | AI查询、本地AI、翻译、词典、原生通道 |
 | TTS 服务 | 4 | TTS入口、统一TTS、DashScope WebSocket TTS、本地TTS |
 | STT 服务 | 4 | STT入口、统一STT、本地STT、音频识别 |
-| 评测服务 | 6 | 评测协调、API、存储、AI评价、声通WebSocket、声通HTTP |
+| 评测服务 | **5** | 统一评测入口⭐、API、存储、AI评价、声通WebSocket（HTTP版已删除） |
 | 用户/计费 | 3 | Auth、Billing、Topup |
-| 数据统计 | 2 | Stats、LearningStats |
+| 数据统计 | **1** | LearningStatsService（StatsService 已合并） |
 | 对话/AI实时 | 2 | Conversation、QwenRealtime |
 | 内容解析 | 1 | ArticleParser |
 | 单词本 | 2 | WordBook、WordTag |
 | 本地模型 | 2 | LocalModel、ModelPath |
 | 测试 | 1 | TestGenerator |
 | 论坛 | 1 | ForumService |
-| **总计** | **52** | （含 forum 子目录 + DeviceInfoService） |
+| 工具类 | **1** | ServiceLogger（统一日志） |
+| **总计** | **49** | （模块化重构后，删除冗余服务） |
 
 ---
 
@@ -603,15 +678,16 @@ Future<ResultType> doSomethingAsync() async {
 | V1.0 | 2026-07-12 | 初始版本，仅覆盖 18 个核心服务 |
 | V2.0 | 2026-07-13 | 重大更新：服务清单从 18 个扩展至 51 个；补充评测服务族(7)、TTS/STT 服务族(各4)、论坛/单词本/WiFi传输等服务；更新 DatabaseService API 为静态方法模式；新增服务间依赖关系图 |
 | V2.1 | 2026-07-13 | **修正**：移除不存在的 ShengtongEvaluatorManual（评测已迁移至 App 端）；新增 DeviceInfoService（设备类型检测）；声通评测器描述更新为 WebSocket/App 端模式；TTS 收费模式描述更新为 DashScope WebSocket 直连；服务总数修正为 52 个；序号重新编排；底部文档链接路径对齐版本化文件名 |
+| **V2.2** | **2026-07-15** | **模块化重构**：① 目录按功能模块化（ai/billing/evaluation/files/forum/learning/native/parsers/tts/utils/word_book 共11个子目录）② 删除 ShengtongHttpEvaluator（HTTP版不再使用）③ 合并 StatsService → LearningStatsService④ 新增 ServiceLogger 统一日志工具⑤ 更新目录结构图和变更日志⑥ Premium 模式评测待实现 |
 
 ---
 
-**最后更新**: 2026-07-13
+**最后更新**: 2026-07-15
 **维护者**: VidLang 开发团队
 **相关文档**:
 - [AGENT_CONTEXT.md](../AGENT_CONTEXT.md) - 项目核心认知
 - [Flutter 代码结构详解](./flutter-code-structure.md) - 整体代码组织
-- [数据库设计](./database-schema-V2.0.md) - 数据模型和表结构
+- [数据库设计](../architecture/database-schema-V2.0.md) - 数据模型和表结构
 - [OmniPlayer 集成指南](./omni-player-integration.md) - 播放器集成
 - [AI 服务集成](./ai-service-integration.md) - AI 服务详细说明
 - [架构总览](../architecture/overview-V1.1.md) - 产品架构与技术栈

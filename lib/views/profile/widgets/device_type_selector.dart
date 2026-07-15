@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.da
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/device_type.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/views/profile/providers/device_type_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
 
 

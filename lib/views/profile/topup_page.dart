@@ -11,7 +11,7 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/topup_history_page.dart';
 import 'package:vidlang/views/profile/billing_rules_page.dart';
 
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 class TopupPage extends ConsumerStatefulWidget {
   const TopupPage({super.key});

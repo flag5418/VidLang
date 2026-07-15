@@ -1,6 +1,6 @@
 # VidLang - Flutter 代码结构详解
 
-> **版本**: V2.0 | **日期**: 2026-07-13
+> **版本**: V3.0 | **日期**: 2026-07-15
 > **状态**: 当前有效
 > **适用读者**: Flutter 开发者、AI 辅助工具
 
@@ -243,10 +243,32 @@ lib/
 │   ├── files/
 │   │   ├── file_list_page.dart         # 视频集列表页
 │   │   ├── folder_detail_page.dart     # 视频集详情页
-│   │   └── wifi_transfer_page.dart     # WiFi传输页
+│   │   ├── wifi_transfer_page.dart     # WiFi传输页
+│   │   ├── providers/
+│   │   │   └── file_provider.dart      # 文件域状态
+│   │   └── widgets/                    # 模块私有组件(9个)
+│   │       ├── video_card.dart
+│   │       ├── main_video_card.dart
+│   │       ├── article_hero_card.dart
+│   │       ├── article_item_card.dart
+│   │       ├── audio_hero_card.dart
+│   │       ├── audio_item_card.dart
+│   │       ├── folder_card.dart
+│   │       ├── playback_settings_sheet.dart
+│   │       └── import_progress_dialog.dart
 │   │
-│   ├── player/
-│   │   └── player_page.dart            # 视频播放器页 ⭐核心页面
+│   ├── player/unified/               # 统一播放器 ⭐最佳实践范例
+│   │   ├── unified_player_page.dart    # 主页面（497行）
+│   │   ├── unified_player_logic.dart   # 逻辑层（534行）
+│   │   ├── providers/
+│   │   │   └── player_engine_provider.dart
+│   │   └── widgets/                   # 7个子组件
+│   │       ├── top_bar.dart
+│   │       ├── media_area.dart
+│   │       ├── bottom_controls.dart
+│   │       ├── side_drawer.dart
+│   │       ├── follow_panel_widget.dart
+│   │       └── score_result_dialog.dart
 │   │
 │   ├── article/
 │   │   ├── article_list_page.dart      # 文章列表页
@@ -266,13 +288,22 @@ lib/
 │   │   ├── conversation_page.dart      # AI对话页
 │   │   └── conversation_history_page.dart # 对话历史页
 │   │
-│   ├── word_book/
+│   ├── word_book/                     # 单词本模块
 │   │   ├── collection_page.dart        # 单词本（收藏本）
 │   │   ├── word_book_review_page.dart  # 单词复习页
 │   │   ├── word_book_detail_sheet.dart # 单词详情浮层
 │   │   ├── word_book_lookup_sheet.dart # 单词查词浮层
 │   │   ├── camera_translate_page.dart # 拍照翻译页
-│   │   └── widgets/                    # 单词本子组件（4个文件）
+│   │   ├── providers/
+│   │   │   └── display_config_provider.dart
+│   │   └── widgets/                    # 7个私有组件
+│   │       ├── word_card.dart
+│   │       ├── word_detail_panel.dart
+│   │       ├── native_translation_guide_sheet.dart
+│   │       ├── word_book_nav_panel.dart
+│   │       ├── word_book_list_card.dart
+│   │       ├── snippet_list_card.dart
+│   │       └── snippet_detail_sheet.dart
 │   │
 │   ├── profile/
 │   │   ├── profile_page.dart           # 个人中心
@@ -848,22 +879,35 @@ Future<void> doSomething() async {
 }
 ```
 
-### 4.5 Widget 拆分原则
+### 4.5 Widget 拆分原则（V3.0 更新）
 
 ```
-✅ 当 Widget 超过 150 行时，考虑拆分：
-   - 将子组件提取到独立文件（components/ 或 widgets/）
-   - 使用 Builder 模式或回调简化构建逻辑
-   - 使用 Part 文件组织大型 StatefulWidget
+✅ 模块自包含目录结构（标准范例：player/unified/）：
+   lib/views/{module}/
+   ├── {module}_page.dart          # 主页面
+   ├── {module}_logic.dart         # 状态逻辑（>300行时拆分）
+   ├── providers/                 # 模块私有 Provider
+   │   └── {name}_provider.dart
+   └── widgets/                   # 模块私有子组件
+       ├── {feature}_section.dart
+       └── {feature}_dialog.dart
+
+✅ 当主页面超过 800 行时，必须拆分 widgets 子目录和/或 logic 文件
 
 ✅ 当组件可复用时：
-   - 提取到 lib/components/（纯 UI，无业务逻辑）
-   - 参数通过构造函数传入
-   - 支持主题适配（亮色/暗色）
+   - 无业务依赖的全局UI → lib/components/ui/
+   - 全局弹窗 → lib/components/dialogs/
+   - 跨模块复用(有业务语义) → lib/components/ 根目录
+   - 仅属于某功能模块 → lib/views/{模块}/widgets/
+
+✅ Provider 放置规则：
+   - 仅被1个模块使用 → lib/views/{模块}/providers/
+   - 被2+模块使用 → lib/providers/ (全局)
 
 ✅ UI 组件库选择：
    - 优先使用 tdesign_flutter 组件（TDButton, TDCard, TDDialog 等）
-   - 基础组件从 lib/components/ui/ 获取（PrimaryButton, FilledCard 等）
+   - 基础组件从 lib/components/ui/ 获取（BaseCard, Avatar, Badge 等）
+   - 全局弹窗从 lib/components/dialogs/ 获取（AppBaseDialog, AppTToast 等）
    - 禁止直接使用 Material CircularProgressIndicator（用 TDLoading 替代）
 ```
 
@@ -934,21 +978,23 @@ VidLang 采用三引擎架构，共享统一的学习引擎逻辑：
 
 ---
 
-## 六、代码统计（截至 2026-07-13）
+## 六、代码统计（截至 2026-07-15）
 
 | 目录 | 文件数 | 说明 |
 |------|--------|------|
 | models/ | 36 | 数据模型（含forum子目录） |
-| providers/ | 17 | 状态管理（Riverpod StateNotifier） |
+| providers/ | 4 | **全局** Provider 仅保留 navigation/subscription/theme/user |
+| providers*(模块私有)* | 11 | 分布在各 views/{module}/providers/ 下 |
 | services/ | 60+ | 业务逻辑（含forum子目录） |
-| views/ | 55+ | 页面UI（15个子模块） |
-| components/ | 14 | 公共组件（含ui子目录11个） |
-| widgets/ | 18 | 业务组件（含common/shadow_reader子目录） |
+| views/ | 55+ | 页面UI（含各模块 widgets/ 和 providers/ 子目录） |
+| components/ | 11 | **精简后**：dialogs(3) + ui(7) + 跨模块复用(1) |
+| widgets/ | 4 | ⚠️ 待废弃（shadow_reader/common/anchored_popup） |
 | theme/ | 9 | 主题系统 |
 | utils/ | 9 | 工具类 |
-| **lib/ 总计** | **~220+** | （不含 plugs/ 和 test/） |
+| **lib/ 总计** | **~230+** | （不含 plugs/ 和 test/） |
 
 > **注**：以上仅统计 `lib/` 目录下的源码文件，不含 `plugs/`（第三方插件）、`test/`（测试文件）和 `.dart_tool/`。
+> **V3.0 变更**：providers 从 17 拆分为 4全局+11模块私有；components 从 14 精简为 11；widgets 从 18 缩减为 4（待废弃）。
 
 ---
 
@@ -957,10 +1003,10 @@ VidLang 采用三引擎架构，共享统一的学习引擎逻辑：
 | 版本 | 日期 | 更新内容 |
 |------|------|----------|
 | V1.0 | 2026-07-12 | 初始版本 |
-| V2.0 | 2026-07-13 | **重大更新**：同步20个已注册实体、补全三引擎目录树（views/services/providers）、更新启动流程（Supabase/LocalAiService）、修正VideoInfo.filePath、刷新代码统计（70+→220+文件） |
+| V3.0 | 2026-07-15 | **重大重构**：Provider 按模块分类(17→4+11)、组件归属到功能模块、新增模块自包含目录规范(page+logic+providers+widgets)、废除 widgets/ 全局业务目录 |
 
 ---
 
-**最后更新**: 2026-07-13
+**最后更新**: 2026-07-15
 **维护者**: VidLang 开发团队
 **相关文档**: [AGENT_CONTEXT.md](../AGENT_CONTEXT.md), [database-design.md](./database-design.md), [services-architecture.md](./services-architecture.md), [overall-architecture.md](./overall-architecture.md)

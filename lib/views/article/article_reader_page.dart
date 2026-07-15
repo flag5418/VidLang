@@ -25,11 +25,11 @@ import 'package:vidlang/services/learning/learning_stats_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_spacing.dart';
-import 'package:vidlang/widgets/article/selectable_paragraph_text.dart';
+import 'package:vidlang/views/article/widgets/selectable_paragraph_text.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
-import 'package:vidlang/widgets/word_card.dart';
+import 'package:vidlang/views/word_book/widgets/word_card.dart';
 
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 /// 标记记录类
 class MarkRecord {

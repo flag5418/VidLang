@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:vidlang/theme/theme.dart';
-import '../services/evaluation/unified_evaluation_service.dart';
+import 'package:vidlang/services/evaluation/unified_evaluation_service.dart';
 // import '../providers/subscription_provider.dart'; // TODO: 后续获取订阅模式时启用
-import '../models/evaluation_models.dart';
+import 'package:vidlang/models/evaluation_models.dart';
 
 /// 跟读评测弹窗主组件
 /// 统一容器，包含固定区域和可变内容区域

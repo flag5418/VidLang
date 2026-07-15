@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/forum/forum_post.dart';
-import '../models/forum/forum_category.dart';
-import '../services/forum/forum_service.dart';
+import 'package:vidlang/models/forum/forum_post.dart';
+import 'package:vidlang/models/forum/forum_category.dart';
+import 'package:vidlang/services/forum/forum_service.dart';
 import 'forum_mock_provider.dart'; // 导入模拟数据提供者
 
 // Supabase 客户端 provider

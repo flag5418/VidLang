@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:vidlang/providers/growth_provider.dart';
+import 'package:vidlang/views/growth/providers/growth_provider.dart';
 import 'package:vidlang/views/growth/growth_detail_page.dart';
 import 'package:vidlang/theme/theme.dart';
 

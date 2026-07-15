@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/models/base_entity.dart';
+import 'package:vidlang/utils/pcm_helper.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/services/ai/conversation_service.dart';
@@ -666,7 +667,7 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
       final data = Uint8List.fromList(_audioBuffer);
       _audioBuffer.clear();
 
-      final wavBytes = _pcmToWav(data, sampleRate: 24000, channels: 1, bitsPerSample: 16);
+      final wavBytes = PcmHelper.pcmToWav(data, sampleRate: 24000, channels: 1, bitsPerSample: 16);
       await _audioPlayer!.setSourceBytes(wavBytes, mimeType: 'audio/wav');
       await _audioPlayer!.resume();
     } catch (e) {
@@ -675,29 +676,6 @@ class ConversationNotifier extends StateNotifier<ConversationStateData> {
     }
   }
 
-  Uint8List _pcmToWav(Uint8List pcm, {required int sampleRate, required int channels, required int bitsPerSample}) {
-    final byteRate = sampleRate * channels * (bitsPerSample ~/ 8);
-    final blockAlign = channels * (bitsPerSample ~/ 8);
-    final dataLength = pcm.lengthInBytes;
-    final riffChunkSize = 36 + dataLength;
-
-    final header = ByteData(44);
-    header.setUint32(0, 0x46464952, Endian.little);
-    header.setUint32(4, riffChunkSize, Endian.little);
-    header.setUint32(8, 0x45564157, Endian.little);
-    header.setUint32(12, 0x20746d66, Endian.little);
-    header.setUint32(16, 16, Endian.little);
-    header.setUint16(20, 1, Endian.little);
-    header.setUint16(22, channels, Endian.little);
-    header.setUint32(24, sampleRate, Endian.little);
-    header.setUint32(28, byteRate, Endian.little);
-    header.setUint16(32, blockAlign, Endian.little);
-    header.setUint16(34, bitsPerSample, Endian.little);
-    header.setUint32(36, 0x61746164, Endian.little);
-    header.setUint32(40, dataLength, Endian.little);
-
-    return Uint8List.fromList([...header.buffer.asUint8List(), ...pcm]);
-  }
 
   void _stopAudioPlayback() {
     _audioBuffer.clear();

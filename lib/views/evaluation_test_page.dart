@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
-import '../widgets/pronunciation_evaluation_modal.dart';
-import '../models/evaluation_models.dart';
+import 'package:vidlang/views/audio_player/widgets/pronunciation_evaluation_modal.dart';
+import 'package:vidlang/models/evaluation_models.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 /// 评测测试页面 - 用于演示各种评测模式
 class EvaluationTestPage extends StatefulWidget {

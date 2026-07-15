@@ -4,7 +4,7 @@ import 'package:vidlang/utils/app_globals.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_detail.dart';
-import 'package:vidlang/providers/display_config_provider.dart';
+import 'package:vidlang/views/word_book/providers/display_config_provider.dart';
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 

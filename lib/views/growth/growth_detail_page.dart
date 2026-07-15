@@ -3,7 +3,7 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:vidlang/providers/growth_provider.dart';
+import 'package:vidlang/views/growth/providers/growth_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// 单次评测详细页 — 展示完整 AI 评价报告

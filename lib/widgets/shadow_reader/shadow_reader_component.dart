@@ -18,7 +18,7 @@ import 'package:record/record.dart';
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/subtitles.dart';
-import 'package:vidlang/providers/player_engine_provider.dart';
+import 'package:vidlang/views/player/unified/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -30,7 +30,7 @@ import 'package:vidlang/models/shengtong_evaluation_result.dart';
 import 'package:vidlang/services/native/speech_to_text_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 // ─── 回调类型 ───────────────────────────────────────────
 typedef ScoreCallback = Future<void> Function({

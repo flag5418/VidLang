@@ -4,9 +4,9 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import '../../models/forum/forum_post.dart';
-import '../../providers/forum_providers.dart';
-import '../../widgets/common/loading_widget.dart';
-import '../../widgets/common/error_widget.dart';
+import 'package:vidlang/views/forum/providers/forum_providers.dart';
+import 'package:vidlang/components/ui/loading_widget.dart';
+import 'package:vidlang/components/ui/error_widget.dart';
 import 'forum_create_post_page.dart';
 import 'package:vidlang/theme/theme.dart';
 

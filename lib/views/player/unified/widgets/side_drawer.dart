@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/providers/player_engine_provider.dart';
+import 'package:vidlang/views/player/unified/providers/player_engine_provider.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;

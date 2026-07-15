@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:omni_player/omni_player.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/providers/player_engine_provider.dart';
+import 'package:vidlang/views/player/unified/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/evaluation/audio_recognition_service.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -16,8 +16,7 @@ import 'package:vidlang/services/ai/translation_init_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/subtitles.dart';
-import 'package:vidlang/services/app_keys_service.dart';
-import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
+import 'package:vidlang/services/evaluation/unified_evaluation_service.dart';
 import 'package:record/record.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/views/player/unified/widgets/score_result_dialog.dart';
@@ -426,88 +425,62 @@ class UnifiedPlayerLogic {
   }) async {
     final video = notifier.currentVideo;
     final language = video?.language ?? 'en';
-    final coreType = 'sent.eval';
-    final userCode = video?.userCode ?? 'anonymous';
 
-    final stAppKey = AppKeysService.instance.shengtongAppKey;
-    final stSecretKey = AppKeysService.instance.shengtongSecretKey;
-    if (stAppKey == null ||
-        stAppKey.isEmpty ||
-        stSecretKey == null ||
-        stSecretKey.isEmpty) {
-      debugPrint('⚠️ [UnifiedPlayer] 声通密钥未就绪，跳过评测');
-      return;
-    }
-
-    final evaluator = ShengtongHttpEvaluator(
-      appKey: stAppKey,
-      secretKey: stSecretKey,
-      baseUrl: AppKeysService.shengtongBaseUrl,
+    // 使用统一评测服务（当前 Premium 模式返回待实现状态）
+    final evalResult = await UnifiedEvaluationService.instance.evaluate(
+      refText: currentSub.content,
+      mode: SubscriptionMode.premium, // TODO: 根据实际订阅模式传入
+      audioPath: audioPath,
     );
 
-    try {
-      final result = await evaluator.evaluate(
-        coreType: coreType,
-        refText: currentSub.content,
+    if (evalResult.success && mounted()) {
+      final overall = evalResult.overallScore;
+      final detail = evalResult.detail;
+
+      final recordingDurationMs = startTime != null
+          ? DateTime.now().difference(startTime).inMilliseconds
+          : 0;
+
+      final record = RecordingRecord(
+        resourceCode: videoCode,
+        resourceType: isVideo ? 'video' : (audioType ?? 'music'),
+        scope: 'sentence',
+        sentenceCode: currentSub.code,
         audioPath: audioPath,
-        userId: userCode,
+        durationMs: recordingDurationMs,
+        overallScore: overall > 0 ? overall : null,
+        fluencyScore: detail?.fluency,
+        accuracyScore: detail?.accuracy,
+        completenessScore: detail?.completeness,
+        rawResultJson: evalResult.detail?.rawResult?.toString(),
+        language: language,
+        refText: currentSub.content,
+        subtitleIndex: state.currentSubtitleIndex,
+        originalVolume: state.originalVolume,
+        speed: state.speed,
+        headphoneMode: false, // TODO: 耳机检测
       );
+      await DatabaseService.insert(record);
 
-      if (result.isNotEmpty && mounted()) {
-        final overall = (result['overall'] as num?)?.toDouble();
-        final fluency = (result['fluency'] as num?)?.toDouble();
-        final accuracy = (result['accuracy'] as num?)?.toDouble();
-        final completeness = (result['completeness'] as num?)?.toDouble();
-
-        final recordingDurationMs = startTime != null
-            ? DateTime.now().difference(startTime).inMilliseconds
-            : 0;
-
-        final record = RecordingRecord(
-          resourceCode: videoCode,
-          resourceType: isVideo ? 'video' : (audioType ?? 'music'),
-          scope: 'sentence',
-          sentenceCode: currentSub.code,
-          audioPath: audioPath,
-          durationMs: recordingDurationMs,
-          overallScore: overall,
-          fluencyScore: fluency,
-          accuracyScore: accuracy,
-          completenessScore: completeness,
-          rawResultJson: result.toString(),
-          language: language,
-          refText: currentSub.content,
-          subtitleIndex: state.currentSubtitleIndex,
-          originalVolume: state.originalVolume,
-          speed: state.speed,
-          headphoneMode: false, // TODO: 耳机检测
-        );
-        await DatabaseService.insert(record);
-
-        if (overall != null) {
-          notifier.setLastFollowScore(overall);
-          if (video != null) {
-            video.lastFollowScore = overall;
-            await DatabaseService.update(video);
-          }
+      if (overall > 0) {
+        notifier.setLastFollowScore(overall);
+        if (video != null) {
+          video.lastFollowScore = overall;
+          await DatabaseService.update(video);
         }
+      }
 
-        // 显示评分结果
-        ScoreResultDialog.show(
-          ctx,
-          overall: overall,
-          fluency: fluency,
-          accuracy: accuracy,
-          completeness: completeness,
-          onNext: () => notifier.nextSentence(),
-        );
-      } else if (mounted()) {
-        TDToast.showText('评分服务暂时不可用', context: ctx);
-      }
-    } catch (_) {
-      if (mounted()) {
-        TDToast.showText('评分失败，请检查声通配置', context: ctx);
-      }
+      // 显示评分结果
+      ScoreResultDialog.show(
+        ctx,
+        overall: overall > 0 ? overall : null,
+        fluency: detail?.fluency,
+        accuracy: detail?.accuracy,
+        completeness: detail?.completeness,
+        onNext: () => notifier.nextSentence(),
+      );
+    } else if (mounted()) {
+      TDToast.showText(evalResult.error ?? '评分服务暂时不可用', context: ctx);
     }
   }
 

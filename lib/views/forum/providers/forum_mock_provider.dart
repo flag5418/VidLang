@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/forum/forum_post.dart';
-import '../models/forum/forum_category.dart';
-import '../services/forum/forum_service.dart';
+import 'package:vidlang/models/forum/forum_post.dart';
+import 'package:vidlang/models/forum/forum_category.dart';
+import 'package:vidlang/services/forum/forum_service.dart';
 import 'forum_providers.dart';
 
 /// 论坛模拟数据提供者

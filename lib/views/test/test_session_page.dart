@@ -9,9 +9,9 @@ import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:vidlang/services/app_keys_service.dart';
-import 'package:vidlang/providers/test_provider.dart';
-import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/views/test/providers/test_provider.dart';
+// import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart'; // 已移除
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 /// 逐题作答页面
 class TestSessionPage extends ConsumerStatefulWidget {
@@ -96,37 +96,10 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
         return;
       }
 
-      // 使用 ShengtongHttpEvaluator HTTP 方式评测
-      final evaluator = ShengtongHttpEvaluator(
-        appKey: stAppKey,
-        secretKey: stSecretKey,
-      );
-
-      final result = await evaluator.evaluate(
-        coreType: coreType,
-        refText: refText,
-        audioPath: audioPath,
-        userId: 'test_user_${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      final overall = (result['overall'] as num?)?.toDouble();
-      if (mounted) {
-        setState(() {
-          _pronScore = overall;
-          _pronFeedback = overall != null
-              ? (overall >= 90
-                    ? '发音非常标准！'
-                    : overall >= 75
-                    ? '发音不错，继续保持！'
-                    : overall >= 60
-                    ? '基本正确，注意发音细节。'
-                    : '需要多加练习哦。')
-              : null;
-        });
-        // 自动提交跟读分数
-        _pronScore = overall;
-        _submitPronResult(overall ?? 0);
-      }
+      // 使用 ShengtongHttpEvaluator HTTP 方式评测（已移除）
+      // TODO: 替换为 UnifiedEvaluationService
+      debugPrint('⚠️ HTTP 评测器已移除，跳过评测');
+      return;
     } catch (e) {
       debugPrint('❌ [TestSession] 声通评测异常: $e');
       if (mounted) {

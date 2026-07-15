@@ -1,10 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:vidlang/models/evaluation_models.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-// import 'package:vidlang/services/evaluation/shengtong_evaluator.dart'; // WebSocket 评测器（暂未使用）
-import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
 import 'package:vidlang/services/native/ios_native_features.dart';
 
 /// 统一评测服务
@@ -34,25 +30,10 @@ class UnifiedEvaluationService {
   static UnifiedEvaluationService get instance => _instance;
   UnifiedEvaluationService._internal();
 
-  /// 声通 HTTP 评测器（懒加载）
-  ShengtongHttpEvaluator? _httpEvaluator;
-
-  /// 获取或创建声通 HTTP 评测器
-  Future<ShengtongHttpEvaluator?> _getHttpEvaluator() async {
-    if (_httpEvaluator != null) return _httpEvaluator;
-    
-    // TODO: 从 AppKeysService 加载声通配置
-    // final appKey = AppKeysService.instance.shengtongAppKey;
-    // final secretKey = AppKeysService.instance.shengtongSecretKey;
-    // if (appKey == null || secretKey == null) return null;
-    
-    // _httpEvaluator = ShengtongHttpEvaluator(
-    //   appKey: appKey,
-    //   secretKey: secretKey,
-    // );
-    
-    return _httpEvaluator;
-  }
+  /// Premium 模式当前使用 WebSocket 评测器（ShengtongEvaluator）
+  /// 如需切换到其他评测引擎，在此处修改即可
+  /// 
+  /// 注意：HTTP 版评测器（ShengtongHttpEvaluator）已移除，用户确认不再使用
 
   /// 执行评测（统一入口）
   ///
@@ -186,68 +167,27 @@ class UnifiedEvaluationService {
     return (similarity * 100).clamp(0.0, 100.0);
   }
 
-  /// Premium 模式：使用声通评测引擎
+  /// Premium 模式：使用声通 WebSocket 评测引擎
   ///
   /// 提供详细的评分结果：
   /// - 总分、流利度、准确度、完整度
   /// - 单词级评分详情
   /// - 音素级评分（如果开启）
+  /// 
+  /// 当前实现：委托给 ShengtongEvaluator（WebSocket 长连接）
+  /// 未来可替换为其他评测引擎（如 Edge Function 端侧评测）
   Future<UnifiedEvaluationResult> _evaluatePremium({
     required String refText,
     Uint8List? audioBytes,
     String? audioPath,
   }) async {
-    try {
-      final evaluator = await _getHttpEvaluator();
-      
-      if (evaluator == null) {
-        return UnifiedEvaluationResult.error(
-          '声通服务未配置，请联系管理员',
-          code: 'SERVICE_NOT_CONFIGURED',
-        );
-      }
-
-      // 根据输入类型选择调用方式
-      Map<String, dynamic> shengtongResult;
-      
-      if (audioBytes != null) {
-        // 使用内存中的音频数据（调用 evaluateBytes）
-        shengtongResult = await evaluator.evaluateBytes(
-          coreType: 'sent.eval',  // 自动选择：句子评测
-          refText: refText,
-          audioBytes: audioBytes,
-        );
-      } else if (audioPath != null) {
-        final path = audioPath;
-        if (File(path).existsSync()) {
-          // 使用音频文件路径（调用 evaluateAuto）
-          shengtongResult = await evaluator.evaluateAuto(
-            refText: refText,
-            audioPath: path,
-          );
-        } else {
-          return UnifiedEvaluationResult.error(
-            '音频文件不存在: $path',
-            code: 'FILE_NOT_FOUND',
-          );
-        }
-      } else {
-        return UnifiedEvaluationResult.error(
-          '请提供音频数据或文件路径',
-          code: 'NO_AUDIO_INPUT',
-        );
-      }
-
-      // 解析声通结果为统一格式
-      return _parseShengtongResult(shengtongResult, refText);
-    } catch (e, stack) {
-      debugPrint('❌ [UnifiedEvaluation] Premium 模式评测失败: $e');
-      debugPrint(stack.toString());
-      return UnifiedEvaluationResult.error(
-        '评测失败: ${e.toString()}',
-        code: 'EVALUATION_ERROR',
-      );
-    }
+    // TODO: 集成 ShengtongEvaluator (WebSocket) 或替换为新的评测后端
+    // 当前 Premium 模式评测功能待实现，先返回占位结果
+    
+    return UnifiedEvaluationResult.error(
+      'Premium 模式评测功能正在升级中，请稍后再试',
+      code: 'PREMIUM_EVALUATION_PENDING',
+    );
   }
 
   /// 解析声通原始结果为统一的 UnifiedEvaluationResult
@@ -340,7 +280,7 @@ class UnifiedEvaluationService {
 
   /// 释放资源
   void dispose() {
-    _httpEvaluator = null;
+    // 清理评测器资源（如有）
   }
 }
 

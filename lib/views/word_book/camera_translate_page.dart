@@ -7,8 +7,8 @@ import 'package:vidlang/services/native/ios_native_features.dart';
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/services/ai/unified_translation_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
-import 'package:vidlang/widgets/selectable_english_line.dart';
-import 'package:vidlang/widgets/word_card.dart';
+import 'package:vidlang/components/selectable_english_line.dart';
+import 'package:vidlang/views/word_book/widgets/word_card.dart';
 import 'package:vidlang/theme/theme.dart';
 
 class CameraTranslatePage extends ConsumerStatefulWidget {

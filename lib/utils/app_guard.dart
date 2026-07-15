@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:vidlang/models/error_log.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 class AppGuard {
   static Future<T?> run<T>(

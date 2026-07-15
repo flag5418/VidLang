@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
-import '../../../providers/forum_admin_providers.dart';
-import '../../../widgets/common/loading_widget.dart';
-import '../../../widgets/common/error_widget.dart';
+import 'package:vidlang/views/forum/providers/forum_admin_providers.dart';
+import 'package:vidlang/components/ui/loading_widget.dart';
+import 'package:vidlang/components/ui/error_widget.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 

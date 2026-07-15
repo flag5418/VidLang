@@ -4,7 +4,7 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/models/test_models.dart';
-import 'package:vidlang/providers/test_provider.dart';
+import 'package:vidlang/views/test/providers/test_provider.dart';
 import 'package:vidlang/views/test/test_session_page.dart';
 
 /// 评测首页 - 选择评测类型和题目配置

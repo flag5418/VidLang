@@ -9,7 +9,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:vidlang/services/learning/stats_service.dart';
+import 'package:vidlang/services/learning/learning_stats_service.dart';
+// import 'package:vidlang/services/learning/stats_service.dart'; // 已合并到 LearningStatsService
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 

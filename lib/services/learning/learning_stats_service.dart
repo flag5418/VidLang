@@ -1,10 +1,13 @@
 import 'dart:developer' as dev;
 
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/study_record.dart';
+import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
+import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/services/database_service.dart';
 
 /// 统一学习统计服务
@@ -926,6 +929,319 @@ class LearningStatsService {
       );
     }
   }
+
+  // ════════════════════════════════════════════════
+  //  首页统计（从 StatsService 合并）
+  // ════════════════════════════════════════════════
+
+  /// 获取指定类型的最近文件夹（最多3个）
+  static Future<List<VideoFolder>> getRecentFolders(
+    String folderType, {
+    int limit = 3,
+  }) async {
+    final rows = await DatabaseService.findByCondition(
+      () => VideoFolder(),
+      where:
+          "is_deleted = 0 AND parent_code IS NOT NULL AND parent_code != '' AND folder_type = ?",
+      whereArgs: [folderType],
+      orderBy:
+          'CASE WHEN last_play_date IS NULL THEN 1 ELSE 0 END, last_play_date DESC, created_at DESC',
+      limit: limit,
+    );
+
+    return rows.take(limit).toList();
+  }
+
+  /// 获取所有类型的最近文件夹
+  static Future<Map<String, List<VideoFolder>>> getAllRecentFolders() async {
+    final types = ['video', 'article', 'music'];
+    final result = <String, List<VideoFolder>>{};
+    for (final type in types) {
+      result[type] = await getRecentFolders(type);
+    }
+    return result;
+  }
+
+  /// 计算连续学习天数
+  static Future<int> calculateStreakDays() async {
+    final allRecords = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0',
+      orderBy: 'date DESC',
+    );
+
+    if (allRecords.isEmpty) return 0;
+
+    final Set<String> uniqueDates = {};
+    for (final r in allRecords) {
+      uniqueDates.add(r.date.toIso8601String().substring(0, 10));
+    }
+
+    if (uniqueDates.isEmpty) return 0;
+
+    final sortedDates = uniqueDates.toList()..sort((a, b) => b.compareTo(a));
+
+    int streak = 1;
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().substring(0, 10);
+
+    int startOffset = 0;
+    if (sortedDates.first != todayStr) {
+      final yesterday = today.subtract(const Duration(days: 1));
+      final yesterdayStr = yesterday.toIso8601String().substring(0, 10);
+      if (sortedDates.first != yesterdayStr) {
+        return 0;
+      }
+      startOffset = 1;
+    }
+
+    for (int i = startOffset; i < sortedDates.length - 1; i++) {
+      final current = DateTime.parse(sortedDates[i]);
+      final next = DateTime.parse(sortedDates[i + 1]);
+      final diff = current.difference(next).inDays;
+      if (diff == 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  /// 获取今日学习时长（秒）
+  static Future<int> getTodayDuration() async {
+    final today = DateTime.now();
+    final todayStr = today.toIso8601String().substring(0, 10);
+
+    final records = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: "is_deleted = 0 AND date >= ? AND date < ?",
+      whereArgs: ['${todayStr}T00:00:00', '${todayStr}T23:59:59'],
+    );
+
+    int total = 0;
+    for (final r in records) {
+      total += r.duration;
+    }
+    return total;
+  }
+
+  /// 获取首页完整统计信息
+  static Future<HomeStats> getHomeStats() async {
+    final results = await Future.wait([
+      calculateStreakDays(),
+      getTodayDuration(),
+      getWordCountToday(),
+      getResourceCountToday(),
+    ]);
+
+    return HomeStats(
+      streakDays: results[0],
+      todayDuration: results[1],
+      wordCount: results[2],
+      resourceCount: results[3],
+    );
+  }
+
+  /// 获取今日收藏单词数
+  static Future<int> getWordCountToday() async {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+
+    return await DatabaseService.count(
+      () => WordBook(),
+      where: 'is_deleted = 0 AND created_at >= ? AND created_at < ?',
+      whereArgs: [todayStart.toIso8601String(), todayEnd.toIso8601String()],
+    );
+  }
+
+  /// 获取今日学习资源数（不重复）
+  static Future<int> getResourceCountToday() async {
+    final today = DateTime.now();
+    final todayStr = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toIso8601String().substring(0, 10);
+
+    final records = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: "is_deleted = 0 AND date >= ? AND date < ?",
+      whereArgs: ['${todayStr}T00:00:00', '${todayStr}T23:59:59'],
+    );
+
+    final Set<String> unique = {};
+    for (final r in records) {
+      final key = '${r.resourceType}_${r.resourceCode}';
+      unique.add(key);
+    }
+    return unique.length;
+  }
+
+  // ════════════════════════════════════════════════
+  //  详情页统计（从 StatsService 迁移）
+  // ════════════════════════════════════════════════
+
+  /// 获取学习统计详情总览
+  static Future<DetailOverview> getDetailOverview() async {
+    final allRecords = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0',
+    );
+
+    final Set<String> uniqueDates = {};
+    int totalDurationSeconds = 0;
+    final Set<String> uniqueResources = {};
+    for (final r in allRecords) {
+      uniqueDates.add(r.date.toIso8601String().substring(0, 10));
+      totalDurationSeconds += r.duration;
+      final key = '${r.resourceType}_${r.resourceCode}';
+      uniqueResources.add(key);
+    }
+
+    final int totalDays = uniqueDates.length;
+    final int learnedResources = uniqueResources.length;
+
+    // 获取总数和连续天数、单词总数用于综合评分
+    final summary = await _getSummaryStats();
+    final streakDays = await calculateStreakDays();
+
+    final int totalResources =
+        summary.videoTotal + summary.audioTotal + summary.articleTotal;
+
+    // 综合评分计算
+    final double dayScore = (totalDays / 30).clamp(0.0, 1.0) * 100;
+    final double resourceScore = totalResources > 0 ? (learnedResources / totalResources).clamp(0.0, 1.0) * 100 : 0;
+    final double streakScore = (streakDays / 30).clamp(0.0, 1.0) * 100;
+    final double compositeScore = ((dayScore + resourceScore + streakScore) / 3);
+
+    return DetailOverview(
+      totalDays: totalDays,
+      totalDurationSeconds: totalDurationSeconds,
+      learnedResources: learnedResources,
+      compositeScore: compositeScore,
+    );
+  }
+
+  /// 按资源类型获取统计
+  static Future<List<TypeStats>> getDetailByType() async {
+    final types = [
+      {'type': 'video', 'icon': 'videocam', 'label': '视频'},
+      {'type': 'music', 'icon': 'music_note', 'label': '音频'},
+      {'type': 'article', 'icon': 'article', 'label': '文章'},
+    ];
+
+    final results = <TypeStats>[];
+    for (final t in types) {
+      final typeRecords = await DatabaseService.findByCondition(
+        () => StudyRecord(),
+        where: "is_deleted = 0 AND resource_type = ?",
+        whereArgs: [t['type']],
+      );
+
+      final Set<String> uniqueResources = {};
+      int totalDuration = 0;
+      DateTime? lastStudyTime;
+
+      for (final r in typeRecords) {
+        uniqueResources.add(r.resourceCode);
+        totalDuration += r.duration;
+        if (lastStudyTime == null || r.date.isAfter(lastStudyTime)) {
+          lastStudyTime = r.date;
+        }
+      }
+
+      // 获取该类型的资源总数
+      final totalCount = await DatabaseService.count(
+        () => VideoFolder(),
+        where: "folder_type = ? AND is_deleted = 0",
+        whereArgs: [t['type']],
+      );
+
+      results.add(TypeStats(
+        type: t['type']!,
+        icon: t['icon']!,
+        label: t['label']!,
+        learned: uniqueResources.length,
+        total: totalCount,
+        totalDurationSeconds: totalDuration,
+        lastStudyTime: lastStudyTime,
+      ));
+    }
+    return results;
+  }
+
+  /// 获取近7天学习趋势
+  static Future<List<DailyTrend>> getWeeklyTrend() async {
+    final now = DateTime.now();
+    final trends = <DailyTrend>[];
+
+    for (int i = 6; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dateStr = date.toIso8601String().substring(0, 10);
+      final dayStart = DateTime(date.year, date.month, date.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
+      final records = await DatabaseService.findByCondition(
+        () => StudyRecord(),
+        where: "is_deleted = 0 AND date >= ? AND date < ?",
+        whereArgs: [dayStart.toIso8601String(), dayEnd.toIso8601String()],
+      );
+
+      int totalMinutes = 0;
+      for (final r in records) {
+        totalMinutes += (r.duration / 60).round();
+      }
+
+      trends.add(DailyTrend(date: dateStr, minutes: totalMinutes));
+    }
+    return trends;
+  }
+
+  /// 获取 AI 学习建议（占位实现）
+  static Future<List<AiSuggestion>> getAiLearningSuggestions() async {
+    // TODO: 接入 AI 建议服务，当前返回默认建议
+    return [
+      AiSuggestion(
+        title: '坚持学习',
+        description: '保持每天学习的习惯，持续提升语言能力。',
+        icon: Icons.local_fire_department,
+        actionText: '开始学习',
+      ),
+      AiSuggestion(
+        title: '多样化学习',
+        description: '尝试结合视频、音频和文章多种资源类型，全面提升听说读写能力。',
+        icon: Icons.dashboard,
+      ),
+      AiSuggestion(
+        title: '定期复习',
+        description: '使用生词本复习功能巩固已学单词，间隔重复记忆效果最佳。',
+        icon: Icons.refresh,
+      ),
+    ];
+  }
+
+  /// 获取「我的」页面汇总统计（内部方法）
+  static Future<SummaryStats> _getSummaryStats() async {
+    final counts = await Future.wait([
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
+      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
+    ]);
+
+    final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;
+    final audioTotal = (counts[1].first['cnt'] as int?) ?? 0;
+    final articleTotal = (counts[2].first['cnt'] as int?) ?? 0;
+
+    return SummaryStats(
+      totalDays: 0, // 由调用方计算
+      videoTotal: videoTotal,
+      audioTotal: audioTotal,
+      articleTotal: articleTotal,
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1038,4 +1354,159 @@ class LearningHistoryRecord {
   static String _formatShortTime(DateTime dt) {
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
+}
+
+// ═══════════════════════════════════════════════════
+//  数据模型（供 UI 使用）
+// ═══════════════════════════════════════════════════
+
+/// 首页统计信息
+class HomeStats {
+  final int streakDays;
+  final int todayDuration;
+  final int wordCount;
+  final int resourceCount;
+
+  const HomeStats({
+    this.streakDays = 0,
+    this.todayDuration = 0,
+    this.wordCount = 0,
+    this.resourceCount = 0,
+  });
+}
+
+/// 「我的」页面汇总统计
+class SummaryStats {
+  final int totalDays;
+  final int videoTotal;
+  final int audioTotal;
+  final int articleTotal;
+
+  const SummaryStats({
+    this.totalDays = 0,
+    this.videoTotal = 0,
+    this.audioTotal = 0,
+    this.articleTotal = 0,
+  });
+}
+
+/// 首页各类资源最近文件夹
+class RecentFolderGroup {
+  final String folderType;
+  final List<VideoFolder> recentFolders;
+
+  const RecentFolderGroup({
+    required this.folderType,
+    this.recentFolders = const [],
+  });
+}
+
+/// 兼容性别名：保持原有调用方式不变
+/// 
+/// ⚠️ 已废弃：请直接使用 LearningStatsService 对应方法
+/// 
+/// 迁移映射：
+/// - StatsService.getAllRecentFolders() → LearningStatsService.getAllRecentFolders()
+/// - StatsService.getHomeStats() → LearningStatsService.getHomeStats()
+/// - StatsService.calculateStreakDays() → LearningStatsService.calculateStreakDays()
+@Deprecated('使用 LearningStatsService 替代')
+class StatsService {
+  /// @Deprecated 使用 LearningStatsService.getAllRecentFolders()
+  static Future<Map<String, List<VideoFolder>>> getAllRecentFolders() =>
+      LearningStatsService.getAllRecentFolders();
+
+  /// @Deprecated 使用 LearningStatsService.getHomeStats()
+  static Future<HomeStats> getHomeStats() =>
+      LearningStatsService.getHomeStats();
+
+  /// @Deprecated 使用 LearningStatsService.calculateStreakDays()
+  static Future<int> calculateStreakDays() =>
+      LearningStatsService.calculateStreakDays();
+
+  // ══════════════════════════════════════════════
+  // 详情页数据方法（从原 StatsService 迁移）
+  // ══════════════════════════════════════════════
+
+  /// @Deprecated 获取学习统计详情总览
+  static Future<DetailOverview> getDetailOverview() =>
+      LearningStatsService.getDetailOverview();
+
+  /// @Deprecated 按资源类型获取统计
+  static Future<List<TypeStats>> getDetailByType() =>
+      LearningStatsService.getDetailByType();
+
+  /// @Deprecated 获取近7天学习趋势
+  static Future<List<DailyTrend>> getWeeklyTrend() =>
+      LearningStatsService.getWeeklyTrend();
+
+  /// @Deprecated 获取 AI 学习建议
+  static Future<List<AiSuggestion>> getAiLearningSuggestions() =>
+      LearningStatsService.getAiLearningSuggestions();
+
+  /// @Deprecated 获取「我的」页面汇总统计
+  static Future<SummaryStats> getSummaryStats() =>
+      LearningStatsService._getSummaryStats();
+}
+
+// ═══════════════════════════════════════════════════════
+//  详情页数据模型（从原 StatsService 迁移）
+// ═══════════════════════════════════════════════════════
+
+/// 统计详情总览
+class DetailOverview {
+  final int totalDays;
+  final int totalDurationSeconds;
+  final int learnedResources;
+  final double compositeScore;
+
+  const DetailOverview({
+    this.totalDays = 0,
+    this.totalDurationSeconds = 0,
+    this.learnedResources = 0,
+    this.compositeScore = 0.0,
+  });
+}
+
+/// 按资源类型拆分的学习统计
+class TypeStats {
+  final String type;
+  final String icon;
+  final String label;
+  final int learned;
+  final int total;
+  final int totalDurationSeconds;
+  final DateTime? lastStudyTime;
+
+  const TypeStats({
+    required this.type,
+    required this.icon,
+    required this.label,
+    this.learned = 0,
+    this.total = 0,
+    this.totalDurationSeconds = 0,
+    this.lastStudyTime,
+  });
+}
+
+/// 每日趋势数据
+class DailyTrend {
+  final String date;
+  final int minutes;
+
+  const DailyTrend({required this.date, this.minutes = 0});
+}
+
+/// AI 学习建议数据模型
+class AiSuggestion {
+  final String title;
+  final String description;
+  final IconData icon;
+  final String? actionText;
+
+  const AiSuggestion({
+    required this.title,
+    required this.description,
+    required this.icon,
+    this.actionText,
+  });
 }

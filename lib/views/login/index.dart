@@ -13,7 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/models/device_type.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/views/profile/providers/device_type_provider.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
@@ -21,7 +21,7 @@ import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/views/main/main_page.dart';
 import 'package:vidlang/theme/theme.dart';
 
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 enum _AuthMode { login, register, verifyOtp, resetPassword }
 

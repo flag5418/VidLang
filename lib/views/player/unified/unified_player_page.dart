@@ -7,10 +7,10 @@ import 'package:omni_player/omni_player.dart';
 import 'package:record/record.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/providers/player_engine_provider.dart';
+import 'package:vidlang/views/player/unified/providers/player_engine_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/app_globals.dart';
-import 'package:vidlang/widgets/word_card.dart';
+import 'package:vidlang/views/word_book/widgets/word_card.dart';
 
 import 'unified_player_logic.dart';
 import 'widgets/media_area.dart';

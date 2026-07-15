@@ -6,7 +6,7 @@ import 'package:vidlang/views/article/article_import_page.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 /// 文章列表页
 ///

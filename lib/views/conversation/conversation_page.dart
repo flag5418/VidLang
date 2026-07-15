@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/conversation_message.dart';
-import 'package:vidlang/providers/conversation_provider.dart';
+import 'package:vidlang/views/conversation/providers/conversation_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 
 import 'package:vidlang/views/conversation/conversation_history_page.dart';

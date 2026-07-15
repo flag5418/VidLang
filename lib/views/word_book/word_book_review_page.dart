@@ -4,7 +4,7 @@ import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 class WordBookReviewPage extends StatefulWidget {
   final List<WordBook> words;

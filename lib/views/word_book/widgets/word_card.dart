@@ -4,15 +4,15 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_detail.dart';
-import 'package:vidlang/providers/display_config_provider.dart';
+import 'package:vidlang/views/word_book/providers/display_config_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai/ai_service.dart';
 import 'package:vidlang/services/ai/unified_translation_service.dart';
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
-import 'package:vidlang/widgets/native_translation_guide_sheet.dart';
-import 'package:vidlang/widgets/recharge_dialog.dart';
-import 'package:vidlang/widgets/word_detail_panel.dart';
+import 'package:vidlang/views/word_book/widgets/native_translation_guide_sheet.dart';
+import 'package:vidlang/components/dialogs/recharge_dialog.dart';
+import 'package:vidlang/views/word_book/widgets/word_detail_panel.dart';
 
 /// WordBook → WordDetail 映射扩展
 extension WordBookWordCardMapper on WordBook {

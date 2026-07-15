@@ -9,12 +9,12 @@ import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
-import 'package:vidlang/providers/file_provider.dart';
+import 'package:vidlang/views/profile/providers/device_type_provider.dart';
+import 'package:vidlang/views/files/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
-import 'package:vidlang/services/learning/stats_service.dart';
+// import 'package:vidlang/services/learning/stats_service.dart'; // 已合并到 LearningStatsService
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/article/article_reader_page.dart';
 import 'package:vidlang/views/player/unified/unified_player_page.dart';

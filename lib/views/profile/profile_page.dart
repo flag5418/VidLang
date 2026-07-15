@@ -19,14 +19,15 @@ import 'package:vidlang/services/billing/billing_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/user.dart';
-import 'package:vidlang/providers/difficulty_provider.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/views/profile/providers/difficulty_provider.dart';
+import 'package:vidlang/views/profile/providers/device_type_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/settings_service.dart';
-import 'package:vidlang/services/learning/stats_service.dart';
+import 'package:vidlang/services/learning/learning_stats_service.dart';
+// import 'package:vidlang/services/learning/stats_service.dart'; // 已合并到 LearningStatsService
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_page.dart';
@@ -35,7 +36,7 @@ import 'package:vidlang/views/profile/edit_profile_page.dart';
 import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/topup_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 
 class ProfilePage extends ConsumerStatefulWidget {

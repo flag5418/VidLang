@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/tts/dashscope_tts_service.dart';
 import 'package:vidlang/services/tts/local_tts_service.dart';
 import 'package:vidlang/services/settings_service.dart';
+import 'package:vidlang/services/utils/service_logger.dart';
 
 /// TTS 统一结果
 class TtsResult {
@@ -69,7 +69,7 @@ class UnifiedTtsService {
     void Function(String word, int startOffset, int endOffset)? onWord,
   }) async {
     final modeLabel = mode == SubscriptionMode.premium ? 'premium(云端)' : 'free(原生)';
-    _ttsLog('🔊 [TTS] synthesize 开始 | mode=$modeLabel | text="${_truncateText(text, 50)}"');
+    _log.i('🔊 [TTS] synthesize 开始 | mode=$modeLabel | text="${ServiceLogger.truncate(text, maxLen:50)}"');
 
     if (mode == SubscriptionMode.free) {
       return await _synthesizeLocal(text: text, onWord: onWord);
@@ -90,10 +90,10 @@ class UnifiedTtsService {
 
     _synthesizeCloud(text: text).then((result) {
       if (result.success) {
-        _ttsLog('🔊 [TTS] 预加载成功: "${_truncateText(text, 30)}"');
+        _log.i('🔊 [TTS] 预加载成功: "${ServiceLogger.truncate(text, maxLen:30)}"');
       }
     }).catchError((e) {
-      _ttsLog('🔊 [TTS] 预加载失败: $e');
+      _log.i('🔊 [TTS] 预加载失败: $e');
     });
   }
 
@@ -119,7 +119,7 @@ class UnifiedTtsService {
     _cacheDirReady = false;
     _indexRebuilt = false;
     _cacheIndex.clear();
-    _ttsLog('🔊 [TTS] 缓存已清除');
+    _log.i('🔊 [TTS] 缓存已清除');
   }
 
   /// 获取当前缓存统计信息
@@ -154,19 +154,19 @@ class UnifiedTtsService {
       // 优先 synthesizeToFile → 文件播放（可控、可缓存）
       final audioPath = await _nativeTts.synthesizeToFile(text: text, outputPath: '');
       if (audioPath != null && await File(audioPath).exists() && await File(audioPath).length() > 0) {
-        _ttsLog('🔊 [TTS] ✅ 本地合成成功: ${File(audioPath).length()} bytes');
+        _log.i('🔊 [TTS] ✅ 本地合成成功: ${File(audioPath).length()} bytes');
         return TtsResult(audioPath: audioPath, success: true, format: 'm4a');
       }
 
       // 文件合成失败 → 直接 speak 播放（iOS AVSpeechSynthesizer 不可靠时的兜底）
-      _ttsLog('🔊 [TTS] synthesizeToFile 未生成文件，使用 speak 直接播放');
+      _log.i('🔊 [TTS] synthesizeToFile 未生成文件，使用 speak 直接播放');
       await _nativeTts.synthesizeToAudio(
         text: text,
         onWord: onWord,
       );
       return TtsResult(audioPath: '', success: true, format: 'direct');
     } catch (e) {
-      _ttsLog('🔊 [TTS] 原生 TTS 异常: $e');
+      _log.i('🔊 [TTS] 原生 TTS 异常: $e');
       return TtsResult.error('原生 TTS 失败: $e');
     }
   }
@@ -191,12 +191,12 @@ class UnifiedTtsService {
         // 更新访问时间（LRU）
         _cacheIndex[cacheKey] = cached.copyWith(lastAccessAt: DateTime.now());
         sw.stop();
-        _ttsLog('🔊 [TTS] ✅ 缓存命中 [memory] (${sw.elapsedMilliseconds}ms): "${_truncateText(text, 30)}"');
+        _log.i('🔊 [TTS] ✅ 缓存命中 [memory] (${sw.elapsedMilliseconds}ms): "${ServiceLogger.truncate(text, maxLen:30)}"');
         return TtsResult(audioPath: cached.audioPath, success: true, format: cached.format, fromCache: true);
       } else {
         // 文件被外部删除，清理索引
         _cacheIndex.remove(cacheKey);
-        _ttsLog('🔊 [TTS] 缓存文件不存在，移除索引: ${p.basename(cached.audioPath)}');
+        _log.i('🔊 [TTS] 缓存文件不存在，移除索引: ${p.basename(cached.audioPath)}');
       }
     }
 
@@ -212,7 +212,7 @@ class UnifiedTtsService {
       if (await file.exists()) {
         _cacheIndex[cacheKey] = cachedAgain.copyWith(lastAccessAt: DateTime.now());
         sw.stop();
-        _ttsLog('🔊 [TTS] ✅ 缓存命中 [disk→index] (${sw.elapsedMilliseconds}ms): "${_truncateText(text, 30)}"');
+        _log.i('🔊 [TTS] ✅ 缓存命中 [disk→index] (${sw.elapsedMilliseconds}ms): "${ServiceLogger.truncate(text, maxLen:30)}"');
         return TtsResult(audioPath: cachedAgain.audioPath, success: true, format: cachedAgain.format, fromCache: true);
       }
     }
@@ -220,7 +220,7 @@ class UnifiedTtsService {
     // ══════════════════════════════════════
     // ③ 直连 DashScope WebSocket TTS（流式，首包延迟低）
     // ══════════════════════════════════════
-    _ttsLog('🔊 [TTS] ⏳ 缓存未命中，直连 DashScope WebSocket... (${sw.elapsedMilliseconds}ms 准备阶段)');
+    _log.i('🔊 [TTS] ⏳ 缓存未命中，直连 DashScope WebSocket... (${sw.elapsedMilliseconds}ms 准备阶段)');
 
     try {
       final wsSw = Stopwatch()..start();
@@ -245,16 +245,16 @@ class UnifiedTtsService {
         );
 
         sw.stop();
-        _ttsLog('🔊 [TTS] ✅ WebSocket 直连成功 (总${sw.elapsedMilliseconds}ms, WS=${wsSw.elapsedMilliseconds}ms): "${_truncateText(text, 30)}" → ${p.basename(wsResult)}');
+        _log.i('🔊 [TTS] ✅ WebSocket 直连成功 (总${sw.elapsedMilliseconds}ms, WS=${wsSw.elapsedMilliseconds}ms): "${ServiceLogger.truncate(text, maxLen:30)}" → ${p.basename(wsResult)}');
         return TtsResult(audioPath: wsResult, success: true, format: 'mp3', fromCache: false);
       }
 
       sw.stop();
-      _ttsLog('🔊 [TTS] ❌ WebSocket 返回空结果 (${wsSw.elapsedMilliseconds}ms)');
+      _log.i('🔊 [TTS] ❌ WebSocket 返回空结果 (${wsSw.elapsedMilliseconds}ms)');
       return TtsResult.error('DashScope TTS 合成失败：返回空音频');
     } catch (e, stack) {
       sw.stop();
-      _ttsLog('🔊 [TTS] 💥 WebSocket 直连异常 (${sw.elapsedMilliseconds}ms): $e\n$stack');
+      _log.i('🔊 [TTS] 💥 WebSocket 直连异常 (${sw.elapsedMilliseconds}ms): $e\n$stack');
       return TtsResult.error('DashScope TTS 失败: $e');
     }
   }
@@ -281,7 +281,7 @@ class UnifiedTtsService {
 
     if (!await dir.exists()) {
       await dir.create(recursive: true);
-      _ttsLog('🔊 [TTS] 创建缓存目录: ${dir.path}');
+      _log.i('🔊 [TTS] 创建缓存目录: ${dir.path}');
     }
 
     _cacheDir = dir;
@@ -295,7 +295,7 @@ class UnifiedTtsService {
 
     initSw.stop();
     if (initSw.elapsedMilliseconds > 50) {
-      _ttsLog('🔊 [TTS] ⚠️ _ensureCacheDir 耗时较长: ${initSw.elapsedMilliseconds}ms');
+      _log.i('🔊 [TTS] ⚠️ _ensureCacheDir 耗时较长: ${initSw.elapsedMilliseconds}ms');
     }
 
     return dir;
@@ -326,7 +326,7 @@ class UnifiedTtsService {
     }
 
     sw.stop();
-    _ttsLog('🔊 [TTS] 📂 索引重建完成: 找到 $foundCount 条缓存 (${sw.elapsedMilliseconds}ms), 内存索引共 ${_cacheIndex.length} 条');
+    _log.i('🔊 [TTS] 📂 索引重建完成: 找到 $foundCount 条缓存 (${sw.elapsedMilliseconds}ms), 内存索引共 ${_cacheIndex.length} 条');
 
     // 如果超出了用户设置的最大缓存数，执行淘汰
     await _evictIfNeeded();
@@ -357,7 +357,7 @@ class UnifiedTtsService {
       }
     }
     if (evicted > 0) {
-      _ttsLog('🔊 [TTS] LRU 淘汰了 $evicted 条旧缓存');
+      _log.i('🔊 [TTS] LRU 淘汰了 $evicted 条旧缓存');
     }
   }
 
@@ -370,22 +370,8 @@ class UnifiedTtsService {
     }
   }
 
-  /// 截断文本用于日志显示
-  static String _truncateText(String text, int maxLen) {
-    if (text.length <= maxLen) return text;
-    return '${text.substring(0, maxLen)}...';
-  }
-
-  /// 统一日志输出（使用 print 确保 release 模式可见）
-  void _ttsLog(String message) {
-    // 在 debug 模式用 debugPrint（避免 IDE 日志污染），release 用 print（确保可见）
-    if (kReleaseMode) {
-      // ignore: avoid_print
-      print(message);
-    } else {
-      debugPrint(message);
-    }
-  }
+  /// 统一日志输出
+  static final _log = ServiceLogger('TTS');
 }
 
 /// 缓存的 TTS 元数据（内存索引）

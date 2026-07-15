@@ -3,10 +3,10 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/conversation_record.dart';
-import 'package:vidlang/providers/conversation_provider.dart';
+import 'package:vidlang/views/conversation/providers/conversation_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 /// 对话历史记录列表页面
 class ConversationHistoryPage extends StatefulWidget {

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_pcm_player/flutter_pcm_player.dart';
 
 import 'package:vidlang/services/app_keys_service.dart';
+import 'package:vidlang/services/utils/service_logger.dart';
 
 /// DashScope TTS 服务（HTTP SSE 流式方式）
 ///
@@ -79,14 +80,14 @@ class DashScopeTtsService {
     // 1. 获取 API Key
     final apiKey = await AppKeysService.getQwenApiKey();
     if (apiKey == null || apiKey.isEmpty) {
-      _log('❌ 无法获取 DashScope API Key');
+      _log.i('❌ 无法获取 DashScope API Key');
       onError?.call('API Key 未配置');
       return;
     }
 
     final resolvedVoice = englishVoices[voice] ?? voice;
-    _log(
-      '⏳ 开始流式 TTS 合成 | voice=$resolvedVoice | format=wav | text="${_truncate(text, 40)}"',
+    _log.i(
+      '⏳ 开始流式 TTS 合成 | voice=$resolvedVoice | format=wav | text="${ServiceLogger.truncate(text, maxLen:40)}"',
     );
 
     // 2. 初始化 PCM 播放器
@@ -122,7 +123,7 @@ class DashScopeTtsService {
         'parameters': {'sample_rate': _pcmSampleRate},
       });
       request.add(utf8.encode(body));
-      _log('📤 发送请求: model=$_model, voice=$resolvedVoice, format=pcm');
+      _log.i('📤 发送请求: model=$_model, voice=$resolvedVoice, format=pcm');
 
       // 4. 获取响应
       final response = await request.close().timeout(
@@ -130,7 +131,7 @@ class DashScopeTtsService {
       );
       if (response.statusCode != 200) {
         final errorBody = await response.transform(utf8.decoder).join();
-        _log('❌ HTTP 错误 ${response.statusCode}: $errorBody');
+        _log.i('❌ HTTP 错误 ${response.statusCode}: $errorBody');
         onError?.call('HTTP ${response.statusCode}: $errorBody');
         await _releasePcmPlayer();
         return;
@@ -162,7 +163,7 @@ class DashScopeTtsService {
               // 检查错误
               if (data['code'] != null && data['message'] != null) {
                 final errorMsg = '${data['code']} - ${data['message']}';
-                _log('❌ API 错误: $errorMsg');
+                _log.i('❌ API 错误: $errorMsg');
                 onError?.call(errorMsg);
                 isCancelled = true;
                 if (!completer.isCompleted) completer.complete();
@@ -208,7 +209,7 @@ class DashScopeTtsService {
                 chunkCount++;
               }
             } catch (e) {
-              _log('⚠️ 解析 SSE 数据失败: $e, jsonStr=${_truncate(jsonStr, 100)}');
+              _log.i('⚠️ 解析 SSE 数据失败: $e, jsonStr=${ServiceLogger.truncate(jsonStr, maxLen:100)}');
             }
           }
         },
@@ -251,7 +252,7 @@ class DashScopeTtsService {
           }
 
           sw.stop();
-          _log(
+          _log.i(
             '✅ 流式合成完成 (${sw.elapsedMilliseconds}ms): $chunkCount 个分片, 共 ${(totalBytes / 1024).toStringAsFixed(1)}KB',
           );
 
@@ -262,7 +263,7 @@ class DashScopeTtsService {
           final int audioDurationMs = totalBytes ~/ bytesPerMs;
           final int safeDelayMs = audioDurationMs + 200; // 加 200ms 缓冲
 
-          _log('⏳ 等待音频播放完成 (${safeDelayMs}ms)...');
+          _log.i('⏳ 等待音频播放完成 (${safeDelayMs}ms)...');
 
           Future.delayed(Duration(milliseconds: safeDelayMs), () {
             _releasePcmPlayer();
@@ -272,7 +273,7 @@ class DashScopeTtsService {
           if (!completer.isCompleted) completer.complete();
         },
         onError: (e) {
-          _log('💥 SSE 流错误: $e');
+          _log.i('💥 SSE 流错误: $e');
           onError?.call(e.toString());
           _releasePcmPlayer();
           if (!completer.isCompleted) completer.complete();
@@ -283,7 +284,7 @@ class DashScopeTtsService {
       await completer.future.timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          _log('⏰ 超时 (30s)');
+          _log.i('⏰ 超时 (30s)');
           onError?.call('合成超时');
           subscription?.cancel();
           _releasePcmPlayer();
@@ -291,7 +292,7 @@ class DashScopeTtsService {
       );
     } catch (e) {
       sw.stop();
-      _log('💥 流式合成异常: $e');
+      _log.i('💥 流式合成异常: $e');
       onError?.call(e.toString());
       _releasePcmPlayer();
     } finally {
@@ -321,7 +322,7 @@ class DashScopeTtsService {
     await FlutterPcmPlayer.setGlobalAudioSession();
 
     _isPlaying = true;
-    _log(
+    _log.i(
       '🎵 PCM 播放器初始化: ${_pcmSampleRate}Hz, ${_pcmChannels}ch, ${_pcmType.name}, volume=1.0',
     );
   }
@@ -335,11 +336,11 @@ class DashScopeTtsService {
 
       // 首次喂入数据后开始播放（如果还没开始）
       if (_pcmPlayer!.playState == PlayState.stopped) {
-        _log('▶️ 首次收到音频数据，启动播放');
+        _log.i('▶️ 首次收到音频数据，启动播放');
         await _pcmPlayer!.play();
       }
     } catch (e) {
-      _log('⚠️ PCM feed 错误: $e');
+      _log.i('⚠️ PCM feed 错误: $e');
     }
   }
 
@@ -389,12 +390,12 @@ class DashScopeTtsService {
     );
 
     if (errorMsg != null) {
-      _log('❌ 合成失败: $errorMsg');
+      _log.i('❌ 合成失败: $errorMsg');
       return null;
     }
 
     if (audioChunks.isEmpty) {
-      _log('❌ 未收到任何音频数据');
+      _log.i('❌ 未收到任何音频数据');
       return null;
     }
 
@@ -416,7 +417,7 @@ class DashScopeTtsService {
     file.writeAsBytesSync(combined);
 
     sw.stop();
-    _log(
+    _log.i(
       '☁️ [TTS] ✅ 保存成功 (${sw.elapsedMilliseconds}ms): ${(combined.length / 1024).toStringAsFixed(1)}KB → ${outputPath.split('/').last}',
     );
     return outputPath;
@@ -535,7 +536,7 @@ class DashScopeTtsService {
                 }
               }
             } catch (e) {
-              _log('⚠️ 解析 SSE 数据失败: $e');
+              _log.i('⚠️ 解析 SSE 数据失败: $e');
             }
           }
         },
@@ -592,17 +593,5 @@ class DashScopeTtsService {
   }
 
   /// 统一日志输出
-  void _log(String message) {
-    if (kReleaseMode) {
-      print('🔊 [DashScopeTTS] $message');
-    } else {
-      debugPrint('🔊 [DashScopeTTS] $message');
-    }
-  }
-
-  /// 截断长文本用于日志显示
-  static String _truncate(String text, int maxLen) {
-    if (text.length <= maxLen) return text;
-    return '${text.substring(0, maxLen)}...';
-  }
+  static final _log = ServiceLogger('DashScopeTTS');
 }

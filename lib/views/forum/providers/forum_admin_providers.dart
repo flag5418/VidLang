@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/forum_providers.dart';
+import 'package:vidlang/views/forum/providers/forum_providers.dart';
 
 // 管理员认证状态 provider
 final adminAuthProvider = FutureProvider<bool>((ref) async {

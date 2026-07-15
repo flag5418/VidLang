@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../views/evaluation_test_page.dart';
+import '../../evaluation_test_page.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 

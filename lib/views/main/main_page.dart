@@ -3,7 +3,7 @@ library;
 import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/views/profile/providers/device_type_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';

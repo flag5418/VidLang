@@ -9,7 +9,7 @@ import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/evaluation/score_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 class AiEvaluationSheet extends StatefulWidget {
   final String videoCode;

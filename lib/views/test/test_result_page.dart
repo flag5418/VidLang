@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/models/test_models.dart';
-import 'package:vidlang/providers/test_provider.dart';
+import 'package:vidlang/views/test/providers/test_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// 评测结果页 - 展示得分 + AI 评价报告

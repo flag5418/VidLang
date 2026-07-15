@@ -5,7 +5,7 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/widgets/selectable_english_line.dart';
+import 'package:vidlang/components/selectable_english_line.dart';
 
 /// 全屏字幕列表组件
 ///

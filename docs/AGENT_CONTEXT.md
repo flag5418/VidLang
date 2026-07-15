@@ -2,7 +2,7 @@
 
 > **用途**：供 Cursor/Agent 快速恢复项目认知，避免每次重读全库。  
 > **维护**：功能/架构有实质变化时由开发者或 Agent 增量更新本节。  
-> **最后核对**：2026-07-13（大规模同步当前代码状态，修复 13+ 处文档滞后问题）
+> **最后核对**：2026-07-15（组件/Provider 模块化重构，同步新目录结构）
 
 ---
 
@@ -76,7 +76,7 @@
 
 ---
 
-## 3. 代码结构（实际 `lib/`，截至 2026-07-13）
+## 3. 代码结构（实际 `lib/`，截至 2026-07-15）
 
 ```
 lib/
@@ -85,109 +85,87 @@ lib/
 │
 ├── models/                        # 数据模型层（全部继承 BaseEntity）
 │   ├── base_entity.dart           # 实体基类（软删除、审计字段、CRUD）
-│   ├── video_folder.dart          # 视频集/文件夹（含片头片尾跳过、封面时间点）
+│   ├── video_folder.dart          # 视频集/文件夹
 │   ├── video_info.dart            # 视频信息（含 filePath、DurationHelper）
 │   ├── subtitles.dart             # 字幕行（FTS5 全文检索）
 │   ├── participle.dart            # 分词（FTS5 全文检索）
 │   ├── study_record.dart          # 学习记录 ✅ 已注册
 │   ├── user.dart                  # 用户模型
 │   ├── config.dart                # 系统配置 KV 模型
-│   ├── article*.dart              # 文章相关（Article, ArticleChapter, ArticleParagraph, ArticleSentence, ArticleBookmark）
-│   ├── word_book*.dart            # 单词本（WordBook, WordBookTag, WordTag）
+│   ├── article*.dart              # 文章相关
+│   ├── word_book*.dart            # 单词本
 │   ├── recording_record.dart      # 跟读录音记录
-│   ├── test_models.dart           # 测试相关模型
+│   ├── test_models.dart           # 测试相关
 │   ├── ai_evaluation_log.dart     # AI 评估日志
 │   ├── error_log.dart             # 错误日志
-│   └── device_type.dart           # 设备类型
+│   ├── device_type.dart           # 设备类型
+│   └── forum/                     # 论坛模型
 │
-├── providers/                     # 状态管理层（Riverpod）
-│   ├── player_engine_provider.dart # 播放器状态（⭐ 核心，1200+ 行）
-│   ├── file_provider.dart         # 文件夹/视频 CRUD
+├── providers/                     # 全局 Provider（仅4个）
 │   ├── navigation_provider.dart   # 导航状态
-│   ├── user_provider.dart         # 用户状态
-│   ├── subscription_provider.dart # 订阅状态
-│   └── theme_provider.dart        # 主题状态
+│   ├── subscription_provider.dart # 订阅状态（10+处使用）
+│   ├── theme_provider.dart        # 主题状态
+│   └── user_provider.dart         # 用户状态
 │
-├── services/                      # 服务层（50+ 文件）
-│   ├── database_service.dart      # 数据库服务（注册实体、FTS5）
-│   ├── auth_service.dart          # 认证服务（Supabase Auth）
-│   ├── ai_service.dart            # AI 查询服务（DeepSeek）
-│   ├── local_ai_service.dart      # 本地 AI 服务
-│   ├── tts_service.dart           # TTS 统一入口
-│   │   ├── dashscope_tts_service.dart    # 阿里云 TTS
-│   │   ├── local_tts_service.dart        # 本地 ONNX TTS
-│   │   └── unified_tts_service.dart      # TTS 统一封装
-│   ├── translation_service.dart   # 翻译服务
-│   │   ├── huggingface_translation_service.dart
-│   │   ├── translation_init_service.dart
-│   │   └── unified_translation_service.dart
-│   ├── evaluation_service.dart    # 评分服务（发音/音乐）
-│   │   ├── shengtong_evaluator.dart      # 声通评分
-│   │   ├── shengtong_http_evaluator.dart
-│   │   └── score_service.dart
-│   ├── speech_to_text_service.dart # STT 服务
-│   │   ├── local_stt_service.dart
-│   │   └── unified_stt_service.dart
-│   ├── word_book_service.dart     # 单词本服务
-│   ├── learning_stats_service.dart # 学习统计服务
-│   ├── settings_service.dart      # 设置持久化
-│   ├── stats_service.dart         # 统计数据
-│   ├── billing_service.dart       # 计费/充值
-│   ├── conversation_service.dart  # AI 对话
-│   ├── forum/forum_service.dart   # 论坛社区
-│   ├── thumbnail_service.dart     # 缩略图生成
-│   ├── file_picker_service.dart   # 文件导入/扫描
-│   ├── file_manager_service.dart  # 物理文件管理
-│   ├── wifi_transfer_service.dart # WiFi 传输（待完善）
-│   └── ...                        # 其他辅助服务
-│
-├── views/                         # 页面层（15+ 子模块）
+├── services/                      # 服务层（50+ 文件，不变）
+│   │
+├── views/                         # 页面层（按模块自包含）
 │   ├── main/main_page.dart        # 主页面（底部导航栏）
-│   ├── home/home_page.dart        # 首页（Learn Tab）
-│   ├── files/
-│   │   ├── file_list_page.dart     # 视频集列表
-│   │   └── folder_detail_page.dart # 视频集详情
-│   ├── player/player_page.dart    # ✅ 视频播放器（1632 行，功能完整）
+│   ├── home/home_page.dart        # 首页
+│   ├── files/                     # 文件管理模块
+│   │   ├── file_list_page.dart
+│   │   ├── folder_detail_page.dart
+│   │   ├── wifi_transfer_page.dart
+│   │   ├── providers/
+│   │   │   └── file_provider.dart
+│   │   └── widgets/                # 9个私有组件(卡片等)
+│   ├── player/unified/            # 统一播放器 ⭐最佳实践范例
+│   │   ├── unified_player_page.dart
+│   │   ├── unified_player_logic.dart
+│   │   ├── providers/
+│   │   │   └── player_engine_provider.dart
+│   │   └── widgets/                # 7个子组件
 │   ├── article/                   # 文章阅读模块
+│   │   ├── article_reader_page.dart (2808行 ⚠️ 待拆分)
+│   │   └── widgets/
 │   ├── audio_player/              # 音频播放模块
+│   │   ├── learning_record_page.dart
+│   │   └── widgets/                # pronunciation_evaluation_modal 等
 │   ├── conversation/              # AI 对话模块
-│   ├── forum/                     # 论坛模块
-│   │   ├── forum_home_page.dart
-│   │   └── forum_create_post_page.dart
-│   ├── growth/                    # 成长统计
-│   │   └── learning_history_page.dart
+│   │   ├── conversation_page.dart
+│   │   ├── providers/
+│   │   │   └── conversation_provider.dart
+│   │   └── widgets/
+│   │       └── chat_bubble.dart
+│   ├── word_book/                 # 单词本模块
+│   │   ├── collection_page.dart
+│   │   ├── providers/
+│   │   │   └── display_config_provider.dart
+│   │   └── widgets/                # word_card, word_detail_panel 等7个
 │   ├── profile/                   # 个人中心
-│   │   └── edit_profile_page.dart
-│   ├── settings/                  # 设置页
+│   │   ├── profile_page.dart (1478行)
+│   │   ├── providers/              # device_type, difficulty
+│   │   └── widgets/                # device_type_selector
+│   ├── forum/                     # 论坛模块
+│   │   └── providers/              # 3个forum provider
+│   ├── growth/providers/           # growth_provider
+│   ├── test/providers/             # test_provider
 │   ├── login/index.dart           # 登录页
-│   ├── test/                      # 测试页
-│   ├── word_book/                 # 单词本
-│   │   └── collection_page.dart
-│   └── shadow_reader/             # 跟读组件
+│   └── settings/                  # 设置页
 │
-├── components/                   # 公共 UI 组件
-│   └── ui/                        # TDesign 封装组件
+├── components/                    # 全局公共 UI 组件（精简后）
+│   ├── ui/                        # 基础原子组件(avatar/badge/base_card等)
+│   ├── dialogs/                   # 全局弹窗(app_dialogs/recharge_dialog等)
+│   └── selectable_english_line.dart  # 跨模块划词组件
 │
-├── widgets/                      # 业务组件
-│   ├── common/                    # 通用业务组件
-│   ├── article/                   # 文章相关组件
-│   └── shadow_reader/             # 跟读评分组件
+├── widgets/                       # ⚠️ 待废弃（残留4项）
+│   ├── anchored_popup.dart
+│   ├── common/                    # error/loading widget
+│   └── shadow_reader/             # 跨模块重型组件(player+article)
 │
 ├── theme/                        # 主题系统（9 个文件）
-│   ├── theme.dart                 # Theme 入口
-│   ├── app_colors.dart            # 颜色定义
-│   ├── app_typography.dart        # 字体定义
-│   ├── app_spacing.dart           # 间距
-│   ├── app_radius.dart            # 圆角
-│   ├── app_shadows.dart           # 阴影
-│   ├── app_icons.dart             # 图标（Material rounded）
-│   ├── design_tokens.dart         # 设计令牌
-│   └── app_theme.dart             # AppTheme 定义
 │
 └── utils/                        # 工具类
-    ├── adaptive.dart             # 屏幕适配工具
-    ├── device_config.dart        # 设备配置
-    └── device_utils.dart         # 设备工具
 ```
 
 ---
@@ -370,10 +348,8 @@ lib/
 - ✅ **个人资料编辑** → `EditProfilePage`
 
 **核心 Provider**：
-- `playerEngineProvider` — 播放器状态管理（⭐ 最复杂）
-- `fileProvider` — 文件夹/视频 CRUD
-- `subscriptionProvider` — 订阅模式（免费/Premium）
-- `themeProvider` — 主题切换
+- **全局**（`lib/providers/`）：`navigationProvider`, `subscriptionProvider`, `themeProvider`, `userProvider`
+- **模块私有**（在各 `views/{module}/providers/` 下）：`playerEngineProvider`, `fileProvider`, `conversationProvider`, `displayConfigProvider`, `deviceTypeProvider`, `difficultyProvider`, `growthProvider`, `testProvider`, `forumProviders`(3个)
 
 ---
 

@@ -46,7 +46,7 @@ import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_tag.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/models/device_type.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/views/profile/providers/device_type_provider.dart';
 import 'package:vidlang/providers/theme_provider.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
@@ -57,10 +57,10 @@ import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
 import 'package:vidlang/views/test/audio_test_page.dart';
-import 'package:vidlang/views/test/shengtong_http_test_page.dart';
+// import 'package:vidlang/views/test/shengtong_http_test_page.dart'; // 已删除 HTTP 评测器
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 import 'package:tdesign_flutter/src/util/adaptive_extension.dart'
     as plugin_adaptive;
 
@@ -324,7 +324,7 @@ class _VidLangAppState extends State<VidLangApp> {
               routes: {
                 '/login': (_) => const LoginPage(),
                 '/audio-test': (_) => const AudioTestPage(),
-                '/shengtong-http-test': (_) => const ShengtongHttpTestPage(),
+                // '/shengtong-http-test': (_) => const ShengtongHttpTestPage(), // 已删除 HTTP 评测器
               },
               navigatorKey: navigatorKey,
               home: const _AppEntry(),

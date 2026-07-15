@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/subtitles.dart';
-import 'package:vidlang/providers/player_engine_provider.dart';
+import 'package:vidlang/views/player/unified/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/utils/app_globals.dart';

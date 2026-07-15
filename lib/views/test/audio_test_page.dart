@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:vidlang/services/tts/dashscope_tts_service.dart';
 import 'package:vidlang/services/evaluation/shengtong_evaluator.dart';
-import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
+// import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart'; // 已移除
 import 'package:vidlang/theme/theme.dart';
 
 /// DashScope TTS + 声通评测 联合测试页面
@@ -306,42 +306,10 @@ class _AudioTestPageState extends State<AudioTestPage> {
     _addShengtongLog('   AppKey: $_testAppKey');
     _addShengtongLog('   SecretKey: ${_testSecretKey.substring(0, 8)}...');
 
-    try {
-      final evaluator = ShengtongHttpEvaluator(
-        appKey: _testAppKey,
-        secretKey: _testSecretKey,
-      );
-
-      // 创建一个简单的测试音频文件（静音 WAV）
-      _addShengtongLog('📝 准备测试音频...');
-      final tempDir = await getTemporaryDirectory();
-      final audioPath = '${tempDir.path}/test_audio.wav';
-      await _createTestWav(audioPath);
-      _addShengtongLog('✅ 测试音频已创建: $audioPath');
-
-      _addShengtongLog('📝 发送 HTTP 评测请求...');
-      _addShengtongLog('   coreType: sent.eval');
-      _addShengtongLog(
-        '   refText: ${_shengtongRefTextController.text.trim()}',
-      );
-
-      final result = await evaluator.evaluate(
-        coreType: 'sent.eval',
-        refText: _shengtongRefTextController.text.trim(),
-        audioPath: audioPath,
-        userId: 'test_user_${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      _addShengtongLog('✅ 评测成功!');
-      _addShengtongLog(
-        '📊 结果:\n${const JsonEncoder.withIndent('  ').convert(result)}',
-      );
-    } catch (e, stackTrace) {
-      _addShengtongLog('❌ 评测失败: $e');
-      _addShengtongLog('📋 堆栈:\n$stackTrace');
-    } finally {
-      setState(() => _isShengtongHttpTesting = false);
-    }
+    // HTTP 评测器已移除，此测试代码暂时禁用
+    _addShengtongLog('⚠️ HTTP 评测器已移除，测试暂停');
+    setState(() => _isShengtongHttpTesting = false);
+    return;
   }
 
   /// 创建测试 WAV 文件

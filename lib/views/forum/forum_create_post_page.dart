@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/forum_providers.dart';
+import 'package:vidlang/views/forum/providers/forum_providers.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 

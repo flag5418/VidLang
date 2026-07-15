@@ -12,10 +12,10 @@ import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/evaluation/evaluation_api.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
-import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
+// import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart'; // 已移除 HTTP 评测器
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
-import 'package:vidlang/widgets/app_dialogs.dart';
+import 'package:vidlang/components/dialogs/app_dialogs.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -2129,53 +2129,15 @@ final stSecretKey = AppKeysService.instance.shengtongSecretKey;
         debugPrint('⚠️ [TestPage] 声通密钥未就绪');
         return;
       }
-      // 使用 ShengtongHttpEvaluator HTTP 方式评测
-      final evaluator = ShengtongHttpEvaluator(
-        appKey: stAppKey,
-        secretKey: stSecretKey,
-      );
+      // 使用 ShengtongHttpEvaluator HTTP 方式评测（已移除，改用 UnifiedEvaluationService）
+      // final evaluator = ShengtongHttpEvaluator(
+      //   appKey: stAppKey,
+      //   secretKey: stSecretKey,
+      // );
 
-      final result = await evaluator.evaluate(
-        coreType: coreType,
-        refText: refText,
-        audioPath: audioPath,
-        userId: 'test_user',
-      );
-
-        if (result.isNotEmpty) {
-          final overall = (result['overall'] as num?)?.toDouble();
-
-        if (mounted) {
-          setState(() {
-            _pronState = 'scored';
-            _pronScore = overall;
-            _pronFeedback = overall != null
-                ? (overall >= 90
-                      ? '发音非常标准！'
-                      : overall >= 75
-                      ? '发音不错，继续保持！'
-                      : overall >= 60
-                      ? '基本正确，注意发音细节。'
-                      : '需要多加练习哦。')
-                : null;
-          });
-          // 自动提交跟读分数
-          _pronScore = overall;
-          if (!_submitted) _submit();
-        }
-      } else {
-        // 声通返回空结果（可能超时或服务不可用）
-        debugPrint('⚠️ [TestPage] 声通评测返回空结果, coreType=$coreType');
-        if (mounted) {
-          setState(() {
-            _pronState = 'scored';
-            _pronScore = 0.0;
-            _pronFeedback = '评分服务暂不可用，已记录练习。';
-          });
-          _pronScore = 0.0;
-          if (!_submitted) _submit(); // 仍然允许提交
-        }
-      }
+      // TODO: 替换为 UnifiedEvaluationService.instance.evaluate()
+      debugPrint('⚠️ [TestPage] HTTP 评测器已移除，此测试代码待更新');
+      return;
     } catch (e) {
       debugPrint('❌ [TestPage] 声通评测异常: $e');
       if (mounted) {

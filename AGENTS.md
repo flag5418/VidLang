@@ -1,6 +1,6 @@
 # AGENTS.md - VidLang 项目 AI 协作规范
 
-> **版本**: V1.0 | **日期**: 2026-07-12
+> **版本**: V2.0 | **日期**: 2026-07-15
 > **优先级**: AI 自动加载，每次会话必须遵守
 
 ---
@@ -35,11 +35,19 @@
 lib/
 ├── main.dart              # 应用入口
 ├── models/                # 数据模型（继承 BaseEntity）
-├── providers/             # Riverpod 状态管理
+├── providers/             # 全局 Riverpod Provider（仅4个：navigation/subscription/theme/user）
 ├── services/              # 服务层（DB、文件、网络、AI）
-├── views/                 # 页面（按功能模块划分）
-├── components/            # 公共 UI 组件
-├── widgets/               # 业务组件
+├── views/                 # 页面（按功能模块划分，每个模块自包含）
+│   ├── {module}/
+│   │   ├── {module}_page.dart     # 主页面
+│   │   ├── {module}_logic.dart    # 状态逻辑（可选，>300行时拆分）
+│   │   ├── providers/             # 模块私有 Provider
+│   │   └── widgets/               # 模块私有子组件
+├── components/            # 全局公共 UI 组件
+│   ├── ui/                   # 基础原子组件（avatar/badge/base_card等）
+│   ├── dialogs/              # 全局弹窗（app_dialogs/recharge_dialog等）
+│   └── {跨模块复用组件}.dart   # 如 selectable_english_line
+├── widgets/               # ⚠️ 待废弃（仅残留 shadow_reader/common/anchored_popup）
 ├── theme/                 # 主题系统
 └── utils/                 # 工具类
 
@@ -64,11 +72,16 @@ docs/                      # 项目文档
 │
 ├─ 是源代码吗？
 │  ├─ 数据模型？       → lib/models/{name}.dart
-│  ├─ 状态管理？       → lib/providers/{name}_provider.dart
+│  ├─ 状态管理(Provider)？
+│  │  ├─ 仅被1个模块使用？→ lib/views/{模块}/providers/{name}_provider.dart
+│  │  └─ 被2+模块使用？  → lib/providers/{name}_provider.dart（全局）
 │  ├─ 服务层？         → lib/services/{name}_service.dart
 │  ├─ 页面？           → lib/views/{模块}/{name}_page.dart
-│  ├─ 公共组件？       → lib/components/{name}.dart
-│  ├─ 业务组件？       → lib/widgets/{name}.dart
+│  ├─ UI 组件？
+│  │  ├─ 全局通用（无业务依赖）？→ lib/components/ui/{name}.dart
+│  │  ├─ 全局弹窗？            → lib/components/dialogs/{name}.dart
+│  │  ├─ 跨模块复用（有业务语义）？→ lib/components/{name}.dart
+│  │  └─ 仅属于某功能模块？      → lib/views/{模块}/widgets/{name}.dart
 │  ├─ 主题相关？       → lib/theme/{name}.dart
 │  └─ 工具类？         → lib/utils/{name}.dart
 │
@@ -191,12 +204,37 @@ final fileProvider = StateNotifierProvider<FileNotifier, FileState>((ref) {
 - 示例：`database-schema-V2.0.md`, `overview-V1.0.md`
 - **禁止**在文档内容中标注「旧版」「迁移中」「废弃中」等过渡性文字——只记录当前有效状态
 
-### 6.6 组件规范
+### 6.6 组件规范（V2.0 更新）
 
-- 公共组件 → `lib/components/`
-- 业务组件 → `lib/widgets/`
+**核心原则：只有全局通用的组件才放 `lib/components/`，业务组件归属到功能模块内部。**
+
+| 组件类型 | 存放位置 | 示例 |
+|----------|----------|------|
+| 全局基础UI原子组件 | `lib/components/ui/` | avatar, badge, base_card, empty_state, shimmer_card |
+| 全局弹窗 | `lib/components/dialogs/` | app_dialogs, app_tdesign_dialogs, recharge_dialog |
+| 跨模块复用业务组件 | `lib/components/` 根目录 | selectable_english_line |
+| 模块私有子组件 | `lib/views/{模块}/widgets/` | player的bottom_controls, word_book的word_card |
+| 跨模块重型组件 | `lib/widgets/` (待废弃) | shadow_reader (player+article共用) |
+
+**模块目录结构范例（以 player 为标准）：**
+```
+lib/views/player/unified/
+├── unified_player_page.dart     # 主页面
+├── unified_player_logic.dart    # 逻辑层（>300行时拆分）
+├── providers/
+│   └── player_engine_provider.dart
+└── widgets/
+    ├── top_bar.dart
+    ├── media_area.dart
+    ├── bottom_controls.dart
+    ├── side_drawer.dart
+    ├── follow_panel_widget.dart
+    └── score_result_dialog.dart
+```
+
 - 最小点击区域 48×48 dp
 - 支持主题适配
+- 当主页面超过 800 行时，**必须**拆分 widgets 子目录和/或 logic 文件
 
 ---
 
@@ -207,13 +245,18 @@ final fileProvider = StateNotifierProvider<FileNotifier, FileState>((ref) {
 - [ ] 1. 在 `lib/models/` 下创建新模型（继承 BaseEntity）
 - [ ] 2. 在 `lib/main.dart` 注册新实体到 DatabaseService
 - [ ] 3. 在 `lib/services/` 下创建对应的服务类
-- [ ] 4. 在 `lib/providers/` 下创建状态管理
-- [ ] 5. 在 `lib/views/` 下创建页面目录和页面文件
-- [ ] 6. 如有新组件，在 `lib/components/` 或 `lib/widgets/` 下创建
+- [ ] 4. 创建 Provider：判断是否仅本模块使用
+  - [ ] 4a. 模块私有 → `lib/views/{模块}/providers/{name}_provider.dart`
+  - [ ] 4b. 全局共享 → `lib/providers/{name}_provider.dart`
+- [ ] 5. 在 `lib/views/{模块}/` 下创建页面目录
+  - [ ] 5a. 主页面 `{module}_page.dart`
+  - [ ] 5b. 如超过 800 行，拆分 `{module}_logic.dart`
+  - [ ] 5c. 创建 `widgets/` 子目录，放入提取的子组件
+- [ ] 6. 如有新组件，按 6.6 节规范选择正确位置
     - [ ] 7. 更新本文档中的目录结构
     - [ ] 8. 更新 `docs/AGENT_CONTEXT.md`
     - [ ] 9. 更新 `docs/developer/design/code-knowledge-base/` 知识库
-    - [ ] 10. 文档文件名带版本号（如 `xxx-V2.0.md`）
+    - [ ] 10. 文档文件名带版本号（如 `xxx-V3.0.md`）
     - [ ] 11. 提交 Commit：`chore(structure): 新增 {模块名} 模块`
 
 ### 7.2 Git 提交信息
@@ -296,7 +339,12 @@ chore(structure): 重组 docs 目录结构
 
 ---
 
-**文档版本**：V1.1
-**更新时间**：2026-07-13
-**变更**: 知识库路径同步至精简后的 docs/ 新结构
+**文档版本**：V2.0
+**更新时间**：2026-07-15
+**变更**:
+- **重大重构**：组件/Provider 按模块归属分类，废除 widgets/ 全局业务组件目录
+- providers/ 仅保留 4 个全局 Provider，其余迁入各 views/{module}/providers/
+- components/ 精简为纯全局公共组件（ui/ + dialogs/ + 跨模块复用组件）
+- 新增模块自包含目录结构规范（page + logic + providers + widgets）
+- 更新文件存放决策树和新增模块操作清单
 **来源**：从 `项目全局规则.md` 提取核心规则，供 AI 自动加载
