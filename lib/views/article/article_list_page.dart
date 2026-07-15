@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/views/article/article_import_page.dart';
@@ -90,42 +91,19 @@ class _ArticleListPageState extends State<ArticleListPage> {
     );
   }
 
-  Widget _buildEmptyState(AppColorsData colorScheme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            AppIcons.article,
-            size: Adaptive.sp(context, 64),
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-          ),
-          SizedBox(height: Adaptive.h(context, AppSpacing.md)),
-          Text(
-            '暂无文章',
-            style: TextStyle(
-              fontSize: Adaptive.sp(context, 16),
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
-          Text(
-            '点击右下角按钮创建第一篇',
-            style: TextStyle(
-              fontSize: Adaptive.sp(context, 13),
-              color: colorScheme.outline,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+Widget _buildEmptyState(AppColorsData colorScheme) {
+  return EmptyState(
+    icon: AppIcons.article,
+    title: '暂无文章',
+    description: '点击右下角按钮创建第一篇',
+  );
+}
 
   Widget _buildList(AppColorsData colorScheme) {
     return RefreshIndicator(
       onRefresh: _loadArticles,
       child: ListView.builder(
-        padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
+        padding: EdgeInsets.all(Adaptive.w(AppSpacing.md)),
         itemCount: _articles.length,
         itemBuilder: (context, index) {
           final article = _articles[index];
@@ -139,13 +117,13 @@ class _ArticleListPageState extends State<ArticleListPage> {
     final estimatedMinutes = (article.wordCount / 200).ceil().clamp(1, 999);
 
     return Card(
-      margin: EdgeInsets.only(bottom: Adaptive.h(context, AppSpacing.sm)),
+      margin: EdgeInsets.only(bottom: Adaptive.h(AppSpacing.sm)),
       color: colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(Adaptive.r(12)),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(Adaptive.r(12)),
         onTap: () async {
           await Navigator.push(
             context,
@@ -157,7 +135,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
         },
         onLongPress: () => _deleteArticle(article),
         child: Padding(
-          padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
+          padding: EdgeInsets.all(Adaptive.w(AppSpacing.md)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -168,7 +146,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
                     child: Text(
                       article.title,
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 16),
+                        fontSize: Adaptive.sp(16),
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
@@ -179,33 +157,33 @@ class _ArticleListPageState extends State<ArticleListPage> {
                   if (article.lastStudyDate != null)
                     Icon(
                       AppIcons.history,
-                      size: Adaptive.sp(context, 14),
+                      size: Adaptive.sp(14),
                       color: colorScheme.onSurfaceVariant,
                     ),
                 ],
               ),
-              SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
+              SizedBox(height: Adaptive.h(AppSpacing.sm)),
 
               // 统计信息
               Row(
                 children: [
                   _buildStatChip('${article.totalParagraphs} 段', colorScheme),
-                  SizedBox(width: Adaptive.w(context, AppSpacing.sm)),
+                  SizedBox(width: Adaptive.w(AppSpacing.sm)),
                   _buildStatChip('${article.totalSentences} 句', colorScheme),
-                  SizedBox(width: Adaptive.w(context, AppSpacing.sm)),
+                  SizedBox(width: Adaptive.w(AppSpacing.sm)),
                   _buildStatChip('${article.wordCount} 词', colorScheme),
                   const Spacer(),
                   _buildStatChip('约 $estimatedMinutes 分钟', colorScheme),
                 ],
               ),
-              SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
+              SizedBox(height: Adaptive.h(AppSpacing.sm)),
 
               // 进度条
               ClipRRect(
-                borderRadius: BorderRadius.circular(Adaptive.r(context, 4)),
+                borderRadius: BorderRadius.circular(Adaptive.r(4)),
                 child: LinearProgressIndicator(
                   value: article.progress.clamp(0.0, 1.0),
-                  minHeight: Adaptive.h(context, 4),
+                  minHeight: Adaptive.h(4),
                   backgroundColor: colorScheme.outline.withValues(alpha: 0.3),
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
@@ -220,17 +198,17 @@ class _ArticleListPageState extends State<ArticleListPage> {
   Widget _buildStatChip(String text, AppColorsData colorScheme) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 8),
-        vertical: Adaptive.h(context, 2),
+        horizontal: Adaptive.w(8),
+        vertical: Adaptive.h(2),
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 6)),
+        borderRadius: BorderRadius.circular(Adaptive.r(6)),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: Adaptive.sp(context, 13),
+          fontSize: Adaptive.sp(13),
           color: colorScheme.onSurfaceVariant,
         ),
       ),

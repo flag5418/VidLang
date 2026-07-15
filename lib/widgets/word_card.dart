@@ -6,11 +6,10 @@ import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/providers/display_config_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/services/ai_service.dart';
-import 'package:vidlang/services/unified_translation_service.dart';
-import 'package:vidlang/services/tts_service.dart';
-import 'package:vidlang/services/word_book_service.dart';
-import 'package:vidlang/utils/dialog_utils.dart';
+import 'package:vidlang/services/ai/ai_service.dart';
+import 'package:vidlang/services/ai/unified_translation_service.dart';
+import 'package:vidlang/services/tts/tts_service.dart';
+import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/widgets/native_translation_guide_sheet.dart';
 import 'package:vidlang/widgets/recharge_dialog.dart';
 import 'package:vidlang/widgets/word_detail_panel.dart';
@@ -88,9 +87,6 @@ class WordCard extends ConsumerStatefulWidget {
   });
 
   /// 以 Dialog 方式展示 WordCard
-  ///
-  /// 注：showDialog 在新版 Flutter 中使用了 Windowing API，
-  /// Android 不支持，因此改用 DialogUtils。
   static Future<void> show(
     BuildContext context, {
     required String word,
@@ -109,11 +105,13 @@ class WordCard extends ConsumerStatefulWidget {
     String? sourceTitle,
     String? segmentCode,
   }) {
-    return DialogUtils.show<void>(
+    return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black45,
-      builder: (ctx) => WordCard._internal(
+      barrierLabel: 'WordCard',
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) => WordCard._internal(
         word: word,
         contextSentence: contextSentence,
         onSpeak: onSpeak,
@@ -123,6 +121,8 @@ class WordCard extends ConsumerStatefulWidget {
         sourceTitle: sourceTitle,
         segmentCode: segmentCode,
       ),
+      transitionBuilder: (_, animation, __, child) =>
+          FadeTransition(opacity: animation, child: child),
     );
   }
 

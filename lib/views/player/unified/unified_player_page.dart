@@ -9,7 +9,7 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:vidlang/utils/app_globals.dart';
 import 'package:vidlang/widgets/word_card.dart';
 
 import 'unified_player_logic.dart';
@@ -222,7 +222,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
         ? subtitlesList[idx]
         : null;
     final colors = context.colors;
-    final isPad = adaptive.Adaptive.of(context);
+    final isPad = AppGlobals.isTablet;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     // iPad 横屏：70/30 分栏布局
@@ -341,7 +341,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             settingsExpanded: _settingsExpanded,
             onToggleFollow: () => _handleToggleFollow(notifier, state, currentSub),
             onClaritySpeak: (currentSub != null)
-                ? () => _handleClaritySpeak(notifier, state, currentSub!)
+                ? () => _handleClaritySpeak(notifier, state, currentSub)
                 : null,
             onStopSpeak: () => _handleStopSpeak(),
             onToggleSettings: () => setState(() => _settingsExpanded = !_settingsExpanded),
@@ -362,7 +362,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
               language: notifier.currentVideo?.language ?? 'en',
               state: state,
               notifier: notifier,
-              currentSub: currentSub!,
+              currentSub: currentSub,
               onClose: () {
                 setState(() => _showFollow = false);
                 notifier.exitFollowMode();

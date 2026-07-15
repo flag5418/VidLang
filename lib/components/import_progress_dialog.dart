@@ -59,53 +59,53 @@ class _ImportProgressDialogState extends State<ImportProgressDialog> {
     
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
+      insetPadding: EdgeInsets.all(adaptive.Adaptive.w(20)),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
           color: cs.surface,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: adaptive.Adaptive.w(context, 20),
+              blurRadius: adaptive.Adaptive.w(20),
               offset: const Offset(0, 10),
             ),
           ],
         ),
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 动画图标
             _buildAnimationIcon(cs),
-            SizedBox(height: adaptive.Adaptive.h(context, 20)),
+            SizedBox(height: adaptive.Adaptive.h(20)),
             // 标题
             Text(
               widget.title,
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 18),
+                fontSize: adaptive.Adaptive.sp(18),
                 fontWeight: FontWeight.w600,
                 color: cs.onSurface,
               ),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             // 状态文本
             Text(
               '正在处理视频文件...',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 14),
+                fontSize: adaptive.Adaptive.sp(14),
                 color: cs.onSurfaceVariant,
               ),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 24)),
+            SizedBox(height: adaptive.Adaptive.h(24)),
             // 进度条
             _buildProgressBar(cs),
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
             // 进度文字
             Text(
               '$_current / $_total',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 14),
+                fontSize: adaptive.Adaptive.sp(14),
                 fontWeight: FontWeight.w500,
                 color: cs.onSurfaceVariant,
               ),
@@ -119,10 +119,10 @@ class _ImportProgressDialogState extends State<ImportProgressDialog> {
   /// 构建动画图标
   Widget _buildAnimationIcon(AppColorsData cs) {
     return Container(
-      width: adaptive.Adaptive.w(context, 80),
-      height: adaptive.Adaptive.w(context, 80),
+      width: adaptive.Adaptive.w(80),
+      height: adaptive.Adaptive.w(80),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 40)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(40)),
         gradient: LinearGradient(
           colors: [
             cs.primary,
@@ -144,13 +144,13 @@ class _ImportProgressDialogState extends State<ImportProgressDialog> {
   /// 构建进度条
   Widget _buildProgressBar(AppColorsData cs) {
     return Container(
-      height: adaptive.Adaptive.h(context, 8),
+      height: adaptive.Adaptive.h(8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
         color: cs.surfaceContainerHighest,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
         child: LinearProgressIndicator(
           value: _progress,
           backgroundColor: Colors.transparent,

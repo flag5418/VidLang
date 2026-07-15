@@ -189,7 +189,7 @@ class _SubtitleItem extends StatelessWidget {
         decoration: isCurrent
             ? BoxDecoration(
                 color: AppColors.onSurface.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
               )
             : null,
         child: Column(

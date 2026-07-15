@@ -2,10 +2,11 @@ import 'dart:convert';import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/models/ai_evaluation_log.dart';
-import 'package:vidlang/services/ai_service.dart';
+import 'package:vidlang/services/ai/ai_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/score_service.dart';
+import 'package:vidlang/services/evaluation/score_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
 import 'package:vidlang/widgets/app_dialogs.dart';
@@ -178,19 +179,19 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               height: 4,
               decoration: BoxDecoration(
                 color: AppColors.onSurface.withValues(alpha: 0.24),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 2)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(2)),
               ),
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             child: Row(
               children: [
                 Text(
                   'AI 点评',
                   style: TextStyle(
                     color: AppColors.onSurface,
-                    fontSize: adaptive.Adaptive.sp(context, 16),
+                    fontSize: adaptive.Adaptive.sp(16),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -205,7 +206,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                     decoration: BoxDecoration(
                       gradient: _loading ? null : AppColors.sunsetGradient,
                       color: _loading ? AppColors.onSurfaceVariant : null,
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -222,15 +223,15 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                         else
                           Icon(
                             AppIcons.autoAwesome,
-                            size: adaptive.Adaptive.icon(context, 14),
+                            size: adaptive.Adaptive.icon(14),
                             color: AppColors.onSurface,
                           ),
-                        SizedBox(width: adaptive.Adaptive.w(context, 6)),
+                        SizedBox(width: adaptive.Adaptive.w(6)),
                         Text(
                           _loading ? '分析中...' : '请求点评',
                           style: TextStyle(
                             color: AppColors.onSurface,
-                            fontSize: adaptive.Adaptive.sp(context, 12),
+                            fontSize: adaptive.Adaptive.sp(12),
                           ),
                         ),
                       ],
@@ -250,22 +251,20 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
     );
   }
 
-  Widget _buildEmptyState(ScrollController controller) {
-    return ListView(
-      controller: controller,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        SizedBox(height: adaptive.Adaptive.h(context, 40)),
-        Icon(AppIcons.autoAwesome, size: adaptive.Adaptive.icon(context, 48), color: AppColors.onSurface.withValues(alpha: 0.24)),
-        SizedBox(height: adaptive.Adaptive.h(context, 12)),
-        Text(
-          '暂无AI点评\n跟读练习后点击"请求点评"',
-          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 13)),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
+Widget _buildEmptyState(ScrollController controller) {
+  return ListView(
+    controller: controller,
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    children: [
+      EmptyState.compact(
+        icon: AppIcons.autoAwesome,
+        title: '暂无AI点评',
+        description: '跟读练习后点击"请求点评"',
+        topPadding: adaptive.Adaptive.h(40),
+      ),
+    ],
+  );
+}
 
   Widget _buildEvaluationContent(ScrollController controller) {
     final e = _evaluation!;
@@ -282,11 +281,11 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                   '${e.resourceScore!.round()}',
                   style: TextStyle(
                     color: _scoreColor(e.resourceScore!),
-                    fontSize: adaptive.Adaptive.sp(context, 48),
+                    fontSize: adaptive.Adaptive.sp(48),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: adaptive.Adaptive.h(context, 4)),
+                SizedBox(height: adaptive.Adaptive.h(4)),
                 if (e.overallLevel != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -297,13 +296,13 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                       color: _scoreColor(
                         e.resourceScore!,
                       ).withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                     ),
                     child: Text(
                       e.overallLevel!,
                       style: TextStyle(
                         color: _scoreColor(e.resourceScore!),
-                        fontSize: adaptive.Adaptive.sp(context, 12),
+                        fontSize: adaptive.Adaptive.sp(12),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -311,7 +310,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               ],
             ),
           ),
-        SizedBox(height: adaptive.Adaptive.h(context, 16)),
+        SizedBox(height: adaptive.Adaptive.h(16)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -321,7 +320,7 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
             _statItem('全文次数', e.fullFollowCount.toDouble(), showInt: true),
           ],
         ),
-        SizedBox(height: adaptive.Adaptive.h(context, 16)),
+        SizedBox(height: adaptive.Adaptive.h(16)),
         if (structured != null) ...[
           if (structured['encouragement'] != null)
             _evaluationSection(
@@ -347,28 +346,28 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
             ),
         ] else if (e.summary != null && e.summary!.isNotEmpty) ...[
           Container(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             decoration: BoxDecoration(
               color: AppColors.surfaceHighest,
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
             ),
             child: Text(
               e.summary!,
               style: TextStyle(
                 color: AppColors.onSurface,
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 height: 1.6,
               ),
             ),
           ),
         ],
-        SizedBox(height: adaptive.Adaptive.h(context, 24)),
+        SizedBox(height: adaptive.Adaptive.h(24)),
         if (_history.length > 1) ...[
           Text(
             '历史点评',
-            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(context, 12)),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(12)),
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
           ..._history.skip(1).map((h) => _historyItem(h)),
         ],
       ],
@@ -390,32 +389,32 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
   Widget _evaluationSection(IconData icon, String title, String content) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
       decoration: BoxDecoration(
         color: AppColors.surfaceHighest,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: adaptive.Adaptive.icon(context, 16), color: AppColors.onSurface.withValues(alpha: 0.7)),
-              SizedBox(width: adaptive.Adaptive.w(context, 6)),
+              Icon(icon, size: adaptive.Adaptive.icon(16), color: AppColors.onSurface.withValues(alpha: 0.7)),
+              SizedBox(width: adaptive.Adaptive.w(6)),
               Text(
                 title,
                 style: TextStyle(
                   color: AppColors.onSurface.withValues(alpha: 0.7),
-                  fontSize: adaptive.Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(12),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
           Text(
             content,
-            style: TextStyle(color: AppColors.onSurface, fontSize: adaptive.Adaptive.sp(context, 13), height: 1.6),
+            style: TextStyle(color: AppColors.onSurface, fontSize: adaptive.Adaptive.sp(13), height: 1.6),
           ),
         ],
       ),
@@ -426,29 +425,29 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
     if (suggestions is! List) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
       decoration: BoxDecoration(
         color: AppColors.surfaceHighest,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(AppIcons.lightbulb, size: adaptive.Adaptive.icon(context, 16), color: AppColors.onSurface.withValues(alpha: 0.7)),
-              SizedBox(width: adaptive.Adaptive.w(context, 6)),
+              Icon(AppIcons.lightbulb, size: adaptive.Adaptive.icon(16), color: AppColors.onSurface.withValues(alpha: 0.7)),
+              SizedBox(width: adaptive.Adaptive.w(6)),
               Text(
                 '建议',
                 style: TextStyle(
                   color: AppColors.onSurface.withValues(alpha: 0.7),
-                  fontSize: adaptive.Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(12),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
           ...suggestions.map(
             (s) => Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -457,14 +456,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
                 children: [
                   Text(
                     '• ',
-                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 13)),
+                    style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(13)),
                   ),
                   Expanded(
                     child: Text(
                       '$s',
                       style: TextStyle(
                         color: AppColors.onSurface,
-                        fontSize: adaptive.Adaptive.sp(context, 13),
+                        fontSize: adaptive.Adaptive.sp(13),
                         height: 1.5,
                       ),
                     ),
@@ -487,14 +486,14 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
               : '-',
           style: TextStyle(
             color: AppColors.onSurface,
-            fontSize: adaptive.Adaptive.sp(context, 16),
+            fontSize: adaptive.Adaptive.sp(16),
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: adaptive.Adaptive.h(context, 2)),
+        SizedBox(height: adaptive.Adaptive.h(2)),
         Text(
           label,
-          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 12)),
+          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(12)),
         ),
       ],
     );
@@ -503,41 +502,41 @@ class _AiEvaluationSheetState extends State<AiEvaluationSheet> {
   Widget _historyItem(AiEvaluationLog h) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
         color: AppColors.surfaceHighest,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
       ),
       child: Row(
         children: [
           if (h.resourceScore != null)
             Container(
-              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 2)),
+              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(8), vertical: adaptive.Adaptive.h(2)),
               decoration: BoxDecoration(
                 color: _scoreColor(h.resourceScore!).withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
               ),
               child: Text(
                 '${h.resourceScore!.round()}',
                 style: TextStyle(
                   color: _scoreColor(h.resourceScore!),
-                  fontSize: adaptive.Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(12),
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-          SizedBox(width: adaptive.Adaptive.w(context, 12)),
+          SizedBox(width: adaptive.Adaptive.w(12)),
           Expanded(
             child: Text(
               h.summary ?? '无点评内容',
-              style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(context, 13)),
+              style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(13)),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             _fmtDate(h.evaluatedAt),
-            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: adaptive.Adaptive.sp(context, 12)),
+            style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.38), fontSize: adaptive.Adaptive.sp(12)),
           ),
         ],
       ),

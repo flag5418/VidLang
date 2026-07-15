@@ -49,7 +49,7 @@ class ChatBubble extends StatelessWidget {
                         color: isDark
                             ? AppColors.onSurfaceVariant
                             : AppColors.lightOnSurfaceVariant,
-                        fontSize: adaptive.Adaptive.sp(context, 12),
+                        fontSize: adaptive.Adaptive.sp(12),
                       ),
                     ),
                   ),
@@ -65,25 +65,25 @@ class ChatBubble extends StatelessWidget {
 
   Widget _buildAvatar(BuildContext context) {
     return Container(
-      width: adaptive.Adaptive.w(context, 36),
-      height: adaptive.Adaptive.w(context, 36),
+      width: adaptive.Adaptive.w(36),
+      height: adaptive.Adaptive.w(36),
       decoration: BoxDecoration(
         color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: Icon(AppIcons.smartToy, color: Colors.white, size: adaptive.Adaptive.icon(context, 20)),
+      child: Icon(AppIcons.smartToy, color: Colors.white, size: adaptive.Adaptive.icon(20)),
     );
   }
 
   Widget _buildUserAvatar(BuildContext context) {
     return Container(
-      width: adaptive.Adaptive.w(context, 36),
-      height: adaptive.Adaptive.w(context, 36),
+      width: adaptive.Adaptive.w(36),
+      height: adaptive.Adaptive.w(36),
       decoration: BoxDecoration(
         color: AppColors.secondary,
         borderRadius: BorderRadius.circular(AppSpacing.space2),
       ),
-      child: Icon(AppIcons.person, color: Colors.white, size: adaptive.Adaptive.icon(context, 20)),
+      child: Icon(AppIcons.person, color: Colors.white, size: adaptive.Adaptive.icon(20)),
     );
   }
 
@@ -110,14 +110,14 @@ class ChatBubble extends StatelessWidget {
         children: [
           Text(
             message.text,
-            style: TextStyle(color: textColor, fontSize: adaptive.Adaptive.sp(context, 15), height: 1.5),
+            style: TextStyle(color: textColor, fontSize: adaptive.Adaptive.sp(15), height: 1.5),
           ),
           if (message.isStreaming)
             Padding(
               padding: EdgeInsets.only(top: AppSpacing.space1),
               child: SizedBox(
-                width: adaptive.Adaptive.w(context, 14),
-                height: adaptive.Adaptive.w(context, 14),
+                width: adaptive.Adaptive.w(14),
+                height: adaptive.Adaptive.w(14),
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   color: isAi ? AppColors.primary : Colors.white,
@@ -167,7 +167,7 @@ class TranscriptionPreview extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.mic, size: adaptive.Adaptive.icon(context, 16), color: AppColors.primary),
+                  Icon(AppIcons.mic, size: adaptive.Adaptive.icon(16), color: AppColors.primary),
                   SizedBox(width: AppSpacing.space2),
                   Flexible(
                     child: Text(
@@ -176,7 +176,7 @@ class TranscriptionPreview extends StatelessWidget {
                         color: isDark
                             ? AppColors.onSurfaceVariant
                             : AppColors.lightOnSurfaceVariant,
-                        fontSize: adaptive.Adaptive.sp(context, 14),
+                        fontSize: adaptive.Adaptive.sp(14),
                         fontStyle: FontStyle.italic,
                       ),
                     ),

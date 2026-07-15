@@ -5,7 +5,8 @@
 /// 主体：网格文件夹卡片
 library;
 
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,10 +16,10 @@ import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
-import 'package:vidlang/services/article_parser.dart';
-import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/parsers/article_parser.dart';
+import 'package:vidlang/services/ai/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/wifi_transfer_service.dart';
+import 'package:vidlang/services/files/wifi_transfer_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/theme/app_radius.dart';
@@ -87,7 +88,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
         title: Text(
           '资源',
           style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(context, 18),
+            fontSize: adaptive.Adaptive.sp(18),
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
           ),
@@ -105,7 +106,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
               if (!mounted) return;
               await ref.read(fileProvider.notifier).loadFolders();
             },
-            icon: Icon(AppIcons.wifiTethering, size: adaptive.Adaptive.sp(context, 22)),
+            icon: Icon(AppIcons.wifiTethering, size: adaptive.Adaptive.sp(22)),
           ),
         ],
       ),
@@ -141,7 +142,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
         color: AppColors.getSurface(brightness: Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 5)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(5)),
       child: Row(
         children: List.generate(_resourceTypes.length, (index) {
           final isSelected = index == currentTab;
@@ -160,7 +161,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
                   _resourceLabels[index],
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(context, 13),
+                    fontSize: adaptive.Adaptive.sp(13),
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected
                         ? AppColors.onSurface
@@ -188,7 +189,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
           : null,
       style: TextStyle(
         color: colorScheme.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeSmall),
+        fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeSmall),
       ),
       decoration: InputDecoration(
         hintText: isArticleTab
@@ -196,11 +197,11 @@ class _FileListPageState extends ConsumerState<FileListPage> {
             : '搜索${_resourceLabels[_currentTab]}...',
         hintStyle: TextStyle(
           color: AppColors.onSurfaceDisabled,
-          fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeSmall),
+          fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeSmall),
         ),
         prefixIcon: Icon(
           isArticleTab ? AppIcons.link : AppIcons.search,
-          size: adaptive.Adaptive.sp(context, 18),
+          size: adaptive.Adaptive.sp(18),
           color: colorScheme.onSurfaceVariant,
         ),
         suffixIcon: _buildSearchSuffix(colorScheme, isArticleTab),
@@ -239,10 +240,10 @@ class _FileListPageState extends ConsumerState<FileListPage> {
     // 导入中：显示加载动画
     if (_isImporting) {
       return Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 10)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(10)),
         child: SizedBox(
-          width: adaptive.Adaptive.sp(context, 16),
-          height: adaptive.Adaptive.sp(context, 16),
+          width: adaptive.Adaptive.sp(16),
+          height: adaptive.Adaptive.sp(16),
           child: CircularProgressIndicator(
             strokeWidth: 2,
             color: colorScheme.primary,
@@ -257,20 +258,20 @@ class _FileListPageState extends ConsumerState<FileListPage> {
     // 文章 Tab：显示「转入」按钮
     if (isArticleTab) {
       return Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 5)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(5)),
         child: GestureDetector(
           onTap: _isImporting ? null : _importFromUrl,
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 14), vertical: adaptive.Adaptive.h(context, 4)),
+            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(14), vertical: adaptive.Adaptive.h(4)),
             decoration: BoxDecoration(
               color: colorScheme.primary,
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 6)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
             ),
             child: Text(
               '转入',
               style: TextStyle(
                 color: AppColors.onSurface,
-                fontSize: adaptive.Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(12),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -287,7 +288,7 @@ class _FileListPageState extends ConsumerState<FileListPage> {
       },
       child: Icon(
         AppIcons.clear,
-        size: adaptive.Adaptive.sp(context, 18),
+        size: adaptive.Adaptive.sp(18),
         color: colorScheme.onSurfaceVariant,
       ),
     );
@@ -438,63 +439,24 @@ class _FileListPageState extends ConsumerState<FileListPage> {
         : _buildFolderGrid(folders);
   }
 
-  Widget _buildEmptyState(ColorScheme colorScheme) {
-    final typeColor = AppColors.colorForType(
-      _resourceTypes[_currentTab],
-      brightness: Theme.of(context).brightness,
-    );
-    return Center(
-      child: Container(
-        margin: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 32),
-          vertical: adaptive.Adaptive.h(context, 32),
-        ),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: typeColor.withValues(alpha: 0.08),
-              ),
-              child: Icon(
-                AppIcons.folderOpen,
-                size: adaptive.Adaptive.sp(context, 48),
-                color: typeColor.withValues(alpha: 0.6),
-              ),
-            ),
-            SizedBox(height: adaptive.Adaptive.h(context, 20)),
-            Text(
-              _searchQuery.isNotEmpty
-                  ? '没有匹配的文件夹'
-                  : '暂无${_resourceLabels[_currentTab]}',
-              style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 16),
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (_searchQuery.isEmpty) ...[
-              SizedBox(height: adaptive.Adaptive.h(context, 8)),
-              Text(
-                '点击右上角 + 创建',
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 13),
-                  color: colorScheme.outline,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+Widget _buildEmptyState(ColorScheme colorScheme) {
+  final typeColor = AppColors.colorForType(
+    _resourceTypes[_currentTab],
+    brightness: Theme.of(context).brightness,
+  );
+  final title = _searchQuery.isNotEmpty
+      ? '没有匹配的文件夹'
+      : '暂无${_resourceLabels[_currentTab]}';
+  final description = _searchQuery.isEmpty ? '点击右上角 + 创建' : null;
+
+  return EmptyState(
+    icon: AppIcons.folderOpen,
+    title: title,
+    description: description,
+    iconBackgroundColor: typeColor.withValues(alpha: 0.08),
+    iconColor: typeColor.withValues(alpha: 0.6),
+  );
+}
 
   Widget _buildFolderGrid(List<VideoFolder> folders) {
     return GridView.builder(
@@ -534,26 +496,26 @@ class _FileListPageState extends ConsumerState<FileListPage> {
             const Spacer(flex: 2),
             Center(
               child: Container(
-                width: adaptive.Adaptive.w(context, 40),
-                height: adaptive.Adaptive.w(context, 40),
+                width: adaptive.Adaptive.w(40),
+                height: adaptive.Adaptive.w(40),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colorScheme.primary.withValues(alpha: 0.1),
                 ),
                 child: Icon(
                   AppIcons.add,
-                  size: adaptive.Adaptive.sp(context, 24),
+                  size: adaptive.Adaptive.sp(24),
                   color: colorScheme.primary,
                 ),
               ),
             ),
             const Spacer(flex: 1),
             Padding(
-              padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 14)),
+              padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(14)),
               child: Text(
                 '新建',
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 13),
+                  fontSize: adaptive.Adaptive.sp(13),
                   fontWeight: FontWeight.w600,
                   color: colorScheme.primary,
                 ),

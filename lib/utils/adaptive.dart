@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:vidlang/models/device_type.dart';
-import 'package:vidlang/providers/device_type_provider.dart';
+import 'package:vidlang/utils/app_globals.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // 设备检测
@@ -10,19 +8,8 @@ import 'package:vidlang/providers/device_type_provider.dart';
 
 /// 判断当前设备是否为 iPad
 ///
-/// 统一通过 deviceTypeProvider 获取，支持用户手动覆盖。
-/// 这是全项目唯一的设备类型判断入口。
-bool isIPad(BuildContext context) {
-  final container = ProviderScope.containerOf(context);
-  return container.read(deviceTypeProvider).isTablet;
-}
-
-/// 从 ProviderContainer 获取当前设备类型
-///
-/// 用于在非 Widget 上下文中获取设备类型
-AppDeviceType getDeviceTypeFromProvider(ProviderContainer container) {
-  return container.read(deviceTypeProvider);
-}
+/// 直接从 AppGlobals 静态变量读取，无需 BuildContext、无需 ProviderContainer 解析
+bool isIPad() => AppGlobals.isTablet;
 
 // ═══════════════════════════════════════════════════════════════
 // iPad 尺寸缩放规则表（枚举）
@@ -35,9 +22,9 @@ AppDeviceType getDeviceTypeFromProvider(ProviderContainer container) {
 //
 // 使用示例：
 // ```dart
-// Adaptive.sp(context, 16)   // 字体：iPhone=16, iPad=16×1.38≈22.1
-// Adaptive.w(context, 24)    // 宽度：iPhone=24, iPad=24×1.30≈31.2
-// Adaptive.r(context, 12)    // 圆角：iPhone=12, iPad=12×1.20≈14.4
+// Adaptive.sp(16)   // 字体：iPhone=16, iPad=16×1.38≈22.1
+// Adaptive.w(24)    // 宽度：iPhone=24, iPad=24×1.30≈31.2
+// Adaptive.r(12)    // 圆角：iPhone=12, iPad=12×1.20≈14.4
 // ```
 // ═══════════════════════════════════════════════════════════════
 
@@ -70,10 +57,10 @@ enum ScaleType {
 /// iPad 统一比例系数表
 ///
 /// 调参指南：
-/// - 觉得 iPad 字体偏小？增大 [font] 系数
-/// - 觉得 iPad 间距太松？减小 [width] / [height] 系数
-/// - 想让图标更大？增大 [icon] 系数
-/// - 想统一调整？修改 [base] 并让各类型引用它
+// - 觉得 iPad 字体偏小？增大 [font] 系数
+// - 觉得 iPad 间距太松？减小 [width] / [height] 系数
+// - 想让图标更大？增大 [icon] 系数
+// - 想统一调整？修改 [base] 并让各类型引用它
 class DeviceScale {
   DeviceScale._();
 
@@ -108,108 +95,92 @@ class DeviceScale {
 class Adaptive {
   Adaptive._();
 
-  /// 判断当前设备是否为 iPad
-  ///
-  /// 使用 ProviderContainer 读取设备类型
-  static bool of(BuildContext context) {
-    final container = ProviderScope.containerOf(context);
-    return container.read(deviceTypeProvider).isTablet;
-  }
-
   // ─── 核心适配方法 ──────────────────────────────────
 
   /// 字体大小适配（ScaleType.font）
   ///
   /// iPhone: 返回原始值
   /// iPad:  value × font系数 → .sp (ScreenUtil)
-  static double sp(BuildContext context, num value) =>
-      _scale(context, value, ScaleType.font, (v) => v.sp);
+  static double sp(num value) =>
+      _scale(value, ScaleType.font, (v) => v.sp);
 
   /// 水平尺寸适配（ScaleType.width）
   ///
   /// iPhone: 返回原始值
   /// iPad:  value × width系数 → .w (ScreenUtil)
-  static double w(BuildContext context, num value) =>
-      _scale(context, value, ScaleType.width, (v) => v.w);
+  static double w(num value) =>
+      _scale(value, ScaleType.width, (v) => v.w);
 
   /// 垂直尺寸适配（ScaleType.height）
   ///
   /// iPhone: 返回原始值
   /// iPad:  value × height系数 → .h (ScreenUtil)
-  static double h(BuildContext context, num value) =>
-      _scale(context, value, ScaleType.height, (v) => v.h);
+  static double h(num value) =>
+      _scale(value, ScaleType.height, (v) => v.h);
 
   /// 圆角半径适配（ScaleType.radius）
   ///
   /// iPhone: 返回原始值
   /// iPad:  value × radius系数 → .r (ScreenUtil)
-  static double r(BuildContext context, num value) =>
-      _scale(context, value, ScaleType.radius, (v) => v.r);
+  static double r(num value) =>
+      _scale(value, ScaleType.radius, (v) => v.r);
 
   /// 图标尺寸适配（ScaleType.icon）
   ///
   /// iPhone: 返回原始值
   /// iPad:  value × icon系数 → .sp (ScreenUtil，图标也用 sp 保证和字体协调)
-  static double icon(BuildContext context, num value) =>
-      _scale(context, value, ScaleType.icon, (v) => v.sp);
+  static double icon(num value) =>
+      _scale(value, ScaleType.icon, (v) => v.sp);
 
   // ─── 内部方法 ──────────────────────────────────────
 
   /// 统一的缩放逻辑
   ///
-  /// [value]   基于 iPhone 设计稿的原始值
-  /// [type]    缩放类型（决定使用哪个系数）
-  /// [screenUtilFn]  ScreenUtil 的映射函数（.sp/.w/.h/.r）
+  /// 从 AppGlobals 读取设备类型，无需 BuildContext
   static double _scale(
-    BuildContext context,
     num value,
     ScaleType type,
     double Function(num) screenUtilFn,
   ) {
-    final isTablet = of(context);
-    if (isTablet) {
-      final scaled = value.toDouble() * DeviceScale.of(type);
-      final result = screenUtilFn(scaled);
-      // 调试日志
-      // debugPrint('[Adaptive] $type: $value → $scaled → ${result.toStringAsFixed(2)} (iPad)');
-      return result;
+    if (!AppGlobals.isTablet) {
+      return value.toDouble();
     }
-    return value.toDouble();
+    
+    final scaled = value.toDouble() * DeviceScale.of(type);
+    final result = screenUtilFn(scaled);
+    return result;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // BuildContext 扩展 — 更简洁的调用方式
 //
-// 推荐新代码使用此 extension，写法更简洁：
-//   context.ts(16)   替代 Adaptive.sp(context, 16)
-//   context.s(24)    替代 Adaptive.w(context, 24)
-//   context.rs(12)   替代 Adaptive.r(context, 12)
-//   context.is_(24)  替代 Adaptive.icon(context, 24)
+// 推荐新代码直接使用静态方法 Adapive.sp(16)，无需 context：
+//   Adaptive.sp(16)   替代 context.ts(16)
+//   Adaptive.w(24)    替代 context.s(24)
+//
+// 以下 extension 保留用于已有代码的兼容性
 // ═══════════════════════════════════════════════════════════════
 
 extension AdaptiveContext on BuildContext {
   /// 文字尺寸（font scale）— 等价于 [Adaptive.sp]
-  double ts(num value) => Adaptive.sp(this, value);
+  double ts(num value) => Adaptive.sp(value);
 
   /// 通用尺寸（width/height scale）— 等价于 [Adaptive.w]
-  double s(num value) => Adaptive.w(this, value);
+  double s(num value) => Adaptive.w(value);
+
+  /// 垂直尺寸（height scale）— 等价于 [Adaptive.h]
+  double h(num value) => Adaptive.h(value);
 
   /// 圆角尺寸（radius scale）— 等价于 [Adaptive.r]
-  double rs(num value) => Adaptive.r(this, value);
+  double rs(num value) => Adaptive.r(value);
 
   /// 图标尺寸（icon scale）— 等价于 [Adaptive.icon]
-  double is_(num value) => Adaptive.icon(this, value);
+  double is_(num value) => Adaptive.icon(value);
 
   /// 是否为 iPad 设备
-  bool get ipad {
-    final container = ProviderScope.containerOf(this);
-    return container.read(deviceTypeProvider).isTablet;
-  }
+  bool get ipad => AppGlobals.isTablet;
 
   /// 是否为 iPhone 设备
-  bool get iphone {
-    final container = ProviderScope.containerOf(this);
-    return container.read(deviceTypeProvider).isPhone;
-  }
+  bool get iphone => AppGlobals.isPhone;
 }

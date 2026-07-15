@@ -3,10 +3,10 @@ import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/services/ios_native_features.dart';
-import 'package:vidlang/services/tts_service.dart';
-import 'package:vidlang/services/unified_translation_service.dart';
-import 'package:vidlang/services/word_book_service.dart';
+import 'package:vidlang/services/native/ios_native_features.dart';
+import 'package:vidlang/services/tts/tts_service.dart';
+import 'package:vidlang/services/ai/unified_translation_service.dart';
+import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/widgets/selectable_english_line.dart';
 import 'package:vidlang/widgets/word_card.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -149,8 +149,8 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const CircularProgressIndicator(color: AppColors.onSurface),
-                      SizedBox(height: adaptive.Adaptive.h(context, 16)),
-                      Text('拍照识别中...', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(context, 14))),
+                      SizedBox(height: adaptive.Adaptive.h(16)),
+                      Text('拍照识别中...', style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.54), fontSize: adaptive.Adaptive.sp(14))),
                     ],
                   ),
                 ),
@@ -177,23 +177,23 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
   Widget _buildTopBar(ColorScheme cs) {
     final col = context.colors;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 8), vertical: adaptive.Adaptive.h(context, 4)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(8), vertical: adaptive.Adaptive.h(4)),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(AppIcons.arrowBackIosNew, color: col.textPrimary, size: adaptive.Adaptive.icon(context, 20)),
+            icon: Icon(AppIcons.arrowBackIosNew, color: col.textPrimary, size: adaptive.Adaptive.icon(20)),
             style: IconButton.styleFrom(backgroundColor: col.textPrimary.withValues(alpha: 0.1)),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 12)),
+          SizedBox(width: adaptive.Adaptive.w(12)),
           Text(
             '拍照翻译',
-            style: TextStyle(color: col.textPrimary, fontSize: adaptive.Adaptive.sp(context, 17), fontWeight: FontWeight.w600),
+            style: TextStyle(color: col.textPrimary, fontSize: adaptive.Adaptive.sp(17), fontWeight: FontWeight.w600),
           ),
           const Spacer(),
           IconButton(
             onPressed: _takePhoto,
-            icon: Icon(AppIcons.cameraAlt, color: col.textPrimary, size: adaptive.Adaptive.icon(context, 20)),
+            icon: Icon(AppIcons.cameraAlt, color: col.textPrimary, size: adaptive.Adaptive.icon(20)),
             style: IconButton.styleFrom(backgroundColor: col.textPrimary.withValues(alpha: 0.1)),
             tooltip: '重新拍照',
           ),
@@ -207,44 +207,44 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
       children: [
         Expanded(
           child: Container(
-            margin: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 12), adaptive.Adaptive.h(context, 0), adaptive.Adaptive.w(context, 12), adaptive.Adaptive.h(context, 0)),
+            margin: EdgeInsets.fromLTRB(adaptive.Adaptive.w(12), adaptive.Adaptive.h(0), adaptive.Adaptive.w(12), adaptive.Adaptive.h(0)),
             decoration: BoxDecoration(
               color: AppColors.onSurface.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 20)),
+                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(20)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SelectableEnglishLine(
                       text: _recognizedText,
-                      fontSize: adaptive.Adaptive.sp(context, 20),
+                      fontSize: adaptive.Adaptive.sp(20),
                       fontColor: AppColors.onSurface,
                       selectedBgColor: cs.primary.withValues(alpha: 0.7),
                       onSelectionChanged: (words) => _onWordSelected(words),
                       onTapWord: (word) => _showWordDetail(word),
                     ),
                     if (_fullTranslation != null) ...[
-                      SizedBox(height: adaptive.Adaptive.h(context, 16)),
+                      SizedBox(height: adaptive.Adaptive.h(16)),
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                        padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                         decoration: BoxDecoration(
                           color: AppColors.onSurface.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
                         ),
                         child: Text(
                           _fullTranslation!,
-                          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.8), fontSize: adaptive.Adaptive.sp(context, 16), height: 1.5),
+                          style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.8), fontSize: adaptive.Adaptive.sp(16), height: 1.5),
                           textAlign: TextAlign.center,
                         ),
                       ),
                     ],
                     if (_words.isNotEmpty && _fullTranslation == null) ...[
-                      SizedBox(height: adaptive.Adaptive.h(context, 12)),
+                      SizedBox(height: adaptive.Adaptive.h(12)),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -253,21 +253,21 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
                           final trans = _dictCache[w.word.toLowerCase()] ?? '';
                           if (trans.isEmpty) return const SizedBox.shrink();
                           return Container(
-                            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 2)),
+                            padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(6), vertical: adaptive.Adaptive.h(2)),
                             decoration: BoxDecoration(
                               color: cs.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+                              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   w.word,
-                                  style: TextStyle(color: cs.primary, fontSize: adaptive.Adaptive.sp(context, 11), fontWeight: FontWeight.w600),
+                                  style: TextStyle(color: cs.primary, fontSize: adaptive.Adaptive.sp(11), fontWeight: FontWeight.w600),
                                 ),
                                 Text(
                                   ' $trans',
-                                  style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(context, 11)),
+                                  style: TextStyle(color: AppColors.onSurface.withValues(alpha: 0.7), fontSize: adaptive.Adaptive.sp(11)),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -284,7 +284,7 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
           ),
         ),
         if (_selectedWord != null) _buildWordQuickBar(cs),
-        SizedBox(height: adaptive.Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(8)),
       ],
     );
   }
@@ -294,10 +294,10 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
     final translation = _dictCache[word];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(12)),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
       ),
       child: Row(
         children: [
@@ -308,13 +308,13 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
               children: [
                 Row(
                   children: [
-                    Text(word, style: TextStyle(color: cs.primary, fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.bold)),
+                    Text(word, style: TextStyle(color: cs.primary, fontSize: adaptive.Adaptive.sp(16), fontWeight: FontWeight.bold)),
                   ],
                 ),
                 if (translation != null && translation.isNotEmpty)
                   Text(
                     translation,
-                    style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
+                    style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(14)),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -323,13 +323,13 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
           ),
           IconButton(
             onPressed: () => TtsService().speakWord(word),
-            icon: Icon(AppIcons.volumeUp, color: cs.primary, size: adaptive.Adaptive.icon(context, 22)),
+            icon: Icon(AppIcons.volumeUp, color: cs.primary, size: adaptive.Adaptive.icon(22)),
             style: IconButton.styleFrom(backgroundColor: cs.primaryContainer.withValues(alpha: 0.3)),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 4)),
+          SizedBox(width: adaptive.Adaptive.w(4)),
           IconButton(
             onPressed: () => _showWordDetail(word),
-            icon: Icon(AppIcons.expandMore, color: cs.primary, size: adaptive.Adaptive.icon(context, 22)),
+            icon: Icon(AppIcons.expandMore, color: cs.primary, size: adaptive.Adaptive.icon(22)),
             style: IconButton.styleFrom(backgroundColor: cs.primaryContainer.withValues(alpha: 0.3)),
           ),
         ],

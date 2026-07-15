@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/models/test_models.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/evaluation_api.dart';
-import 'package:vidlang/services/test_generator.dart';
+import 'package:vidlang/services/evaluation/evaluation_api.dart';
+import 'package:vidlang/services/learning/test_generator.dart';
 
 // ─── 状态 ───
 

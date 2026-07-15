@@ -141,7 +141,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+          padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -181,7 +181,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       return Center(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: adaptive.Adaptive.w(context, 32),
+            horizontal: adaptive.Adaptive.w(32),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -228,8 +228,8 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       color: context.colors.primary,
       child: ListView.separated(
         padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 16),
-          vertical: adaptive.Adaptive.h(context, 12),
+          horizontal: adaptive.Adaptive.w(16),
+          vertical: adaptive.Adaptive.h(12),
         ),
         itemCount: _records.length,
         separatorBuilder: (_, _) => SizedBox(height: 10),
@@ -247,7 +247,7 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
       onTap: () => _navigateToDetail(record),
       onLongPress: () => _deleteRecord(record),
       child: Container(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.outlinedCard),
@@ -391,8 +391,8 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 6),
-        vertical: adaptive.Adaptive.h(context, 2),
+        horizontal: adaptive.Adaptive.w(6),
+        vertical: adaptive.Adaptive.h(2),
       ),
       decoration: BoxDecoration(
         color: badgeColor.withValues(alpha: 0.1),
@@ -524,8 +524,8 @@ class ConversationDetailPage extends ConsumerWidget {
           // 对话信息头部
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(context, 16),
-              vertical: adaptive.Adaptive.h(context, 10),
+              horizontal: adaptive.Adaptive.w(16),
+              vertical: adaptive.Adaptive.h(10),
             ),
             decoration: BoxDecoration(
               color: colors.surface,

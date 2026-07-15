@@ -27,35 +27,35 @@ class RecognitionPromptDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: cs.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16))),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 24), vertical: adaptive.Adaptive.h(context, 20)),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(24), vertical: adaptive.Adaptive.h(20)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isMusic ? AppIcons.lyrics : AppIcons.subtitlesOutline,
               color: cs.primary,
-              size: adaptive.Adaptive.icon(context, 36),
+              size: adaptive.Adaptive.icon(36),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
             Text(
               isMusic ? '暂无歌词' : '暂无字幕',
-              style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w600),
+              style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(16), fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             Text(
               isMusic
                   ? '可以选择搜索歌词或手动导入LRC文件'
                   : '可以选择AI识别音频内容或手动导入字幕文件',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(context, 12)),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: adaptive.Adaptive.sp(12)),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 20)),
+            SizedBox(height: adaptive.Adaptive.h(20)),
             _actionBtn(matchLabel, AppIcons.autoAwesome, cs.primary, onSmartMatch, cs, context),
-            SizedBox(height: adaptive.Adaptive.h(context, 10)),
+            SizedBox(height: adaptive.Adaptive.h(10)),
             _actionBtn('手动导入', AppIcons.upload, cs.primaryDark, onManualImport, cs, context),
-            SizedBox(height: adaptive.Adaptive.h(context, 10)),
+            SizedBox(height: adaptive.Adaptive.h(10)),
             _actionBtn('先欣赏吧', AppIcons.headphones, cs.onSurfaceVariant, onAppreciate, cs, context),
           ],
         ),
@@ -72,17 +72,17 @@ class RecognitionPromptDialog extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
             border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: color, size: adaptive.Adaptive.icon(context, 18)),
-              SizedBox(width: adaptive.Adaptive.w(context, 8)),
+              Icon(icon, color: color, size: adaptive.Adaptive.icon(18)),
+              SizedBox(width: adaptive.Adaptive.w(8)),
               Text(
                 label,
-                style: TextStyle(color: color, fontSize: adaptive.Adaptive.sp(context, 14), fontWeight: FontWeight.w500),
+                style: TextStyle(color: color, fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w500),
               ),
             ],
           ),

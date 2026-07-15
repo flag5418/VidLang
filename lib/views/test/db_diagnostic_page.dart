@@ -497,7 +497,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             child: Column(
               children: [
                 SizedBox(
@@ -517,7 +517,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                     label: Text(_isRunning ? '自动修复中...' : '🚀 一键诊断+自动修复'),
                   ),
                 ),
-                SizedBox(height: adaptive.Adaptive.h(context, 8)),
+                SizedBox(height: adaptive.Adaptive.h(8)),
                 Row(
                   children: [
                     Expanded(
@@ -535,7 +535,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                         child: const Text('🔬 详细诊断'),
                       ),
                     ),
-                    SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
                     Expanded(
                       child: FilledButton.tonal(
                         onPressed: _isRunning ? null : _forceRebuild,
@@ -561,7 +561,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                     ),
                   )
                 : ListView.builder(
-                    padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                    padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                     itemCount: _logs.length,
                     itemBuilder: (c, i) {
                       final l = _logs[i];
@@ -579,7 +579,7 @@ class _DbDiagnosticPageState extends State<DbDiagnosticPage> {
                         l,
                         style: TextStyle(
                           color: color,
-                          fontSize: adaptive.Adaptive.sp(context, 12),
+                          fontSize: adaptive.Adaptive.sp(12),
                           fontFamily: 'monospace',
                           height: 1.4,
                         ),

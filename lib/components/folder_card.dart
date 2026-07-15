@@ -66,7 +66,7 @@ class _FolderCardState extends State<FolderCard> {
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeOut,
         child: Container(
-          padding: EdgeInsets.all(Adaptive.w(context, 16)),
+          padding: EdgeInsets.all(Adaptive.w(16)),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(AppRadius.card),
@@ -90,11 +90,11 @@ class _FolderCardState extends State<FolderCard> {
                       const Spacer(),
                       Text(
                         widget.folder.name,
-                        style: TextStyle(fontSize: Adaptive.sp(context, 16), height: 1.4, fontWeight: FontWeight.w600, color: titleColor),
+                        style: TextStyle(fontSize: Adaptive.sp(16), height: 1.4, fontWeight: FontWeight.w600, color: titleColor),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: Adaptive.h(context, 8)),
+                      SizedBox(height: Adaptive.h(8)),
                       _buildBottomRow(subtitleColor, info?.currentTitle),
                     ],
                   );
@@ -140,11 +140,11 @@ class _FolderCardState extends State<FolderCard> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: Adaptive.sp(context, 14), color: typeColor),
-            SizedBox(width: Adaptive.w(context, 4)),
+            Icon(ResourceIcons.displayIconFor(widget.folder.folderType.name), size: Adaptive.sp(14), color: typeColor),
+            SizedBox(width: Adaptive.w(4)),
             Text(
               _folderTypeLabel(),
-              style: TextStyle(fontSize: Adaptive.sp(context, 11), fontWeight: FontWeight.w500, color: metaColor, letterSpacing: 0.2),
+              style: TextStyle(fontSize: Adaptive.sp(11), fontWeight: FontWeight.w500, color: metaColor, letterSpacing: 0.2),
             ),
           ],
         ),
@@ -153,14 +153,14 @@ class _FolderCardState extends State<FolderCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: Adaptive.w(context, 4),
-                height: Adaptive.w(context, 4),
+                width: Adaptive.w(4),
+                height: Adaptive.w(4),
                 decoration: BoxDecoration(color: typeColor, shape: BoxShape.circle),
               ),
-              SizedBox(width: Adaptive.w(context, 4)),
+              SizedBox(width: Adaptive.w(4)),
               Text(
                 '$count${ResourceIcons.unitLabel(widget.folder.folderType.name)}',
-                style: TextStyle(fontSize: Adaptive.sp(context, 11), fontWeight: FontWeight.w500, color: metaColor),
+                style: TextStyle(fontSize: Adaptive.sp(11), fontWeight: FontWeight.w500, color: metaColor),
               ),
             ],
           ),
@@ -183,11 +183,11 @@ class _FolderCardState extends State<FolderCard> {
     if (currentTitle == null || currentTitle.isEmpty) {
       return Row(
         children: [
-          Icon(AppIcons.playCircleOutline, size: Adaptive.sp(context, 14), color: subtitleColor.withValues(alpha: 0.5)),
-          SizedBox(width: Adaptive.w(context, 4)),
+          Icon(AppIcons.playCircleOutline, size: Adaptive.sp(14), color: subtitleColor.withValues(alpha: 0.5)),
+          SizedBox(width: Adaptive.w(4)),
           Text(
             '暂无最近内容',
-            style: TextStyle(fontSize: Adaptive.sp(context, 11), color: subtitleColor.withValues(alpha: 0.5), fontWeight: FontWeight.w400),
+            style: TextStyle(fontSize: Adaptive.sp(11), color: subtitleColor.withValues(alpha: 0.5), fontWeight: FontWeight.w400),
           ),
         ],
       );
@@ -195,12 +195,12 @@ class _FolderCardState extends State<FolderCard> {
 
     return Row(
       children: [
-        Icon(AppIcons.playCircleFill, size: Adaptive.sp(context, 14), color: subtitleColor.withValues(alpha: 0.8)),
-        SizedBox(width: Adaptive.w(context, 4)),
+        Icon(AppIcons.playCircleFill, size: Adaptive.sp(14), color: subtitleColor.withValues(alpha: 0.8)),
+        SizedBox(width: Adaptive.w(4)),
         Expanded(
           child: Text(
             currentTitle,
-            style: TextStyle(fontSize: Adaptive.sp(context, 12), color: subtitleColor, fontWeight: FontWeight.w400),
+            style: TextStyle(fontSize: Adaptive.sp(12), color: subtitleColor, fontWeight: FontWeight.w400),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

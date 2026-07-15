@@ -9,9 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/models/conversation_record.dart';
-import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/ai/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/qwen_realtime_service.dart';
+import 'package:vidlang/services/native/qwen_realtime_service.dart';
 
 /// 对话状态数据
 class ConversationStateData {

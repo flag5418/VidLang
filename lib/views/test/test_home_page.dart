@@ -63,16 +63,16 @@ class _TestHomePageState extends ConsumerState<TestHomePage> {
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildTypeSelector(),
-                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(20)),
                   _buildDifficultySelector(),
-                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(20)),
                   _buildQuestionConfig(),
-                  SizedBox(height: adaptive.Adaptive.h(context, 24)),
+                  SizedBox(height: adaptive.Adaptive.h(24)),
                   _buildStartButton(),
                   if (state.error != null)
                     Padding(
@@ -93,7 +93,7 @@ class _TestHomePageState extends ConsumerState<TestHomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('评测类型', style: Theme.of(context).textTheme.titleMedium),
-        SizedBox(height: adaptive.Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(8)),
         Wrap(
           spacing: 8,
           children: [
@@ -123,7 +123,7 @@ class _TestHomePageState extends ConsumerState<TestHomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('难度', style: Theme.of(context).textTheme.titleMedium),
-        SizedBox(height: adaptive.Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(8)),
         Wrap(
           spacing: 8,
           children: List.generate(levels.length, (i) {
@@ -144,7 +144,7 @@ class _TestHomePageState extends ConsumerState<TestHomePage> {
       children: [
         Text('题型配比（共 $_totalCount 题）',
             style: Theme.of(context).textTheme.titleMedium),
-        SizedBox(height: adaptive.Adaptive.h(context, 12)),
+        SizedBox(height: adaptive.Adaptive.h(12)),
         _sliderRow('听音选词', _listenChooseCount, (v) => _listenChooseCount = v),
         _sliderRow('看义写词', _meaningWriteCount, (v) => _meaningWriteCount = v),
         _sliderRow('句中听写', _sentenceDictationCount, (v) => _sentenceDictationCount = v),
@@ -162,7 +162,7 @@ class _TestHomePageState extends ConsumerState<TestHomePage> {
   Widget _sliderRow(String title, int value, ValueChanged<int> onChanged) {
     return Row(
       children: [
-        SizedBox(width: 80, child: Text(title, style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13)))),
+        SizedBox(width: 80, child: Text(title, style: TextStyle(fontSize: adaptive.Adaptive.sp(13)))),
         Expanded(
           child: Slider(
             value: value.toDouble(),

@@ -7,7 +7,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:vidlang/services/shengtong_http_evaluator.dart';
+import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// 声通 HTTP 评测测试页面
@@ -170,7 +170,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
         backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -183,7 +183,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                 hintText: '如: sent.eval, word.eval',
               ),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
             TextField(
               controller: _refTextController,
               decoration: const InputDecoration(
@@ -191,7 +191,7 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 16)),
+            SizedBox(height: adaptive.Adaptive.h(16)),
 
             // 测试按钮
             ElevatedButton.icon(
@@ -205,19 +205,19 @@ class _ShengtongHttpTestPageState extends State<ShengtongHttpTestPage> {
                   : const Icon(AppIcons.send),
               label: Text(_isLoading ? '评测中...' : '发送 HTTP 评测请求'),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 16)),
+            SizedBox(height: adaptive.Adaptive.h(16)),
 
             // 日志显示
             Container(
-              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
               decoration: BoxDecoration(
                 color: AppColors.lightBackground,
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                 border: Border.all(color: AppColors.borderLight),
               ),
               child: SelectableText(
                 _log.isEmpty ? '日志将显示在这里...' : _log,
-                style: TextStyle(fontFamily: 'monospace', fontSize: adaptive.Adaptive.sp(context, 12)),
+                style: TextStyle(fontFamily: 'monospace', fontSize: adaptive.Adaptive.sp(12)),
               ),
             ),
           ],

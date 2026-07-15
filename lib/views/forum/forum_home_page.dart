@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
@@ -48,7 +49,7 @@ final String _selectedCategory = 'all';
         foregroundColor: AppColors.textPrimary,
         elevation: 1,
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(adaptive.Adaptive.h(context, 120)),
+          preferredSize: Size.fromHeight(adaptive.Adaptive.h(120)),
           child: Container(
             color: AppColors.surface,
             child: Column(children: [_buildSearchBar(), _buildCategoryTabs()]),
@@ -82,13 +83,13 @@ final String _selectedCategory = 'all';
 
   Widget _buildSearchBar() {
     return Container(
-      margin: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      margin: EdgeInsets.all(adaptive.Adaptive.w(16)),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: '搜索帖子、用户或标签...',
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
           ),
           filled: true,
           fillColor: AppColors.lightBackground,
@@ -122,7 +123,7 @@ final String _selectedCategory = 'all';
       indicatorColor: Theme.of(context).primaryColor,
       indicatorSize: TabBarIndicatorSize.tab,
       labelStyle: TextStyle(
-        fontSize: adaptive.Adaptive.sp(context, 14),
+        fontSize: adaptive.Adaptive.sp(14),
         fontWeight: FontWeight.w500,
       ),
       tabs: tabs.map((tab) => Tab(text: tab)).toList(),
@@ -131,10 +132,10 @@ final String _selectedCategory = 'all';
 
   Widget _buildQuickActions() {
     return Container(
-      height: adaptive.Adaptive.h(context, 60),
+      height: adaptive.Adaptive.h(60),
       margin: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 16),
-        vertical: adaptive.Adaptive.h(context, 8),
+        horizontal: adaptive.Adaptive.w(16),
+        vertical: adaptive.Adaptive.h(8),
       ),
       child: Row(
         children: [
@@ -145,7 +146,7 @@ final String _selectedCategory = 'all';
               onTap: () => _navigateToCreatePost('resource', 'video'),
             ),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           Expanded(
             child: _buildQuickActionButton(
               icon: AppIcons.audioFile,
@@ -153,7 +154,7 @@ final String _selectedCategory = 'all';
               onTap: () => _navigateToCreatePost('resource', 'audio'),
             ),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           Expanded(
             child: _buildQuickActionButton(
               icon: AppIcons.chat,
@@ -161,7 +162,7 @@ final String _selectedCategory = 'all';
               onTap: () => _navigateToCreatePost('discussion'),
             ),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           Expanded(
             child: _buildQuickActionButton(
               icon: AppIcons.help,
@@ -182,10 +183,10 @@ final String _selectedCategory = 'all';
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
+        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(8)),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
           border: Border.all(color: AppColors.borderLight),
         ),
         child: Column(
@@ -193,14 +194,14 @@ final String _selectedCategory = 'all';
           children: [
             Icon(
               icon,
-              size: adaptive.Adaptive.sp(context, 20),
+              size: adaptive.Adaptive.sp(20),
               color: Theme.of(context).primaryColor,
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 4)),
+            SizedBox(height: adaptive.Adaptive.h(4)),
             Text(
               label,
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 10),
+                fontSize: adaptive.Adaptive.sp(10),
                 color: AppColors.textSecondary,
               ),
             ),
@@ -240,12 +241,12 @@ final String _selectedCategory = 'all';
           },
           child: ListView.separated(
             padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(context, 16),
-              vertical: adaptive.Adaptive.h(context, 8),
+              horizontal: adaptive.Adaptive.w(16),
+              vertical: adaptive.Adaptive.h(8),
             ),
             itemCount: posts.length,
             separatorBuilder: (context, index) =>
-                SizedBox(height: adaptive.Adaptive.h(context, 8)),
+                SizedBox(height: adaptive.Adaptive.h(8)),
             itemBuilder: (context, index) {
               return _buildPostCard(posts[index]);
             },
@@ -269,71 +270,49 @@ final String _selectedCategory = 'all';
     );
   }
 
-  Widget _buildEmptyState(String category) {
-    String message;
-    IconData icon;
+Widget _buildEmptyState(String category) {
+  String message;
+  IconData icon;
 
-    switch (category) {
-      case 'resources':
-        message = '暂无资源分享';
-        icon = AppIcons.movie;
-        break;
-      case 'discussion':
-        message = '暂无学习讨论';
-        icon = AppIcons.chat;
-        break;
-      case 'feedback':
-        message = '暂无反馈建议';
-        icon = AppIcons.feedback;
-        break;
-      case 'help':
-        message = '暂无求助内容';
-        icon = AppIcons.help;
-        break;
-      default:
-        message = '暂无帖子内容';
-        icon = AppIcons.forum;
-    }
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: adaptive.Adaptive.sp(context, 80),
-            color: AppColors.onSurfaceVariant,
-          ),
-          SizedBox(height: adaptive.Adaptive.h(context, 16)),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 16),
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-          SizedBox(height: adaptive.Adaptive.h(context, 24)),
-          // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
-          TDButton(
-            text: '发布第一个帖子',
-            onTap: () => _navigateToCreatePost(category),
-            type: TDButtonType.fill,
-            theme: TDButtonTheme.primary,
-          ),
-        ],
-      ),
-    );
+  switch (category) {
+    case 'resources':
+      message = '暂无资源分享';
+      icon = AppIcons.movie;
+      break;
+    case 'discussion':
+      message = '暂无学习讨论';
+      icon = AppIcons.chat;
+      break;
+    case 'feedback':
+      message = '暂无反馈建议';
+      icon = AppIcons.feedback;
+      break;
+    case 'help':
+      message = '暂无求助内容';
+      icon = AppIcons.help;
+      break;
+    default:
+      message = '暂无帖子内容';
+      icon = AppIcons.forum;
   }
+
+  return EmptyState(
+    icon: icon,
+    title: message,
+    actionLabel: '发布第一个帖子',
+    onAction: () => _navigateToCreatePost(category),
+  );
+}
 
   Widget _buildPostCard(ForumPost post) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
         boxShadow: [
           BoxShadow(
             color: AppColors.textPrimary.withValues(alpha: 0.05),
-            blurRadius: adaptive.Adaptive.w(context, 8),
+            blurRadius: adaptive.Adaptive.w(8),
             offset: const Offset(0, 2),
           ),
         ],
@@ -342,20 +321,20 @@ final String _selectedCategory = 'all';
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _navigateToPostDetail(post),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           child: Padding(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPostHeader(post),
-                SizedBox(height: adaptive.Adaptive.h(context, 12)),
+                SizedBox(height: adaptive.Adaptive.h(12)),
                 _buildPostContent(post),
                 if (post.resourceType != null) ...[
-                  SizedBox(height: adaptive.Adaptive.h(context, 12)),
+                  SizedBox(height: adaptive.Adaptive.h(12)),
                   _buildResourceInfo(post),
                 ],
-                SizedBox(height: adaptive.Adaptive.h(context, 12)),
+                SizedBox(height: adaptive.Adaptive.h(12)),
                 _buildPostFooter(post),
               ],
             ),
@@ -369,18 +348,18 @@ final String _selectedCategory = 'all';
     return Row(
       children: [
         CircleAvatar(
-          radius: adaptive.Adaptive.r(context, 16),
+          radius: adaptive.Adaptive.r(16),
           backgroundColor: Theme.of(context).primaryColor,
           child: Text(
             post.authorName?.substring(0, 1) ?? 'U',
             style: TextStyle(
               color: AppColors.surface,
-              fontSize: adaptive.Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(14),
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        SizedBox(width: adaptive.Adaptive.w(context, 8)),
+        SizedBox(width: adaptive.Adaptive.w(8)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,24 +369,24 @@ final String _selectedCategory = 'all';
                   Text(
                     post.authorName ?? '未知用户',
                     style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(context, 14),
+                      fontSize: adaptive.Adaptive.sp(14),
                       fontWeight: FontWeight.w500,
                       color: AppColors.textPrimary,
                     ),
                   ),
                   if (post.isPinned) ...[
-                    SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
                     Icon(
                       AppIcons.pushPin,
-                      size: adaptive.Adaptive.sp(context, 14),
+                      size: adaptive.Adaptive.sp(14),
                       color: AppColors.warning,
                     ),
                   ],
                   if (post.isFeatured) ...[
-                    SizedBox(width: adaptive.Adaptive.w(context, 4)),
+                    SizedBox(width: adaptive.Adaptive.w(4)),
                     Icon(
                       AppIcons.star,
-                      size: adaptive.Adaptive.sp(context, 14),
+                      size: adaptive.Adaptive.sp(14),
                       color: AppColors.warning,
                     ),
                   ],
@@ -416,7 +395,7 @@ final String _selectedCategory = 'all';
               Text(
                 _formatTime(post.createdAt),
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 12),
+                  fontSize: adaptive.Adaptive.sp(12),
                   color: AppColors.onSurfaceVariant,
                 ),
               ),
@@ -456,17 +435,17 @@ final String _selectedCategory = 'all';
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 8),
-        vertical: adaptive.Adaptive.h(context, 2),
+        horizontal: adaptive.Adaptive.w(8),
+        vertical: adaptive.Adaptive.h(2),
       ),
       decoration: BoxDecoration(
         color: tagColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
       ),
       child: Text(
         tagText,
         style: TextStyle(
-          fontSize: adaptive.Adaptive.sp(context, 10),
+          fontSize: adaptive.Adaptive.sp(10),
           color: tagColor,
           fontWeight: FontWeight.w500,
         ),
@@ -481,18 +460,18 @@ final String _selectedCategory = 'all';
         Text(
           post.title,
           style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(context, 16),
+            fontSize: adaptive.Adaptive.sp(16),
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        SizedBox(height: adaptive.Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(8)),
         Text(
           post.summary ?? post.content,
           style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(context, 14),
+            fontSize: adaptive.Adaptive.sp(14),
             color: AppColors.textSecondary,
             height: 1.4,
           ),
@@ -500,24 +479,24 @@ final String _selectedCategory = 'all';
           overflow: TextOverflow.ellipsis,
         ),
         if (post.tags.isNotEmpty) ...[
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
           Wrap(
-            spacing: adaptive.Adaptive.w(context, 6),
-            runSpacing: adaptive.Adaptive.h(context, 4),
+            spacing: adaptive.Adaptive.w(6),
+            runSpacing: adaptive.Adaptive.h(4),
             children: post.tags.take(3).map((tag) {
               return Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: adaptive.Adaptive.w(context, 6),
-                  vertical: adaptive.Adaptive.h(context, 2),
+                  horizontal: adaptive.Adaptive.w(6),
+                  vertical: adaptive.Adaptive.h(2),
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.borderLight,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 3)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(3)),
                 ),
                 child: Text(
                   '#$tag',
                   style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(context, 10),
+                    fontSize: adaptive.Adaptive.sp(10),
                     color: AppColors.onSurfaceVariant,
                   ),
                 ),
@@ -552,10 +531,10 @@ final String _selectedCategory = 'all';
     }
 
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
         color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
         border: Border.all(
           color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
         ),
@@ -564,10 +543,10 @@ final String _selectedCategory = 'all';
         children: [
           Icon(
             resourceIcon,
-            size: adaptive.Adaptive.sp(context, 16),
+            size: adaptive.Adaptive.sp(16),
             color: Theme.of(context).primaryColor,
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,7 +554,7 @@ final String _selectedCategory = 'all';
                 Text(
                   resourceLabel,
                   style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(context, 12),
+                    fontSize: adaptive.Adaptive.sp(12),
                     fontWeight: FontWeight.w500,
                     color: Theme.of(context).primaryColor,
                   ),
@@ -584,7 +563,7 @@ final String _selectedCategory = 'all';
                   Text(
                     post.resourceDescription!,
                     style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(context, 11),
+                      fontSize: adaptive.Adaptive.sp(11),
                       color: AppColors.onSurfaceVariant,
                     ),
                     maxLines: 1,
@@ -607,7 +586,7 @@ final String _selectedCategory = 'all';
           label: '浏览',
           onTap: null,
         ),
-        SizedBox(width: adaptive.Adaptive.w(context, 16)),
+        SizedBox(width: adaptive.Adaptive.w(16)),
         _buildFooterButton(
           icon: AppIcons.favorite,
           count: post.likeCount,
@@ -615,7 +594,7 @@ final String _selectedCategory = 'all';
           onTap: () => _handleLike(post),
           isActive: post.isLikedByCurrentUser,
         ),
-        SizedBox(width: adaptive.Adaptive.w(context, 16)),
+        SizedBox(width: adaptive.Adaptive.w(16)),
         _buildFooterButton(
           icon: AppIcons.chat,
           count: post.commentCount,
@@ -652,13 +631,13 @@ final String _selectedCategory = 'all';
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: adaptive.Adaptive.sp(context, 16), color: color),
+          Icon(icon, size: adaptive.Adaptive.sp(16), color: color),
           if (showCount) ...[
-            SizedBox(width: adaptive.Adaptive.w(context, 4)),
+            SizedBox(width: adaptive.Adaptive.w(4)),
             Text(
               count > 0 ? count.toString() : label,
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 12),
+                fontSize: adaptive.Adaptive.sp(12),
                 color: color,
               ),
             ),

@@ -64,7 +64,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
           boxShadow: [
             BoxShadow(
               color: Color(0x20000000),
-              blurRadius: Adaptive.w(context, 12),
+              blurRadius: Adaptive.w(12),
               offset: const Offset(0, 4),
             ),
           ],
@@ -77,7 +77,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
               child: Text(
                 letter,
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, 72),
+                  fontSize: Adaptive.sp(72),
                   fontWeight: FontWeight.w700,
                   color: Colors.white.withValues(alpha: 0.2),
                   height: 1,
@@ -125,7 +125,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
               value: progress,
               backgroundColor: Colors.white.withValues(alpha: 0.2),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-              minHeight: Adaptive.h(context, 2),
+              minHeight: Adaptive.h(2),
             ),
           Container(
             width: double.infinity,
@@ -152,7 +152,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                 Text(
                   widget.article.title,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, AppTypography.fontSizeBase),
+                    fontSize: Adaptive.sp(AppTypography.fontSizeBase),
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     letterSpacing: 0.3,
@@ -161,15 +161,12 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (metaParts.isNotEmpty)
-                  SizedBox(height: Adaptive.h(context, 2)),
+                  SizedBox(height: Adaptive.h(2)),
                 if (metaParts.isNotEmpty)
                   Text(
                     metaParts.join(' · '),
                     style: TextStyle(
-                      fontSize: Adaptive.sp(
-                        context,
-                        AppTypography.fontSizeXSmall,
-                      ),
+                      fontSize: Adaptive.sp(AppTypography.fontSizeXSmall),
                       color: Colors.white70,
                       fontWeight: FontWeight.w500,
                     ),
@@ -177,12 +174,12 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 if (progress > 0 && metaParts.isNotEmpty)
-                  SizedBox(height: Adaptive.h(context, 4)),
+                  SizedBox(height: Adaptive.h(4)),
                 if (progress > 0)
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: Adaptive.w(context, 6),
-                      vertical: Adaptive.h(context, 1),
+                      horizontal: Adaptive.w(6),
+                      vertical: Adaptive.h(1),
                     ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -191,10 +188,7 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
                     child: Text(
                       '已读 $percent%',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(
-                          context,
-                          AppTypography.fontSizeXSmall,
-                        ),
+                        fontSize: Adaptive.sp(AppTypography.fontSizeXSmall),
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
                       ),
@@ -211,22 +205,22 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
   Widget _buildPlayButton(AppColorsData cs) {
     return Center(
       child: Container(
-        width: Adaptive.w(context, 36),
-        height: Adaptive.w(context, 36),
+        width: Adaptive.w(36),
+        height: Adaptive.w(36),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.92),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: Adaptive.w(context, 12),
+              blurRadius: Adaptive.w(12),
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Icon(
           AppIcons.play,
-          size: Adaptive.w(context, 20),
+          size: Adaptive.w(20),
           color: Colors.white,
         ),
       ),
@@ -252,17 +246,17 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
       ),
       elevation: 6,
       child: Container(
-        width: Adaptive.r(context, 28),
-        height: Adaptive.r(context, 28),
+        width: Adaptive.r(28),
+        height: Adaptive.r(28),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(
-            Adaptive.r(context, AppRadius.sm),
+            Adaptive.r(AppRadius.sm),
           ),
           color: Colors.black.withValues(alpha: 0.65),
         ),
         child: Icon(
           AppIcons.moreVert,
-          size: Adaptive.sp(context, 18),
+          size: Adaptive.sp(18),
           color: Colors.white,
         ),
       ),
@@ -291,13 +285,13 @@ class _ArticleHeroCardState extends State<ArticleHeroCard> {
   ) {
     return Row(
       children: [
-        Icon(icon, size: Adaptive.sp(context, 18), color: cs.onSurfaceVariant),
+        Icon(icon, size: Adaptive.sp(18), color: cs.onSurfaceVariant),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
           style: TextStyle(
             color: cs.onSurface,
-            fontSize: Adaptive.sp(context, AppTypography.fontSizeBase),
+            fontSize: Adaptive.sp(AppTypography.fontSizeBase),
           ),
         ),
       ],

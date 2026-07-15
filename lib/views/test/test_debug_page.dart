@@ -396,14 +396,14 @@ class _TestDebugPageState extends State<TestDebugPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // 视频选择
             Card(
               child: Padding(
-                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -411,7 +411,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                       '📹 选择视频资源',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: adaptive.Adaptive.h(context, 8)),
+                    SizedBox(height: adaptive.Adaptive.h(8)),
                     if (_videoList == null)
                       const Center(child: CircularProgressIndicator())
                     else if (_videoList!.isEmpty)
@@ -441,12 +441,12 @@ class _TestDebugPageState extends State<TestDebugPage> {
               ),
             ),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
 
             // 难度选择
             Card(
               child: Padding(
-                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -454,7 +454,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                       '🎯 难度级别',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: adaptive.Adaptive.h(context, 8)),
+                    SizedBox(height: adaptive.Adaptive.h(8)),
                     SegmentedButton<String>(
                       segments: const [
                         ButtonSegment(value: 'beginner', label: Text('初级')),
@@ -473,12 +473,12 @@ class _TestDebugPageState extends State<TestDebugPage> {
               ),
             ),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
 
             // 题型配置
             Card(
               child: Padding(
-                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -486,7 +486,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                       '📝 题型配置',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: adaptive.Adaptive.h(context, 8)),
+                    SizedBox(height: adaptive.Adaptive.h(8)),
 
                     // 听力
                     _buildSectionHeader('👂 听力'),
@@ -570,7 +570,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
               ),
             ),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 16)),
+            SizedBox(height: adaptive.Adaptive.h(16)),
 
             // 测试按钮
             ElevatedButton.icon(
@@ -584,21 +584,21 @@ class _TestDebugPageState extends State<TestDebugPage> {
                   : const Icon(AppIcons.play),
               label: Text(_loading ? '正在测试...' : '🚀 开始测试出题'),
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 14)),
+                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(14)),
                 textStyle: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 16),
+                  fontSize: adaptive.Adaptive.sp(16),
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 16)),
+            SizedBox(height: adaptive.Adaptive.h(16)),
 
             // 日志输出
             Card(
               color: AppColors.lightSurfaceElevated,
               child: Padding(
-                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -615,7 +615,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
                         ),
                       ],
                     ),
-                    SizedBox(height: adaptive.Adaptive.h(context, 8)),
+                    SizedBox(height: adaptive.Adaptive.h(8)),
                     Container(
                       constraints: const BoxConstraints(
                         minHeight: 200,
@@ -624,14 +624,14 @@ class _TestDebugPageState extends State<TestDebugPage> {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: AppColors.textPrimary,
-                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                       ),
-                      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                       child: SelectableText(
                         _log.isEmpty ? '点击"开始测试出题"按钮开始调试...' : _log,
                         style: TextStyle(
                           fontFamily: 'monospace',
-                          fontSize: adaptive.Adaptive.sp(context, 12),
+                          fontSize: adaptive.Adaptive.sp(12),
                           color: AppColors.success,
                         ),
                       ),
@@ -641,7 +641,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
               ),
             ),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 32)),
+            SizedBox(height: adaptive.Adaptive.h(32)),
           ],
         ),
       ),
@@ -650,7 +650,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 8), bottom: adaptive.Adaptive.h(context, 4)),
+      padding: EdgeInsets.only(top: adaptive.Adaptive.h(8), bottom: adaptive.Adaptive.h(4)),
       child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
     );
   }
@@ -661,7 +661,7 @@ class _TestDebugPageState extends State<TestDebugPage> {
     ValueChanged<int> onChanged,
   ) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 4)),
+      padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(4)),
       child: Row(
         children: [
           SizedBox(width: 80, child: Text(label)),

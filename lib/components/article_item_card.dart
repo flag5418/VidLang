@@ -56,7 +56,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
           boxShadow: [
             BoxShadow(
               color: Color(0x18000000),
-              blurRadius: Adaptive.w(context, 8),
+              blurRadius: Adaptive.w(8),
               offset: const Offset(0, 2),
             ),
           ],
@@ -70,7 +70,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
                 child: Text(
                   letter,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 36),
+                    fontSize: Adaptive.sp(36),
                     fontWeight: FontWeight.w700,
                     color: Colors.white.withValues(alpha: 0.25),
                     height: 1,
@@ -110,7 +110,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
       child: Container(
         padding: EdgeInsets.fromLTRB(
           AppSpacing.space3,
-          Adaptive.h(context, 20),
+          Adaptive.h(20),
           AppSpacing.space3,
           AppSpacing.space3,
         ),
@@ -128,7 +128,7 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
             Text(
               widget.article.title,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, AppTypography.fontSizeBase),
+                fontSize: Adaptive.sp(AppTypography.fontSizeBase),
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
                 letterSpacing: 0.2,
@@ -136,12 +136,12 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            if (metaParts.isNotEmpty) SizedBox(height: Adaptive.h(context, 2)),
+            if (metaParts.isNotEmpty) SizedBox(height: Adaptive.h(2)),
             if (metaParts.isNotEmpty)
               Text(
                 metaParts.join(' · '),
                 style: TextStyle(
-                  fontSize: Adaptive.sp(context, AppTypography.fontSizeXSmall),
+                  fontSize: Adaptive.sp(AppTypography.fontSizeXSmall),
                   color: Colors.white70,
                   fontWeight: FontWeight.w500,
                 ),
@@ -173,17 +173,17 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
       ),
       elevation: 6,
       child: Container(
-        width: Adaptive.r(context, 26),
-        height: Adaptive.r(context, 26),
+        width: Adaptive.r(26),
+        height: Adaptive.r(26),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(
-            Adaptive.r(context, AppRadius.sm),
+            Adaptive.r(AppRadius.sm),
           ),
           color: Colors.black.withValues(alpha: 0.65),
         ),
         child: Icon(
           AppIcons.moreVert,
-          size: Adaptive.sp(context, 16),
+          size: Adaptive.sp(16),
           color: Colors.white,
         ),
       ),
@@ -212,13 +212,13 @@ class _ArticleItemCardState extends State<ArticleItemCard> {
   ) {
     return Row(
       children: [
-        Icon(icon, size: Adaptive.sp(context, 18), color: cs.onSurfaceVariant),
+        Icon(icon, size: Adaptive.sp(18), color: cs.onSurfaceVariant),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
           style: TextStyle(
             color: cs.onSurface,
-            fontSize: Adaptive.sp(context, AppTypography.fontSizeBase),
+            fontSize: Adaptive.sp(AppTypography.fontSizeBase),
           ),
         ),
       ],

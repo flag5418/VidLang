@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.da
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/providers/device_type_provider.dart';
 import 'package:vidlang/providers/navigation_provider.dart';
-import 'package:vidlang/services/learning_stats_service.dart';
+import 'package:vidlang/services/learning/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
 import 'package:vidlang/views/files/file_list_page.dart';
@@ -166,7 +166,7 @@ class _MainPageState extends ConsumerState<MainPage>
         children: [
           // 左侧边栏 (固定宽度，不缩放)
           Container(
-            width: adaptive.Adaptive.w(context, 180.0),
+            width: adaptive.Adaptive.w(180.0),
             color: colors.surface,
             child: Column(
               children: [
@@ -178,14 +178,14 @@ class _MainPageState extends ConsumerState<MainPage>
                     children: [
                       Icon(
                         AppIcons.schoolFill,
-                        size: adaptive.Adaptive.sp(context, 28.0),
+                        size: adaptive.Adaptive.sp(28.0),
                         color: colors.primary,
                       ),
-                      SizedBox(width: adaptive.Adaptive.w(context, 10.0)),
+                      SizedBox(width: adaptive.Adaptive.w(10.0)),
                       Text(
                         'VidLang',
                         style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(context, 22.0),
+                          fontSize: adaptive.Adaptive.sp(22.0),
                           fontWeight: FontWeight.w800,
                           color: colors.textPrimary,
                         ),
@@ -193,7 +193,7 @@ class _MainPageState extends ConsumerState<MainPage>
                     ],
                   ),
                 ),
-                SizedBox(height: adaptive.Adaptive.h(context, 32.0)),
+                SizedBox(height: adaptive.Adaptive.h(32.0)),
                 // 导航项
                 Expanded(
                   child: ListView(
@@ -256,14 +256,14 @@ class _IphoneNavItem extends StatelessWidget {
           children: [
             Icon(
               isActive ? item.activeIcon : item.icon,
-              size: adaptive.Adaptive.icon(context, 24),
+              size: adaptive.Adaptive.icon(24),
               color: isActive ? activeColor : inactiveColor,
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 2.0)),
+            SizedBox(height: adaptive.Adaptive.h(2.0)),
             Text(
               item.label,
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 11.0),
+                fontSize: adaptive.Adaptive.sp(11.0),
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 color: isActive ? activeColor : inactiveColor,
               ),
@@ -301,14 +301,14 @@ class _IpadNavItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 12.0),
-          vertical: adaptive.Adaptive.h(context, 2.0),
+          horizontal: adaptive.Adaptive.w(12.0),
+          vertical: adaptive.Adaptive.h(2.0),
         ),
         decoration: BoxDecoration(
           color: isActive
               ? activeColor.withValues(alpha: 0.08)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12.0)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12.0)),
         ),
         child: IntrinsicHeight(
           child: Row(
@@ -327,21 +327,21 @@ class _IpadNavItem extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: adaptive.Adaptive.w(context, 16.0),
-                    vertical: adaptive.Adaptive.h(context, 14.0),
+                    horizontal: adaptive.Adaptive.w(16.0),
+                    vertical: adaptive.Adaptive.h(14.0),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         isActive ? item.activeIcon : item.icon,
-                        size: adaptive.Adaptive.icon(context, 24.0),
+                        size: adaptive.Adaptive.icon(24.0),
                         color: isActive ? activeColor : inactiveColor,
                       ),
-                      SizedBox(width: adaptive.Adaptive.w(context, 12.0)),
+                      SizedBox(width: adaptive.Adaptive.w(12.0)),
                       Text(
                         item.label,
                         style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(context, 16.0),
+                          fontSize: adaptive.Adaptive.sp(16.0),
                           fontWeight: isActive
                               ? FontWeight.w600
                               : FontWeight.w400,

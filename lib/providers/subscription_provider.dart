@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/services/settings_service.dart';
+import 'package:vidlang/utils/app_globals.dart';
 
 /// 订阅模式
 /// 
@@ -94,8 +95,11 @@ class SubscriptionState {
 
 /// 订阅/付费状态管理 Provider
 /// 
-/// 现在使用 SettingsService 持久化到 config 表，支持多用户隔离。
-/// 应用重启后会自动恢复上次的模式设置。
+/// 数据流向：
+/// - 初始化：从 SettingsService 加载 → state → AppGlobals 同步
+/// - 用户切换：setMode() → state → AppGlobals → SettingsService 持久化
+/// - 余额更新：setBalance() / refreshBalance() → state → AppGlobals
+/// - 任意位置快速读取：AppGlobals.subscriptionMode / AppGlobals.balance
 final subscriptionProvider = StateNotifierProvider<SubscriptionNotifier, SubscriptionState>((ref) {
   return SubscriptionNotifier();
 });
@@ -122,6 +126,8 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       if (state.mode != mode) {
         state = state.copyWith(mode: mode);
       }
+      // 同步到 AppGlobals
+      AppGlobals.updateSubscriptionMode(state.mode);
     } catch (_) {
       // 加载失败时使用默认值
     }
@@ -137,12 +143,15 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       return;
     }
     state = state.copyWith(mode: mode);
-    await SettingsService.setSubscriptionMode(mode.name); // 持久化到 config 表
+    // 同步到 AppGlobals + 持久化
+    AppGlobals.updateSubscriptionMode(mode);
+    await SettingsService.setSubscriptionMode(mode.name);
   }
 
-  /// 更新余额
+  /// 更新余额（同步到 AppGlobals）
   void setBalance(double balance) {
     state = state.copyWith(balance: balance);
+    AppGlobals.updateBalance(balance);
   }
 
   /// 消耗余额（付费模式下）
@@ -150,17 +159,20 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   bool deductBalance(double amount) {
     if (state.mode != SubscriptionMode.premium) return false;
     if (state.balance < amount) return false;
-    state = state.copyWith(balance: state.balance - amount);
+    final newBalance = state.balance - amount;
+    state = state.copyWith(balance: newBalance);
+    AppGlobals.updateBalance(newBalance);
     return true;
   }
 
-  /// 刷新余额（从 Supabase user_wallet 拉取）
+  /// 刷新余额（从 Supabase user_wallet 拉取，同步到 AppGlobals）
   Future<void> refreshBalance() async {
     try {
       final client = sb.Supabase.instance.client;
       final data = await client.from('user_wallet').select('balance_cny').single();
       final balance = (data['balance_cny'] as num?)?.toDouble() ?? state.balance;
       state = state.copyWith(balance: balance);
+      AppGlobals.updateBalance(balance);
     } catch (_) {
       // 静默失败，保持当前余额
     }

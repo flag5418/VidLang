@@ -165,7 +165,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
           IconButton(
             icon: Icon(
               AppIcons.remove,
-              size: adaptive.Adaptive.icon(context, 20),
+              size: adaptive.Adaptive.icon(20),
             ),
             onPressed: value > min ? () => onChanged(value - 1) : null,
           ),
@@ -173,7 +173,7 @@ class _PlaybackSettingsSheetState extends State<PlaybackSettingsSheet> {
           IconButton(
             icon: AppIcons.getIcon(
               AppIcons.add,
-              size: adaptive.Adaptive.icon(context, 20),
+              size: adaptive.Adaptive.icon(20),
             ),
             onPressed: value < max ? () => onChanged(value + 1) : null,
           ),

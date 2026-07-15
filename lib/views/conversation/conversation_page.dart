@@ -1,4 +1,5 @@
 import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:vidlang/utils/app_globals.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -135,7 +136,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         icon: Icon(
           AppIcons.arrowBackIosNew,
           color: colors.textSecondary,
-          size: adaptive.Adaptive.icon(context, 20),
+          size: adaptive.Adaptive.icon(20),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -143,7 +144,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         widget.sourceTitle ?? 'AI Conversation',
         style: TextStyle(
           color: colors.textPrimary,
-          fontSize: adaptive.Adaptive.sp(context, 18),
+          fontSize: adaptive.Adaptive.sp(18),
           fontWeight: FontWeight.w600,
         ),
         maxLines: 1,
@@ -151,7 +152,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       ),
       actions: [
         _buildConversationListButton(convState, colors),
-        SizedBox(width: adaptive.Adaptive.w(context, 8)),
+        SizedBox(width: adaptive.Adaptive.w(8)),
       ],
     );
   }
@@ -173,14 +174,14 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         );
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 6)),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(12), vertical: adaptive.Adaptive.h(6)),
         decoration: BoxDecoration(
           color: colors.textWeak.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
         ),
         child: Icon(
           AppIcons.formatListBulleted,
-          size: adaptive.Adaptive.icon(context, 18),
+          size: adaptive.Adaptive.icon(18),
           color: colors.textSecondary,
         ),
       ),
@@ -202,10 +203,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
               size: TDLoadingSize.medium,
               icon: TDLoadingIcon.circle,
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
             Text(
               '正在连接 AI 助手...',
-              style: TextStyle(color: colors.textSecondary, fontSize: adaptive.Adaptive.sp(context, 14)),
+              style: TextStyle(color: colors.textSecondary, fontSize: adaptive.Adaptive.sp(14)),
             ),
           ],
         ),
@@ -216,18 +217,18 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     if (convState.state == ConversationState.error) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+          padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.error, color: colors.error, size: adaptive.Adaptive.icon(context, 48)),
-              SizedBox(height: adaptive.Adaptive.h(context, 12)),
+              Icon(AppIcons.error, color: colors.error, size: adaptive.Adaptive.icon(48)),
+              SizedBox(height: adaptive.Adaptive.h(12)),
               Text(
                 convState.errorMessage ?? '连接出错',
-                style: TextStyle(color: colors.textPrimary, fontSize: adaptive.Adaptive.sp(context, 14)),
+                style: TextStyle(color: colors.textPrimary, fontSize: adaptive.Adaptive.sp(14)),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: adaptive.Adaptive.h(context, 12)),
+              SizedBox(height: adaptive.Adaptive.h(12)),
               ElevatedButton(
                 onPressed: () {
                   ref
@@ -269,20 +270,20 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                 ),
                 child: Icon(
                   AppIcons.chatBubbleOutline,
-                  size: adaptive.Adaptive.icon(context, 36),
+                  size: adaptive.Adaptive.icon(36),
                   color: colors.primary,
                 ),
               ),
-              SizedBox(height: adaptive.Adaptive.h(context, 16)),
+              SizedBox(height: adaptive.Adaptive.h(16)),
               Text(
                 '开始和 AI 练习口语吧',
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 18),
+                  fontSize: adaptive.Adaptive.sp(18),
                   fontWeight: FontWeight.w600,
                   color: colors.textPrimary,
                 ),
               ),
-              SizedBox(height: adaptive.Adaptive.h(context, 20)),
+              SizedBox(height: adaptive.Adaptive.h(20)),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -303,7 +304,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
 
     return ListView.builder(
       controller: _scrollController,
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(12)),
       itemCount:
           convState.messages.length +
           (convState.userTranscriptionPreview != null ? 1 : 0) +
@@ -382,7 +383,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               label,
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: colors.textSecondary),
+              style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colors.textSecondary),
             ),
           ),
           Expanded(child: Container(height: 0.5, color: colors.border)),
@@ -398,7 +399,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     AppTextStylesData textStyles,
   ) {
     final isAi = message.role == MessageRole.ai;
-    final borderRadius = BorderRadius.circular(adaptive.Adaptive.r(context, 16));
+    final borderRadius = BorderRadius.circular(adaptive.Adaptive.r(16));
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -423,7 +424,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                   'AI',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: adaptive.Adaptive.sp(context, 12),
+                    fontSize: adaptive.Adaptive.sp(12),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -472,10 +473,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                 ),
               ),
             ),
-            SizedBox(width: adaptive.Adaptive.w(context, 48)),
+            SizedBox(width: adaptive.Adaptive.w(48)),
           ] else ...[
             // 用户气泡
-            SizedBox(width: adaptive.Adaptive.w(context, 48)),
+            SizedBox(width: adaptive.Adaptive.w(48)),
             Flexible(
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -508,7 +509,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
               ),
               child: Icon(
                 AppIcons.person,
-                size: adaptive.Adaptive.icon(context, 18),
+                size: adaptive.Adaptive.icon(18),
                 color: colors.textSecondary,
               ),
             ),
@@ -526,17 +527,17 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         ref.read(conversationProvider.notifier).startRecording();
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 10)),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(10)),
         decoration: BoxDecoration(
           color: colors.surface,
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
           border: Border.all(color: colors.border, width: 0.5),
         ),
         child: Text(
           text,
           style: TextStyle(
             color: colors.primary,
-            fontSize: adaptive.Adaptive.sp(context, 13),
+            fontSize: adaptive.Adaptive.sp(13),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -586,7 +587,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         children: [
           Flexible(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 8)),
+              padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(12), vertical: adaptive.Adaptive.h(8)),
               decoration: BoxDecoration(
                 color: colors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(AppRadius.outlinedCard),
@@ -598,14 +599,14 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.mic, size: adaptive.Adaptive.icon(context, 16), color: colors.primary),
-                  SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                  Icon(AppIcons.mic, size: adaptive.Adaptive.icon(16), color: colors.primary),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
                   Flexible(
                     child: Text(
                       preview,
                       style: TextStyle(
                         color: colors.textSecondary,
-                        fontSize: adaptive.Adaptive.sp(context, 14),
+                        fontSize: adaptive.Adaptive.sp(14),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -624,14 +625,14 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     AppColorsData colors,
     AppTextStylesData textStyles,
   ) {
-    final isPad = adaptive.Adaptive.of(context);
+    final isPad = AppGlobals.isTablet;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        adaptive.Adaptive.w(context, 16),
-        adaptive.Adaptive.h(context, 8),
-        adaptive.Adaptive.w(context, 16),
-        adaptive.Adaptive.h(context, 12),
+        adaptive.Adaptive.w(16),
+        adaptive.Adaptive.h(8),
+        adaptive.Adaptive.w(16),
+        adaptive.Adaptive.h(12),
       ),
       decoration: BoxDecoration(
         color: colors.background,
@@ -641,7 +642,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildStatusBar(convState, colors),
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
           _buildInputArea(convState, colors, textStyles, isPad),
         ],
       ),
@@ -696,21 +697,21 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
           height: 8,
           decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
         ),
-        SizedBox(width: adaptive.Adaptive.w(context, 6)),
-        Text(statusText, style: TextStyle(color: statusColor, fontSize: adaptive.Adaptive.sp(context, 13))),
-        SizedBox(width: adaptive.Adaptive.w(context, 10)),
+        SizedBox(width: adaptive.Adaptive.w(6)),
+        Text(statusText, style: TextStyle(color: statusColor, fontSize: adaptive.Adaptive.sp(13))),
+        SizedBox(width: adaptive.Adaptive.w(10)),
         Text(
           durationStr,
           style: TextStyle(
             color: colors.textSecondary,
-            fontSize: adaptive.Adaptive.sp(context, 12),
+            fontSize: adaptive.Adaptive.sp(12),
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
-        SizedBox(width: adaptive.Adaptive.w(context, 10)),
+        SizedBox(width: adaptive.Adaptive.w(10)),
         Text(
           '${convState.turnCount} 轮',
-          style: TextStyle(color: colors.textSecondary, fontSize: adaptive.Adaptive.sp(context, 12)),
+          style: TextStyle(color: colors.textSecondary, fontSize: adaptive.Adaptive.sp(12)),
         ),
       ],
     );
@@ -732,7 +733,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
       height: 48,
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 24)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(24)),
         border: Border.all(color: colors.border, width: 0.5),
       ),
       child: Row(
@@ -770,7 +771,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                 ),
                 child: Icon(
                   AppIcons.send,
-                  size: adaptive.Adaptive.icon(context, 18),
+                  size: adaptive.Adaptive.icon(18),
                   color: isDisabled ? colors.textWeak : Colors.white,
                 ),
               ),
@@ -805,8 +806,8 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
             },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        width: adaptive.Adaptive.w(context, 44),
-        height: adaptive.Adaptive.w(context, 44),
+        width: adaptive.Adaptive.w(44),
+        height: adaptive.Adaptive.w(44),
         decoration: BoxDecoration(
           color: isRecording
               ? colors
@@ -832,14 +833,14 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
                   Icon(
                     AppIcons.stop,
                     color: Colors.white,
-                    size: adaptive.Adaptive.sp(context, 16),
+                    size: adaptive.Adaptive.sp(16),
                   ),
                   if (_recordingStartTime != null)
                     Text(
                       _formatRecordingShortDuration(),
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: adaptive.Adaptive.sp(context, 7),
+                        fontSize: adaptive.Adaptive.sp(7),
                       ),
                     ),
                 ],
@@ -847,7 +848,7 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
             : Icon(
                 AppIcons.mic,
                 color: isDisabled ? colors.textWeak : colors.primary,
-                size: adaptive.Adaptive.sp(context, 22),
+                size: adaptive.Adaptive.sp(22),
               ),
       ),
     );

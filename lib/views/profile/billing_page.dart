@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';import 'package:vidlang/models/billing_summary.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
-import 'package:vidlang/services/billing_service.dart';
+import 'package:vidlang/services/billing/billing_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/profile/billing_rules_page.dart';
 
@@ -106,7 +106,7 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildTimeRangeSelector(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 8)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(8)),
       child: Row(
         children: TimeMode.values.map((mode) {
           final isSelected = mode == _timeMode;
@@ -114,13 +114,13 @@ class _BillingPageState extends State<BillingPage> {
             child: GestureDetector(
               onTap: () => _changeTimeMode(mode),
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 4)),
-                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 8)),
+                margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(4)),
+                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(8)),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? colorScheme.primary
                       : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                 ),
                 child: Text(
                   mode.label,
@@ -141,7 +141,7 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildViewModeSelector(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 4)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(4)),
       child: Row(
         children: BillingViewMode.values.map((mode) {
           final isSelected = mode == _viewMode;
@@ -149,8 +149,8 @@ class _BillingPageState extends State<BillingPage> {
             child: GestureDetector(
               onTap: () => _changeViewMode(mode),
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 4)),
-                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 6)),
+                margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(4)),
+                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(6)),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
@@ -188,7 +188,7 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildContent(ColorScheme colorScheme) {
     return ListView(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       children: [
         // 总览卡片
         FutureBuilder<BillingOverview>(
@@ -217,9 +217,9 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildOverviewCard(ColorScheme colorScheme, BillingOverview overview) {
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
         color: _panelColor(colorScheme),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
       ),
@@ -261,7 +261,7 @@ class _BillingPageState extends State<BillingPage> {
       child: CustomPaint(
         painter: _TrendPainter(points: points, color: colorScheme.primary),
         child: Padding(
-          padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 92)),
+          padding: EdgeInsets.only(top: adaptive.Adaptive.h(92)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -319,10 +319,10 @@ class _BillingPageState extends State<BillingPage> {
     return GestureDetector(
       onTap: () => _navigateToCategoryDetail(category),
       child: Container(
-        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(12)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           color: _panelColor(colorScheme),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
         ),
@@ -333,7 +333,7 @@ class _BillingPageState extends State<BillingPage> {
               height: 40,
               decoration: BoxDecoration(
                 color: colorScheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
               ),
               child: Icon(icon, size: 20, color: colorScheme.primary),
             ),
@@ -405,10 +405,10 @@ class _BillingPageState extends State<BillingPage> {
     return GestureDetector(
       onTap: () => _navigateToSourceDetail(group),
       child: Container(
-        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(12)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           color: _panelColor(colorScheme),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
         ),
@@ -419,7 +419,7 @@ class _BillingPageState extends State<BillingPage> {
               height: 40,
               decoration: BoxDecoration(
                 color: colorScheme.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
               ),
               child: Icon(icon, size: 20, color: colorScheme.primary),
             ),
@@ -456,10 +456,10 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildUnknownSourceCard(ColorScheme colorScheme, double cost) {
     return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(12)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       ),
       child: Row(
@@ -494,9 +494,9 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildErrorCard(ColorScheme colorScheme, String message) {
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
         color: colorScheme.errorContainer.withValues(alpha: 0.3),
       ),
       child: Column(
@@ -520,9 +520,9 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildEmptyCard(ColorScheme colorScheme, String message) {
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 40)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(40)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
         color: _panelColor(colorScheme),
       ),
       child: Column(
@@ -632,7 +632,7 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
           }
           final data = snapshot.data!;
           return ListView(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             children: [
               // 总览
               _buildOverviewCard(colorScheme, data),
@@ -666,9 +666,9 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
 
   Widget _buildOverviewCard(ColorScheme colorScheme, BillingCategoryDetailResponse data) {
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
         color: _panelColor(colorScheme),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
       ),
@@ -703,10 +703,10 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
 
   Widget _buildRuleItem(ColorScheme colorScheme, BillingCategoryRuleItem rule) {
     return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
         color: _panelColor(colorScheme),
       ),
       child: Row(
@@ -729,10 +729,10 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
 
   Widget _buildSourceItem(ColorScheme colorScheme, BillingCategorySourceItem source) {
     return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
         color: _panelColor(colorScheme),
       ),
       child: Row(
@@ -760,10 +760,10 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
 
   Widget _buildDailyItem(ColorScheme colorScheme, BillingDailyItem day) {
     return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
         color: _panelColor(colorScheme),
       ),
       child: Row(
@@ -815,13 +815,13 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
         title: Text('$sourceTypeZh · ${timeMode.label}', style: TextStyle(fontSize: 16)),
       ),
       body: ListView(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         children: [
           // 总览
           Container(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
               color: _panelColor(colorScheme),
               border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
             ),
@@ -864,10 +864,10 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
         );
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 12)),
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 14)),
+        margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(12)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(14)),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           color: _panelColor(colorScheme),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
         ),
@@ -969,7 +969,7 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
           }
           final data = snapshot.data!;
           return ListView(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             children: [
               // 总览
               _buildOverviewCard(colorScheme, data),
@@ -996,9 +996,9 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
 
   Widget _buildOverviewCard(ColorScheme colorScheme, BillingSourceDetailResponse data) {
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
         color: _panelColor(colorScheme),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
       ),
@@ -1042,10 +1042,10 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
     final icon = categoryIcons[cat.category] ?? AppIcons.autoAwesome;
 
     return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
         color: _panelColor(colorScheme),
       ),
       child: Row(
@@ -1070,10 +1070,10 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
 
   Widget _buildDailyItem(ColorScheme colorScheme, BillingDailyItem day) {
     return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 8)),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
         color: _panelColor(colorScheme),
       ),
       child: Row(

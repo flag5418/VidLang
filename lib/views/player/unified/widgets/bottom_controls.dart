@@ -81,14 +81,14 @@ class BottomControls extends ConsumerWidget {
             // 进度条 + 时间（第一行）
             _buildProgressBarWithTime(context),
 
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
 
             // 第1行：基础控制按钮
             _buildPrimaryControlRow(context),
 
             // 第2行：功能按钮（设置展开时显示）
             if (settingsExpanded && hasSubtitles) ...[
-              SizedBox(height: adaptive.Adaptive.h(context, 8)),
+              SizedBox(height: adaptive.Adaptive.h(8)),
               _buildSettingsPanelRow(context),
             ],
           ],
@@ -101,7 +101,7 @@ class BottomControls extends ConsumerWidget {
   Widget _buildProgressBarWithTime(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 16),
+        horizontal: adaptive.Adaptive.w(16),
       ),
       child: Row(
         children: [
@@ -110,23 +110,23 @@ class BottomControls extends ConsumerWidget {
             UnifiedPlayerLogic.fmtDuration(state.position),
             style: TextStyle(
               color: Colors.white70,
-              fontSize: adaptive.Adaptive.sp(context, 11),
+              fontSize: adaptive.Adaptive.sp(11),
             ),
           ),
 
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
 
           // 进度条
           Expanded(child: _buildProgressBar(context)),
 
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
 
           // 总时长
           Text(
             UnifiedPlayerLogic.fmtDuration(state.duration),
             style: TextStyle(
               color: Colors.white70,
-              fontSize: adaptive.Adaptive.sp(context, 11),
+              fontSize: adaptive.Adaptive.sp(11),
             ),
           ),
         ],
@@ -136,8 +136,8 @@ class BottomControls extends ConsumerWidget {
 
   /// 第1行：基础控制按钮（始终显示）
   Widget _buildPrimaryControlRow(BuildContext context) {
-    final btnSize = adaptive.Adaptive.w(context, 44);
-    final iconSize = adaptive.Adaptive.icon(context, 22);
+    final btnSize = adaptive.Adaptive.w(44);
+    final iconSize = adaptive.Adaptive.icon(22);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -168,7 +168,7 @@ class BottomControls extends ConsumerWidget {
           context: context,
           icon: state.playerState == PlayerState.playing ? AppIcons.pause : AppIcons.play,
           size: btnSize,
-          iconSize: adaptive.Adaptive.icon(context, 26), // 稍大一点
+          iconSize: adaptive.Adaptive.icon(26), // 稍大一点
           onTap: () => notifier.togglePlayPause(),
         ),
 
@@ -206,8 +206,8 @@ class BottomControls extends ConsumerWidget {
       curve: Curves.easeInOut,
       child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: adaptive.Adaptive.w(context, 8),
-        runSpacing: adaptive.Adaptive.h(context, 8),
+        spacing: adaptive.Adaptive.w(8),
+        runSpacing: adaptive.Adaptive.h(8),
         children: [
           _buildToggleButton(context, '跟读', showFollow, AppColors.primary, onToggleFollow),
           _buildToggleButton(context, '停止', isTtsSpeaking, Colors.orangeAccent, onStopSpeak ?? () {}),
@@ -230,8 +230,8 @@ class BottomControls extends ConsumerWidget {
   // ═══════════════════════════════════════════════════════════
 
   Widget _buildLandscapeLayout(BuildContext context) {
-    final btnSize = adaptive.Adaptive.w(context, 40);
-    final iconSize = adaptive.Adaptive.icon(context, 20);
+    final btnSize = adaptive.Adaptive.w(40);
+    final iconSize = adaptive.Adaptive.icon(20);
 
     return Container(
       color: Colors.black.withValues(alpha: 0.6),
@@ -242,8 +242,8 @@ class BottomControls extends ConsumerWidget {
         top: false,
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: adaptive.Adaptive.w(context, 12),
-            vertical: adaptive.Adaptive.h(context, 6),
+            horizontal: adaptive.Adaptive.w(12),
+            vertical: adaptive.Adaptive.h(6),
           ),
           child: Row(
             children: [
@@ -257,15 +257,15 @@ class BottomControls extends ConsumerWidget {
               _buildIconButton(context: context, icon: AppIcons.skipNext, size: btnSize, iconSize: iconSize,
                   onTap: () => notifier.nextSentence()),
 
-              SizedBox(width: adaptive.Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(12)),
 
               // 时间
               Text(
                 '${UnifiedPlayerLogic.fmtDuration(state.position)} / ${UnifiedPlayerLogic.fmtDuration(state.duration)}',
-                style: TextStyle(color: Colors.white70, fontSize: adaptive.Adaptive.sp(context, 11)),
+                style: TextStyle(color: Colors.white70, fontSize: adaptive.Adaptive.sp(11)),
               ),
 
-              SizedBox(width: adaptive.Adaptive.w(context, 12)),
+              SizedBox(width: adaptive.Adaptive.w(12)),
 
               Expanded(
                 child: Row(
@@ -273,9 +273,9 @@ class BottomControls extends ConsumerWidget {
                   children: [
                     if (hasSubtitles) ...[
                       _buildCompactTextBtn(context, '翻译', () => notifier.toggleTranslateVisible()),
-                      SizedBox(width: adaptive.Adaptive.w(context, 6)),
+                      SizedBox(width: adaptive.Adaptive.w(6)),
                       _buildCompactTextBtn(context, '单句停', () => notifier.toggleSingleSentencePause()),
-                      SizedBox(width: adaptive.Adaptive.w(context, 6)),
+                      SizedBox(width: adaptive.Adaptive.w(6)),
                     ],
 
                     // 倍速（始终显示）
@@ -283,16 +283,16 @@ class BottomControls extends ConsumerWidget {
                       onTap: () => _showSpeedPicker(context),
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: adaptive.Adaptive.w(context, 6),
-                          vertical: adaptive.Adaptive.h(context, 4),
+                          horizontal: adaptive.Adaptive.w(6),
+                          vertical: adaptive.Adaptive.h(4),
                         ),
                         child: Text('${state.speed.toStringAsFixed(1)}X',
-                            style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(context, 12))),
+                            style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(12))),
                       ),
                     ),
 
                     if (hasSubtitles)
-                      SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                      SizedBox(width: adaptive.Adaptive.w(8)),
 
                     // 全屏切换
                     _buildIconButton(context: context, icon: AppIcons.fullscreen, size: btnSize, iconSize: iconSize,
@@ -313,11 +313,11 @@ class BottomControls extends ConsumerWidget {
 
   /// 进度条
   Widget _buildProgressBar(BuildContext context) {
-    final trackHeight = adaptive.isIPad(context) ? 5.0 : 3.5;
-    final thumbRadius = adaptive.isIPad(context) ? 7.0 : 5.5;
+    final trackHeight = adaptive.isIPad() ? 5.0 : 3.5;
+    final thumbRadius = adaptive.isIPad() ? 7.0 : 5.5;
 
     return SizedBox(
-      height: adaptive.Adaptive.h(context, 22), // 触控热区
+      height: adaptive.Adaptive.h(22), // 触控热区
       child: SliderTheme(
         data: SliderThemeData(
           trackHeight: trackHeight,
@@ -382,17 +382,17 @@ class BottomControls extends ConsumerWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 12),
-          vertical: adaptive.Adaptive.h(context, 6),
+          horizontal: adaptive.Adaptive.w(12),
+          vertical: adaptive.Adaptive.h(6),
         ),
         decoration: BoxDecoration(
           color: active ? color.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
         ),
         child: Text(text,
             style: TextStyle(
               color: active ? color : Colors.white70,
-              fontSize: adaptive.Adaptive.sp(context, 13),
+              fontSize: adaptive.Adaptive.sp(13),
               fontWeight: active ? FontWeight.w600 : FontWeight.normal,
             )),
       ),
@@ -405,9 +405,9 @@ class BottomControls extends ConsumerWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 10), vertical: adaptive.Adaptive.h(context, 6)),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(10), vertical: adaptive.Adaptive.h(6)),
         child: Text(text,
-            style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(context, 13), fontWeight: FontWeight.w500)),
+            style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(13), fontWeight: FontWeight.w500)),
       ),
     );
   }
@@ -418,8 +418,8 @@ class BottomControls extends ConsumerWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 6), vertical: adaptive.Adaptive.h(context, 4)),
-        child: Text(text, style: TextStyle(color: Colors.white70, fontSize: adaptive.Adaptive.sp(context, 12))),
+        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(6), vertical: adaptive.Adaptive.h(4)),
+        child: Text(text, style: TextStyle(color: Colors.white70, fontSize: adaptive.Adaptive.sp(12))),
       ),
     );
   }
@@ -473,14 +473,14 @@ class BottomControls extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2E302A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('字号大小', style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(context, 16))),
+        title: Text('字号大小', style: TextStyle(color: Colors.white, fontSize: adaptive.Adaptive.sp(16))),
         content: StatefulBuilder(
           builder: (context, setDialogState) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('${tempValue.toInt()}',
-                  style: TextStyle(color: AppColors.primary, fontSize: adaptive.Adaptive.sp(context, 32), fontWeight: FontWeight.bold)),
-              SizedBox(height: adaptive.Adaptive.h(context, 16)),
+                  style: TextStyle(color: AppColors.primary, fontSize: adaptive.Adaptive.sp(32), fontWeight: FontWeight.bold)),
+              SizedBox(height: adaptive.Adaptive.h(16)),
               Slider(
                 value: tempValue.clamp(12.0, 40.0),
                 min: 12,

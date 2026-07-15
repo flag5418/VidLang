@@ -17,7 +17,6 @@ library;
 
 import 'dart:async';
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
@@ -53,6 +52,7 @@ import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/device_info_service.dart';
 import 'package:vidlang/services/global_error_handler.dart';
+import 'package:vidlang/utils/app_globals.dart';
 import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
@@ -84,14 +84,14 @@ Future<AppDeviceType> _loadDeviceType() async {
         (e) => e.name == stored,
         orElse: () => AppDeviceType.iphone,
       );
-      debugPrint('[Main] Loaded device type from storage: $type');
+
       return type;
     }
 
     // 无存储值，检测并写入
     final detected = await DeviceInfoService.instance.detectDeviceType();
     await prefs.setString('device_type', detected.name);
-    debugPrint('[Main] Detected and saved device type: $detected');
+
     return detected;
   } catch (e) {
     debugPrint('[Main] Failed to load device type: $e');
@@ -107,21 +107,10 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
-      // 1. 先读取本地存储的设备类型
+      // 1. 先读取本地存储的设备类型（同时写入 AppGlobals 静态变量）
       final deviceType = await _loadDeviceType();
+      AppGlobals.deviceType = deviceType;
 
-      //   // 2. 根据设备类型设置屏幕方向
-      //   if (deviceType.isTablet) {
-      //     // iPad: 支持所有方向
-      //     SystemChrome.setPreferredOrientations([
-      //       DeviceOrientation.portraitUp,
-      //       DeviceOrientation.portraitDown,
-      //       DeviceOrientation.landscapeLeft,
-      //       DeviceOrientation.landscapeRight,
-      //     ]);
-      //   } else {
-      //     // iPhone: 仅竖屏
-      //  }
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
       VscodeLogger.instance.init(
@@ -143,7 +132,10 @@ void main() {
 
       // 4. 先执行 runApp，让 Flutter 能够立刻渲染第一帧（Splash Screen）
       // 避免因为网络请求或本地数据库初始化过慢导致长时间黑屏/白屏
-      runApp(ProviderScope(child: VidLangApp(initialDeviceType: deviceType)));
+      // Provider 从 AppGlobals.deviceType 读取初始值，无需再 override
+      runApp(
+        ProviderScope(child: VidLangApp()),
+      );
 
       // 5. 在后台异步进行各项繁重的初始化任务
       _initializeAsyncDependencies();
@@ -243,8 +235,6 @@ Future<void> _initializeAsyncDependencies() async {
       );
     }
 
-    // await DeviceUtils.initialize();
-
     // 注意：本地模型（LocalAiService/LocalModelService）已移除
     // - iOS 免费模式：使用 IosNativeFeatures（系统 MLTranslation / AVSpeechSynthesizer / Vision）
     // - Android / iOS 付费模式：使用云端 AI（ai-proxy Edge Function）
@@ -263,9 +253,7 @@ Future<void> _initializeAsyncDependencies() async {
 /// - 当用户修改设备类型时，MaterialApp 会重新构建
 /// - 所有子组件通过 context.ts/s/rs 获取缩放值
 class VidLangApp extends StatefulWidget {
-  final AppDeviceType initialDeviceType;
-
-  const VidLangApp({super.key, this.initialDeviceType = AppDeviceType.iphone});
+  const VidLangApp({super.key});
 
   @override
   State<VidLangApp> createState() => _VidLangAppState();
@@ -479,27 +467,34 @@ class _SchemaErrorPage extends StatelessWidget {
       backgroundColor: const Color(0xFF1F2937),
       body: Center(
         child: Padding(
-          padding: EdgeInsets.all(plugin_adaptive.Adaptive.w(context, 32)),
+          padding: EdgeInsets.all(plugin_adaptive.Adaptive.w(32)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(AppIcons.error, color: const Color(0xFFEF4444), size: plugin_adaptive.Adaptive.icon(context, 64)),
-              SizedBox(height: plugin_adaptive.Adaptive.h(context, 24)),
+              Icon(
+                AppIcons.error,
+                color: const Color(0xFFEF4444),
+                size: plugin_adaptive.Adaptive.icon(64),
+              ),
+              SizedBox(height: plugin_adaptive.Adaptive.h(24)),
               Text(
                 '数据库初始化异常',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: plugin_adaptive.Adaptive.sp(context, 22),
+                  fontSize: plugin_adaptive.Adaptive.sp(22),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-               SizedBox(height: plugin_adaptive.Adaptive.h(context, 12)),
+              SizedBox(height: plugin_adaptive.Adaptive.h(12)),
               Text(
                 '应用启动时检测到数据库结构不一致，自动修复失败。\n请尝试重启应用，或联系技术支持。',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: const Color(0xFF9CA3AF), fontSize: plugin_adaptive.Adaptive.sp(context, 14)),
+                style: TextStyle(
+                  color: const Color(0xFF9CA3AF),
+                  fontSize: plugin_adaptive.Adaptive.sp(14),
+                ),
               ),
-              SizedBox(height: plugin_adaptive.Adaptive.h(context, 32)),
+              SizedBox(height: plugin_adaptive.Adaptive.h(32)),
               // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
               TDButton(
                 text: '重试',

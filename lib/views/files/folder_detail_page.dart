@@ -3,7 +3,8 @@
 /// 展示文件夹内的资源列表，适配视频/文章/音频3类资源。
 library;
 
-import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'dart:async';import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'dart:io';
 
@@ -32,15 +33,15 @@ import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/providers/file_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/services/article_parser.dart';
-import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/parsers/article_parser.dart';
+import 'package:vidlang/services/ai/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/file_picker_service.dart';
-import 'package:vidlang/services/id3_parser.dart';
-import 'package:vidlang/services/initial_letter_cover.dart';
-import 'package:vidlang/services/lrc_parser.dart';
-import 'package:vidlang/services/thumbnail_service.dart';
-import 'package:vidlang/services/wifi_transfer_service.dart';
+import 'package:vidlang/services/files/file_picker_service.dart';
+import 'package:vidlang/services/parsers/id3_parser.dart';
+import 'package:vidlang/services/utils/initial_letter_cover.dart';
+import 'package:vidlang/services/parsers/lrc_parser.dart';
+import 'package:vidlang/services/files/thumbnail_service.dart';
+import 'package:vidlang/services/files/wifi_transfer_service.dart';
 import 'package:omni_player/omni_player.dart' show VideoMetadataExtractor;
 import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -185,16 +186,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             children: [
               Material(
                 color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
                   onTap: () => Navigator.pop(context),
                   child: SizedBox(
-                    width: adaptive.Adaptive.r(context, 40),
-                    height: adaptive.Adaptive.r(context, 40),
+                    width: adaptive.Adaptive.r(40),
+                    height: adaptive.Adaptive.r(40),
                     child: Icon(
                       AppIcons.arrowBack,
-                      size: adaptive.Adaptive.sp(context, 18),
+                      size: adaptive.Adaptive.sp(18),
                       color: colorScheme.onSurface,
                     ),
                   ),
@@ -205,7 +206,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeLarge),
+                    fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeLarge),
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
@@ -221,16 +222,16 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
             if (folderType != FolderContentType.article)
               Material(
                 color: colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
                   onTap: _showSettings,
                   child: SizedBox(
-                    width: adaptive.Adaptive.r(context, 40),
-                    height: adaptive.Adaptive.r(context, 40),
+                    width: adaptive.Adaptive.r(40),
+                    height: adaptive.Adaptive.r(40),
                     child: Icon(
                       AppIcons.settings,
-                      size: adaptive.Adaptive.sp(context, 18),
+                      size: adaptive.Adaptive.sp(18),
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -243,18 +244,18 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               offset: const Offset(0, 44),
               color: colorScheme.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
               ),
               elevation: 8,
               child: Material(
                 color: colorScheme.primary,
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
                 child: SizedBox(
-                  width: adaptive.Adaptive.r(context, 40),
-                  height: adaptive.Adaptive.r(context, 40),
+                  width: adaptive.Adaptive.r(40),
+                  height: adaptive.Adaptive.r(40),
                     child: Icon(
                       AppIcons.add,
-                    size: adaptive.Adaptive.sp(context, 18),
+                    size: adaptive.Adaptive.sp(18),
                     color: colorScheme.onPrimary,
                   ),
                 ),
@@ -344,45 +345,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         ? AppIcons.article
         : AppIcons.headphones;
 
-    return Center(
-      child: Container(
-        margin: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(context, 32),
-          vertical: adaptive.Adaptive.h(context, 32),
-        ),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.08),
-              ),
-              child: Icon(
-                icon,
-                size: adaptive.Adaptive.sp(context, 48),
-                color: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.6),
-              ),
-            ),
-            SizedBox(height: adaptive.Adaptive.h(context, 20)),
-            Text(
-              '暂无${_typeLabel(folderType)}',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w500, color: colorScheme.onSurfaceVariant),
-            ),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
-            Text(
-              '点击 + 导入资源',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), color: colorScheme.outline),
-            ),
-          ],
-        ),
-      ),
+    return EmptyState(
+      icon: icon,
+      title: '暂无${_typeLabel(folderType)}',
+      description: '点击 + 导入资源',
+      iconBackgroundColor: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.08),
+      iconColor: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.6),
     );
   }
 
@@ -393,14 +361,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         children: [
           Icon(
             AppIcons.error,
-            size: adaptive.Adaptive.icon(context, 56),
+            size: adaptive.Adaptive.icon(56),
             color: colorScheme.error.withValues(alpha: 0.8),
           ),
           SizedBox(height: AppSpacing.md),
           Text(
             '加载失败',
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 18),
+              fontSize: adaptive.Adaptive.sp(18),
               fontWeight: FontWeight.w600,
               color: colorScheme.onSurface,
             ),
@@ -412,7 +380,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
               message,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 color: colorScheme.onSurfaceVariant,
               ),
               maxLines: 4,
@@ -657,11 +625,11 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
   Widget _popupMenuItem(IconData icon, String title, ColorScheme cs) {
     return Row(
       children: [
-        Icon(icon, size: adaptive.Adaptive.sp(context, 20), color: cs.onSurfaceVariant),
-        SizedBox(width: adaptive.Adaptive.w(context, 10)),
+        Icon(icon, size: adaptive.Adaptive.sp(20), color: cs.onSurfaceVariant),
+        SizedBox(width: adaptive.Adaptive.w(10)),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(context, 14)),
+          style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(14)),
         ),
       ],
     );

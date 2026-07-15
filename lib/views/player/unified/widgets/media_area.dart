@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:omni_player/omni_player.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/theme/app_colors.dart';
@@ -48,7 +47,9 @@ class MediaArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isVideo) {
-      return isLandscape ? _buildVideoLandscape(context) : _buildVideoPortrait(context);
+      return isLandscape
+          ? _buildVideoLandscape(context)
+          : _buildVideoPortrait(context);
     } else {
       return _buildAudioArea(context);
     }
@@ -74,9 +75,7 @@ class MediaArea extends StatelessWidget {
 
         // 下部：字幕区域（有字幕时显示，使用 ClipRect 防止字幕贯穿控制栏）
         if (subtitleVisible && subtitlesList.isNotEmpty)
-          Expanded(
-            child: ClipRect(child: _buildSubtitleOverlayArea(context)),
-          )
+          Expanded(child: ClipRect(child: _buildSubtitleOverlayArea(context)))
         else
           Expanded(child: const SizedBox.shrink()),
       ],
@@ -87,8 +86,8 @@ class MediaArea extends StatelessWidget {
   Widget _buildSubtitleOverlayArea(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 16),
-        vertical: adaptive.Adaptive.h(context, 8),
+        horizontal: adaptive.Adaptive.w(16),
+        vertical: adaptive.Adaptive.h(8),
       ),
       color: Colors.black.withValues(alpha: 0.4),
       child: _buildSubtitleListView(context, showCurrentHighlight: true),
@@ -116,10 +115,8 @@ class MediaArea extends StatelessWidget {
           Positioned(
             left: 0,
             right: 0,
-            bottom: adaptive.Adaptive.h(context, 80), // 底部控制栏上方
-            child: Center(
-              child: _buildFloatingSubtitleBar(context),
-            ),
+            bottom: adaptive.Adaptive.h(80), // 底部控制栏上方
+            child: Center(child: _buildFloatingSubtitleBar(context)),
           ),
       ],
     );
@@ -136,12 +133,12 @@ class MediaArea extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 20),
-        vertical: adaptive.Adaptive.h(context, 8),
+        horizontal: adaptive.Adaptive.w(20),
+        vertical: adaptive.Adaptive.h(8),
       ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 20)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
       ),
       child: SelectableEnglishLine(
         text: sub.content,
@@ -175,10 +172,13 @@ class MediaArea extends StatelessWidget {
               bottom: false, // BottomControls 会自行处理 safe area
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: adaptive.Adaptive.h(context, 52), // TopBar 高度（紧凑）
-                  bottom: adaptive.Adaptive.h(context, 160), // BottomControls 预留（紧凑）
+                  top: adaptive.Adaptive.h(52), // TopBar 高度（紧凑）
+                  bottom: adaptive.Adaptive.h(160), // BottomControls 预留（紧凑）
                 ),
-                child: _buildSubtitleListView(context, showCurrentHighlight: true),
+                child: _buildSubtitleListView(
+                  context,
+                  showCurrentHighlight: true,
+                ),
               ),
             )
           else
@@ -187,7 +187,7 @@ class MediaArea extends StatelessWidget {
                 '暂无字幕',
                 style: TextStyle(
                   color: Colors.white38,
-                  fontSize: adaptive.Adaptive.sp(context, 14),
+                  fontSize: adaptive.Adaptive.sp(14),
                 ),
               ),
             ),
@@ -250,15 +250,20 @@ class MediaArea extends StatelessWidget {
   // ═══════════════════════════════════════════════════════════
 
   /// 字幕列表视图（带自动滚动）
-  Widget _buildSubtitleListView(BuildContext context, {required bool showCurrentHighlight}) {
+  Widget _buildSubtitleListView(
+    BuildContext context, {
+    required bool showCurrentHighlight,
+  }) {
     // 自动滚动到当前句的 ScrollController
     final scrollController = ScrollController();
 
     // 当 currentIndex 变化时，延迟一帧后滚动到当前句
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (currentIndex != null && currentIndex! >= 0 && currentIndex! < subtitlesList.length) {
+      if (currentIndex != null &&
+          currentIndex! >= 0 &&
+          currentIndex! < subtitlesList.length) {
         // 计算大致的偏移量：每个 item 高约 60-80pt
-        final estimatedItemHeight = adaptive.Adaptive.h(context, showCurrentHighlight ? 70 : 55);
+        final estimatedItemHeight = adaptive.Adaptive.h(showCurrentHighlight ? 70 : 55);
         final targetOffset = currentIndex! * estimatedItemHeight;
         // 动画滚动到目标位置
         scrollController.animateTo(
@@ -273,8 +278,8 @@ class MediaArea extends StatelessWidget {
       controller: scrollController,
       itemCount: subtitlesList.length,
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 12), // 减小左右边距 16→12
-        vertical: adaptive.Adaptive.h(context, 6),
+        horizontal: adaptive.Adaptive.w(12), // 减小左右边距 16→12
+        vertical: adaptive.Adaptive.h(6),
       ),
       itemBuilder: (context, index) {
         final sub = subtitlesList[index];
@@ -287,15 +292,17 @@ class MediaArea extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(context, 10), // 减小内部左右边距
-              vertical: adaptive.Adaptive.h(context, showCurrentHighlight ? 12 : 9),
+              horizontal: adaptive.Adaptive.w(10), // 减小内部左右边距
+              vertical: adaptive.Adaptive.h(showCurrentHighlight ? 12 : 9),
             ),
-            margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 6)),
+            margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(6)),
             decoration: BoxDecoration(
               color: isCurrent && showCurrentHighlight
                   ? AppColors.primary.withValues(alpha: 0.25)
                   : Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(
+                adaptive.Adaptive.r(12),
+              ),
               border: isCurrent && showCurrentHighlight
                   ? Border.all(
                       color: AppColors.primary.withValues(alpha: 0.5),
@@ -309,9 +316,14 @@ class MediaArea extends StatelessWidget {
               children: [
                 SelectableEnglishLine(
                   text: sub.content,
-                  fontSize: fontSize * (isCurrent && showCurrentHighlight ? 1.08 : 1.0),
-                  fontColor: isCurrent && showCurrentHighlight ? Colors.white : Colors.white70,
-                  onSelectionChanged: (words) => onWordSelected?.call(words, sub),
+                  fontSize:
+                      fontSize *
+                      (isCurrent && showCurrentHighlight ? 1.08 : 1.0),
+                  fontColor: isCurrent && showCurrentHighlight
+                      ? Colors.white
+                      : Colors.white70,
+                  onSelectionChanged: (words) =>
+                      onWordSelected?.call(words, sub),
                 ),
 
                 // 注音
@@ -319,12 +331,14 @@ class MediaArea extends StatelessWidget {
                     sub.pronunciation != null &&
                     sub.pronunciation!.isNotEmpty)
                   Padding(
-                    padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 3)),
+                    padding: EdgeInsets.only(
+                      top: adaptive.Adaptive.h(3),
+                    ),
                     child: Text(
                       sub.pronunciation!,
                       style: TextStyle(
                         color: Colors.white54,
-                        fontSize: adaptive.Adaptive.sp(context, fontSize * 0.7),
+                        fontSize: adaptive.Adaptive.sp(fontSize * 0.7),
                       ),
                     ),
                   ),
@@ -334,12 +348,14 @@ class MediaArea extends StatelessWidget {
                     sub.contentTranslate != null &&
                     sub.contentTranslate!.isNotEmpty)
                   Padding(
-                    padding: EdgeInsets.only(top: adaptive.Adaptive.h(context, 5)),
+                    padding: EdgeInsets.only(
+                      top: adaptive.Adaptive.h(5),
+                    ),
                     child: Text(
                       sub.contentTranslate!,
                       style: TextStyle(
                         color: Colors.white54,
-                        fontSize: adaptive.Adaptive.sp(context, fontSize * 0.8),
+                        fontSize: adaptive.Adaptive.sp(fontSize * 0.8),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

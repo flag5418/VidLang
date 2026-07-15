@@ -58,7 +58,7 @@ class _ScoreResultContent extends StatelessWidget {
     final colors = context.colors;
 
     return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 24)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(24)),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -67,12 +67,12 @@ class _ScoreResultContent extends StatelessWidget {
             '跟读评分',
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: adaptive.Adaptive.sp(context, 16),
+              fontSize: adaptive.Adaptive.sp(16),
               fontWeight: FontWeight.bold,
             ),
           ),
 
-          SizedBox(height: adaptive.Adaptive.h(context, 12)),
+          SizedBox(height: adaptive.Adaptive.h(12)),
 
           // 总分
           if (overall != null)
@@ -80,12 +80,12 @@ class _ScoreResultContent extends StatelessWidget {
               '${overall!.round()}',
               style: TextStyle(
                 color: UnifiedPlayerLogic.scoreColor(overall!),
-                fontSize: adaptive.Adaptive.sp(context, 48),
+                fontSize: adaptive.Adaptive.sp(48),
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
 
           // 维度分数
           Row(
@@ -97,7 +97,7 @@ class _ScoreResultContent extends StatelessWidget {
             ],
           ),
 
-          SizedBox(height: adaptive.Adaptive.h(context, 16)),
+          SizedBox(height: adaptive.Adaptive.h(16)),
 
           // 操作按钮
           Row(
@@ -110,7 +110,7 @@ class _ScoreResultContent extends StatelessWidget {
                 },
                 child: Text('重录', style: TextStyle(color: colors.primary)),
               ),
-              SizedBox(width: adaptive.Adaptive.w(context, 20)),
+              SizedBox(width: adaptive.Adaptive.w(20)),
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -121,7 +121,7 @@ class _ScoreResultContent extends StatelessWidget {
             ],
           ),
 
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
         ],
       ),
     );
@@ -135,16 +135,16 @@ class _ScoreResultContent extends StatelessWidget {
           '${score.round()}',
           style: TextStyle(
             color: UnifiedPlayerLogic.scoreColor(score),
-            fontSize: adaptive.Adaptive.sp(context, 20),
+            fontSize: adaptive.Adaptive.sp(20),
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: adaptive.Adaptive.h(context, 2)),
+        SizedBox(height: adaptive.Adaptive.h(2)),
         Text(
           label,
           style: TextStyle(
             color: AppColors.onSurface.withValues(alpha: 0.54),
-            fontSize: adaptive.Adaptive.sp(context, 12),
+            fontSize: adaptive.Adaptive.sp(12),
           ),
         ),
       ],

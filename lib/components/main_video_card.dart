@@ -11,9 +11,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:vidlang/services/files/thumbnail_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/utils/app_globals.dart';
 
 class MainVideoCard extends StatefulWidget {
   final VideoInfo video;
@@ -44,9 +45,9 @@ class _MainVideoCardState extends State<MainVideoCard> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final textStyles = context.textStyles;
-final isPad = Adaptive.of(context);
+final isPad = AppGlobals.isTablet;
 final screenWidth = MediaQuery.of(context).size.width;
-    final cardHeight = (screenWidth - (Adaptive.w(context, 16))) * 9 / 16;
+    final cardHeight = (screenWidth - (Adaptive.w(16))) * 9 / 16;
     final clampedHeight = cardHeight.clamp(200.0, 400.0);
 
     final cover =
@@ -62,7 +63,7 @@ final screenWidth = MediaQuery.of(context).size.width;
         height: clampedHeight,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(
-            Adaptive.r(context, AppRadius.outlinedCard),
+            Adaptive.r(AppRadius.outlinedCard),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -112,16 +113,16 @@ final screenWidth = MediaQuery.of(context).size.width;
     String title,
     AppColorsData colors,
   ) {
-  final _ = Adaptive.of(context);
+  final _ = AppGlobals.isTablet;
   return Row(
       children: [
-        Icon(icon, size: Adaptive.sp(context, 18), color: colors.textSecondary),
+        Icon(icon, size: Adaptive.sp(18), color: colors.textSecondary),
         const SizedBox(width: AppSpacing.space2),
         Text(
           title,
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: Adaptive.sp(context, 16),
+            fontSize: Adaptive.sp(16),
           ),
         ),
       ],
@@ -134,7 +135,7 @@ Widget _placeholder(BuildContext context, AppColorsData colors) {
       child: Center(
         child: Icon(
           AppIcons.movie,
-          size: Adaptive.sp(context, 24),
+          size: Adaptive.sp(24),
           color: colors.textWeak,
         ),
       ),
@@ -143,10 +144,10 @@ Widget _placeholder(BuildContext context, AppColorsData colors) {
 
 Widget _buildSubtitleBadge(BuildContext context, AppColorsData colors) {
   return Positioned(
-      top: Adaptive.w(context, 8),
-      left: Adaptive.w(context, 8),
+      top: Adaptive.w(8),
+      left: Adaptive.w(8),
       child: Container(
-        padding: EdgeInsets.all(Adaptive.w(context, 4)),
+        padding: EdgeInsets.all(Adaptive.w(4)),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.small),
           color: widget.video.hasSubtitles
@@ -155,7 +156,7 @@ Widget _buildSubtitleBadge(BuildContext context, AppColorsData colors) {
         ),
         child: Icon(
           AppIcons.subtitles,
-          size: Adaptive.sp(context, 14),
+          size: Adaptive.sp(14),
           color: widget.video.hasSubtitles ? Colors.white : Colors.white38,
         ),
       ),
@@ -164,8 +165,8 @@ Widget _buildSubtitleBadge(BuildContext context, AppColorsData colors) {
 
   Widget _buildMenu(BuildContext context, AppColorsData colors, bool _) {
     return Positioned(
-      bottom: Adaptive.h(context, 8),
-      right: Adaptive.w(context, 12),
+      bottom: Adaptive.h(8),
+      right: Adaptive.w(12),
       child: PopupMenuButton<String>(
         onSelected: (value) {
           switch (value) {
@@ -193,15 +194,15 @@ Widget _buildSubtitleBadge(BuildContext context, AppColorsData colors) {
         ),
         elevation: 6,
         child: Container(
-          width: Adaptive.r(context, 28),
-          height: Adaptive.r(context, 28),
+          width: Adaptive.r(28),
+          height: Adaptive.r(28),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.small),
             color: Colors.black.withValues(alpha: 0.65),
           ),
           child: Icon(
             AppIcons.moreVert,
-            size: Adaptive.sp(context, 18),
+            size: Adaptive.sp(18),
             color: Colors.white,
           ),
         ),
@@ -271,18 +272,18 @@ bool _,
         children: [
           // 进度条：4pt 高，20pt 拖动热区
           SizedBox(
-            height: Adaptive.h(context, 20),
+            height: Adaptive.h(20),
             child: Center(
               child: Container(
-                height: Adaptive.h(context, 4),
-                margin: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 12)),
+                height: Adaptive.h(4),
+                margin: EdgeInsets.symmetric(horizontal: Adaptive.w(12)),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 2)),
+                  borderRadius: BorderRadius.circular(Adaptive.r(2)),
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: Colors.white.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
-                    minHeight: Adaptive.h(context, 4),
+                    minHeight: Adaptive.h(4),
                   ),
                 ),
               ),
@@ -291,10 +292,10 @@ bool _,
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
-              Adaptive.w(context, 16),
-              Adaptive.w(context, 12),
-              Adaptive.w(context, 16),
-              Adaptive.w(context, 16),
+              Adaptive.w(16),
+              Adaptive.w(12),
+              Adaptive.w(16),
+              Adaptive.w(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,15 +311,15 @@ bool _,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: Adaptive.h(context, 2)),
+                SizedBox(height: Adaptive.h(2)),
                 Row(
                   children: [
                     Icon(
                       AppIcons.schedule,
-                      size: Adaptive.icon(context, 10),
+                      size: Adaptive.icon(10),
                       color: Colors.white70,
                     ),
-                    SizedBox(width: Adaptive.w(context, 4)),
+                    SizedBox(width: Adaptive.w(4)),
                     Text(
                       '${widget.video.currentPositionString} / ${widget.video.durationString}',
                       style: TextStyle(
@@ -342,7 +343,7 @@ bool _,
   AppColorsData colors,
   bool _,
 ) {
-  final size = Adaptive.w(context, 44);
+  final size = Adaptive.w(44);
     return Center(
       child: Container(
         width: size,
@@ -353,7 +354,7 @@ bool _,
         ),
         child: Icon(
           AppIcons.play,
-          size: Adaptive.sp(context, 24),
+          size: Adaptive.sp(24),
           color: colors.primary,
         ),
       ),

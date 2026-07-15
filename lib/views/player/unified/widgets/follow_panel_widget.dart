@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/providers/player_engine_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
-import 'package:vidlang/services/tts_service.dart';
+import 'package:vidlang/services/tts/tts_service.dart';
+import 'package:vidlang/utils/app_globals.dart';
 import 'package:vidlang/widgets/shadow_reader/shadow_reader_component.dart';
 
 /// 跟读/跟唱面板组件
@@ -34,9 +35,8 @@ class FollowPanelWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final size = MediaQuery.of(context).size;
-    final isLandscape = size.width > size.height;
-    final isPad = size.shortestSide >= 600;
+    final isLandscape = MediaQuery.of(context).size.width > MediaQuery.of(context).size.height;
+    final isPad = AppGlobals.isTablet;
 
     // 根据资源类型确定高度比例
     double heightFactor;

@@ -3,13 +3,13 @@
 /// 功能：展示本地子账号列表，支持新增、编辑、删除子账号
 library;
 
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
-import 'package:vidlang/utils/dialog_utils.dart';
 import 'package:vidlang/theme/theme.dart';
 
 
@@ -56,10 +56,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
         backgroundColor: cs.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(AppIcons.arrowBackIos, color: cs.onSurface, size: adaptive.Adaptive.icon(context, 20)),
+          icon: Icon(AppIcons.arrowBackIos, color: cs.onSurface, size: adaptive.Adaptive.icon(20)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('子账号设置', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 17), fontWeight: FontWeight.w600, color: cs.onSurface)),
+        title: Text('子账号设置', style: TextStyle(fontSize: adaptive.Adaptive.sp(17), fontWeight: FontWeight.w600, color: cs.onSurface)),
       ),
       body: Column(
         children: [
@@ -71,34 +71,34 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(AppIcons.peopleOutline, size: adaptive.Adaptive.sp(context, 48), color: cs.outline),
-                            SizedBox(height: adaptive.Adaptive.h(context, 12)),
-                            Text('暂无子账号', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: cs.onSurfaceVariant)),
-                            SizedBox(height: adaptive.Adaptive.h(context, 4)),
-                            Text('点击下方按钮为家庭成员创建本地账号', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: cs.outline)),
+                            Icon(AppIcons.peopleOutline, size: adaptive.Adaptive.sp(48), color: cs.outline),
+                            SizedBox(height: adaptive.Adaptive.h(12)),
+                            Text('暂无子账号', style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: cs.onSurfaceVariant)),
+                            SizedBox(height: adaptive.Adaptive.h(4)),
+                            Text('点击下方按钮为家庭成员创建本地账号', style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: cs.outline)),
                           ],
                         ),
                       )
                     : ListView.builder(
-                        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 8)),
+                        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(8)),
                         itemCount: _users.length,
                         itemBuilder: (_, i) => _buildUserCard(_users[i], cs),
                       ),
           ),
           // 底部添加按钮
           Container(
-            padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 12), adaptive.Adaptive.w(context, 16), adaptive.Adaptive.h(context, 12) + MediaQuery.of(context).padding.bottom),
+            padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(16), adaptive.Adaptive.h(12), adaptive.Adaptive.w(16), adaptive.Adaptive.h(12) + MediaQuery.of(context).padding.bottom),
             decoration: BoxDecoration(
               color: cs.surface,
               border: Border(top: BorderSide(color: cs.outline.withValues(alpha: 0.1))),
             ),
             child: SizedBox(
               width: double.infinity,
-              height: adaptive.Adaptive.h(context, 44),
+              height: adaptive.Adaptive.h(44),
               child: FilledButton.icon(
                 onPressed: () => _showUserDialog(),
-                icon: Icon(AppIcons.personAddAlt, size: adaptive.Adaptive.sp(context, 18)),
-                label: Text('添加子账号', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15))),
+                icon: Icon(AppIcons.personAddAlt, size: adaptive.Adaptive.sp(18)),
+                label: Text('添加子账号', style: TextStyle(fontSize: adaptive.Adaptive.sp(15))),
               ),
             ),
           ),
@@ -113,36 +113,29 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     final isCurrent = AppKeysService.currentUser?.code == user.code;
     final displayName = user.nickname.isNotEmpty ? user.nickname : user.username;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(context, 10)),
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 14), vertical: adaptive.Adaptive.h(context, 14)),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 14)),
-        border: isCurrent ? Border.all(color: cs.primary.withValues(alpha: 0.4), width: 1.5) : null,
-      ),
+    return BaseCard.outlined(
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(10)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(14), vertical: adaptive.Adaptive.h(14)),
+      backgroundColor: cs.surfaceContainerHighest,
+      borderRadius: adaptive.Adaptive.r(14),
       child: Row(
         children: [
           // 头像
-          CircleAvatar(
-            radius: adaptive.Adaptive.r(context, 22),
-            backgroundColor: isCurrent ? cs.primary.withValues(alpha: 0.2) : cs.outline.withValues(alpha: 0.15),
-            child: Text(
-              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 16), fontWeight: FontWeight.w600, color: isCurrent ? cs.primary : cs.onSurfaceVariant),
-            ),
+          Avatar(
+            text: displayName,
+            size: AvatarSize.sm,
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 12)),
+          SizedBox(width: adaptive.Adaptive.w(12)),
           // 信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(displayName, style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15), fontWeight: FontWeight.w600, color: cs.onSurface)),
-                SizedBox(height: adaptive.Adaptive.h(context, 2)),
+                Text(displayName, style: TextStyle(fontSize: adaptive.Adaptive.sp(15), fontWeight: FontWeight.w600, color: cs.onSurface)),
+                SizedBox(height: adaptive.Adaptive.h(2)),
                 Text(
                   '登录名：${user.username}${isCurrent ? '  ·  当前登录' : ''}',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: cs.onSurfaceVariant),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -152,7 +145,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _iconBtn(AppIcons.edit, cs.onSurfaceVariant, () => _showUserDialog(user: user)),
-              SizedBox(width: adaptive.Adaptive.w(context, 4)),
+              SizedBox(width: adaptive.Adaptive.w(4)),
               _iconBtn(AppIcons.delete, cs.error, () => _confirmDelete(user, displayName)),
             ],
           ),
@@ -165,13 +158,13 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: adaptive.Adaptive.w(context, 36),
-        height: adaptive.Adaptive.w(context, 36),
+        width: adaptive.Adaptive.w(36),
+        height: adaptive.Adaptive.w(36),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 10)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
         ),
-        child: Icon(icon, size: adaptive.Adaptive.sp(context, 18), color: color),
+        child: Icon(icon, size: adaptive.Adaptive.sp(18), color: color),
       ),
     );
   }
@@ -184,66 +177,70 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     final usernameCtrl = TextEditingController(text: isEdit ? user.username : '');
     final passwordCtrl = TextEditingController();
 
-    DialogUtils.show(
+    showGeneralDialog(
       context: context,
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      barrierLabel: 'UserDialog',
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) {
+        final cs = Theme.of(context).colorScheme;
         return Center(
           child: Material(
             color: Colors.transparent,
             child: Container(
-              width: adaptive.Adaptive.w(context, 311),
-              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
+              width: adaptive.Adaptive.w(311),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
               decoration: BoxDecoration(
                 color: cs.surface,
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 14)),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 标题
                   Text(isEdit ? '编辑子账号' : '添加子账号',
-                      style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 17), fontWeight: FontWeight.w600, color: cs.onSurface)),
-                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
+                      style: TextStyle(fontSize: adaptive.Adaptive.sp(17), fontWeight: FontWeight.w600, color: cs.onSurface)),
+                  SizedBox(height: adaptive.Adaptive.h(20)),
 
                   // 头像预览
                   CircleAvatar(
-                    radius: adaptive.Adaptive.r(context, 28),
+                    radius: adaptive.Adaptive.r(28),
                     backgroundColor: cs.primary.withValues(alpha: 0.15),
                     child: Text(
                       (nicknameCtrl.text.isNotEmpty ? nicknameCtrl.text : '?')[0].toUpperCase(),
-                      style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 20), fontWeight: FontWeight.bold, color: cs.primary),
+                      style: TextStyle(fontSize: adaptive.Adaptive.sp(20), fontWeight: FontWeight.bold, color: cs.primary),
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(20)),
 
                   // 昵称
-                  _field(ctx, '昵称', '显示名称（可选）', nicknameCtrl, cs),
-                  SizedBox(height: adaptive.Adaptive.h(context, 12)),
+                  _field(context, '昵称', '显示名称（可选）', nicknameCtrl, cs),
+                  SizedBox(height: adaptive.Adaptive.h(12)),
 
                   // 登录名
-                  _field(ctx, '登录名', '不可使用邮箱', usernameCtrl, cs, enabled: !isEdit),
-                  SizedBox(height: adaptive.Adaptive.h(context, 12)),
+                  _field(context, '登录名', '不可使用邮箱', usernameCtrl, cs, enabled: !isEdit),
+                  SizedBox(height: adaptive.Adaptive.h(12)),
 
                   // 密码
-                  _field(ctx, isEdit ? '新密码（留空不修改）' : '密码', '至少6位', passwordCtrl, cs, obscure: true),
-                  SizedBox(height: adaptive.Adaptive.h(context, 24)),
+                  _field(context, isEdit ? '新密码（留空不修改）' : '密码', '至少6位', passwordCtrl, cs, obscure: true),
+                  SizedBox(height: adaptive.Adaptive.h(24)),
 
                   // 按钮
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
+                          onPressed: () => Navigator.of(context).pop(),
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 12)),
+                            padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(12)),
                             side: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8))),
                           ),
-                          child: Text('取消', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15), color: cs.onSurfaceVariant)),
+                          child: Text('取消', style: TextStyle(fontSize: adaptive.Adaptive.sp(15), color: cs.onSurfaceVariant)),
                         ),
                       ),
-                      SizedBox(width: adaptive.Adaptive.w(context, 12)),
+                      SizedBox(width: adaptive.Adaptive.w(12)),
                       Expanded(
                         child: FilledButton(
                           onPressed: () async {
@@ -264,7 +261,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                               return;
                             }
 
-                            Navigator.pop(ctx);
+                            Navigator.of(context).pop();
                             try {
                               if (isEdit) {
                                 await AuthService.instance.updateLocalUser(
@@ -287,10 +284,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
                             }
                           },
                           style: FilledButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 12)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8))),
+                            padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(12)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8))),
                           ),
-                          child: Text(isEdit ? '保存' : '添加', style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 15))),
+                          child: Text(isEdit ? '保存' : '添加', style: TextStyle(fontSize: adaptive.Adaptive.sp(15))),
                         ),
                       ),
                     ],
@@ -301,6 +298,8 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
           ),
         );
       },
+      transitionBuilder: (_, animation, __, child) =>
+          FadeTransition(opacity: animation, child: child),
     );
   }
 
@@ -309,20 +308,20 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12), color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
-        SizedBox(height: adaptive.Adaptive.h(context, 6)),
+        Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: cs.onSurfaceVariant, fontWeight: FontWeight.w500)),
+        SizedBox(height: adaptive.Adaptive.h(6)),
         TextField(
           controller: ctrl,
           obscureText: obscure,
           enabled: enabled,
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: cs.onSurface),
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: cs.onSurface),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14), color: cs.outline),
+            hintStyle: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: cs.outline),
             filled: true,
             fillColor: enabled ? cs.surfaceContainerHighest : cs.surfaceContainerHighest.withValues(alpha: 0.5),
-            contentPadding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 12), vertical: adaptive.Adaptive.h(context, 10)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)), borderSide: BorderSide.none),
+            contentPadding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(12), vertical: adaptive.Adaptive.h(10)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)), borderSide: BorderSide.none),
           ),
         ),
       ],

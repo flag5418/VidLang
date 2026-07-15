@@ -32,10 +32,10 @@ class WordBookNavPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: EdgeInsets.all(Adaptive.r(context, 12)),
+      padding: EdgeInsets.all(Adaptive.r(12)),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 16)),
+        borderRadius: BorderRadius.circular(Adaptive.r(16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +47,7 @@ class WordBookNavPanel extends StatelessWidget {
           ),
           if (selectionMode && words != null && words!.isNotEmpty)
             _buildSmartRecommendations(context),
-          SizedBox(height: Adaptive.h(context, 16)),
+          SizedBox(height: Adaptive.h(16)),
           _buildSection(
             context,
             title: '已掌握',
@@ -83,19 +83,19 @@ class WordBookNavPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: Adaptive.h(context, 4)),
+        SizedBox(height: Adaptive.h(4)),
         ...smartItems.where((item) => item.count > 0).map((item) {
           final allSelected = item.codes.isNotEmpty && item.codes.every((c) => selectedWordCodes.contains(c));
           return Padding(
-            padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
+            padding: EdgeInsets.only(bottom: Adaptive.h(6)),
             child: InkWell(
               onTap: () => onSmartSelect?.call(item.codes),
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(Adaptive.r(12)),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 10)),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(10), vertical: Adaptive.h(10)),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                  borderRadius: BorderRadius.circular(Adaptive.r(12)),
                 ),
                 child: Row(
                   children: [
@@ -103,27 +103,27 @@ class WordBookNavPanel extends StatelessWidget {
                       allSelected && item.codes.isNotEmpty
                           ? AppIcons.checkBox
                           : AppIcons.checkBoxOutlineBlank,
-                      size: Adaptive.sp(context, 18),
+                      size: Adaptive.sp(18),
                       color: colorScheme.primary,
                     ),
-                    SizedBox(width: Adaptive.w(context, 8)),
+                    SizedBox(width: Adaptive.w(8)),
                     Expanded(
                       child: Text(
                         item.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: Adaptive.sp(13),
                           fontWeight: FontWeight.w500,
                           color: colorScheme.onSurface,
                         ),
                       ),
                     ),
-                    SizedBox(width: Adaptive.w(context, 8)),
+                    SizedBox(width: Adaptive.w(8)),
                     Text(
                       '${item.count}',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 12),
+                        fontSize: Adaptive.sp(12),
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -149,24 +149,24 @@ class WordBookNavPanel extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: Adaptive.sp(context, 14),
+            fontSize: Adaptive.sp(14),
             fontWeight: FontWeight.w700,
             color: colorScheme.onSurface,
           ),
         ),
-        SizedBox(height: Adaptive.h(context, 8)),
+        SizedBox(height: Adaptive.h(8)),
         ...items.map((item) {
           final selected = item.status == selectedStatus && item.tagCode == selectedTagCode;
           return Padding(
-            padding: EdgeInsets.only(bottom: Adaptive.h(context, 6)),
+            padding: EdgeInsets.only(bottom: Adaptive.h(6)),
             child: InkWell(
               onTap: () => onSelect(item),
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+              borderRadius: BorderRadius.circular(Adaptive.r(12)),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 10)),
+                padding: EdgeInsets.symmetric(horizontal: Adaptive.w(10), vertical: Adaptive.h(10)),
                 decoration: BoxDecoration(
                   color: selected ? colorScheme.primary.withValues(alpha: 0.14) : colorScheme.surface,
-                  borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+                  borderRadius: BorderRadius.circular(Adaptive.r(12)),
                 ),
                 child: Row(
                   children: [
@@ -176,17 +176,17 @@ class WordBookNavPanel extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: Adaptive.sp(context, 13),
+                          fontSize: Adaptive.sp(13),
                           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                           color: selected ? colorScheme.primary : colorScheme.onSurface,
                         ),
                       ),
                     ),
-                    SizedBox(width: Adaptive.w(context, 8)),
+                    SizedBox(width: Adaptive.w(8)),
                     Text(
                       '${item.count}',
                       style: TextStyle(
-                        fontSize: Adaptive.sp(context, 12),
+                        fontSize: Adaptive.sp(12),
                         color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
                       ),
                     ),

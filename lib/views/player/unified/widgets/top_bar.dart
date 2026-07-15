@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
@@ -32,15 +31,15 @@ class TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      top: true,  // 沉浸式模式下保留状态栏安全区
+      top: true, // 沉浸式模式下保留状态栏安全区
       bottom: false,
       child: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
             padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(context, isLandscape ? 12 : 16),
-              vertical: adaptive.Adaptive.h(context, isLandscape ? 6 : 8),
+              horizontal: adaptive.Adaptive.w(isLandscape ? 12 : 16),
+              vertical: adaptive.Adaptive.h(isLandscape ? 6 : 8),
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -63,7 +62,7 @@ class TopBar extends StatelessWidget {
                   tooltip: '返回',
                 ),
 
-                SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                SizedBox(width: adaptive.Adaptive.w(8)),
 
                 // 标题
                 Expanded(
@@ -71,7 +70,7 @@ class TopBar extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: adaptive.Adaptive.sp(context, isLandscape ? 15 : 16),
+                      fontSize: adaptive.Adaptive.sp(isLandscape ? 15 : 16),
                       fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
@@ -80,7 +79,7 @@ class TopBar extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                SizedBox(width: adaptive.Adaptive.w(8)),
 
                 // 右侧按钮组
                 _buildRightButtons(context),
@@ -106,7 +105,7 @@ class TopBar extends StatelessWidget {
             tooltip: '资源列表',
           ),
           if (onToggleSettings != null) ...[
-            SizedBox(width: adaptive.Adaptive.w(context, 4)),
+            SizedBox(width: adaptive.Adaptive.w(4)),
             _buildTouchTarget(
               context: context,
               icon: AppIcons.settings,
@@ -134,8 +133,8 @@ class TopBar extends StatelessWidget {
     required VoidCallback onTap,
     String? tooltip,
   }) {
-    final size = adaptive.Adaptive.w(context, 44);
-    final iconSize = adaptive.Adaptive.icon(context, 22);
+    final size = adaptive.Adaptive.w(44);
+    final iconSize = adaptive.Adaptive.icon(22);
 
     final widget = GestureDetector(
       onTap: onTap,

@@ -189,8 +189,8 @@ class SelectableEnglishLineState extends State<SelectableEnglishLine> {
               final isSel = _selectedWords.contains(w.word);
               return Container(
                 key: w.containerKey,
-                margin: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(context, 2), horizontal: adaptive.Adaptive.w(context, 3)),
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 1), vertical: adaptive.Adaptive.h(context, 0)),
+                margin: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(2), horizontal: adaptive.Adaptive.w(3)),
+                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(1), vertical: adaptive.Adaptive.h(0)),
                 child: Text(
                   w.word,
                   textAlign: TextAlign.center,

@@ -32,10 +32,10 @@ class LyricDisplayWidget extends StatelessWidget {
     final hasAlignedPron = pronMap != null && pronMap.isNotEmpty && pronunciationVisible;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(context, 16), vertical: adaptive.Adaptive.h(context, 12)),
+      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(12)),
       decoration: BoxDecoration(
         color: AppColors.playerSubtitleBg,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -137,7 +137,7 @@ class _DeviceTypeDialogState extends State<_DeviceTypeDialog> {
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: isIpad ? adaptive.Adaptive.w(context, 80) : adaptive.Adaptive.w(context, 32)),
+        padding: EdgeInsets.symmetric(horizontal: isIpad ? adaptive.Adaptive.w(80) : adaptive.Adaptive.w(32)),
         child: Material(
           color: Colors.transparent,
           child: Container(
@@ -148,7 +148,7 @@ class _DeviceTypeDialogState extends State<_DeviceTypeDialog> {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: adaptive.Adaptive.w(context, 32),
+                  blurRadius: adaptive.Adaptive.w(32),
                   offset: const Offset(0, 12),
                 ),
               ],

@@ -39,18 +39,18 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
       body: test == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+              padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildTestInfo(context, test),
-                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(16)),
                   if (eval != null) ...[
                     _buildAiReport(context, eval),
-                    SizedBox(height: adaptive.Adaptive.h(context, 16)),
+                    SizedBox(height: adaptive.Adaptive.h(16)),
                   ],
                   _buildCategoryScores(context, eval),
-                  SizedBox(height: adaptive.Adaptive.h(context, 16)),
+                  SizedBox(height: adaptive.Adaptive.h(16)),
                   _buildItemList(context, items),
                 ],
               ),
@@ -66,7 +66,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
         child: Column(
           children: [
             Text(
@@ -80,12 +80,12 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
                             : AppColors.error,
                   ),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             Text(
               _testTypeLabel(test.testType as String),
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 4)),
+            SizedBox(height: adaptive.Adaptive.h(4)),
             Text(
               '${date.year}年${date.month}月${date.day}日 ${date.hour}:${date.minute.toString().padLeft(2, '0')} · '
               '${test.completedItems}/${test.totalItems}题 · '
@@ -102,48 +102,48 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
     return Card(
       color: AppColors.primary.withValues(alpha: 0.1),
       child: Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 20)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 const Icon(AppIcons.autoAwesome, color: AppColors.warning),
-                SizedBox(width: adaptive.Adaptive.w(context, 8)),
+                SizedBox(width: adaptive.Adaptive.w(8)),
                 Text('AI 评价报告',
                     style: Theme.of(context).textTheme.titleMedium),
               ],
             ),
             const Divider(),
             if (eval.weakPoints != null) ...[
-              SizedBox(height: adaptive.Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(4)),
               Text('薄弱环节',
                   style: Theme.of(context)
                       .textTheme
                       .titleSmall
                       ?.copyWith(fontWeight: FontWeight.bold)),
-              SizedBox(height: adaptive.Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(4)),
               Text(eval.weakPoints as String),
             ],
             if (eval.suggestions != null) ...[
-              SizedBox(height: adaptive.Adaptive.h(context, 16)),
+              SizedBox(height: adaptive.Adaptive.h(16)),
               Text('训练建议',
                   style: Theme.of(context)
                       .textTheme
                       .titleSmall
                       ?.copyWith(fontWeight: FontWeight.bold)),
-              SizedBox(height: adaptive.Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(4)),
               Text(eval.suggestions as String),
             ],
             if (eval.comparisonJson != null &&
                 (eval.comparisonJson as String).isNotEmpty) ...[
-              SizedBox(height: adaptive.Adaptive.h(context, 16)),
+              SizedBox(height: adaptive.Adaptive.h(16)),
               Text('与上次对比',
                   style: Theme.of(context)
                       .textTheme
                       .titleSmall
                       ?.copyWith(fontWeight: FontWeight.bold)),
-              SizedBox(height: adaptive.Adaptive.h(context, 4)),
+              SizedBox(height: adaptive.Adaptive.h(4)),
               Text(eval.comparisonJson as String),
             ],
           ],
@@ -159,12 +159,12 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('能力分布', style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: adaptive.Adaptive.h(context, 12)),
+            SizedBox(height: adaptive.Adaptive.h(12)),
             _scoreBar('听力', scores['听'] ?? 0),
             _scoreBar('口语', scores['说'] ?? 0),
             _scoreBar('阅读', scores['读'] ?? 0),
@@ -182,11 +182,11 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
         children: [
           SizedBox(
             width: 36,
-            child: Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13))),
+            child: Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(13))),
           ),
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 4)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
               child: LinearProgressIndicator(
                 value: score / 100,
                 minHeight: 12,
@@ -201,12 +201,12 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
               ),
             ),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           SizedBox(
             width: 36,
             child: Text(
               '${score.round()}',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 13), fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: adaptive.Adaptive.sp(13), fontWeight: FontWeight.bold),
               textAlign: TextAlign.right,
             ),
           ),
@@ -220,12 +220,12 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('题目详情', style: Theme.of(context).textTheme.titleMedium),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             ...items.map((item) {
               final isCorrect = item.isCorrect == true;
               return ListTile(
@@ -236,20 +236,20 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
                       isCorrect ? AppColors.success.withValues(alpha: 0.15) : AppColors.error.withValues(alpha: 0.15),
                   child: Icon(
                     isCorrect ? AppIcons.check : AppIcons.close,
-                    size: adaptive.Adaptive.icon(context, 16),
+                    size: adaptive.Adaptive.icon(16),
                     color: isCorrect ? AppColors.success : AppColors.error,
                   ),
                 ),
                 title: Text(
                   item.refText as String,
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 14)),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(14)),
                 ),
                 subtitle: Text(
                   '${_questionTypeLabel(item.questionType as String)} · ${(item.score ?? 0).round()}分',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(context, 12)),
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(12)),
                 ),
                 trailing: (item.score ?? 0) >= 80
-                    ? Icon(AppIcons.emojiEvents, color: AppColors.warning, size: adaptive.Adaptive.icon(context, 20))
+                    ? Icon(AppIcons.emojiEvents, color: AppColors.warning, size: adaptive.Adaptive.icon(20))
                     : null,
               );
             }),

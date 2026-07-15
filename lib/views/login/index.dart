@@ -161,27 +161,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: adaptive.Adaptive.w(context, 16),
-            vertical: adaptive.Adaptive.h(context, 20),
+            horizontal: adaptive.Adaptive.w(16),
+            vertical: adaptive.Adaptive.h(20),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildLogo(),
-              SizedBox(height: adaptive.Adaptive.h(context, 32)),
+              SizedBox(height: adaptive.Adaptive.h(32)),
               if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
-              SizedBox(height: adaptive.Adaptive.h(context, 14)),
+              SizedBox(height: adaptive.Adaptive.h(14)),
               if (_mode == _AuthMode.verifyOtp)
                 _buildOtpForm()
               else if (_tab == _LoginTab.local)
                 _buildLocalForm()
               else
                 _buildAuthForm(),
-              SizedBox(height: adaptive.Adaptive.h(context, 20)),
+              SizedBox(height: adaptive.Adaptive.h(20)),
               if (!widget.requireSupabaseReauth && _mode != _AuthMode.verifyOtp)
                 _buildToggleMode(),
-              SizedBox(height: adaptive.Adaptive.h(context, 20)),
+              SizedBox(height: adaptive.Adaptive.h(20)),
             ],
           ),
         ),
@@ -220,11 +220,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         children: [
           // 装饰性圆点
           Positioned(
-            top: adaptive.Adaptive.w(context, 50),
-            right: adaptive.Adaptive.w(context, 30),
+            top: adaptive.Adaptive.w(50),
+            right: adaptive.Adaptive.w(30),
             child: Container(
-              width: adaptive.Adaptive.w(context, 100),
-              height: adaptive.Adaptive.w(context, 100),
+              width: adaptive.Adaptive.w(100),
+              height: adaptive.Adaptive.w(100),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withValues(alpha: 0.06),
@@ -232,11 +232,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           ),
           Positioned(
-            bottom: adaptive.Adaptive.w(context, 80),
-            left: -adaptive.Adaptive.w(context, 24),
+            bottom: adaptive.Adaptive.w(80),
+            left: -adaptive.Adaptive.w(24),
             child: Container(
-              width: adaptive.Adaptive.w(context, 150),
-              height: adaptive.Adaptive.w(context, 150),
+              width: adaptive.Adaptive.w(150),
+              height: adaptive.Adaptive.w(150),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withValues(alpha: 0.04),
@@ -245,10 +245,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
           Positioned(
             top: MediaQuery.of(context).size.height * 0.4,
-            right: -adaptive.Adaptive.w(context, 50),
+            right: -adaptive.Adaptive.w(50),
             child: Container(
-              width: adaptive.Adaptive.w(context, 200),
-              height: adaptive.Adaptive.w(context, 200),
+              width: adaptive.Adaptive.w(200),
+              height: adaptive.Adaptive.w(200),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withValues(alpha: 0.03),
@@ -259,14 +259,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Center(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(context, 32),
+                horizontal: adaptive.Adaptive.w(32),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
                   Container(
-                    padding: EdgeInsets.all(adaptive.Adaptive.w(context, 18)),
+                    padding: EdgeInsets.all(adaptive.Adaptive.w(18)),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
@@ -274,51 +274,51 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     child: Icon(
                       AppIcons.schoolFill,
                       color: Colors.white,
-                      size: adaptive.Adaptive.w(context, 44),
+                      size: adaptive.Adaptive.w(44),
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 24)),
+                  SizedBox(height: adaptive.Adaptive.h(24)),
                   // 品牌名
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
                       'VidLang',
                       style: TextStyle(
-                        fontSize: adaptive.Adaptive.sp(context, 34),
+                        fontSize: adaptive.Adaptive.sp(34),
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                         letterSpacing: 1.5,
                       ),
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 14)),
+                  SizedBox(height: adaptive.Adaptive.h(14)),
                   // 分割线
                   Container(
-                    width: adaptive.Adaptive.w(context, 36),
-                    height: adaptive.Adaptive.h(context, 3),
+                    width: adaptive.Adaptive.w(36),
+                    height: adaptive.Adaptive.h(3),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(
-                        adaptive.Adaptive.r(context, 2),
+                        adaptive.Adaptive.r(2),
                       ),
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 18)),
+                  SizedBox(height: adaptive.Adaptive.h(18)),
                   // 标语
                   Text(
                     '看视频、听英语、读文章',
                     style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(context, 15),
+                      fontSize: adaptive.Adaptive.sp(15),
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.9),
                       letterSpacing: 0.5,
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 5)),
+                  SizedBox(height: adaptive.Adaptive.h(5)),
                   Text(
                     '轻松学英语',
                     style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(context, 15),
+                      fontSize: adaptive.Adaptive.sp(15),
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.9),
                       letterSpacing: 0.5,
@@ -339,15 +339,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       child: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            vertical: adaptive.Adaptive.h(context, 36),
+            vertical: adaptive.Adaptive.h(36),
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: adaptive.Adaptive.w(context, 380),
+              maxWidth: adaptive.Adaptive.w(380),
             ),
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(context, 24),
+                horizontal: adaptive.Adaptive.w(24),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -357,23 +357,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   Text(
                     '欢迎回来',
                     style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(context, 22),
+                      fontSize: adaptive.Adaptive.sp(22),
                       fontWeight: FontWeight.w700,
                       color: cs.onSurface,
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 6)),
+                  SizedBox(height: adaptive.Adaptive.h(6)),
                   Text(
                     '登录以继续使用 VidLang',
                     style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(context, 13),
+                      fontSize: adaptive.Adaptive.sp(13),
                       color: cs.onSurfaceVariant,
                     ),
                   ),
-                  SizedBox(height: adaptive.Adaptive.h(context, 28)),
+                  SizedBox(height: adaptive.Adaptive.h(28)),
                   if (!widget.requireSupabaseReauth) _buildTabSwitcher(),
                   if (!widget.requireSupabaseReauth)
-                    SizedBox(height: adaptive.Adaptive.h(context, 20)),
+                    SizedBox(height: adaptive.Adaptive.h(20)),
                   if (_mode == _AuthMode.verifyOtp)
                     _buildOtpForm()
                   else if (_mode == _AuthMode.resetPassword)
@@ -382,7 +382,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     _buildLocalForm()
                   else
                     _buildAuthForm(),
-                  SizedBox(height: adaptive.Adaptive.h(context, 20)),
+                  SizedBox(height: adaptive.Adaptive.h(20)),
                   if (!widget.requireSupabaseReauth &&
                       _mode != _AuthMode.verifyOtp &&
                       _mode != _AuthMode.resetPassword)
@@ -404,13 +404,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final cs = context.colors;
     return Container(
       padding: EdgeInsets.only(
-        top: adaptive.Adaptive.h(context, 40),
-        bottom: adaptive.Adaptive.h(context, 32),
+        top: adaptive.Adaptive.h(40),
+        bottom: adaptive.Adaptive.h(32),
       ),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
             decoration: BoxDecoration(
               color: cs.primaryContainer.withValues(alpha: 0.3),
               shape: BoxShape.circle,
@@ -418,24 +418,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Icon(
               AppIcons.schoolFill,
               color: cs.primary,
-              size: adaptive.Adaptive.w(context, 48),
+              size: adaptive.Adaptive.w(48),
             ),
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 16)),
+          SizedBox(height: adaptive.Adaptive.h(16)),
           Text(
             'VidLang',
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 28),
+              fontSize: adaptive.Adaptive.sp(28),
               fontWeight: FontWeight.w800,
               color: cs.onSurface,
               letterSpacing: 0.5,
             ),
           ),
-          SizedBox(height: adaptive.Adaptive.h(context, 8)),
+          SizedBox(height: adaptive.Adaptive.h(8)),
           Text(
             '看视频、听英语、读文章、轻松学英语',
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 13),
+              fontSize: adaptive.Adaptive.sp(13),
               fontWeight: FontWeight.w400,
               color: cs.onSurfaceVariant,
             ),
@@ -452,15 +452,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildEmailField(),
-        SizedBox(height: adaptive.Adaptive.h(context, 14)),
+        SizedBox(height: adaptive.Adaptive.h(14)),
         _buildPasswordField(),
         if (_error != null) ...[
-          SizedBox(height: adaptive.Adaptive.h(context, 10)),
+          SizedBox(height: adaptive.Adaptive.h(10)),
           _buildError(),
         ],
-        SizedBox(height: adaptive.Adaptive.h(context, 20)),
+        SizedBox(height: adaptive.Adaptive.h(20)),
         _buildPrimaryButton(isLogin ? '登录' : '发送验证码', _submitAuth),
-        SizedBox(height: adaptive.Adaptive.h(context, 10)),
+        SizedBox(height: adaptive.Adaptive.h(10)),
         if (isLogin)
           GestureDetector(
             onTap: _handleForgotSupabasePassword,
@@ -468,7 +468,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Text(
                 '忘记密码？',
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 13),
+                  fontSize: adaptive.Adaptive.sp(13),
                   color: cs.primary,
                   fontWeight: FontWeight.w500,
                 ),
@@ -486,12 +486,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       children: [
         _buildOtpField(),
         if (_error != null) ...[
-          SizedBox(height: adaptive.Adaptive.h(context, 10)),
+          SizedBox(height: adaptive.Adaptive.h(10)),
           _buildError(),
         ],
-        SizedBox(height: adaptive.Adaptive.h(context, 20)),
+        SizedBox(height: adaptive.Adaptive.h(20)),
         _buildPrimaryButton('验证并完成注册', _verifyOtp),
-        SizedBox(height: adaptive.Adaptive.h(context, 10)),
+        SizedBox(height: adaptive.Adaptive.h(10)),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -500,7 +500,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ? '${_countdownSeconds}s 后可重新发送'
                   : '没收到验证码？',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 color: cs.onSurfaceVariant,
               ),
             ),
@@ -509,7 +509,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Text(
                 ' 重新发送',
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 13),
+                  fontSize: adaptive.Adaptive.sp(13),
                   color: _countdownSeconds == 0
                       ? cs.primary
                       : cs.onSurfaceVariant,
@@ -519,14 +519,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           ],
         ),
-        SizedBox(height: adaptive.Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(8)),
         GestureDetector(
           onTap: () => setState(() => _mode = _AuthMode.register),
           child: Center(
             child: Text(
               '返回修改邮箱',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 color: cs.onSurfaceVariant,
               ),
             ),
@@ -545,7 +545,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       children: [
         // 邮箱提示
         Container(
-          padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+          padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
           decoration: BoxDecoration(
             color: cs.primaryContainer.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -553,34 +553,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           child: Text(
             '验证码已发送至：$_pendingEmail\n请在邮箱中查找来自 Supabase 的验证码',
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 13),
+              fontSize: adaptive.Adaptive.sp(13),
               color: cs.primary,
             ),
           ),
         ),
-        SizedBox(height: adaptive.Adaptive.h(context, 16)),
+        SizedBox(height: adaptive.Adaptive.h(16)),
 
         // OTP 验证码输入框
         _buildResetOtpField(),
         if (_error != null) ...[
-          SizedBox(height: adaptive.Adaptive.h(context, 10)),
+          SizedBox(height: adaptive.Adaptive.h(10)),
           _buildError(),
         ],
 
         // 新密码输入框
-        SizedBox(height: adaptive.Adaptive.h(context, 14)),
+        SizedBox(height: adaptive.Adaptive.h(14)),
         _buildNewPasswordField(),
 
         // 确认新密码输入框
-        SizedBox(height: adaptive.Adaptive.h(context, 14)),
+        SizedBox(height: adaptive.Adaptive.h(14)),
         _buildConfirmNewPasswordField(),
 
         // 提交按钮
-        SizedBox(height: adaptive.Adaptive.h(context, 20)),
+        SizedBox(height: adaptive.Adaptive.h(20)),
         _buildPrimaryButton('重置密码', _submitResetPassword),
 
         // 倒计时 + 重发
-        SizedBox(height: adaptive.Adaptive.h(context, 10)),
+        SizedBox(height: adaptive.Adaptive.h(10)),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -589,7 +589,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ? '${_countdownSeconds}s 后可重新发送'
                   : '没收到验证码？',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 color: cs.onSurfaceVariant,
               ),
             ),
@@ -600,7 +600,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Text(
                 ' 重新发送',
                 style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(context, 13),
+                  fontSize: adaptive.Adaptive.sp(13),
                   color: _countdownSeconds == 0
                       ? cs.primary
                       : cs.onSurfaceVariant,
@@ -612,7 +612,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
 
         // 返回登录
-        SizedBox(height: adaptive.Adaptive.h(context, 8)),
+        SizedBox(height: adaptive.Adaptive.h(8)),
         GestureDetector(
           onTap: () => setState(() {
             _mode = _AuthMode.login;
@@ -627,7 +627,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Text(
               '返回登录',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 color: cs.onSurfaceVariant,
               ),
             ),
@@ -647,7 +647,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.next,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 22),
+        fontSize: adaptive.Adaptive.sp(22),
         letterSpacing: 8,
         fontWeight: FontWeight.w600,
       ),
@@ -671,7 +671,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.next,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       decoration: _inputDecoration('新密码', AppIcons.lock).copyWith(
         suffixIcon: IconButton(
@@ -680,7 +680,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ? AppIcons.visibilityOff
                 : AppIcons.visibility,
             color: cs.onSurfaceVariant,
-            size: adaptive.Adaptive.sp(context, 20),
+            size: adaptive.Adaptive.sp(20),
           ),
           onPressed: () =>
               setState(() => _obscureResetPassword = !_obscureResetPassword),
@@ -699,7 +699,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.done,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       decoration: _inputDecoration('确认新密码', AppIcons.lock),
       onSubmitted: (_) => _submitResetPassword(),
@@ -716,7 +716,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.next,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       decoration: _inputDecoration('邮箱地址', AppIcons.email),
       readOnly:
@@ -739,14 +739,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           : TextInputAction.next,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       decoration: _inputDecoration('密码', AppIcons.lock).copyWith(
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword ? AppIcons.visibilityOff : AppIcons.visibility,
             color: cs.onSurfaceVariant,
-            size: adaptive.Adaptive.sp(context, 20),
+            size: adaptive.Adaptive.sp(20),
           ),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
@@ -765,7 +765,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.done,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 22),
+        fontSize: adaptive.Adaptive.sp(22),
         letterSpacing: 8,
         fontWeight: FontWeight.w600,
       ),
@@ -785,13 +785,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       hintText: hint,
       hintStyle: TextStyle(
         color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       prefixIcon: icon != null
           ? Icon(
               icon,
               color: cs.onSurfaceVariant.withValues(alpha: 0.8),
-              size: adaptive.Adaptive.sp(context, 22),
+              size: adaptive.Adaptive.sp(22),
             )
           : null,
       filled: true,
@@ -813,8 +813,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         borderSide: BorderSide(color: cs.error, width: 1),
       ),
       contentPadding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 20),
-        vertical: adaptive.Adaptive.h(context, 16),
+        horizontal: adaptive.Adaptive.w(20),
+        vertical: adaptive.Adaptive.h(16),
       ),
     );
   }
@@ -822,14 +822,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildPrimaryButton(String label, VoidCallback onPressed) {
     // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton，TDLoading 替换 CircularProgressIndicator
     return SizedBox(
-      height: adaptive.Adaptive.h(context, 48),
+      height: adaptive.Adaptive.h(48),
       child: TDButton(
         text: _loading ? '' : label,
         onTap: _loading ? null : onPressed,
         type: TDButtonType.fill,
         theme: TDButtonTheme.primary,
         textStyle: TextStyle(
-          fontSize: adaptive.Adaptive.sp(context, AppTypography.fontSizeBase),
+          fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeBase),
           fontWeight: AppTypography.fontWeightSemiBold,
         ),
         style: TDButtonStyle(
@@ -844,8 +844,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final cs = context.colors;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(context, 10),
-        vertical: adaptive.Adaptive.h(context, 8),
+        horizontal: adaptive.Adaptive.w(10),
+        vertical: adaptive.Adaptive.h(8),
       ),
       decoration: BoxDecoration(
         color: cs.error.withAlpha(25),
@@ -857,15 +857,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Icon(
             AppIcons.error,
             color: cs.error,
-            size: adaptive.Adaptive.sp(context, 16),
+            size: adaptive.Adaptive.sp(16),
           ),
-          SizedBox(width: adaptive.Adaptive.w(context, 8)),
+          SizedBox(width: adaptive.Adaptive.w(8)),
           Expanded(
             child: Text(
               _error!,
               style: TextStyle(
                 color: cs.error,
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
               ),
             ),
           ),
@@ -884,7 +884,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Text(
           isLogin ? '没有账号？' : '已有账号？',
           style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(context, 14),
+            fontSize: adaptive.Adaptive.sp(14),
             color: cs.onSurfaceVariant,
           ),
         ),
@@ -898,7 +898,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           child: Text(
             isLogin ? ' 立即注册' : ' 去登录',
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(14),
               color: cs.primary,
               fontWeight: FontWeight.w600,
             ),
@@ -917,7 +917,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      padding: EdgeInsets.all(adaptive.Adaptive.w(context, 4)),
+      padding: EdgeInsets.all(adaptive.Adaptive.w(4)),
       child: Row(
         children: [
           _tabButton('账号登录', _LoginTab.supabase),
@@ -941,7 +941,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         },
         child: Container(
           padding: EdgeInsets.symmetric(
-            vertical: adaptive.Adaptive.h(context, 10),
+            vertical: adaptive.Adaptive.h(10),
           ),
           decoration: BoxDecoration(
             color: isActive ? cs.surface : Colors.transparent,
@@ -950,7 +950,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ? [
                     BoxShadow(
                       color: AppColors.textPrimary.withValues(alpha: 0.05),
-                      blurRadius: adaptive.Adaptive.w(context, 4),
+                      blurRadius: adaptive.Adaptive.w(4),
                       offset: const Offset(0, 2),
                     ),
                   ]
@@ -960,7 +960,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(context, 14),
+              fontSize: adaptive.Adaptive.sp(14),
               fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
               color: isActive ? cs.onSurface : cs.onSurfaceVariant,
             ),
@@ -978,22 +978,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildLocalUsernameField(),
-        SizedBox(height: adaptive.Adaptive.h(context, 14)),
+        SizedBox(height: adaptive.Adaptive.h(14)),
         _buildLocalPasswordField(),
         if (_error != null) ...[
-          SizedBox(height: adaptive.Adaptive.h(context, 10)),
+          SizedBox(height: adaptive.Adaptive.h(10)),
           _buildError(),
         ],
-        SizedBox(height: adaptive.Adaptive.h(context, 20)),
+        SizedBox(height: adaptive.Adaptive.h(20)),
         _buildPrimaryButton('登录', _submitLocalLogin),
-        SizedBox(height: adaptive.Adaptive.h(context, 10)),
+        SizedBox(height: adaptive.Adaptive.h(10)),
         GestureDetector(
           onTap: _handleForgotLocalPassword,
           child: Center(
             child: Text(
               '忘记密码？',
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(context, 13),
+                fontSize: adaptive.Adaptive.sp(13),
                 color: cs.primary,
                 fontWeight: FontWeight.w500,
               ),
@@ -1012,7 +1012,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.next,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       decoration: _inputDecoration('用户名', AppIcons.person),
       onSubmitted: (_) => _localPasswordFocus.requestFocus(),
@@ -1028,7 +1028,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       textInputAction: TextInputAction.done,
       style: TextStyle(
         color: cs.onSurface,
-        fontSize: adaptive.Adaptive.sp(context, 15),
+        fontSize: adaptive.Adaptive.sp(15),
       ),
       decoration: _inputDecoration('密码', AppIcons.lock).copyWith(
         suffixIcon: IconButton(
@@ -1037,7 +1037,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ? AppIcons.visibilityOff
                 : AppIcons.visibility,
             color: cs.onSurfaceVariant,
-            size: adaptive.Adaptive.sp(context, 20),
+            size: adaptive.Adaptive.sp(20),
           ),
           onPressed: () =>
               setState(() => _obscureLocalPassword = !_obscureLocalPassword),

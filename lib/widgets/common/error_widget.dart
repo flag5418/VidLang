@@ -43,37 +43,37 @@ class ErrorDisplayWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(Adaptive.w(context, 24)),
+        padding: EdgeInsets.all(Adaptive.w(24)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // ✅ TDesign 规范：使用主题色图标
             Icon(
               AppIcons.error,
-              size: Adaptive.sp(context, 64),
+              size: Adaptive.sp(64),
               color: context.colors.error,
             ),
-            SizedBox(height: Adaptive.h(context, 16)),
+            SizedBox(height: Adaptive.h(16)),
             Text(
               title ?? '出错了',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 18),
+                fontSize: Adaptive.sp(18),
                 fontWeight: FontWeight.w600,
                 color: context.colors.textPrimary,
               ),
             ),
-            SizedBox(height: Adaptive.h(context, 8)),
+            SizedBox(height: Adaptive.h(8)),
             Text(
               error,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 14),
+                fontSize: Adaptive.sp(14),
                 color: context.colors.textWeak,
                 height: 1.4,
               ),
             ),
             if (showRetry && onRetry != null) ...[
-              SizedBox(height: Adaptive.h(context, 24)),
+              SizedBox(height: Adaptive.h(24)),
               // ✅ TDesign 规范：使用 TDButton 替代 ElevatedButton
               TDButton(
                 text: '重试',

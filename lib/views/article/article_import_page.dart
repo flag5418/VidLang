@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
-import 'package:vidlang/services/article_parser.dart';
-import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/parsers/article_parser.dart';
+import 'package:vidlang/services/ai/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_spacing.dart';
@@ -106,66 +106,66 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
+              padding: EdgeInsets.all(Adaptive.w(AppSpacing.md)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 标题输入
                   TextField(
                     controller: _titleController,
-                    style: TextStyle(fontSize: Adaptive.sp(context, 18), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                    style: TextStyle(fontSize: Adaptive.sp(18), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: '文章标题',
                       hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                        borderRadius: BorderRadius.circular(Adaptive.r(10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                        borderRadius: BorderRadius.circular(Adaptive.r(10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                        borderRadius: BorderRadius.circular(Adaptive.r(10)),
                         borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest,
                     ),
                   ),
-                  SizedBox(height: Adaptive.h(context, AppSpacing.md)),
+                  SizedBox(height: Adaptive.h(AppSpacing.md)),
 
                   // 正文输入
                   TextField(
                     controller: _contentController,
                     maxLines: null,
                     minLines: 12,
-                    style: TextStyle(fontSize: Adaptive.sp(context, 15), color: colorScheme.onSurface, height: 1.6),
+                    style: TextStyle(fontSize: Adaptive.sp(15), color: colorScheme.onSurface, height: 1.6),
                     decoration: InputDecoration(
                       hintText: '粘贴文章正文...',
                       hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                        borderRadius: BorderRadius.circular(Adaptive.r(10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                        borderRadius: BorderRadius.circular(Adaptive.r(10)),
                         borderSide: BorderSide(color: colorScheme.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Adaptive.r(context, 10)),
+                        borderRadius: BorderRadius.circular(Adaptive.r(10)),
                         borderSide: BorderSide(color: AppColors.primary, width: 2),
                       ),
                       filled: true,
                       fillColor: colorScheme.surfaceContainerHighest,
                     ),
                   ),
-                  SizedBox(height: Adaptive.h(context, AppSpacing.sm)),
+                  SizedBox(height: Adaptive.h(AppSpacing.sm)),
 
                   // 提示文字
                   Text(
                     '支持 Markdown 格式，段落之间用空行分隔',
-                    style: TextStyle(fontSize: Adaptive.sp(context, 12), color: colorScheme.outline),
+                    style: TextStyle(fontSize: Adaptive.sp(12), color: colorScheme.outline),
                   ),
                 ],
               ),
@@ -175,11 +175,11 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
           // 底部按钮
           SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(Adaptive.w(context, AppSpacing.md)),
+              padding: EdgeInsets.all(Adaptive.w(AppSpacing.md)),
               // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
               child: SizedBox(
                 width: double.infinity,
-                height: Adaptive.h(context, 50),
+                height: Adaptive.h(50),
                 child: TDButton(
                   text: _isSaving ? '' : '导入并打开',
                   onTap: _isSaving ? null : _importArticle,

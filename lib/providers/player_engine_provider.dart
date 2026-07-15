@@ -10,7 +10,7 @@ import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/learning_stats_service.dart';
+import 'package:vidlang/services/learning/learning_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
 
 final playerEngineProvider =

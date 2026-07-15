@@ -37,34 +37,34 @@ class AppTextStylesData {
   factory AppTextStylesData.of(BuildContext context) {
     return AppTextStylesData(
       hero: TextStyle(
-        fontSize: Adaptive.sp(context, 32.0),
+        fontSize: Adaptive.sp(32.0),
         fontWeight: FontWeight.w700,
         letterSpacing: 32.0 * -0.01,
         height: 1.2,
       ),
       title: TextStyle(
-        fontSize: Adaptive.sp(context, 24.0),
+        fontSize: Adaptive.sp(24.0),
         fontWeight: FontWeight.w700,
         letterSpacing: 24.0 * -0.005,
         height: 1.25,
       ),
       heading: TextStyle(
-        fontSize: Adaptive.sp(context, 20.0),
+        fontSize: Adaptive.sp(20.0),
         fontWeight: FontWeight.w600,
         height: 1.3,
       ),
       body: TextStyle(
-        fontSize: Adaptive.sp(context, 16.0),
+        fontSize: Adaptive.sp(16.0),
         fontWeight: FontWeight.w400,
         height: 1.5,
       ),
       caption: TextStyle(
-        fontSize: Adaptive.sp(context, 13.0),
+        fontSize: Adaptive.sp(13.0),
         fontWeight: FontWeight.w400,
         height: 1.4,
       ),
       micro: TextStyle(
-        fontSize: Adaptive.sp(context, 11.0),
+        fontSize: Adaptive.sp(11.0),
         fontWeight: FontWeight.w500,
         height: 1.3,
       ),

@@ -106,10 +106,10 @@ class _TDActionSheetContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        margin: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        margin: EdgeInsets.all(adaptive.Adaptive.w(16)),
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 16)),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -117,15 +117,15 @@ class _TDActionSheetContent extends StatelessWidget {
             if (title != null) ...[
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  adaptive.Adaptive.w(context, 24),
-                  adaptive.Adaptive.h(context, 20),
-                  adaptive.Adaptive.w(context, 24),
-                  adaptive.Adaptive.h(context, 8),
+                  adaptive.Adaptive.w(24),
+                  adaptive.Adaptive.h(20),
+                  adaptive.Adaptive.w(24),
+                  adaptive.Adaptive.h(8),
                 ),
                 child: Text(
                   title!,
                   style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(context, 14),
+                    fontSize: adaptive.Adaptive.sp(14),
                     fontWeight: FontWeight.w600,
                     color: context.colors.onSurfaceVariant,
                   ),
@@ -151,14 +151,14 @@ class _TDActionSheetContent extends StatelessWidget {
                 },
               );
             }),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             // 取消按钮
             Divider(height: 1),
             ListTile(
               title: Text('取消'),
               onTap: () => Navigator.of(context).pop(null),
             ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 0 : adaptive.Adaptive.h(context, 16)),
+            SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 0 : adaptive.Adaptive.h(16)),
           ],
         ),
       ),

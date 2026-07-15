@@ -34,8 +34,8 @@ class Badge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: Adaptive.w(context, 8),
-        vertical: Adaptive.h(context, 6),
+        horizontal: Adaptive.w(8),
+        vertical: Adaptive.h(6),
       ),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surfaceSecondaryLight,
@@ -47,16 +47,16 @@ class Badge extends StatelessWidget {
           if (icon != null)
             Icon(
               icon,
-              size: Adaptive.w(context, 14),
+              size: Adaptive.w(14),
               color: textColor ?? AppColors.textSecondary,
             ),
 
-          if (icon != null) SizedBox(width: Adaptive.w(context, 4)),
+          if (icon != null) SizedBox(width: Adaptive.w(4)),
 
           Text(
             text,
             style: TextStyle(
-              fontSize: Adaptive.sp(context, 10),
+              fontSize: Adaptive.sp(10),
               fontWeight: FontWeight.w500,
               color: textColor ?? AppColors.textSecondary,
             ),

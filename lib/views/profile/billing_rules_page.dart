@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/services/auth_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -114,7 +115,7 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('计费规则', style: TextStyle(fontSize: Adaptive.sp(context, 16))),
+        title: Text('计费规则', style: TextStyle(fontSize: Adaptive.sp(16))),
       ),
       body: FutureBuilder<List<BillingRule>>(
         future: _future,
@@ -140,16 +141,16 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
               });
             },
             child: ListView(
-              padding: EdgeInsets.all(Adaptive.w(context, 16)),
+              padding: EdgeInsets.all(Adaptive.w(16)),
               children: [
                 // 说明文字
                 _buildDescriptionCard(colorScheme),
-                SizedBox(height: Adaptive.h(context, 16)),
+                SizedBox(height: Adaptive.h(16)),
 
                 // 按分类展示
                 for (final category in categories) ...[
                   _buildCategorySection(colorScheme, category),
-                  SizedBox(height: Adaptive.h(context, 12)),
+                  SizedBox(height: Adaptive.h(12)),
                 ],
 
                 // 底部提示
@@ -164,20 +165,20 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
 
   Widget _buildDescriptionCard(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.all(Adaptive.w(context, 14)),
+      padding: EdgeInsets.all(Adaptive.w(14)),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(Adaptive.r(12)),
         color: colorScheme.primaryContainer.withValues(alpha: 0.3),
       ),
       child: Row(
         children: [
-          Icon(AppIcons.info, size: Adaptive.sp(context, 18), color: colorScheme.primary),
-          SizedBox(width: Adaptive.w(context, 10)),
+          Icon(AppIcons.info, size: Adaptive.sp(18), color: colorScheme.primary),
+          SizedBox(width: Adaptive.w(10)),
           Expanded(
             child: Text(
               '以下为各项 AI 功能的单次使用费用，价格可能调整，以实际扣费为准。',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: Adaptive.sp(13),
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -190,7 +191,7 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
   Widget _buildCategorySection(ColorScheme colorScheme, BillingCategory category) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(Adaptive.r(context, 12)),
+        borderRadius: BorderRadius.circular(Adaptive.r(12)),
         color: _panelColor(colorScheme),
         border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
       ),
@@ -199,17 +200,17 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
         children: [
           // 分类标题
           Padding(
-            padding: EdgeInsets.only(left: Adaptive.w(context, 16), top: Adaptive.h(context, 14), right: Adaptive.w(context, 16)),
+            padding: EdgeInsets.only(left: Adaptive.w(16), top: Adaptive.h(14), right: Adaptive.w(16)),
             child: Text(
               '── ${category.name} ──',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 14),
+                fontSize: Adaptive.sp(14),
                 fontWeight: FontWeight.w600,
                 color: colorScheme.primary,
               ),
             ),
           ),
-          SizedBox(height: Adaptive.h(context, 8)),
+          SizedBox(height: Adaptive.h(8)),
 
           // 规则列表
           for (final rule in category.rules)
@@ -221,7 +222,7 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
 
   Widget _buildRuleItem(ColorScheme colorScheme, BillingRule rule) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 16), vertical: Adaptive.h(context, 10)),
+      padding: EdgeInsets.symmetric(horizontal: Adaptive.w(16), vertical: Adaptive.h(10)),
       child: Row(
         children: [
           // 规则信息
@@ -232,17 +233,17 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
                 Text(
                   rule.nameZh,
                   style: TextStyle(
-                    fontSize: Adaptive.sp(context, 14),
+                    fontSize: Adaptive.sp(14),
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurface,
                   ),
                 ),
                 if (rule.descriptionZh.isNotEmpty) ...[
-                  SizedBox(height: Adaptive.h(context, 2)),
+                  SizedBox(height: Adaptive.h(2)),
                   Text(
                     rule.descriptionZh,
                     style: TextStyle(
-                      fontSize: Adaptive.sp(context, 12),
+                      fontSize: Adaptive.sp(12),
                       color: colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
@@ -252,20 +253,20 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
               ],
             ),
           ),
-          SizedBox(width: Adaptive.w(context, 12)),
+          SizedBox(width: Adaptive.w(12)),
           // 价格
           Container(
-            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 10), vertical: Adaptive.h(context, 4)),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(10), vertical: Adaptive.h(4)),
             decoration: BoxDecoration(
               color: rule.priceCny > 0
                   ? colorScheme.primary.withValues(alpha: 0.1)
                   : colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 6)),
+              borderRadius: BorderRadius.circular(Adaptive.r(6)),
             ),
             child: Text(
               rule.priceCny > 0 ? '¥${rule.priceCny.toStringAsFixed(2)}/次' : '免费',
               style: TextStyle(
-                fontSize: Adaptive.sp(context, 13),
+                fontSize: Adaptive.sp(13),
                 fontWeight: FontWeight.w600,
                 color: rule.priceCny > 0
                     ? colorScheme.primary
@@ -280,11 +281,11 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
 
   Widget _buildFooterNote(ColorScheme colorScheme) {
     return Padding(
-      padding: EdgeInsets.only(top: Adaptive.h(context, 8), bottom: Adaptive.h(context, 24)),
+      padding: EdgeInsets.only(top: Adaptive.h(8), bottom: Adaptive.h(24)),
       child: Text(
         '价格可能调整，以实际扣费为准。',
         style: TextStyle(
-          fontSize: Adaptive.sp(context, 12),
+          fontSize: Adaptive.sp(12),
           color: colorScheme.outline,
         ),
         textAlign: TextAlign.center,
@@ -292,44 +293,28 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
     );
   }
 
-  Widget _buildEmptyState(ColorScheme colorScheme) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            AppIcons.rule,
-            size: Adaptive.sp(context, 48),
-            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-          ),
-          SizedBox(height: Adaptive.h(context, 12)),
-          Text(
-            '暂无计费规则',
-            style: TextStyle(
-              fontSize: Adaptive.sp(context, 14),
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+Widget _buildEmptyState(ColorScheme colorScheme) {
+  return EmptyState(
+    icon: AppIcons.rule,
+    title: '暂无计费规则',
+  );
+}
 
   Widget _buildErrorState(ColorScheme colorScheme, String message) {
     return Center(
       child: Padding(
-        padding: EdgeInsets.all(Adaptive.w(context, 24)),
+        padding: EdgeInsets.all(Adaptive.w(24)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(AppIcons.error, size: Adaptive.sp(context, 48), color: colorScheme.error),
-            SizedBox(height: Adaptive.h(context, 12)),
+            Icon(AppIcons.error, size: Adaptive.sp(48), color: colorScheme.error),
+            SizedBox(height: Adaptive.h(12)),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: Adaptive.sp(context, 14)),
+              style: TextStyle(fontSize: Adaptive.sp(14)),
             ),
-            SizedBox(height: Adaptive.h(context, 12)),
+            SizedBox(height: Adaptive.h(12)),
             FilledButton(
               onPressed: () {
                 setState(() {

@@ -132,7 +132,7 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
         backgroundColor: AppColors.primary,
       ),
       body: Padding(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(context, 16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -141,25 +141,25 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
               icon: const Icon(AppIcons.dns),
               label: const Text('测试 DNS 解析'),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             ElevatedButton.icon(
               onPressed: _testHttpConnection,
               icon: const Icon(AppIcons.http),
               label: const Text('测试 HTTP 连接'),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 8)),
+            SizedBox(height: adaptive.Adaptive.h(8)),
             ElevatedButton.icon(
               onPressed: _testRawSocket,
               icon: const Icon(AppIcons.cable),
               label: const Text('测试原始 Socket'),
             ),
-            SizedBox(height: adaptive.Adaptive.h(context, 16)),
+            SizedBox(height: adaptive.Adaptive.h(16)),
             Expanded(
               child: Container(
-                padding: EdgeInsets.all(adaptive.Adaptive.w(context, 12)),
+                padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                 decoration: BoxDecoration(
                   color: AppColors.lightBackground,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(context, 8)),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                   border: Border.all(color: AppColors.borderLight),
                 ),
                 child: SingleChildScrollView(
@@ -167,7 +167,7 @@ class _NetworkDebugPageState extends State<NetworkDebugPage> {
                     _log.isEmpty ? '点击上方按钮开始测试...' : _log,
                     style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: adaptive.Adaptive.sp(context, 12),
+                      fontSize: adaptive.Adaptive.sp(12),
                     ),
                   ),
                 ),

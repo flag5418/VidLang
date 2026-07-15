@@ -12,12 +12,12 @@ import 'package:vidlang/models/study_record.dart';
 import 'package:vidlang/models/subtitles.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/services/conversation_service.dart';
+import 'package:vidlang/services/ai/conversation_service.dart';
 import 'package:vidlang/services/database_service.dart';
-import 'package:vidlang/services/file_picker_service.dart';
-import 'package:vidlang/services/folder_stats_service.dart';
+import 'package:vidlang/services/files/file_picker_service.dart';
+import 'package:vidlang/services/files/folder_stats_service.dart';
 import 'package:vidlang/services/settings_service.dart';
-import 'package:vidlang/services/thumbnail_service.dart';
+import 'package:vidlang/services/files/thumbnail_service.dart';
 
 /// 文件管理 Provider
 ///

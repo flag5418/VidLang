@@ -383,10 +383,10 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
 
           return Container(
             key: word.key,
-            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(context, 2), vertical: Adaptive.h(context, 2)),
+            padding: EdgeInsets.symmetric(horizontal: Adaptive.w(2), vertical: Adaptive.h(2)),
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(Adaptive.r(context, 3)),
+              borderRadius: BorderRadius.circular(Adaptive.r(3)),
               border: isTtsHighlight
                   ? Border.all(
                       color: widget.colorScheme.primary.withValues(alpha: 0.4),
@@ -397,7 +397,7 @@ class _SelectableParagraphTextState extends State<SelectableParagraphText> {
             child: Text(
               word.text,
               style: TextStyle(
-                fontSize: Adaptive.sp(context, widget.fontSize),
+                fontSize: Adaptive.sp(widget.fontSize),
                 color: textColor,
                 fontWeight: widget.fontWeight ?? FontWeight.w500,
                 height: 1.6,

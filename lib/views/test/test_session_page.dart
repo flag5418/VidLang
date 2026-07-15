@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/providers/test_provider.dart';
-import 'package:vidlang/services/shengtong_http_evaluator.dart';
+import 'package:vidlang/services/evaluation/shengtong_http_evaluator.dart';
 import 'package:vidlang/widgets/app_dialogs.dart';
 
 /// 逐题作答页面
