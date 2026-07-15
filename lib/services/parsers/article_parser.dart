@@ -1,6 +1,6 @@
-import '../models/article.dart';
-import '../models/article_paragraph.dart';
-import '../models/article_sentence.dart';
+import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/article_paragraph.dart';
+import 'package:vidlang/models/article_sentence.dart';
 
 /// 文章解析工具
 ///
@@ -53,26 +53,32 @@ class ArticleParser {
         final wc = _wordCount(s);
         paraWordCount += wc;
 
-        sentences.add(ArticleSentence(
-          articleCode: '',
-          paragraphIndex: globalParagraphIdx,
-          sentenceIndex: globalSentenceIdx,
-          content: s,
-          wordCount: wc,
-        ));
+        sentences.add(
+          ArticleSentence(
+            articleCode: '',
+            paragraphIndex: globalParagraphIdx,
+            sentenceIndex: globalSentenceIdx,
+            content: s,
+            wordCount: wc,
+          ),
+        );
         globalSentenceIdx++;
       }
 
       totalWordCount += paraWordCount;
 
-      paragraphs.add(ArticleParagraph(
-        articleCode: '',
-        paragraphIndex: globalParagraphIdx,
-        contentMarkdown: text,
-        contentPlain: plainText,
-        startSentenceIdx: globalSentenceIdx - paraSentences.where((s) => s.trim().isNotEmpty).length,
-        endSentenceIdx: globalSentenceIdx - 1,
-      ));
+      paragraphs.add(
+        ArticleParagraph(
+          articleCode: '',
+          paragraphIndex: globalParagraphIdx,
+          contentMarkdown: text,
+          contentPlain: plainText,
+          startSentenceIdx:
+              globalSentenceIdx -
+              paraSentences.where((s) => s.trim().isNotEmpty).length,
+          endSentenceIdx: globalSentenceIdx - 1,
+        ),
+      );
       globalParagraphIdx++;
     }
 
@@ -94,9 +100,22 @@ class ArticleParser {
   static List<String> _splitSentences(String text) {
     // 保护缩写
     const abbreviations = [
-      'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.',
-      'e.g.', 'i.e.', 'etc.', 'vs.', 'St.',
-      'Jr.', 'Sr.', 'U.S.', 'U.K.', 'a.m.', 'p.m.',
+      'Mr.',
+      'Mrs.',
+      'Ms.',
+      'Dr.',
+      'Prof.',
+      'e.g.',
+      'i.e.',
+      'etc.',
+      'vs.',
+      'St.',
+      'Jr.',
+      'Sr.',
+      'U.S.',
+      'U.K.',
+      'a.m.',
+      'p.m.',
     ];
 
     String processed = text;
@@ -114,13 +133,16 @@ class ArticleParser {
     final parts = processed.split(RegExp(r'(?<=[.!?])\s+'));
 
     // 恢复缩写
-    final result = parts.map((p) {
-      String r = p.trim();
-      for (final entry in placeholders.entries) {
-        r = r.replaceAll(entry.key, entry.value);
-      }
-      return r;
-    }).where((s) => s.isNotEmpty).toList();
+    final result = parts
+        .map((p) {
+          String r = p.trim();
+          for (final entry in placeholders.entries) {
+            r = r.replaceAll(entry.key, entry.value);
+          }
+          return r;
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     return result;
   }

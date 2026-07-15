@@ -6,7 +6,6 @@ import 'package:vidlang/theme/theme.dart';
 import '../services/evaluation/unified_evaluation_service.dart';
 // import '../providers/subscription_provider.dart'; // TODO: 后续获取订阅模式时启用
 import '../models/evaluation_models.dart';
-// import 'evaluation_content_widgets.dart'; // TODO: 后续重构各模式 UI 时启用
 
 /// 跟读评测弹窗主组件
 /// 统一容器，包含固定区域和可变内容区域
