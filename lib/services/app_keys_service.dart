@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:vidlang/models/user.dart';
+import 'package:vidlang/utils/app_globals.dart';
 
 /// 应用配置与密钥统一管理中心
 ///
@@ -53,7 +54,11 @@ class AppKeysService {
   // ════════════════════════════════════════════
 
   /// 当前登录用户（全局共享）
-  static User? currentUser;
+  ///
+  /// ⚠️ 已迁移至 AppGlobals.user，此处保留为兼容别名。
+  /// 新代码请使用 AppGlobals.user / AppGlobals.updateUser()。
+  static User? get currentUser => AppGlobals.user;
+  static set currentUser(User? user) { AppGlobals.updateUser(user); }
 
   // ════════════════════════════════════════════
   // ④ 动态密钥 —— 从服务端 app_settings 表加载
