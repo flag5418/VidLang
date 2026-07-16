@@ -7,6 +7,7 @@ import '../../theme/td_radius.dart';
 import '../../theme/td_spacers.dart';
 import '../../theme/td_theme.dart';
 import '../../util/list_ext.dart';
+import '../../util/adaptive_extension.dart';
 import '../text/td_text.dart';
 import 'td_action_sheet.dart';
 import 'td_action_sheet_item_widget.dart';
@@ -41,8 +42,11 @@ class TDActionSheetGroup extends StatelessWidget {
     final groupItems = items.groupBy((item) => item.group);
     final groupKeys = groupItems.keys
         .where((k) => k != null && groupItems[k]?.isNotEmpty == true);
+    // iPad 下限制最大宽度
+    final maxWidth = isIPad() ? Adaptive.w(540) : double.infinity;
 
     return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
         borderRadius:
             BorderRadius.only(topLeft: borderRadius, topRight: borderRadius),
@@ -62,9 +66,9 @@ class TDActionSheetGroup extends StatelessWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    TDTheme.of(context).spacer16,
-                    TDTheme.of(context).spacer12,
-                    TDTheme.of(context).spacer16,
+                    Adaptive.w(TDTheme.of(context).spacer16),
+                    Adaptive.h(TDTheme.of(context).spacer12),
+                    Adaptive.w(TDTheme.of(context).spacer16),
                     0,
                   ),
                   child: Row(

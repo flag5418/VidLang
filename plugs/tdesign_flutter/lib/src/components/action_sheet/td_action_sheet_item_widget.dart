@@ -4,6 +4,7 @@ import '../../theme/td_fonts.dart';
 import '../../theme/td_spacers.dart';
 import '../../theme/td_theme.dart';
 import '../../util/context_extension.dart';
+import '../../util/adaptive_extension.dart';
 import '../badge/td_badge.dart';
 import '../text/td_text.dart';
 import 'td_action_sheet.dart';
@@ -46,8 +47,8 @@ class TDActionSheetItemWidget extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 SizedBox(
-                  width: item!.iconSize ?? 40,
-                  height: item!.iconSize ?? 40,
+                  width: item!.iconSize ?? Adaptive.icon(40),
+                  height: item!.iconSize ?? Adaptive.icon(40),
                   child: FittedBox(
                     fit: BoxFit.contain,
                     child: item!.icon!,
@@ -68,7 +69,7 @@ class TDActionSheetItemWidget extends StatelessWidget {
                   ),
               ],
             ),
-            SizedBox(height: TDTheme.of(context).spacer8),
+            SizedBox(height: Adaptive.h(TDTheme.of(context).spacer8)),
           ],
           TDText(
             item!.label,
@@ -115,11 +116,12 @@ Widget buildCancelButton(
   String? cancelText,
   VoidCallback? onCancel,
 ) {
+  final topPadding = Adaptive.h(
+      showPagination ? TDTheme.of(context).spacer16 : TDTheme.of(context).spacer8);
+  final btnHeight = Adaptive.h(48);
+
   return Padding(
-    padding: EdgeInsets.only(
-        top: showPagination
-            ? TDTheme.of(context).spacer16
-            : TDTheme.of(context).spacer8),
+    padding: EdgeInsets.only(top: topPadding),
     child: GestureDetector(
       onTap: () {
         onCancel?.call();
@@ -135,7 +137,7 @@ Widget buildCancelButton(
             ),
           ),
         ),
-        height: 48,
+        height: btnHeight,
         child: Center(
           child: TDText(
             cancelText ?? context.resource.cancel,

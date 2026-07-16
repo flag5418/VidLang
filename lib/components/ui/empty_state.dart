@@ -148,7 +148,7 @@ class EmptyState extends StatelessWidget {
     final effectiveIconColor = iconColor ?? colors.textWeak;
 
     // 构建图标 Widget
-    Widget _buildIcon() {
+    Widget buildIcon() {
       final iconWidget = Icon(
         icon,
         size: effectiveIconSize,
@@ -158,7 +158,9 @@ class EmptyState extends StatelessWidget {
       // 如果有圆形背景，包裹 Container
       if (iconBackgroundColor != null) {
         return Container(
-          padding: EdgeInsets.all(iconBackgroundPadding ?? adaptive.Adaptive.w(20)),
+          padding: EdgeInsets.all(
+            iconBackgroundPadding ?? adaptive.Adaptive.w(20),
+          ),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: iconBackgroundColor,
@@ -171,10 +173,11 @@ class EmptyState extends StatelessWidget {
     }
 
     // 构建标题 Widget
-    Widget _buildTitle() {
+    Widget buildTitle() {
       return Text(
         title,
-        style: titleStyle ??
+        style:
+            titleStyle ??
             TextStyle(
               fontSize: adaptive.Adaptive.sp(16),
               fontWeight: FontWeight.w400,
@@ -185,11 +188,12 @@ class EmptyState extends StatelessWidget {
     }
 
     // 构建描述 Widget
-    Widget _buildDescription() {
+    Widget buildDescription() {
       if (description == null) return const SizedBox.shrink();
       return Text(
         description!,
-        style: descriptionStyle ??
+        style:
+            descriptionStyle ??
             TextStyle(
               fontSize: adaptive.Adaptive.sp(13),
               fontWeight: FontWeight.w400,
@@ -200,7 +204,7 @@ class EmptyState extends StatelessWidget {
     }
 
     // 构建操作按钮 Widget
-    Widget _buildAction() {
+    Widget buildAction() {
       if (actionLabel == null || onAction == null) {
         return const SizedBox.shrink();
       }
@@ -228,16 +232,18 @@ class EmptyState extends StatelessWidget {
     Widget content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildIcon(),
-        SizedBox(height: adaptive.Adaptive.h(iconBackgroundColor != null ? 20 : 16)),
-        _buildTitle(),
+        buildIcon(),
+        SizedBox(
+          height: adaptive.Adaptive.h(iconBackgroundColor != null ? 20 : 16),
+        ),
+        buildTitle(),
         if (description != null) ...[
           SizedBox(height: adaptive.Adaptive.h(8)),
-          _buildDescription(),
+          buildDescription(),
         ],
         if (actionLabel != null && onAction != null) ...[
           SizedBox(height: adaptive.Adaptive.h(20)),
-          _buildAction(),
+          buildAction(),
         ],
       ],
     );

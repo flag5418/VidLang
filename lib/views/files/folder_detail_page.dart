@@ -3,7 +3,8 @@
 /// 展示文件夹内的资源列表，适配视频/文章/音频3类资源。
 library;
 
-import 'dart:async';import 'package:vidlang/components/ui/ui_components.dart';
+import 'dart:async';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'dart:io';
@@ -50,7 +51,6 @@ import 'package:vidlang/views/conversation/conversation_page.dart';
 import 'package:vidlang/views/files/wifi_transfer_page.dart';
 import 'package:vidlang/views/player/unified/unified_player_page.dart';
 import 'package:vidlang/views/test/test_page.dart';
-
 
 /// 文件夹详情页面
 class FolderDetailPage extends ConsumerStatefulWidget {
@@ -253,8 +253,8 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 child: SizedBox(
                   width: adaptive.Adaptive.r(40),
                   height: adaptive.Adaptive.r(40),
-                    child: Icon(
-                      AppIcons.add,
+                  child: Icon(
+                    AppIcons.add,
                     size: adaptive.Adaptive.sp(18),
                     color: colorScheme.onPrimary,
                   ),
@@ -267,18 +267,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                 return [
                   PopupMenuItem(
                     value: 'import',
-                    child: _popupMenuItem(
-                        AppIcons.add,
-                        '选择导入（可多选）',
-                      colorScheme,
-                    ),
+                    child: _popupMenuItem(AppIcons.add, '导入资源', colorScheme),
                   ),
                   if (Platform.isIOS && folderType == FolderContentType.video)
                     PopupMenuItem(
                       value: 'importFolder',
                       child: _popupMenuItem(
                         AppIcons.folderOpen,
-                        '导入文件夹（全部）',
+                        '导入文件夹',
                         colorScheme,
                       ),
                     ),
@@ -293,20 +289,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                   ),
                   PopupMenuItem(
                     value: 'rename',
-                    child: _popupMenuItem(
-                      AppIcons.edit,
-                      '重命名',
-                      colorScheme,
-                    ),
+                    child: _popupMenuItem(AppIcons.edit, '重命名', colorScheme),
                   ),
                   if (isPremium)
                     PopupMenuItem(
                       value: 'test',
-                      child: _popupMenuItem(
-                        AppIcons.quiz,
-                        '综合测试',
-                        colorScheme,
-                      ),
+                      child: _popupMenuItem(AppIcons.quiz, '综合测试', colorScheme),
                     ),
                   if (isPremium && folderType == FolderContentType.video)
                     PopupMenuItem(
@@ -322,7 +310,7 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
                     value: 'deleteAll',
                     child: _popupMenuItem(
                       AppIcons.delete,
-                      '全部删除',
+                      '删除文件夹',
                       colorScheme,
                     ),
                   ),
@@ -349,8 +337,14 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       icon: icon,
       title: '暂无${_typeLabel(folderType)}',
       description: '点击 + 导入资源',
-      iconBackgroundColor: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.08),
-      iconColor: AppColors.colorForType(folderType.name, brightness: Theme.of(context).brightness).withValues(alpha: 0.6),
+      iconBackgroundColor: AppColors.colorForType(
+        folderType.name,
+        brightness: Theme.of(context).brightness,
+      ).withValues(alpha: 0.08),
+      iconColor: AppColors.colorForType(
+        folderType.name,
+        brightness: Theme.of(context).brightness,
+      ).withValues(alpha: 0.6),
     );
   }
 
@@ -613,10 +607,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       context,
       MaterialPageRoute(
         builder: (_) => UnifiedPlayerPage(
-                videoCode: code,
-                folderVideos: state.videos,
-                audioType: isMusic ? 'music' : null,
-              ),
+          videoCode: code,
+          folderVideos: state.videos,
+          audioType: isMusic ? 'music' : null,
+        ),
       ),
     );
   }
@@ -629,7 +623,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         SizedBox(width: adaptive.Adaptive.w(10)),
         Text(
           title,
-          style: TextStyle(color: cs.onSurface, fontSize: adaptive.Adaptive.sp(14)),
+          style: TextStyle(
+            color: cs.onSurface,
+            fontSize: adaptive.Adaptive.sp(14),
+          ),
         ),
       ],
     );
@@ -918,7 +915,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
 
     // Upload to cloud for AI question generation
     try {
-      await ConversationService.uploadArticleContentToCloud(articleCode, folderCode: folderCode);
+      await ConversationService.uploadArticleContentToCloud(
+        articleCode,
+        folderCode: folderCode,
+      );
     } catch (_) {}
   }
 
@@ -1088,7 +1088,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
           await DatabaseService.update(videos.first);
         }
       }
-      await ConversationService.uploadSubtitlesToCloud(videoCode, folderCode: widget.folderCode);
+      await ConversationService.uploadSubtitlesToCloud(
+        videoCode,
+        folderCode: widget.folderCode,
+      );
       return;
     }
 
@@ -1152,7 +1155,10 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
       await DatabaseService.insert(s);
     }
 
-    await ConversationService.uploadSubtitlesToCloud(videoCode, folderCode: widget.folderCode);
+    await ConversationService.uploadSubtitlesToCloud(
+      videoCode,
+      folderCode: widget.folderCode,
+    );
   }
 
   /// SRT 时间格式转毫秒
@@ -1212,7 +1218,9 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
     );
     if (result == null || result.isEmpty) return;
     try {
-      await ref.read(fileProvider.notifier).renameVideo(video.code ?? '', result);
+      await ref
+          .read(fileProvider.notifier)
+          .renameVideo(video.code ?? '', result);
       _showMessage('重命名成功');
     } catch (e) {
       _showMessage('重命名失败: $e', theme: MessageTheme.error);
@@ -1277,9 +1285,12 @@ class _FolderDetailPageState extends ConsumerState<FolderDetailPage> {
         return;
       }
       // 优先选择最后阅读的，否则第一篇
-      final readArticles = _articles.where((a) => a.lastStudyDate != null).toList()
-        ..sort((a, b) => b.lastStudyDate!.compareTo(a.lastStudyDate!));
-      final target = readArticles.isNotEmpty ? readArticles.first : _articles.first;
+      final readArticles =
+          _articles.where((a) => a.lastStudyDate != null).toList()
+            ..sort((a, b) => b.lastStudyDate!.compareTo(a.lastStudyDate!));
+      final target = readArticles.isNotEmpty
+          ? readArticles.first
+          : _articles.first;
       final articleCode = target.code ?? '';
       if (articleCode.isEmpty) {
         _showMessage('文章标识为空，无法测试', theme: MessageTheme.warning);

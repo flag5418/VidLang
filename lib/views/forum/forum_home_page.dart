@@ -1,15 +1,14 @@
-import 'package:flutter/material.dart';import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import '../../models/forum/forum_post.dart';
 import 'package:vidlang/views/forum/providers/forum_providers.dart';
 import 'package:vidlang/components/ui/loading_widget.dart';
 import 'package:vidlang/components/ui/error_widget.dart';
 import 'forum_create_post_page.dart';
 import 'package:vidlang/theme/theme.dart';
-
 
 class ForumHomePage extends ConsumerStatefulWidget {
   const ForumHomePage({super.key});
@@ -22,7 +21,7 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   // ignore: unused_field
-final String _selectedCategory = 'all';
+  final String _selectedCategory = 'all';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -270,39 +269,39 @@ final String _selectedCategory = 'all';
     );
   }
 
-Widget _buildEmptyState(String category) {
-  String message;
-  IconData icon;
+  Widget _buildEmptyState(String category) {
+    String message;
+    IconData icon;
 
-  switch (category) {
-    case 'resources':
-      message = '暂无资源分享';
-      icon = AppIcons.movie;
-      break;
-    case 'discussion':
-      message = '暂无学习讨论';
-      icon = AppIcons.chat;
-      break;
-    case 'feedback':
-      message = '暂无反馈建议';
-      icon = AppIcons.feedback;
-      break;
-    case 'help':
-      message = '暂无求助内容';
-      icon = AppIcons.help;
-      break;
-    default:
-      message = '暂无帖子内容';
-      icon = AppIcons.forum;
+    switch (category) {
+      case 'resources':
+        message = '暂无资源分享';
+        icon = AppIcons.movie;
+        break;
+      case 'discussion':
+        message = '暂无学习讨论';
+        icon = AppIcons.chat;
+        break;
+      case 'feedback':
+        message = '暂无反馈建议';
+        icon = AppIcons.feedback;
+        break;
+      case 'help':
+        message = '暂无求助内容';
+        icon = AppIcons.help;
+        break;
+      default:
+        message = '暂无帖子内容';
+        icon = AppIcons.forum;
+    }
+
+    return EmptyState(
+      icon: icon,
+      title: message,
+      actionLabel: '发布第一个帖子',
+      onAction: () => _navigateToCreatePost(category),
+    );
   }
-
-  return EmptyState(
-    icon: icon,
-    title: message,
-    actionLabel: '发布第一个帖子',
-    onAction: () => _navigateToCreatePost(category),
-  );
-}
 
   Widget _buildPostCard(ForumPost post) {
     return Container(

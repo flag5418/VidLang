@@ -345,47 +345,53 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
           SizedBox(height: adaptive.Adaptive.h(20)),
 
-          // 快速统计行（学习数据概览）
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(16),
-              vertical: adaptive.Adaptive.h(14),
+          // 快速统计行（学习数据概览，点击跳转详情）
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LearningStatsPage()),
             ),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _quickStatItem(
-                  AppIcons.calendarToday,
-                  '${_summaryStats.totalDays}',
-                  '天数',
-                  colorScheme,
-                ),
-                _quickStatDivider(colorScheme),
-                _quickStatItem(
-                  AppIcons.movieCreation,
-                  '${_summaryStats.videoTotal}',
-                  '视频',
-                  colorScheme,
-                ),
-                _quickStatDivider(colorScheme),
-                _quickStatItem(
-                  AppIcons.musicNote,
-                  '${_summaryStats.audioTotal}',
-                  '音频',
-                  colorScheme,
-                ),
-                _quickStatDivider(colorScheme),
-                _quickStatItem(
-                  AppIcons.menuBook,
-                  '${_summaryStats.articleTotal}',
-                  '文章',
-                  colorScheme,
-                ),
-              ],
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.Adaptive.w(16),
+                vertical: adaptive.Adaptive.h(14),
+              ),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _quickStatItem(
+                    AppIcons.calendarToday,
+                    '${_summaryStats.totalDays}',
+                    '天数',
+                    colorScheme,
+                  ),
+                  _quickStatDivider(colorScheme),
+                  _quickStatItem(
+                    AppIcons.movieCreation,
+                    '${_summaryStats.videoTotal}',
+                    '视频',
+                    colorScheme,
+                  ),
+                  _quickStatDivider(colorScheme),
+                  _quickStatItem(
+                    AppIcons.musicNote,
+                    '${_summaryStats.audioTotal}',
+                    '音频',
+                    colorScheme,
+                  ),
+                  _quickStatDivider(colorScheme),
+                  _quickStatItem(
+                    AppIcons.menuBook,
+                    '${_summaryStats.articleTotal}',
+                    '文章',
+                    colorScheme,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

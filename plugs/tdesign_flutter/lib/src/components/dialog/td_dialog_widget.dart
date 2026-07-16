@@ -41,7 +41,7 @@ class TDDialogScaffold extends StatelessWidget {
   /// iPad：屏幕宽度的 50%，最大 400pt
   double _calculateWidth(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    if (isIPad(context)) {
+    if (isIPad()) {
       // iPad：屏幕宽度的50%，最大400pt
       return (screenWidth * 0.5).clamp(300, 400);
     }

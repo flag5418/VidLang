@@ -71,8 +71,8 @@ class _VideoCardState extends State<VideoCard> {
               _buildThumbnail(context, colors),
               _buildBottomOverlay(context, colors, textStyles),
               _buildSubtitleBadge(context, colors),
-              if (widget.video.lastFollowScore != null)
-                _buildScoreBadge(context, colors, textStyles),
+              // if (widget.video.lastFollowScore != null)
+              //   _buildScoreBadge(context, colors, textStyles),
               _buildMoreButton(context, colors),
               if (widget.isCurrentPlaying)
                 _buildPlayingBadge(context, colors, textStyles),
@@ -230,11 +230,7 @@ class _VideoCardState extends State<VideoCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              AppIcons.mic,
-              size: Adaptive.icon(9),
-              color: Colors.white,
-            ),
+            Icon(AppIcons.mic, size: Adaptive.icon(9), color: Colors.white),
             SizedBox(width: Adaptive.w(2)),
             Text(
               '${score.round()}',
@@ -393,11 +389,7 @@ class _VideoCardState extends State<VideoCard> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              AppIcons.play,
-              size: Adaptive.sp(10),
-              color: Colors.white,
-            ),
+            Icon(AppIcons.play, size: Adaptive.sp(10), color: Colors.white),
             SizedBox(width: Adaptive.w(3)),
             Text(
               '播放中',

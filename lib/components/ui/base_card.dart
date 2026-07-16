@@ -101,7 +101,6 @@ class BaseCard extends StatelessWidget {
   }) {
     return BaseCard(
       key: key,
-      child: child,
       padding: padding,
       margin: margin,
       showBorder: true,
@@ -110,6 +109,7 @@ class BaseCard extends StatelessWidget {
       boxShadow: null, // 无阴影
       onTap: onTap,
       enableScaleAnimation: enableScaleAnimation,
+      child: child,
     );
   }
 
@@ -129,7 +129,6 @@ class BaseCard extends StatelessWidget {
   }) {
     return BaseCard(
       key: key,
-      child: child,
       padding: padding,
       margin: margin,
       showBorder: showBorder,
@@ -149,6 +148,7 @@ class BaseCard extends StatelessWidget {
       ],
       onTap: onTap,
       enableScaleAnimation: enableScaleAnimation,
+      child: child,
     );
   }
 
@@ -167,7 +167,6 @@ class BaseCard extends StatelessWidget {
   }) {
     return BaseCard(
       key: key,
-      child: child,
       padding: padding,
       margin: margin,
       showBorder: false,
@@ -176,6 +175,7 @@ class BaseCard extends StatelessWidget {
       boxShadow: null,
       onTap: onTap,
       enableScaleAnimation: enableScaleAnimation,
+      child: child,
     );
   }
 
@@ -186,9 +186,9 @@ class BaseCard extends StatelessWidget {
     final theme = Theme.of(context);
     final effectiveBackgroundColor =
         backgroundColor ?? theme.colorScheme.surface;
-    final effectiveBorderRadius =
-        borderRadius ?? AppRadius.card;
-    final effectiveBoxShadow = boxShadow ??
+    final effectiveBorderRadius = borderRadius ?? AppRadius.card;
+    final effectiveBoxShadow =
+        boxShadow ??
         (showBorder
             ? null // 描边模式默认无阴影
             : [
@@ -207,10 +207,7 @@ class BaseCard extends StatelessWidget {
         color: effectiveBackgroundColor,
         borderRadius: BorderRadius.circular(effectiveBorderRadius),
         border: showBorder
-            ? Border.all(
-                color: theme.colorScheme.outlineVariant,
-                width: 0.5,
-              )
+            ? Border.all(color: theme.colorScheme.outlineVariant, width: 0.5)
             : null,
         boxShadow: effectiveBoxShadow,
       ),
@@ -262,9 +259,10 @@ class _ClickableWidgetState extends State<_ClickableWidget>
       duration: const Duration(milliseconds: 100),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -294,7 +292,9 @@ class _ClickableWidgetState extends State<_ClickableWidget>
       onTap: widget.onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedBuilder(
-        animation: widget.enableScaleAnimation ? _scaleAnimation : AlwaysStoppedAnimation(1.0),
+        animation: widget.enableScaleAnimation
+            ? _scaleAnimation
+            : AlwaysStoppedAnimation(1.0),
         builder: (context, child) {
           return Transform.scale(
             scale: widget.enableScaleAnimation ? _scaleAnimation.value : 1.0,
@@ -395,8 +395,7 @@ class TitledCard extends StatelessWidget {
                   color: AppColors.textSecondary,
                 ),
 
-              if (leadingIcon != null)
-                SizedBox(width: AppSpacing.sm),
+              if (leadingIcon != null) SizedBox(width: AppSpacing.sm),
 
               Expanded(
                 child: Column(
@@ -405,22 +404,20 @@ class TitledCard extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     if (subtitle != null)
                       Padding(
                         padding: EdgeInsets.only(top: AppSpacing.xs),
                         child: Text(
                           subtitle!,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ),
-                    ],
-                  ),
+                  ],
+                ),
               ),
 
               ...?actions,

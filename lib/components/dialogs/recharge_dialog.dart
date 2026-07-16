@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:flutter/material.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:vidlang/theme/theme.dart';
-
 
 /// 余额不足充值引导弹窗
 /// 多处复用：字幕点击、翻译、TTS、跟读评分等场景
@@ -183,14 +183,14 @@ class RechargeDialog extends StatelessWidget {
     required double balanceCny,
     required String featureName,
     VoidCallback? onGoRecharge,
-    }) {
+  }) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black54,
       barrierLabel: 'RechargeDialog',
       transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) => RechargeDialog(
+      pageBuilder: (_, _, _) => RechargeDialog(
         requiredCny: requiredCny,
         balanceCny: balanceCny,
         featureName: featureName,
@@ -200,7 +200,7 @@ class RechargeDialog extends StatelessWidget {
           onGoRecharge?.call();
         },
       ),
-      transitionBuilder: (_, animation, __, child) =>
+      transitionBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     );
   }

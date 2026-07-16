@@ -6,6 +6,7 @@ import '../../theme/td_spacers.dart';
 import '../../theme/td_theme.dart';
 import '../../util/iterable_ext.dart';
 import '../../util/list_ext.dart';
+import '../../util/adaptive_extension.dart';
 import '../badge/td_badge.dart';
 import '../text/td_text.dart';
 import 'td_action_sheet.dart';
@@ -55,7 +56,10 @@ class _TDActionSheetGridState extends State<TDActionSheetGrid> {
   @override
   Widget build(BuildContext context) {
     final borderRadius = Radius.circular(TDTheme.of(context).radiusExtraLarge);
+    // iPad 下限制最大宽度
+    final maxWidth = isIPad() ? Adaptive.w(540) : double.infinity;
     return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
         borderRadius:
             BorderRadius.only(topLeft: borderRadius, topRight: borderRadius),
@@ -68,7 +72,7 @@ class _TDActionSheetGridState extends State<TDActionSheetGrid> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(height: TDTheme.of(context).spacer8),
+          SizedBox(height: Adaptive.h(TDTheme.of(context).spacer8)),
           if (widget.description != null) _buildDescription(context),
           if (widget.showPagination) ...[
             _buildPaginationGrid(context),
@@ -93,9 +97,9 @@ class _TDActionSheetGridState extends State<TDActionSheetGrid> {
   Widget _buildDescription(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        left: TDTheme.of(context).spacer16,
-        right: TDTheme.of(context).spacer16,
-        top: TDTheme.of(context).spacer4,
+        left: Adaptive.w(TDTheme.of(context).spacer16),
+        right: Adaptive.w(TDTheme.of(context).spacer16),
+        top: Adaptive.h(TDTheme.of(context).spacer4),
       ),
       child: Row(
         mainAxisAlignment: getMainAxisAlignment(widget.align),
@@ -203,14 +207,16 @@ class _TDActionSheetGridState extends State<TDActionSheetGrid> {
   }
 
   Widget _buildPaginationDots(BuildContext context) {
+    final dotSize = Adaptive.w(8.0);
+    final dotSpacing = Adaptive.w(TDTheme.of(context).spacer4);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children:
           List.generate((widget.items.length / widget.count).ceil(), (index) {
         return Container(
-          margin: EdgeInsets.symmetric(horizontal: TDTheme.of(context).spacer4),
-          width: 8.0,
-          height: 8.0,
+          margin: EdgeInsets.symmetric(horizontal: dotSpacing),
+          width: dotSize,
+          height: dotSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: currentPage == index

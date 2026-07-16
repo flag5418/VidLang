@@ -1,7 +1,6 @@
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/study_record.dart';
@@ -1113,9 +1112,12 @@ class LearningStatsService {
 
     // 综合评分计算
     final double dayScore = (totalDays / 30).clamp(0.0, 1.0) * 100;
-    final double resourceScore = totalResources > 0 ? (learnedResources / totalResources).clamp(0.0, 1.0) * 100 : 0;
+    final double resourceScore = totalResources > 0
+        ? (learnedResources / totalResources).clamp(0.0, 1.0) * 100
+        : 0;
     final double streakScore = (streakDays / 30).clamp(0.0, 1.0) * 100;
-    final double compositeScore = ((dayScore + resourceScore + streakScore) / 3);
+    final double compositeScore =
+        ((dayScore + resourceScore + streakScore) / 3);
 
     return DetailOverview(
       totalDays: totalDays,
@@ -1160,15 +1162,17 @@ class LearningStatsService {
         whereArgs: [t['type']],
       );
 
-      results.add(TypeStats(
-        type: t['type']!,
-        icon: t['icon']!,
-        label: t['label']!,
-        learned: uniqueResources.length,
-        total: totalCount,
-        totalDurationSeconds: totalDuration,
-        lastStudyTime: lastStudyTime,
-      ));
+      results.add(
+        TypeStats(
+          type: t['type']!,
+          icon: t['icon']!,
+          label: t['label']!,
+          learned: uniqueResources.length,
+          total: totalCount,
+          totalDurationSeconds: totalDuration,
+          lastStudyTime: lastStudyTime,
+        ),
+      );
     }
     return results;
   }
@@ -1226,9 +1230,15 @@ class LearningStatsService {
   /// 获取「我的」页面汇总统计（内部方法）
   static Future<SummaryStats> _getSummaryStats() async {
     final counts = await Future.wait([
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0"),
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0"),
-      DatabaseService.rawQuery("SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0"),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0",
+      ),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0",
+      ),
+      DatabaseService.rawQuery(
+        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0",
+      ),
     ]);
 
     final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;
@@ -1402,9 +1412,9 @@ class RecentFolderGroup {
 }
 
 /// 兼容性别名：保持原有调用方式不变
-/// 
+///
 /// ⚠️ 已废弃：请直接使用 LearningStatsService 对应方法
-/// 
+///
 /// 迁移映射：
 /// - StatsService.getAllRecentFolders() → LearningStatsService.getAllRecentFolders()
 /// - StatsService.getHomeStats() → LearningStatsService.getHomeStats()

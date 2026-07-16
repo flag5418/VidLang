@@ -111,7 +111,7 @@ class WordCard extends ConsumerStatefulWidget {
       barrierColor: Colors.black45,
       barrierLabel: 'WordCard',
       transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) => WordCard._internal(
+      pageBuilder: (_, _, _) => WordCard._internal(
         word: word,
         contextSentence: contextSentence,
         onSpeak: onSpeak,
@@ -121,7 +121,7 @@ class WordCard extends ConsumerStatefulWidget {
         sourceTitle: sourceTitle,
         segmentCode: segmentCode,
       ),
-      transitionBuilder: (_, animation, __, child) =>
+      transitionBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     );
   }
@@ -142,7 +142,8 @@ class _WordCardState extends ConsumerState<WordCard> {
   late final bool _isSingleWord;
 
   /// 内部自主判定付费模式，不再依赖外部传入
-  bool get _isPaidMode => ref.read(subscriptionProvider).mode == SubscriptionMode.premium;
+  bool get _isPaidMode =>
+      ref.read(subscriptionProvider).mode == SubscriptionMode.premium;
 
   @override
   void initState() {
@@ -151,7 +152,9 @@ class _WordCardState extends ConsumerState<WordCard> {
     if (widget.onSpeak != null) {
       widget.onSpeak!.call();
     } else {
-      final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+      final mode = _isPaidMode
+          ? SubscriptionMode.premium
+          : SubscriptionMode.free;
       if (_isSingleWord) {
         TtsService().speakWord(widget.word, mode: mode);
       } else {

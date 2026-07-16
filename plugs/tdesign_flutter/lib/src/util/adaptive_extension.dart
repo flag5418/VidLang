@@ -106,19 +106,19 @@ class Adaptive {
 
 extension AdaptiveContext on BuildContext {
   /// 文字尺寸 (font scale)
-  double ts(num value) => Adaptive.sp(this);
+  double ts(num value) => Adaptive.sp(value);
 
   /// 通用尺寸 (width/height scale)
-  double s(num value) => Adaptive.w(this);
+  double s(num value) => Adaptive.w(value);
 
   /// 垂直尺寸 (height scale)
-  double h(num value) => Adaptive.h(this);
+  double h(num value) => Adaptive.h(value);
 
   /// 圆角尺寸 (radius scale)
-  double rs(num value) => Adaptive.r(this);
+  double rs(num value) => Adaptive.r(value);
 
   /// 图标尺寸 (icon scale)
-  double is_(num value) => Adaptive.icon(this);
+  double is_(num value) => Adaptive.icon(value);
 
   /// 是否为 iPad 设备
   bool get ipad => isIPad();
