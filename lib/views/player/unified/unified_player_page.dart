@@ -68,7 +68,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
   /// TTS 清晰朗读中
   bool _isTtsSpeaking = false;
 
-  /// 是否处于全屏横屏模式（不改变系统方向，仅切换布局）
+  /// 是否处于全屏横屏模式
   bool _fullscreenLandscape = false;
 
   /// 解析后的封面路径（音频模式）
@@ -111,6 +111,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
     WidgetsBinding.instance.addObserver(this);
 
     // ✅ 关键2：允许所有方向旋转（与参考代码完全一致）
+    // 进入播放器时解锁所有方向，退出时恢复竖屏
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -168,6 +169,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    debugPrint('🗑️ [dispose] 恢复竖屏方向');
     debugPrint('🗑️ [dispose] 恢复竖屏方向');
 
     // ✅ 清理逻辑层
@@ -586,7 +588,20 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
       _fullscreenLandscape = !_fullscreenLandscape;
     });
 
-    debugPrint('🔄 [_toggleFullscreen] 切换为全屏横屏=$_fullscreenLandscape');
+    // 切换系统方向偏好
+    if (_fullscreenLandscape) {
+      debugPrint('🔄 [_toggleFullscreen] 锁定横屏方向');
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      debugPrint('🔄 [_toggleFullscreen] 锁定竖屏方向');
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════

@@ -58,6 +58,8 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
 import 'package:vidlang/views/test/audio_test_page.dart';
 import 'package:vidlang/views/test/orientation_test_page.dart';  // 🧪 方向测试页面
+import 'package:vidlang/services/app_router_manager.dart';
+import 'package:vidlang/views/player/unified/unified_player_page.dart';
 // import 'package:vidlang/views/test/shengtong_http_test_page.dart'; // 已删除 HTTP 评测器
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
@@ -152,6 +154,10 @@ void main() {
 
 Future<void> _initializeAsyncDependencies() async {
   try {
+    // 注册页面配置（必须在 runApp 之前调用）
+    // 注意：这里延迟注册，因为 AppRouterManager 需要在 Navigator 可用后才能工作
+    // 实际注册在 VidLangApp 的 initState 中完成
+
     await Supabase.initialize(
       url: AppKeysService.supabaseUrl,
       anonKey: AppKeysService.supabaseAnonKey,
@@ -272,6 +278,17 @@ class _VidLangAppState extends State<VidLangApp> {
     _forceLogoutSub = AuthService.instance.forceLogoutStream.listen((_) {
       _handleForceLogout();
     });
+
+    // 注册页面配置到 AppRouterManager
+    _registerPageConfigs();
+  }
+
+  void _registerPageConfigs() {
+    // 注册播放器页面：允许横竖屏 + 沉浸式 + 屏幕常亮
+    AppRouterManager.registerPage(
+      UnifiedPlayerPage,
+      PageConfiguration.player(),
+    );
   }
 
   @override
@@ -325,6 +342,7 @@ class _VidLangAppState extends State<VidLangApp> {
               darkTheme: AppTheme.darkTheme,
               themeMode: ref.watch(themeModeProvider).themeMode,
               debugShowCheckedModeBanner: false,
+              navigatorObservers: [AppRouterManager.instance],
               routes: {
                 '/login': (_) => const LoginPage(),
                 '/audio-test': (_) => const AudioTestPage(),

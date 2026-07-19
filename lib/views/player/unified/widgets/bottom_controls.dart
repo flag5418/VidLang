@@ -441,7 +441,7 @@ class BottomControls extends ConsumerWidget {
                   ),
                   SizedBox(width: adaptive.Adaptive.w(8)),
 
-                  // 全屏按钮
+                  // 全屏按钮（横屏专用，切换 _fullscreenLandscape 状态）
                   if (isVideo)
                     _buildIconButton(
                       context: context,
@@ -449,6 +449,7 @@ class BottomControls extends ConsumerWidget {
                       size: btnSize,
                       iconSize: iconSize,
                       onTap: () => onToggleFullscreen?.call(),
+                      tooltip: '全屏',
                     ),
                 ],
               ],
