@@ -116,9 +116,16 @@ class SideDrawer extends ConsumerWidget {
     );
   }
 
-  double _getDrawerWidth(BuildContext context) => adaptive.isIPad()
-      ? adaptive.Adaptive.w(400)
-      : adaptive.Adaptive.w(320);
+  double _getDrawerWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (adaptive.isIPad()) {
+      return (screenWidth * 0.33).clamp(
+        adaptive.Adaptive.w(280),
+        screenWidth * 0.5,
+      ).toDouble();
+    }
+    return adaptive.Adaptive.w(320);
+  }
 
   /// 主内容区（仅资源列表）
   Widget _buildDrawerContent(BuildContext context, WidgetRef ref) {
