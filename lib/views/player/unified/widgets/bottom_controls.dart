@@ -297,86 +297,116 @@ class BottomControls extends ConsumerWidget {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 横屏布局 (Landscape)
+  // 横屏布局 (Landscape) — 2行：进度条 + 控制按钮
   // ═══════════════════════════════════════════════════════════
 
   Widget _buildLandscapeLayout(BuildContext context) {
-    final btnSize = adaptive.Adaptive.w(40);
-    final iconSize = adaptive.Adaptive.icon(20);
+    final btnSize = adaptive.Adaptive.w(36);
+    final iconSize = adaptive.Adaptive.icon(18);
 
     return Container(
       color: Colors.black.withValues(alpha: 0.6),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: adaptive.Adaptive.w(12),
-            vertical: adaptive.Adaptive.h(6),
-          ),
-          child: Row(
-            children: [
-              _buildIconButton(
-                context: context,
-                icon: AppIcons.skipPrevious,
-                size: btnSize,
-                iconSize: iconSize,
-                onTap: () => notifier.previousSentence(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 第一行：进度条 + 两端时间
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.Adaptive.w(12),
+                vertical: adaptive.Adaptive.h(4),
               ),
-              // 播放/暂停（统一样式）
-              _buildIconButton(
-                context: context,
-                icon: state.playerState == PlayerState.playing
-                    ? AppIcons.pause
-                    : AppIcons.play,
-                size: btnSize + 8,
-                iconSize: iconSize + 2,
-                onTap: () => notifier.togglePlayPause(),
+              child: Row(
+                children: [
+                  Text(
+                    UnifiedPlayerLogic.fmtDuration(state.position),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: adaptive.Adaptive.sp(11),
+                    ),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  Expanded(child: _buildProgressBar(context)),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  Text(
+                    UnifiedPlayerLogic.fmtDuration(state.duration),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: adaptive.Adaptive.sp(11),
+                    ),
+                  ),
+                ],
               ),
-              _buildIconButton(
-                context: context,
-                icon: AppIcons.skipNext,
-                size: btnSize,
-                iconSize: iconSize,
-                onTap: () => notifier.nextSentence(),
+            ),
+
+            // 第二行：控制按钮（左右对称，参考竖屏按钮组）
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.Adaptive.w(12),
+                vertical: adaptive.Adaptive.h(4),
               ),
+              child: Row(
+                children: [
+                  // 左侧：上一句 / 播放 / 下一句
+                  _buildIconButton(
+                    context: context,
+                    icon: AppIcons.skipPrevious,
+                    size: btnSize,
+                    iconSize: iconSize,
+                    onTap: () => notifier.previousSentence(),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  _buildIconButton(
+                    context: context,
+                    icon: state.playerState == PlayerState.playing
+                        ? AppIcons.pause
+                        : AppIcons.play,
+                    size: btnSize + 4,
+                    iconSize: iconSize + 2,
+                    onTap: () => notifier.togglePlayPause(),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  _buildIconButton(
+                    context: context,
+                    icon: AppIcons.skipNext,
+                    size: btnSize,
+                    iconSize: iconSize,
+                    onTap: () => notifier.nextSentence(),
+                  ),
 
-              SizedBox(width: adaptive.Adaptive.w(12)),
+                  const Spacer(),
 
-              // 时间
-              Text(
-                '${UnifiedPlayerLogic.fmtDuration(state.position)} / ${UnifiedPlayerLogic.fmtDuration(state.duration)}',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: adaptive.Adaptive.sp(11),
-                ),
-              ),
-
-              SizedBox(width: adaptive.Adaptive.w(12)),
-
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (hasSubtitles) ...[
-                      _buildCompactTextBtn(
+                  // 右侧：功能按钮（与竖屏一致的完整按钮组）
+                  if (hasSubtitles) ...[
+                    _buildCompactTextBtn(
+                      context,
+                      '翻译',
+                      () => notifier.toggleTranslateVisible(),
+                      isActive: state.translateVisible,
+                    ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+                    _buildCompactTextBtn(
+                      context,
+                      '单句停',
+                      () => notifier.toggleSingleSentencePause(),
+                      isActive: state.singleSentencePause,
+                    ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+                    Container(
+                      key: loopKey,
+                      child: _buildCompactTextBtn(
                         context,
-                        '翻译',
-                        () => notifier.toggleTranslateVisible(),
+                        _getShortLoopModeLabel(),
+                        () => _onShowLoopPicker(context),
                       ),
-                      SizedBox(width: adaptive.Adaptive.w(6)),
-                      _buildCompactTextBtn(
-                        context,
-                        '单句停',
-                        () => notifier.toggleSingleSentencePause(),
-                      ),
-                      SizedBox(width: adaptive.Adaptive.w(6)),
-                    ],
-
-                    // 倍速（始终显示）
+                    ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
                     GestureDetector(
+                      key: speedKey,
                       onTap: () => _onShowSpeedPicker(context),
-                      child: Padding(
+                      child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: adaptive.Adaptive.w(6),
                           vertical: adaptive.Adaptive.h(4),
@@ -384,19 +414,36 @@ class BottomControls extends ConsumerWidget {
                         child: Text(
                           '${state.speed.toStringAsFixed(1)}X',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.primary,
+                            fontSize: adaptive.Adaptive.sp(12),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+                    GestureDetector(
+                      key: fontSizeKey,
+                      onTap: () => _onShowFontSizePicker(context),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: adaptive.Adaptive.w(6),
+                          vertical: adaptive.Adaptive.h(4),
+                        ),
+                        child: Text(
+                          '${state.subtitleFontSize.toInt()}',
+                          style: TextStyle(
+                            color: Colors.white70,
                             fontSize: adaptive.Adaptive.sp(12),
                           ),
                         ),
                       ),
                     ),
-
-                    if (hasSubtitles) SizedBox(width: adaptive.Adaptive.w(8)),
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
