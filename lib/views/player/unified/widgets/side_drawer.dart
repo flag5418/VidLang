@@ -1,20 +1,20 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/video_info.dart';
-import 'package:vidlang/views/player/unified/providers/player_engine_provider.dart';
+import 'package:vidlang/services/files/thumbnail_service.dart';
 import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
-/// 侧边栏（双Tab：资源列表 / 播放设置）
+/// 侧边栏（资源列表）
 ///
-/// 布局设计（基于 V1.2 文档）:
-/// - Tab1: 资源列表（封面+标题+图标+时长）
-/// - Tab2: 播放设置（Radio播放模式/Slider字号/Popup倍速和循环）
-/// - 样式: BackdropFilter 毛玻璃 + 黑色半透明背景
+/// 布局设计:
+/// - 滑出模式: 右侧滑出，毛玻璃背景 + 黑色半透明
+/// - 固定模式: iPad 横屏分栏
+/// - 列表项: 缩略图 + 标题 + 进度条 + 时长 + 字幕标签
 class SideDrawer extends ConsumerWidget {
   final bool isOpen;
   final bool isPermanent;
@@ -120,68 +120,56 @@ class SideDrawer extends ConsumerWidget {
       ? adaptive.Adaptive.w(400)
       : adaptive.Adaptive.w(320);
 
-  /// 主内容区（Tab 切换）
+  /// 主内容区（仅资源列表）
   Widget _buildDrawerContent(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
+    return Column(
+      children: [
+        // 标题栏
+        _buildTitleBar(context),
+
+        // 分隔线
+        Divider(height: 1, color: Colors.white10),
+
+        // 资源列表
+        Expanded(child: _buildResourceList(context)),
+      ],
+    );
+  }
+
+  /// 标题栏
+  Widget _buildTitleBar(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(16),
+        vertical: adaptive.Adaptive.h(12),
+      ),
+      child: Row(
         children: [
-          // Tab 栏
-          _buildTabBar(context),
-
-          // 分隔线
-          Divider(height: 1, color: Colors.white10),
-
-          // 内容
-          Expanded(
-            child: TabBarView(
-              children: [
-                _buildResourceListTab(context),
-                _buildSettingsTab(context, ref),
-              ],
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(16),
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white70),
+            onPressed: onClose,
+            constraints: const BoxConstraints(),
+            padding: EdgeInsets.zero,
           ),
         ],
       ),
     );
   }
 
-  /// Tab 栏
-  Widget _buildTabBar(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(16),
-      ),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
-      ),
-      child: TabBar(
-        labelColor: AppColors.primary,
-        unselectedLabelColor: Colors.white70,
-        indicatorColor: AppColors.primary,
-        indicatorSize: TabBarIndicatorSize.label,
-        indicatorWeight: 2,
-        labelStyle: TextStyle(
-          fontSize: adaptive.Adaptive.sp(14),
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontSize: adaptive.Adaptive.sp(14),
-          fontWeight: FontWeight.normal,
-        ),
-        tabs: [
-          Tab(text: '资源列表'),
-          Tab(text: '播放设置'),
-        ],
-      ),
-    );
-  }
-
   // ═══════════════════════════════════════════════════════════
-  // Tab1: 资源列表
+  // 资源列表
   // ═══════════════════════════════════════════════════════════
 
-  Widget _buildResourceListTab(BuildContext context) {
+  Widget _buildResourceList(BuildContext context) {
     if (videos.isEmpty) {
       return Center(
         child: Column(
@@ -207,26 +195,22 @@ class SideDrawer extends ConsumerWidget {
         vertical: adaptive.Adaptive.h(8),
       ),
       itemCount: videos.length,
-      separatorBuilder: (_, _) => Divider(height: 1, color: Colors.white10),
-      itemBuilder: (ctx, index) => _buildListItem(ctx, videos[index]),
+      separatorBuilder: (_, __) => SizedBox(height: adaptive.Adaptive.h(8)),
+      itemBuilder: (ctx, index) => _buildListItem(videos[index]),
     );
   }
 
-  /// 列表项（对齐 _buildRecentItem 卡片风格）
-  Widget _buildListItem(BuildContext context, VideoInfo video) {
+  /// 列表项（对齐 VideoCard 风格）
+  Widget _buildListItem(VideoInfo video) {
     final isSelected = video.code == currentVideoCode;
+    final progress = _getProgress(video);
 
     return GestureDetector(
       onTap: () => onSwitchTo(video.code ?? ''),
       child: Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(8),
-          vertical: adaptive.Adaptive.h(4),
-        ),
-        padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+          color: const Color(0xFF2A2A2A),
           border: Border.all(
             color: isSelected
                 ? AppColors.primary.withValues(alpha: 0.4)
@@ -234,343 +218,130 @@ class SideDrawer extends ConsumerWidget {
             width: 0.5,
           ),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 第一行：图标 + 标题 + 时长
-            Row(
-              children: [
-                Icon(
-                  isSelected
-                      ? AppIcons.playCircleFill
-                      : AppIcons.videoLibrary,
-                  size: adaptive.Adaptive.sp(18),
-                  color: isSelected
-                      ? AppColors.primary
-                      : const Color(0xFF808080),
+            // 左侧：缩略图
+            SizedBox(
+              width: adaptive.Adaptive.w(80),
+              height: adaptive.Adaptive.h(60),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
                 ),
-                SizedBox(width: adaptive.Adaptive.w(8)),
-                Expanded(
-                  child: Text(
-                    video.name,
-                    style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(14),
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? AppColors.primary
-                          : Colors.white,
+                child: _buildThumbnail(video),
+              ),
+            ),
+
+            // 右侧：信息列
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(adaptive.Adaptive.w(10)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 标题
+                    Text(
+                      video.name,
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(14),
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? AppColors.primary
+                            : Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    SizedBox(height: adaptive.Adaptive.h(4)),
+
+                    // 进度条
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 3,
+                        backgroundColor: Colors.white.withValues(alpha: 0.08),
+                        valueColor: AlwaysStoppedAnimation(
+                          isSelected
+                              ? AppColors.primary
+                              : AppColors.primary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: adaptive.Adaptive.h(4)),
+
+                    // 时长行
+                    Row(
+                      children: [
+                        Icon(
+                          AppIcons.schedule,
+                          size: adaptive.Adaptive.sp(10),
+                          color: Colors.white54,
+                        ),
+                        SizedBox(width: adaptive.Adaptive.w(4)),
+                        Text(
+                          '${video.currentPositionString} / ${video.durationString}',
+                          style: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(11),
+                            color: Colors.white54,
+                          ),
+                        ),
+                        if (video.hasSubtitles) ...[
+                          SizedBox(width: adaptive.Adaptive.w(8)),
+                          Icon(
+                            AppIcons.subtitles,
+                            size: adaptive.Adaptive.sp(12),
+                            color: Colors.white38,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
-                Text(
-                  _formatDuration(video.duration),
-                  style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(11),
-                    color: Colors.white54,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: adaptive.Adaptive.h(8)),
-            // 第二行：详细信息
-            Row(
-              children: [
-                if (video.hasSubtitles) ...[
-                  Icon(
-                    AppIcons.subtitles,
-                    size: adaptive.Adaptive.sp(12),
-                    color: Colors.white38,
-                  ),
-                  SizedBox(width: adaptive.Adaptive.w(4)),
-                ],
-                Icon(
-                  AppIcons.history,
-                  size: adaptive.Adaptive.sp(12),
-                  color: Colors.white38,
-                ),
-                SizedBox(width: adaptive.Adaptive.w(4)),
-                Icon(
-                  AppIcons.favoriteBorder,
-                  size: adaptive.Adaptive.sp(12),
-                  color: Colors.white38,
-                ),
-              ],
-            ),
-            SizedBox(height: adaptive.Adaptive.h(8)),
-            // 第三行：进度条
-            _buildProgressBar(video, isSelected),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProgressBar(VideoInfo video, bool isSelected) {
-    final progress = video.currentPosition > 0 && video.duration > 0
-        ? (video.currentPosition / video.duration).clamp(0.0, 1.0)
-        : 0.0;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(2)),
-      child: LinearProgressIndicator(
-        value: progress,
-        minHeight: adaptive.Adaptive.h(3),
-        backgroundColor: Colors.white.withValues(alpha: 0.08),
-        valueColor: AlwaysStoppedAnimation(
-          isSelected ? AppColors.primary : AppColors.primary.withValues(alpha: 0.5),
-        ),
-      ),
-    );
-  }
-
-  String _formatDuration(int seconds) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // Tab2: 播放设置
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildSettingsTab(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(playerEngineProvider);
-    final notifier = ref.read(playerEngineProvider.notifier);
-
-    return ListView(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
-      children: [
-        // 播放模式
-        _buildSectionTitle(context, '播放模式'),
-        SizedBox(height: adaptive.Adaptive.h(8)),
-        _buildLoopModeSelector(context, state.loopingMode, notifier),
-
-        SizedBox(height: adaptive.Adaptive.h(24)),
-
-        // 字号
-        _buildSectionTitle(context, '字号'),
-        SizedBox(height: adaptive.Adaptive.h(8)),
-        _buildFontSizeSlider(context, state.subtitleFontSize, notifier),
-
-        SizedBox(height: adaptive.Adaptive.h(24)),
-
-        // 倍速
-        _buildSectionTitle(context, '倍速'),
-        SizedBox(height: adaptive.Adaptive.h(8)),
-        _buildSpeedButton(context, state.speed, notifier),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String text) {
-    return Text(
-      text,
-      style: TextStyle(
-        color: Colors.white70,
-        fontSize: adaptive.Adaptive.sp(13),
-        fontWeight: FontWeight.w500,
-      ),
-    );
-  }
-
-  /// 循环模式选择器 (Radio 组)
-  Widget _buildLoopModeSelector(
-    BuildContext context,
-    String currentMode,
-    PlayerEngineNotifier notifier,
-  ) {
-    final modes = [
-      ('single_play', '单集播放'),
-      ('list_loop', '列表循环'),
-      ('single_loop', '单集循环'),
-      ('sequence_play', '顺序播放'),
-    ];
-
-    return Wrap(
-      spacing: adaptive.Adaptive.w(8),
-      runSpacing: adaptive.Adaptive.h(8),
-      children: modes.map((m) {
-        final selected = currentMode == m.$1;
-        return GestureDetector(
-          onTap: () => notifier.setLoopingMode(m.$1),
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(14),
-              vertical: adaptive.Adaptive.h(8),
-            ),
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.primary.withValues(alpha: 0.2)
-                  : Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(
-                adaptive.Adaptive.r(20),
-              ),
-              border: selected
-                  ? Border.all(color: AppColors.primary.withValues(alpha: 0.5))
-                  : null,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  selected
-                      ? Icons.radio_button_checked_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  size: 16,
-                  color: selected ? AppColors.primary : Colors.white54,
-                ),
-                SizedBox(width: adaptive.Adaptive.w(6)),
-                Text(
-                  m.$2,
-                  style: TextStyle(
-                    color: selected ? AppColors.primary : Colors.white70,
-                    fontSize: adaptive.Adaptive.sp(13),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  /// 字号 Slider
-  Widget _buildFontSizeSlider(
-    BuildContext context,
-    double value,
-    PlayerEngineNotifier notifier,
-  ) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '小',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: adaptive.Adaptive.sp(11),
-              ),
-            ),
-            Text(
-              '${value.toInt()}',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: adaptive.Adaptive.sp(14),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              '大',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: adaptive.Adaptive.sp(11),
               ),
             ),
           ],
         ),
-        SizedBox(height: adaptive.Adaptive.h(8)),
-        SliderTheme(
-          data: SliderThemeData(
-            trackHeight: 3,
-            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: Colors.white24,
-            thumbColor: AppColors.primary,
-            overlayColor: AppColors.primary.withValues(alpha: 0.15),
-          ),
-          child: Slider(
-            value: value.clamp(12.0, 40.0),
-            min: 12,
-            max: 40,
-            divisions: 28,
-            onChanged: (v) => notifier.setSubtitleFontSize(v),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 倍速按钮（触发 ActionSheet）
-  Widget _buildSpeedButton(
-    BuildContext context,
-    double speed,
-    PlayerEngineNotifier notifier,
-  ) {
-    return GestureDetector(
-      onTap: () => _showSpeedPicker(context, speed, notifier),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(16),
-          vertical: adaptive.Adaptive.h(14),
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(AppIcons.speed, size: 18, color: Colors.white70),
-                SizedBox(width: adaptive.Adaptive.w(10)),
-                Text(
-                  '播放速度',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: adaptive.Adaptive.sp(14),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Text(
-                  '${speed.toStringAsFixed(1)}X',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: adaptive.Adaptive.sp(14),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: adaptive.Adaptive.w(4)),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 18,
-                  color: Colors.white38,
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  void _showSpeedPicker(
-    BuildContext context,
-    double current,
-    PlayerEngineNotifier notifier,
-  ) {
-    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-
-    TDActionSheet.showListActionSheet(
-      context,
-      items: speeds.map((s) {
-        final label = s == 1.0 ? '${s}X (正常)' : '${s.toStringAsFixed(2)}X';
-        return TDActionSheetItem(label: label);
-      }).toList(),
-      onSelected: (item, index) {
-        notifier.setSpeed(speeds[index]);
-      },
-    );
+  double _getProgress(VideoInfo video) {
+    if (video.duration <= 0) return 0.0;
+    return (video.currentPosition / video.duration).clamp(0.0, 1.0);
   }
 
+  Widget _buildThumbnail(VideoInfo video) {
+    final cover = video.currentCover ?? video.cover;
+    if (cover != null && cover.isNotEmpty) {
+      return FutureBuilder<String>(
+        future: ThumbnailService.getFullPath(cover),
+        builder: (context, snapshot) {
+          final path = snapshot.data;
+          if (path != null && File(path).existsSync()) {
+            return Image.file(
+              File(path),
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _thumbnailPlaceholder(),
+            );
+          }
+          return _thumbnailPlaceholder();
+        },
+      );
+    }
+    return _thumbnailPlaceholder();
+  }
+
+  Widget _thumbnailPlaceholder() {
+    return Container(
+      color: const Color(0xFF1A1A1A),
+      child: Icon(
+        AppIcons.movie,
+        size: adaptive.Adaptive.sp(22),
+        color: Colors.white24,
+      ),
+    );
+  }
 }
