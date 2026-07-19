@@ -340,36 +340,38 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
     if (isPad && isLandscape) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: Row(
-          children: [
-            Expanded(
-              flex: 7,
-              child: _buildPlayerStack(
-                state: state,
-                notifier: notifier,
-                subtitlesList: subtitlesList,
-                hasSubtitles: hasSubtitles,
-                currentSub: currentSub,
-                colors: colors,
-                showDrawerPermanent: true,
-                isLandscape: isLandscape,
+        body: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                flex: 7,
+                child: _buildPlayerStack(
+                  state: state,
+                  notifier: notifier,
+                  subtitlesList: subtitlesList,
+                  hasSubtitles: hasSubtitles,
+                  currentSub: currentSub,
+                  colors: colors,
+                  showDrawerPermanent: true,
+                  isLandscape: isLandscape,
+                ),
               ),
-            ),
-            Expanded(
-              flex: 3,
-              child: SideDrawer(
-                isOpen: true,
-                isPermanent: true,
-                videos: _getVideoList(state),
-                currentVideoCode: state.videoCode ?? '',
-                title: widget.isVideo ? '推荐视频' : '音频列表',
-                onSwitchTo: (code) {
-                  _switchResource(code, notifier);
-                },
-                onClose: () {},
+              Expanded(
+                flex: 3,
+                child: SideDrawer(
+                  isOpen: true,
+                  isPermanent: true,
+                  videos: _getVideoList(state),
+                  currentVideoCode: state.videoCode ?? '',
+                  title: widget.isVideo ? '推荐视频' : '音频列表',
+                  onSwitchTo: (code) {
+                    _switchResource(code, notifier);
+                  },
+                  onClose: () {},
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -473,7 +475,6 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             loopKey: _loopKey,
           ),
         ),
-
 
         if (_showFollow && currentSub != null && !_showFollowPanelBlocked)
           Positioned(

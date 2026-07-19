@@ -43,10 +43,12 @@ class SideDrawer extends ConsumerWidget {
       return _buildPermanentDrawer(context, drawerContent);
     }
 
-    // 滑出模式
     if (!isOpen) return const SizedBox.shrink();
 
-    // 遮罩层
+    return _buildSlidingDrawer(context, drawerContent);
+  }
+
+  Widget _buildSlidingDrawer(BuildContext context, Widget drawerContent) {
     return GestureDetector(
       onTap: onClose,
       behavior: HitTestBehavior.opaque,
@@ -60,29 +62,37 @@ class SideDrawer extends ConsumerWidget {
           child: FractionallySizedBox(
             widthFactor: adaptive.isIPad() ? 0.35 : 0.8,
             alignment: Alignment.centerRight,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  width: _getDrawerWidth(context),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.72),
-                    border: Border(
-                      left: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: drawerContent,
-                ),
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: _buildDrawerContainer(context, drawerContent),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerContainer(BuildContext context, Widget drawerContent) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(16),
+        bottomLeft: Radius.circular(16),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: _getDrawerWidth(context),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.72),
+            border: Border(
+              left: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+                width: 0.5,
               ),
             ),
           ),
+          child: drawerContent,
         ),
       ),
     );
@@ -98,7 +108,11 @@ class SideDrawer extends ConsumerWidget {
           left: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
       ),
-      child: content,
+      child: SafeArea(
+        top: true,
+        bottom: false,
+        child: content,
+      ),
     );
   }
 
@@ -198,135 +212,116 @@ class SideDrawer extends ConsumerWidget {
     );
   }
 
-  /// 列表项（对齐学习记录卡片风格）
+  /// 列表项（对齐 _buildRecentItem 卡片风格）
   Widget _buildListItem(BuildContext context, VideoInfo video) {
     final isSelected = video.code == currentVideoCode;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => onSwitchTo(video.code ?? ''),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
-        child: Container(
-          margin: EdgeInsets.symmetric(
-            horizontal: adaptive.Adaptive.w(8),
-            vertical: adaptive.Adaptive.h(4),
+    return GestureDetector(
+      onTap: () => onSwitchTo(video.code ?? ''),
+      child: Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(8),
+          vertical: adaptive.Adaptive.h(4),
+        ),
+        padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : Colors.white.withValues(alpha: 0.08),
+            width: 0.5,
           ),
-          padding: EdgeInsets.all(adaptive.Adaptive.r(14)),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.4)
-                  : Colors.white.withValues(alpha: 0.08),
-              width: 0.5,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 左侧：封面缩略图
-              _buildThumbnail(context, video),
-
-              SizedBox(width: adaptive.Adaptive.w(12)),
-
-              // 右侧：信息列
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      video.name,
-                      style: TextStyle(
-                        fontSize: adaptive.Adaptive.sp(14),
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? AppColors.primary
-                            : Colors.white,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: adaptive.Adaptive.h(6)),
-                    Row(
-                      children: [
-                        Icon(
-                          isSelected
-                              ? AppIcons.playCircleFill
-                              : AppIcons.playCircleOutline,
-                          size: adaptive.Adaptive.sp(12),
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.white38,
-                        ),
-                        SizedBox(width: adaptive.Adaptive.w(4)),
-                        Text(
-                          _formatDuration(video.duration),
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: adaptive.Adaptive.sp(11),
-                          ),
-                        ),
-                        if (video.hasSubtitles) ...[
-                          SizedBox(width: adaptive.Adaptive.w(8)),
-                          Icon(
-                            AppIcons.subtitles,
-                            size: adaptive.Adaptive.sp(12),
-                            color: Colors.white38,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 第一行：图标 + 标题 + 时长
+            Row(
+              children: [
+                Icon(
+                  isSelected
+                      ? AppIcons.playCircleFill
+                      : AppIcons.videoLibrary,
+                  size: adaptive.Adaptive.sp(18),
+                  color: isSelected
+                      ? AppColors.primary
+                      : const Color(0xFF808080),
                 ),
-              ),
-
-              SizedBox(width: adaptive.Adaptive.w(8)),
-
-              // 当前播放指示条
-              if (isSelected)
-                Container(
-                  width: adaptive.Adaptive.w(4),
-                  height: adaptive.Adaptive.h(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
+                SizedBox(width: adaptive.Adaptive.w(8)),
+                Expanded(
+                  child: Text(
+                    video.name,
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(14),
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? AppColors.primary
+                          : Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-            ],
-          ),
+                Text(
+                  _formatDuration(video.duration),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(11),
+                    color: Colors.white54,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: adaptive.Adaptive.h(8)),
+            // 第二行：详细信息
+            Row(
+              children: [
+                if (video.hasSubtitles) ...[
+                  Icon(
+                    AppIcons.subtitles,
+                    size: adaptive.Adaptive.sp(12),
+                    color: Colors.white38,
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(4)),
+                ],
+                Icon(
+                  AppIcons.history,
+                  size: adaptive.Adaptive.sp(12),
+                  color: Colors.white38,
+                ),
+                SizedBox(width: adaptive.Adaptive.w(4)),
+                Icon(
+                  AppIcons.favoriteBorder,
+                  size: adaptive.Adaptive.sp(12),
+                  color: Colors.white38,
+                ),
+              ],
+            ),
+            SizedBox(height: adaptive.Adaptive.h(8)),
+            // 第三行：进度条
+            _buildProgressBar(video, isSelected),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildThumbnail(BuildContext context, VideoInfo video) {
-    if (video.cover != null && video.cover!.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.network(
-          video.cover!,
-          width: adaptive.Adaptive.w(56),
-          height: adaptive.Adaptive.h(42),
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _placeholderIcon(context),
-        ),
-      );
-    }
-    return _placeholderIcon(context);
-  }
+  Widget _buildProgressBar(VideoInfo video, bool isSelected) {
+    final progress = video.currentPosition > 0 && video.duration > 0
+        ? (video.currentPosition / video.duration).clamp(0.0, 1.0)
+        : 0.0;
 
-  Widget _placeholderIcon(BuildContext context) {
-    return Container(
-      width: adaptive.Adaptive.w(56),
-      height: adaptive.Adaptive.h(42),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(2)),
+      child: LinearProgressIndicator(
+        value: progress,
+        minHeight: adaptive.Adaptive.h(3),
+        backgroundColor: Colors.white.withValues(alpha: 0.08),
+        valueColor: AlwaysStoppedAnimation(
+          isSelected ? AppColors.primary : AppColors.primary.withValues(alpha: 0.5),
+        ),
       ),
-      child: Icon(AppIcons.musicNote, size: 20, color: Colors.white30),
     );
   }
 

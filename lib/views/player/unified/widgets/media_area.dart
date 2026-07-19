@@ -394,14 +394,7 @@ class MediaArea extends StatelessWidget {
                 isCurrent && showCurrentHighlight ? 8 : 5,
               ),
             ),
-            decoration: BoxDecoration(
-              // 当前句：左侧 primary 色指示条（竖屏视频字幕不显示，仅保留文字亮度区分）
-              border: isCurrent && showCurrentHighlight && showLeftBorder
-                  ? const Border(
-                      left: BorderSide(color: AppColors.primary, width: 3),
-                    )
-                  : null,
-            ),
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
