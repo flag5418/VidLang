@@ -68,6 +68,9 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
   /// TTS 清晰朗读中
   bool _isTtsSpeaking = false;
 
+  /// 是否处于全屏横屏模式（不改变系统方向，仅切换布局）
+  bool _fullscreenLandscape = false;
+
   /// 解析后的封面路径（音频模式）
   String? _resolvedCoverPath;
 
@@ -321,7 +324,8 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
 
     // ✅ 关键改进：直接使用 MediaQuery.of(context).orientation（与参考代码一致）
     // 不再依赖全局状态 _isLandscapeMode，完全由系统驱动
-    final isLandscape =
+    // 全屏模式下强制横屏布局，不改变系统方向
+    final isLandscape = _fullscreenLandscape ||
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     // 详细日志：每次 build 都输出当前状态（方便排查布局问题）
@@ -470,6 +474,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             onShowSpeedPicker: (ctx) => _toggleSpeedPicker(ctx),
             onShowFontSizePicker: (ctx) => _toggleFontSizePicker(ctx),
             onShowLoopPicker: (ctx) => _toggleLoopModePicker(ctx),
+            onToggleFullscreen: _toggleFullscreen,
             speedKey: _speedKey,
             fontSizeKey: _fontSizeKey,
             loopKey: _loopKey,
@@ -519,7 +524,8 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
           Positioned(
             right: adaptive.Adaptive.w(12),
             // 字幕区域中间位置：视频区域下方 + 字幕区域高度的 50%
-            top: MediaQuery.of(context).size.height * 0.5 -
+            top:
+                MediaQuery.of(context).size.height * 0.5 -
                 adaptive.Adaptive.h(140) * 0.5,
             child: _FloatingActionButtons(
               isTtsSpeaking: _isTtsSpeaking,
@@ -574,45 +580,13 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
   /// 全屏切换按钮处理
   void _toggleFullscreen() {
     debugPrint('🔄 [_toggleFullscreen] 按钮被点击！');
+    debugPrint('🔄 [_toggleFullscreen] 当前全屏横屏=$_fullscreenLandscape');
 
-    final orientation = MediaQuery.of(context).orientation;
-    final isCurrentlyLandscape = orientation == Orientation.landscape;
+    setState(() {
+      _fullscreenLandscape = !_fullscreenLandscape;
+    });
 
-    debugPrint(
-      '🔄 [_toggleFullscreen] '
-      '当前方向=${isCurrentlyLandscape ? "横屏" : "竖屏"}, '
-      '准备切换...',
-    );
-
-    if (isCurrentlyLandscape) {
-      // 当前是横屏 → 切换到竖屏
-      debugPrint('🔄 [_toggleFullscreen] 设置竖屏方向...');
-      SystemChrome.setPreferredOrientations([
-            DeviceOrientation.portraitUp,
-            DeviceOrientation.portraitDown,
-          ])
-          .then((_) {
-            setState(() {});
-            debugPrint('✅ [_toggleFullscreen] 竖屏方向设置完成');
-          })
-          .catchError((e) {
-            debugPrint('❌ [_toggleFullscreen] 竖屏方向设置失败: $e');
-          });
-    } else {
-      // 当前是竖屏 → 切换到横屏
-      debugPrint('🔄 [_toggleFullscreen] 设置横屏方向...');
-      SystemChrome.setPreferredOrientations([
-            DeviceOrientation.landscapeLeft,
-            DeviceOrientation.landscapeRight,
-          ])
-          .then((_) {
-            setState(() {});
-            debugPrint('✅ [_toggleFullscreen] 横屏方向设置完成');
-          })
-          .catchError((e) {
-            debugPrint('❌ [_toggleFullscreen] 横屏方向设置失败: $e');
-          });
-    }
+    debugPrint('🔄 [_toggleFullscreen] 切换为全屏横屏=$_fullscreenLandscape');
   }
 
   // ═══════════════════════════════════════════════════════════
