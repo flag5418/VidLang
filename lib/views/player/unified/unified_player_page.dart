@@ -503,9 +503,8 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             ),
           ),
 
-        // 竖屏模式下：仅当用户主动点击列表按钮时才显示滑出式侧边栏
-        // 横屏 iPad 模式下：使用永久固定侧边栏（由 showDrawerPermanent 控制）
-        if (_showDrawer && !showDrawerPermanent && !isLandscape)
+        // 竖屏/横屏模式下：用户点击列表按钮时显示侧边栏
+        if (_showDrawer && !showDrawerPermanent)
           SideDrawer(
             isOpen: _showDrawer,
             isPermanent: false,

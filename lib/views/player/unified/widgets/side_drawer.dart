@@ -293,7 +293,7 @@ class SideDrawer extends ConsumerWidget {
                           Icon(
                             AppIcons.subtitles,
                             size: adaptive.Adaptive.sp(12),
-                            color: Colors.white38,
+                            color: AppColors.primary,
                           ),
                         ],
                       ],
