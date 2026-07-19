@@ -515,7 +515,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
         // 右侧浮动按钮组（圆形黑底按钮，仅字幕模式显示）
         // 按钮顺序（从上到下）：跟读、清晰朗读(TTS)、由慢到快
         // 位置：字幕区域右侧中间（竖屏模式下）
-        if (hasSubtitles && !isLandscape && !_showDrawer)
+        if (hasSubtitles && !_showDrawer)
           Positioned(
             right: adaptive.Adaptive.w(12),
             // 字幕区域中间位置：视频区域下方 + 字幕区域高度的 50%

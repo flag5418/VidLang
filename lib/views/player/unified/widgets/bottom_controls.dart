@@ -316,7 +316,7 @@ class BottomControls extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: adaptive.Adaptive.w(12),
-                vertical: adaptive.Adaptive.h(4),
+                vertical: adaptive.Adaptive.h(2),
               ),
               child: Row(
                 children: [
@@ -345,7 +345,7 @@ class BottomControls extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: adaptive.Adaptive.w(12),
-                vertical: adaptive.Adaptive.h(4),
+                vertical: adaptive.Adaptive.h(2),
               ),
               child: Row(
                 children: [
@@ -431,7 +431,7 @@ class BottomControls extends ConsumerWidget {
                           vertical: adaptive.Adaptive.h(4),
                         ),
                         child: Text(
-                          '${state.subtitleFontSize.toInt()}',
+                          '字号',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: adaptive.Adaptive.sp(12),
@@ -439,6 +439,17 @@ class BottomControls extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+
+                    // 全屏按钮
+                    if (isVideo)
+                      _buildIconButton(
+                        context: context,
+                        icon: AppIcons.fullscreen,
+                        size: btnSize,
+                        iconSize: iconSize,
+                        onTap: () => onToggleFullscreen?.call(),
+                      ),
                   ],
                 ],
               ),
