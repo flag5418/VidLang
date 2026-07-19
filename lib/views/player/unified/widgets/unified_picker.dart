@@ -167,9 +167,10 @@ class _FontSizeFloatingPanelState extends State<_FontSizeFloatingPanel> {
     final position = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
     final panelWidth = adaptive.Adaptive.w(48);
     final panelHeight = adaptive.Adaptive.h(200);
+    final safePadding = MediaQuery.of(context).padding;
     return Offset(
       position.dx + (renderBox.size.width - panelWidth) / 2,
-      position.dy - panelHeight,
+      position.dy - panelHeight - safePadding.top,
     );
   }
 
@@ -178,10 +179,11 @@ class _FontSizeFloatingPanelState extends State<_FontSizeFloatingPanel> {
     final pos = _calculatePosition();
     final panelWidth = adaptive.Adaptive.w(48);
     final panelHeight = adaptive.Adaptive.h(200);
+    final safePadding = MediaQuery.of(context).padding;
 
     return Positioned(
       left: pos.dx,
-      top: pos.dy,
+      top: pos.dy + safePadding.bottom,
       child: _PanelWrapper(
         onDismiss: widget.onDismiss,
         child: Material(
@@ -302,9 +304,10 @@ class _SpeedFloatingPanelState extends State<_SpeedFloatingPanel> {
     final position = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
     final panelWidth = adaptive.Adaptive.w(90);
     final panelHeight = widget.speeds.length * adaptive.Adaptive.h(40) + adaptive.Adaptive.h(36);
+    final safePadding = MediaQuery.of(context).padding;
     return Offset(
       position.dx + (renderBox.size.width - panelWidth) / 2,
-      position.dy - panelHeight,
+      position.dy - panelHeight - safePadding.top,
     );
   }
 
@@ -313,10 +316,11 @@ class _SpeedFloatingPanelState extends State<_SpeedFloatingPanel> {
     final pos = _calculatePosition();
     final panelWidth = adaptive.Adaptive.w(90);
     final panelHeight = widget.speeds.length * adaptive.Adaptive.h(40) + adaptive.Adaptive.h(36);
+    final safePadding = MediaQuery.of(context).padding;
 
     return Positioned(
       left: pos.dx,
-      top: pos.dy,
+      top: pos.dy + safePadding.bottom,
       child: _PanelWrapper(
         onDismiss: widget.onDismiss,
         child: Material(
@@ -443,9 +447,10 @@ class _LoopFloatingPanelState extends State<_LoopFloatingPanel> {
     final position = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
     final panelWidth = adaptive.Adaptive.w(100);
     final panelHeight = widget.modes.length * adaptive.Adaptive.h(40) + adaptive.Adaptive.h(36);
+    final safePadding = MediaQuery.of(context).padding;
     return Offset(
       position.dx + (renderBox.size.width - panelWidth) / 2,
-      position.dy - panelHeight,
+      position.dy - panelHeight - safePadding.top,
     );
   }
 
@@ -454,10 +459,11 @@ class _LoopFloatingPanelState extends State<_LoopFloatingPanel> {
     final pos = _calculatePosition();
     final panelWidth = adaptive.Adaptive.w(100);
     final panelHeight = widget.modes.length * adaptive.Adaptive.h(40) + adaptive.Adaptive.h(36);
+    final safePadding = MediaQuery.of(context).padding;
 
     return Positioned(
       left: pos.dx,
-      top: pos.dy,
+      top: pos.dy + safePadding.bottom,
       child: _PanelWrapper(
         onDismiss: widget.onDismiss,
         child: Material(

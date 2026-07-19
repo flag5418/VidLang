@@ -198,93 +198,110 @@ class SideDrawer extends ConsumerWidget {
     );
   }
 
-  /// 列表项
+  /// 列表项（对齐学习记录卡片风格）
   Widget _buildListItem(BuildContext context, VideoInfo video) {
     final isSelected = video.code == currentVideoCode;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: () => onSwitchTo(video.code ?? ''),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(12),
-          vertical: adaptive.Adaptive.h(10),
-        ),
-        child: Row(
-          children: [
-            // 当前播放指示条
-            Container(
-              width: 3,
-              height: adaptive.Adaptive.h(40),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onSwitchTo(video.code ?? ''),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: adaptive.Adaptive.w(8),
+            vertical: adaptive.Adaptive.h(4),
+          ),
+          padding: EdgeInsets.all(adaptive.Adaptive.r(12)),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.3)
+                  : colorScheme.outlineVariant.withValues(alpha: 0.15),
+              width: 0.5,
             ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 左侧：封面缩略图
+              _buildThumbnail(context, video),
 
-            SizedBox(width: adaptive.Adaptive.w(10)),
+              SizedBox(width: adaptive.Adaptive.w(12)),
 
-            // 封面缩略图
-            _buildThumbnail(context, video),
-
-            SizedBox(width: adaptive.Adaptive.w(12)),
-
-            // 信息列
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    video.name,
-                    style: TextStyle(
-                      color: isSelected ? AppColors.primary : Colors.white,
-                      fontSize: adaptive.Adaptive.sp(14),
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+              // 右侧：信息列
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      video.name,
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(14),
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? AppColors.primary
+                            : Colors.white,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  // 图标行（收藏/历史/播放状态 + 时长）
-                  Row(
-                    children: [
-                      Icon(
-                        AppIcons.favoriteBorder,
-                        size: 12,
-                        color: Colors.white38,
-                      ),
-                      SizedBox(width: 4),
-                      Icon(AppIcons.history, size: 12, color: Colors.white38),
-                      SizedBox(width: 4),
-                      if (isSelected)
+                    SizedBox(height: adaptive.Adaptive.h(6)),
+                    Row(
+                      children: [
                         Icon(
-                          AppIcons.playCircleFill,
-                          size: 12,
-                          color: AppColors.primary,
-                        )
-                      else
-                        Icon(
-                          AppIcons.playCircleOutline,
-                          size: 12,
-                          color: Colors.white38,
+                          isSelected
+                              ? AppIcons.playCircleFill
+                              : AppIcons.playCircleOutline,
+                          size: adaptive.Adaptive.sp(12),
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.white38,
                         ),
-                      Spacer(),
-                      Text(
-                        _formatDuration(video.duration),
-                        style: TextStyle(color: Colors.white54, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ],
+                        SizedBox(width: adaptive.Adaptive.w(4)),
+                        Text(
+                          _formatDuration(video.duration),
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: adaptive.Adaptive.sp(11),
+                          ),
+                        ),
+                        if (video.hasSubtitles) ...[
+                          SizedBox(width: adaptive.Adaptive.w(8)),
+                          Icon(
+                            AppIcons.subtitles,
+                            size: adaptive.Adaptive.sp(12),
+                            color: Colors.white38,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // 波形图占位或更多按钮
-            Icon(AppIcons.moreVert, size: 18, color: Colors.white38),
-          ],
+              SizedBox(width: adaptive.Adaptive.w(8)),
+
+              // 当前播放指示条
+              if (isSelected)
+                Container(
+                  width: adaptive.Adaptive.w(4),
+                  height: adaptive.Adaptive.h(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
