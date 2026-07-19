@@ -71,17 +71,19 @@ class BottomControls extends ConsumerWidget {
     // 弹出面板回调（由父页面管理 OverlayEntry）
     /// 显示倍速面板
     required void Function(BuildContext context) onShowSpeedPicker,
+
     /// 显示字号面板
     required void Function(BuildContext context) onShowFontSizePicker,
+
     /// 显示循环模式面板
     required void Function(BuildContext context) onShowLoopPicker,
     // 按钮 GlobalKey（由父页面注入）
     required this.speedKey,
     required this.fontSizeKey,
     required this.loopKey,
-  })  : _onShowSpeedPicker = onShowSpeedPicker,
-        _onShowFontSizePicker = onShowFontSizePicker,
-        _onShowLoopPicker = onShowLoopPicker;
+  }) : _onShowSpeedPicker = onShowSpeedPicker,
+       _onShowFontSizePicker = onShowFontSizePicker,
+       _onShowLoopPicker = onShowLoopPicker;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -304,158 +306,155 @@ class BottomControls extends ConsumerWidget {
     final btnSize = adaptive.Adaptive.w(36);
     final iconSize = adaptive.Adaptive.icon(18);
 
-    return Container(
-      color: Colors.black.withValues(alpha: 0.6),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 第一行：进度条 + 两端时间
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(12),
-                vertical: adaptive.Adaptive.h(2),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    UnifiedPlayerLogic.fmtDuration(state.position),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: adaptive.Adaptive.sp(11),
-                    ),
-                  ),
-                  SizedBox(width: adaptive.Adaptive.w(8)),
-                  Expanded(child: _buildProgressBar(context)),
-                  SizedBox(width: adaptive.Adaptive.w(8)),
-                  Text(
-                    UnifiedPlayerLogic.fmtDuration(state.duration),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: adaptive.Adaptive.sp(11),
-                    ),
-                  ),
-                ],
-              ),
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 第一行：进度条 + 两端时间
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(12),
+              vertical: adaptive.Adaptive.h(2),
             ),
-
-            // 第二行：控制按钮（左右对称，参考竖屏按钮组）
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(12),
-                vertical: adaptive.Adaptive.h(2),
-              ),
-              child: Row(
-                children: [
-                  // 左侧：上一句 / 播放 / 下一句
-                  _buildIconButton(
-                    context: context,
-                    icon: AppIcons.skipPrevious,
-                    size: btnSize,
-                    iconSize: iconSize,
-                    onTap: () => notifier.previousSentence(),
+            child: Row(
+              children: [
+                Text(
+                  UnifiedPlayerLogic.fmtDuration(state.position),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: adaptive.Adaptive.sp(11),
                   ),
-                  SizedBox(width: adaptive.Adaptive.w(8)),
-                  _buildIconButton(
-                    context: context,
-                    icon: state.playerState == PlayerState.playing
-                        ? AppIcons.pause
-                        : AppIcons.play,
-                    size: btnSize + 4,
-                    iconSize: iconSize + 2,
-                    onTap: () => notifier.togglePlayPause(),
+                ),
+                SizedBox(width: adaptive.Adaptive.w(8)),
+                Expanded(child: _buildProgressBar(context)),
+                SizedBox(width: adaptive.Adaptive.w(8)),
+                Text(
+                  UnifiedPlayerLogic.fmtDuration(state.duration),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: adaptive.Adaptive.sp(11),
                   ),
-                  SizedBox(width: adaptive.Adaptive.w(8)),
-                  _buildIconButton(
-                    context: context,
-                    icon: AppIcons.skipNext,
-                    size: btnSize,
-                    iconSize: iconSize,
-                    onTap: () => notifier.nextSentence(),
-                  ),
-
-                  const Spacer(),
-
-                  // 右侧：功能按钮（与竖屏一致的完整按钮组）
-                  if (hasSubtitles) ...[
-                    _buildCompactTextBtn(
-                      context,
-                      '翻译',
-                      () => notifier.toggleTranslateVisible(),
-                      isActive: state.translateVisible,
-                    ),
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-                    _buildCompactTextBtn(
-                      context,
-                      '单句停',
-                      () => notifier.toggleSingleSentencePause(),
-                      isActive: state.singleSentencePause,
-                    ),
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-                    Container(
-                      key: loopKey,
-                      child: _buildCompactTextBtn(
-                        context,
-                        _getShortLoopModeLabel(),
-                        () => _onShowLoopPicker(context),
-                      ),
-                    ),
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-                    GestureDetector(
-                      key: speedKey,
-                      onTap: () => _onShowSpeedPicker(context),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: adaptive.Adaptive.w(6),
-                          vertical: adaptive.Adaptive.h(4),
-                        ),
-                        child: Text(
-                          '${state.speed.toStringAsFixed(1)}X',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: adaptive.Adaptive.sp(12),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-                    GestureDetector(
-                      key: fontSizeKey,
-                      onTap: () => _onShowFontSizePicker(context),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: adaptive.Adaptive.w(6),
-                          vertical: adaptive.Adaptive.h(4),
-                        ),
-                        child: Text(
-                          '字号',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: adaptive.Adaptive.sp(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-
-                    // 全屏按钮
-                    if (isVideo)
-                      _buildIconButton(
-                        context: context,
-                        icon: AppIcons.fullscreen,
-                        size: btnSize,
-                        iconSize: iconSize,
-                        onTap: () => onToggleFullscreen?.call(),
-                      ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // 第二行：控制按钮（左右对称，参考竖屏按钮组）
+          Padding(
+            padding: EdgeInsets.symmetric(
+              // horizontal: adaptive.Adaptive.w(12),
+              vertical: adaptive.Adaptive.h(2),
+            ),
+            child: Row(
+              children: [
+                // 左侧：上一句 / 播放 / 下一句
+                _buildIconButton(
+                  context: context,
+                  icon: AppIcons.skipPrevious,
+                  size: btnSize,
+                  iconSize: iconSize,
+                  onTap: () => notifier.previousSentence(),
+                ),
+                SizedBox(width: adaptive.Adaptive.w(8)),
+                _buildIconButton(
+                  context: context,
+                  icon: state.playerState == PlayerState.playing
+                      ? AppIcons.pause
+                      : AppIcons.play,
+                  size: btnSize + 4,
+                  iconSize: iconSize + 2,
+                  onTap: () => notifier.togglePlayPause(),
+                ),
+                SizedBox(width: adaptive.Adaptive.w(8)),
+                _buildIconButton(
+                  context: context,
+                  icon: AppIcons.skipNext,
+                  size: btnSize,
+                  iconSize: iconSize,
+                  onTap: () => notifier.nextSentence(),
+                ),
+
+                const Spacer(),
+
+                // 右侧：功能按钮（与竖屏一致的完整按钮组）
+                if (hasSubtitles) ...[
+                  _buildCompactTextBtn(
+                    context,
+                    '翻译',
+                    () => notifier.toggleTranslateVisible(),
+                    isActive: state.translateVisible,
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  _buildCompactTextBtn(
+                    context,
+                    '单句停',
+                    () => notifier.toggleSingleSentencePause(),
+                    isActive: state.singleSentencePause,
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  Container(
+                    key: loopKey,
+                    child: _buildCompactTextBtn(
+                      context,
+                      _getShortLoopModeLabel(),
+                      () => _onShowLoopPicker(context),
+                    ),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  GestureDetector(
+                    key: speedKey,
+                    onTap: () => _onShowSpeedPicker(context),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: adaptive.Adaptive.w(6),
+                        vertical: adaptive.Adaptive.h(4),
+                      ),
+                      child: Text(
+                        '${state.speed.toStringAsFixed(1)}X',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: adaptive.Adaptive.sp(12),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  GestureDetector(
+                    key: fontSizeKey,
+                    onTap: () => _onShowFontSizePicker(context),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: adaptive.Adaptive.w(6),
+                        vertical: adaptive.Adaptive.h(4),
+                      ),
+                      child: Text(
+                        '字号',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: adaptive.Adaptive.sp(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+
+                  // 全屏按钮
+                  if (isVideo)
+                    _buildIconButton(
+                      context: context,
+                      icon: AppIcons.fullscreen,
+                      size: btnSize,
+                      iconSize: iconSize,
+                      onTap: () => onToggleFullscreen?.call(),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

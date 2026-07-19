@@ -163,13 +163,13 @@ class MediaArea extends StatelessWidget {
             child: Center(child: _buildFloatingSubtitleBar(context)),
           ),
 
-        // 全屏切换按钮（视频右上角：真正顶角，TopBar 已为该区域留出透明空间）
-        if (onToggleFullscreen != null)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + adaptive.Adaptive.h(8),
-            right: adaptive.Adaptive.w(12),
-            child: _buildFullscreenButton(isLandscape),
-          ),
+        // // 全屏切换按钮（视频右上角：真正顶角，TopBar 已为该区域留出透明空间）
+        // if (onToggleFullscreen != null)
+        //   Positioned(
+        //     top: MediaQuery.of(context).padding.top + adaptive.Adaptive.h(8),
+        //     right: adaptive.Adaptive.w(12),
+        //     child: _buildFullscreenButton(isLandscape),
+        //   ),
       ],
     );
   }

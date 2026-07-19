@@ -519,11 +519,8 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
           Positioned(
             right: adaptive.Adaptive.w(12),
             // 字幕区域中间位置：视频区域下方 + 字幕区域高度的 50%
-            top:
-                MediaQuery.of(context).size.height * 0.40 +
-                (MediaQuery.of(context).size.height * 0.60 -
-                        adaptive.Adaptive.h(140)) /
-                    2,
+            top: MediaQuery.of(context).size.height * 0.5 -
+                adaptive.Adaptive.h(140) * 0.5,
             child: _FloatingActionButtons(
               isTtsSpeaking: _isTtsSpeaking,
               slowToFastActive: state.slowToFastActive,
@@ -595,6 +592,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             DeviceOrientation.portraitDown,
           ])
           .then((_) {
+            setState(() {});
             debugPrint('✅ [_toggleFullscreen] 竖屏方向设置完成');
           })
           .catchError((e) {
@@ -608,6 +606,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             DeviceOrientation.landscapeRight,
           ])
           .then((_) {
+            setState(() {});
             debugPrint('✅ [_toggleFullscreen] 横屏方向设置完成');
           })
           .catchError((e) {
