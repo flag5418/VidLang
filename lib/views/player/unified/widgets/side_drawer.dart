@@ -201,28 +201,25 @@ class SideDrawer extends ConsumerWidget {
   /// 列表项（对齐学习记录卡片风格）
   Widget _buildListItem(BuildContext context, VideoInfo video) {
     final isSelected = video.code == currentVideoCode;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => onSwitchTo(video.code ?? ''),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
         child: Container(
           margin: EdgeInsets.symmetric(
             horizontal: adaptive.Adaptive.w(8),
             vertical: adaptive.Adaptive.h(4),
           ),
-          padding: EdgeInsets.all(adaptive.Adaptive.r(12)),
+          padding: EdgeInsets.all(adaptive.Adaptive.r(14)),
           decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.withValues(alpha: 0.08)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+            color: const Color(0xFF2A2A2A),
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
             border: Border.all(
               color: isSelected
-                  ? AppColors.primary.withValues(alpha: 0.3)
-                  : colorScheme.outlineVariant.withValues(alpha: 0.15),
+                  ? AppColors.primary.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.08),
               width: 0.5,
             ),
           ),
@@ -243,13 +240,11 @@ class SideDrawer extends ConsumerWidget {
                       video.name,
                       style: TextStyle(
                         fontSize: adaptive.Adaptive.sp(14),
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: isSelected
                             ? AppColors.primary
                             : Colors.white,
-                        height: 1.3,
+                        height: 1.4,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
