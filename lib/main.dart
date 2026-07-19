@@ -57,6 +57,7 @@ import 'package:vidlang/splash_screen.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/device_config.dart';
 import 'package:vidlang/views/test/audio_test_page.dart';
+import 'package:vidlang/views/test/orientation_test_page.dart';  // 🧪 方向测试页面
 // import 'package:vidlang/views/test/shengtong_http_test_page.dart'; // 已删除 HTTP 评测器
 import 'package:vidlang/views/login/index.dart';
 import 'package:vidlang/views/main/main_page.dart';
@@ -111,7 +112,10 @@ void main() {
       final deviceType = await _loadDeviceType();
       AppGlobals.deviceType = deviceType;
 
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      // ⚠️ 注意：不在 main() 中锁定方向！
+      // 原因：如果在这里锁定 portraitUp，会导致播放器页面无法接收 didChangeMetrics 通知
+      // 播放器页面会在 initState() 中自行设置允许的方向
+      // 其他页面如果需要锁定竖屏，应该在各自的 initState() 中设置
 
       VscodeLogger.instance.init(
         appName: 'VidLang',
@@ -325,9 +329,12 @@ class _VidLangAppState extends State<VidLangApp> {
                 '/login': (_) => const LoginPage(),
                 '/audio-test': (_) => const AudioTestPage(),
                 // '/shengtong-http-test': (_) => const ShengtongHttpTestPage(), // 已删除 HTTP 评测器
+                '/orientation-test': (_) => const OrientationTestPage(),  // 🧪 方向测试页面
               },
               navigatorKey: navigatorKey,
-              home: const _AppEntry(),
+              // 🧪 测试模式已关闭，恢复正常首页
+              // home: const OrientationTestPage(),  // 测试页面（已验证成功）
+              home: const _AppEntry(),  // 正常首页
             );
           },
         );

@@ -109,7 +109,6 @@ class _CameraTranslatePageState extends ConsumerState<CameraTranslatePage> {
     WordCard.show(
       context,
       word: clean,
-      onSpeak: () => TtsService().speakWord(clean),
       onSaveWord: canSave
           ? ({
               required String word,

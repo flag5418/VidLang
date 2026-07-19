@@ -28,18 +28,9 @@ import Translation
     return ok
   }
 
-  // 修复 Failed to change device orientation 的问题
-  // 根据 Flutter 控制器当前的旋转设置，动态返回支持的方向
-  override func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-      if let rootViewController = self.window?.rootViewController {
-          if let flutterViewController = rootViewController as? FlutterViewController {
-              // FlutterViewController 通常会自动处理方向，但为了避免 iOS 16+ 抛出异常
-              // 我们返回 .allButUpsideDown，让 Flutter 内部的 SystemChrome.setPreferredOrientations 去控制具体的旋转
-              return .allButUpsideDown
-          }
-      }
-      return .portrait
-  }
+  // 不要覆盖 application(_:supportedInterfaceOrientationsFor:)
+  // FlutterAppDelegate 内部已实现：根据 SystemChrome.setPreferredOrientations 动态返回方向
+  // 覆盖会导致 Flutter 的方向控制请求被忽略
 
   private func setupNativeFeaturesIfPossible() {
     if nativeFeaturesSetup { return }
@@ -114,6 +105,11 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate,
         case "stopSpeechRecognition":          handleStopSpeechRecognition(result)
         case "isSpeechRecognitionAvailable":   handleIsSpeechRecognitionAvailable(result)
         case "getDeviceIdiom":                  handleGetDeviceIdiom(result)
+        // 🧪 强制旋转（测试用）
+        case "forceOrientation":               handleForceOrientation(
+            call,
+            result: result
+        )
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -365,6 +361,55 @@ class NativeFeatures: NSObject, UIImagePickerControllerDelegate,
     private func handleGetDeviceIdiom(_ result: @escaping FlutterResult) {
         let idiom = UIDevice.current.userInterfaceIdiom
         result(idiom == .pad ? "pad" : "phone")
+    }
+
+    // MARK: - 🧪 强制旋转（测试用）
+    private func handleForceOrientation(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let orientationString = call.arguments as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "orientation 参数缺失", details: nil))
+            return
+        }
+        
+        print("🧪 [Native] 收到强制旋转请求: \(orientationString)")
+        
+        var targetOrientation: UIInterfaceOrientationMask
+        
+        switch orientationString {
+        case "landscape":
+            targetOrientation = .landscapeRight
+        case "portrait":
+            targetOrientation = .portrait
+        default:
+            result(FlutterError(code: "INVALID_ORIENTATION", message: "不支持的方向: \(orientationString)", details: nil))
+            return
+        }
+        
+        // iOS 16+ 新API：真正请求旋转
+        DispatchQueue.main.async {
+            if #available(iOS 16.0, *) {
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                      let window = scene.windows.first else {
+                    result(false)
+                    return
+                }
+                
+                let geometryPreferences = UIWindowScene.GeometryPreferences.iOS(
+                    interfaceOrientations: targetOrientation
+                )
+                
+                window.windowScene?.requestGeometryUpdate(geometryPreferences) { error in
+                    print(
+                        "🧪 [Native] requestGeometryUpdate 回调: \(error.localizedDescription ?? "成功")"
+                    )
+                }
+            } else {
+                // iOS 15 及以下：使用旧方法
+                UIDevice.current.setValue(targetOrientation.rawValue, forKey: "orientation")
+            }
+            
+            print("🧪 [Native] ✅ 已强制旋转到: \(orientationString)")
+            result(true)
+        }
     }
 
     private func handleStartSpeechRecognition(_ result: @escaping FlutterResult) {

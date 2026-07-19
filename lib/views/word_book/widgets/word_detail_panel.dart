@@ -163,10 +163,10 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
       '本地翻译模型未就绪',
       '本地翻译失败',
       '查询失败',
-      '未知',
-      '失败',
+      '未知错误',
       'Error',
       'error',
+      // ❌ 移除过于宽泛的 '失败' 模式，避免误判正常中文内容
     ];
     for (final pattern in errorPatterns) {
       if (text.contains(pattern)) return true;

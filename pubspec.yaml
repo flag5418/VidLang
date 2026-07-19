@@ -105,6 +105,8 @@ dependencies:
   http: any
   http_parser: any
   device_info_plus: ^12.4.0
+  native_device_orientation: ^2.1.1
+  wakelock_plus: ^1.5.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

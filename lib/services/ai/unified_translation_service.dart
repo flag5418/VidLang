@@ -59,13 +59,18 @@ class UnifiedTranslationService {
   }
 
   /// 本地翻译（iOS 系统翻译，MLTranslation）
+  /// 
+  /// **修复说明**：原代码在 result.success=true 时仍可能返回 error，
+  /// 原因是条件判断过于严格（translatedText != text 在某些边界情况下误判）。
+  /// 新逻辑：只要 iOS 返回 success=true 且有翻译结果，就视为成功。
   Future<WordDetail> _translateLocal({required String text}) async {
     try {
       final result = await IosNativeFeatures.translate(text: text);
 
-      if (result.success &&
-          result.translatedText.isNotEmpty &&
-          result.translatedText != text) {
+      // 核心修复：简化成功判断，信任 iOS 系统翻译的 success 标志
+      if (result.success && result.translatedText.isNotEmpty) {
+        // 即使 translatedText == text（如无法翻译的专有名词），也返回成功
+        // 由 UI 层决定如何展示（显示原文或提示"无翻译"）
         return WordDetail(
           word: text,
           translation: result.translatedText,
@@ -74,9 +79,9 @@ class UnifiedTranslationService {
         );
       }
 
-      // 翻译失败或翻译结果与原文相同
+      // iOS 明确返回失败
       final errorMsg = result.error ?? '翻译失败';
-      debugPrint('iOS 系统翻译失败: $errorMsg');
+      debugPrint('⚠️ iOS 系统翻译返回失败: $errorMsg');
 
       // 检查是否需要下载语言包
       final needsLanguagePack =
@@ -90,9 +95,10 @@ class UnifiedTranslationService {
         errorMsg,
         languagePackRequired: needsLanguagePack,
       );
-    } catch (e) {
-      debugPrint('本地翻译失败: $e');
-      return WordDetail.error(text, '本地翻译失败: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ 本地翻译异常: $e');
+      debugPrint(stackTrace.toString());
+      return WordDetail.error(text, '本地翻译异常: $e');
     }
   }
 

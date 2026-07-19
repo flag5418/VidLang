@@ -518,7 +518,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     await WordCard.show(
       context,
       word: keyword,
-      onSpeak: () => _speakWord(keyword),
       sourceType: 'word_book',
       sourceCode: '',
     );

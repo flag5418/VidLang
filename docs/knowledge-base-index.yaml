@@ -118,6 +118,22 @@ documents:
       - "登录"
     priority: "medium"
     
+  # 横竖屏方向
+  - id: "orientation-handling"
+    name: "横竖屏方向处理"
+    path: "docs/developer/design/code-knowledge-base/orientation-handling-V1.0.md"
+    category: "code"
+    description: "iOS/Flutter 横竖屏方向控制、旋转监听、沉浸式模式"
+    load_triggers:
+      - "横屏"
+      - "竖屏"
+      - "方向"
+      - "orientation"
+      - "旋转"
+      - "全屏"
+      - "沉浸式"
+    priority: "high"
+    
   # 工具与组件
   - id: "tdesign-components"
     name: "TDesign 组件"
@@ -176,6 +192,9 @@ auto_load:
       
     - document_id: "ai-service-integration"
       triggers: ["AI", "DeepSeek"]
+      
+    - document_id: "orientation-handling"
+      triggers: ["横屏", "竖屏", "方向", "orientation", "旋转", "全屏", "沉浸式"]
       
     - document_id: "tdesign-components"
       triggers: ["TDesign", "UI 组件"]

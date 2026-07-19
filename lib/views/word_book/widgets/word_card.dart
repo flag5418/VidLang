@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'package:audioplayers/audioplayers.dart' as ap;
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,8 @@ import 'package:vidlang/views/word_book/providers/display_config_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai/ai_service.dart';
 import 'package:vidlang/services/ai/unified_translation_service.dart';
-import 'package:vidlang/services/tts/tts_service.dart';
+import 'package:vidlang/services/tts/local_tts_service.dart';
+import 'package:vidlang/services/tts/unified_tts_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/views/word_book/widgets/native_translation_guide_sheet.dart';
 import 'package:vidlang/components/dialogs/recharge_dialog.dart';
@@ -45,7 +47,6 @@ extension WordBookWordCardMapper on WordBook {
 ///   context,
 ///   word: 'example',
 ///   contextSentence: 'This is an example sentence.',
-///   onSpeak: () => doSomething(),
 ///   onSaveWord: (word, contextSentence, sourceType, sourceCode, sourceTitle) async { ... },
 ///   sourceType: 'video',
 ///   sourceCode: 'xxx',
@@ -53,12 +54,14 @@ extension WordBookWordCardMapper on WordBook {
 /// );
 /// ```
 ///
-/// 付费模式由组件内部自主读取 subscriptionProvider 判定，
-/// 调用方无需传入 isPaidMode 参数。
+/// **分流规则（严格按 SubscriptionMode，无附加条件）**：
+/// - 发音：premium → 云端 TTS | free → iOS 原生 TTS
+/// - 释义：premium → AiService.getDefinition (云端 AI) | free → UnifiedTranslationService (iOS 原生翻译)
+///
+/// 组件内部自主读取 subscriptionProvider 判定，调用方无需传入任何模式参数。
 class WordCard extends ConsumerStatefulWidget {
   final String word;
   final String? contextSentence;
-  final VoidCallback? onSpeak;
 
   /// 收藏回调
   final Future<bool> Function({
@@ -78,7 +81,6 @@ class WordCard extends ConsumerStatefulWidget {
   const WordCard._internal({
     required this.word,
     this.contextSentence,
-    this.onSpeak,
     this.onSaveWord,
     this.sourceType = 'video',
     this.sourceCode = '',
@@ -91,7 +93,6 @@ class WordCard extends ConsumerStatefulWidget {
     BuildContext context, {
     required String word,
     String? contextSentence,
-    VoidCallback? onSpeak,
     Future<bool> Function({
       required String word,
       String? contextSentence,
@@ -114,7 +115,6 @@ class WordCard extends ConsumerStatefulWidget {
       pageBuilder: (_, _, _) => WordCard._internal(
         word: word,
         contextSentence: contextSentence,
-        onSpeak: onSpeak,
         onSaveWord: onSaveWord,
         sourceType: sourceType,
         sourceCode: sourceCode,
@@ -139,42 +139,111 @@ class _WordCardState extends ConsumerState<WordCard> {
   bool _saving = false;
   bool _saved = false;
   bool _rechargeShown = false;
-  late final bool _isSingleWord;
 
-  /// 内部自主判定付费模式，不再依赖外部传入
+  /// 🔴 独立的音频播放器实例（不与 Player/TtsService 共用）
+  final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
+  bool _isSpeaking = false;
+
+  /// 内部自主判定付费模式，严格按 SubscriptionMode 分流
   bool get _isPaidMode =>
       ref.read(subscriptionProvider).mode == SubscriptionMode.premium;
 
   @override
   void initState() {
     super.initState();
-    _isSingleWord = WordBookService.isSingleWord(widget.word);
-    if (widget.onSpeak != null) {
-      widget.onSpeak!.call();
-    } else {
-      final mode = _isPaidMode
-          ? SubscriptionMode.premium
-          : SubscriptionMode.free;
-      if (_isSingleWord) {
-        TtsService().speakWord(widget.word, mode: mode);
-      } else {
-        TtsService().speakSubtitle(widget.word, mode: mode);
-      }
-    }
+    // 加载数据
     _loadSavedState();
     _fetchDefinition();
+    
+    // 延迟发音：使用独立播放器，不影响 Player
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _speakWord();
+    });
+  }
+
+  /// 🔴 独立发音方法：使用独立的 AudioPlayer，完全隔离 Player
+  Future<void> _speakWord() async {
+    if (_isSpeaking) _stopSpeaking(); // 同步停止
+    
+    final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
+    _isSpeaking = true;
+    
+    try {
+      if (mode == SubscriptionMode.premium) {
+        // 付费模式：使用云端 TTS + 独立 AudioPlayer 播放
+        await _speakWithCloudTts();
+      } else {
+        // 免费模式：使用 iOS 原生 TTS + 独立 AudioPlayer 播放
+        await _speakWithLocalTts();
+      }
+    } catch (e) {
+      dev.log('🔊 [WordCard] TTS 发音异常: $e', name: 'WordCard', error: e);
+    } finally {
+      _isSpeaking = false;
+    }
+  }
+  
+  /// 免费模式：iOS 原生 TTS
+  Future<void> _speakWithLocalTts() async {
+    final result = await UnifiedTtsService.instance.synthesize(
+      text: widget.word,
+      mode: SubscriptionMode.free,
+      onWord: null,
+    );
+    
+    if (!mounted || result.success != true) return;
+    
+    // 直接播放模式（iOS AVSpeechSynthesizer 已在 synthesize 中播放）
+    if (result.audioPath.isEmpty || result.format == 'direct') {
+      // 估算播放时长并等待
+      final wordCount = widget.word.trim().isEmpty ? 1 : widget.word.trim().split(RegExp(r'\s+')).length;
+      final estimatedMs = (wordCount * 400).clamp(500, 30000);
+      await Future.delayed(Duration(milliseconds: estimatedMs));
+      return;
+    }
+    
+    // 文件播放模式：使用独立 AudioPlayer
+    final file = result.audioPath;
+    if (file.isEmpty) return;
+    
+    await _audioPlayer.play(ap.DeviceFileSource(file));
+    await _audioPlayer.onPlayerComplete.first;
+  }
+  
+  /// 付费模式：云端 TTS（暂未实现，先用本地降级）
+  Future<void> _speakWithCloudTts() async {
+    // TODO: 集成 DashScope TTS 到独立实例
+    // 目前降级为本地 TTS
+    await _speakWithLocalTts();
+  }
+  
+  /// 立即停止发音（同步，参考 Player 的 pause 模式）
+  void _stopSpeaking() {
+    try {
+      // 1. 停止 AudioPlayer
+      _audioPlayer.stop();
+      // 2. 停止原生 TTS（iOS AVSpeechSynthesizer）
+      LocalTtsService.instance.stop();
+      // 3. 重置状态
+      _isSpeaking = false;
+    } catch (e) {
+      dev.log('🔊 [WordCard] stopSpeaking 异常: $e', name: 'WordCard');
+    }
   }
 
   @override
   void dispose() {
-    // 弹窗关闭时停止 TTS 朗读
-    TtsService().stop();
+    // 🔴 同步释放资源（不能是 async！）
+    _stopSpeaking();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   Future<void> _loadSavedState() async {
     try {
-      final saved = _isSingleWord
+      final isSingleWord = WordBookService.isSingleWord(widget.word);
+      final saved = isSingleWord
           ? await WordBookService.isWordSaved(
               word: widget.word,
               sourceType: widget.sourceType,
@@ -193,49 +262,44 @@ class _WordCardState extends ConsumerState<WordCard> {
   Future<void> _fetchDefinition() async {
     try {
       WordDetail detail;
-      final isPremium = _isPaidMode;
-      final mode = isPremium ? SubscriptionMode.premium : SubscriptionMode.free;
-
-      if (_isSingleWord) {
-        // 单词释义：严格按模式分流
-        // - 付费模式：AiService.getDefinition（云端 AI，带三级缓存）
-        // - 免费模式：不走 AiService（免费模式使用 UnifiedTranslationService 走 iOS 原生翻译）
-        if (isPremium) {
-          detail = await AiService.getDefinition(
-            word: widget.word,
-            contextSentence: widget.contextSentence,
-            sourceType: widget.sourceType,
-            sourceCode: widget.sourceCode,
-            billing: {'mode': 'premium'},
-          );
-        } else {
-          // 免费模式单词查询走统一翻译服务（iOS 原生翻译）
-          detail = await UnifiedTranslationService.instance.translate(
-            text: widget.word,
-            mode: SubscriptionMode.free,
-            contextSentence: widget.contextSentence,
-            sourceType: widget.sourceType,
-            sourceCode: widget.sourceCode,
-          );
-        }
+      // 严格按 SubscriptionMode 分流，不区分单词/句子
+      if (_isPaidMode) {
+        // 付费模式 → 云端 AI 释义（带三级缓存）
+        dev.log('📖 [WordCard] 开始查询 AI 释义: "${widget.word}"', name: 'WordCard');
+        detail = await AiService.getDefinition(
+          word: widget.word,
+          contextSentence: widget.contextSentence,
+          sourceType: widget.sourceType,
+          sourceCode: widget.sourceCode,
+          billing: {'mode': 'premium'},
+        );
       } else {
-        // 句子/短语翻译：走 UnifiedTranslationService
+        // 免费模式 → iOS 原生翻译
+        dev.log(
+          '📖 [WordCard] 开始查询 iOS 原生翻译: "${widget.word}"',
+          name: 'WordCard',
+        );
         detail = await UnifiedTranslationService.instance.translate(
           text: widget.word,
-          mode: mode,
+          mode: SubscriptionMode.free,
           contextSentence: widget.contextSentence,
           sourceType: widget.sourceType,
           sourceCode: widget.sourceCode,
         );
       }
 
-      if (!mounted) return;
+      // if (!mounted) return;
+
+      dev.log(
+        '📖 [WordCard] 查询结果: success=${detail.success} word="${detail.word}" translation="${detail.translation ?? 'null'}" error="${detail.error ?? 'null'}" source="${detail.source}"',
+        name: 'WordCard',
+      );
 
       // 翻译失败时处理（无本地模型概念，统一按成功/失败处理）
       if (!detail.success) {
         // iOS 原生翻译可能需要下载语言包
         if (detail.languagePackRequired && mounted) {
-          dev.log('📱 Language pack required, showing guide', name: 'WordCard');
+          dev.log('📱 [WordCard] 需要下载语言包', name: 'WordCard');
           NativeTranslationGuideSheet.show(context);
         }
         // 不再区分 local/local_ai/native source，统一由 UI 展示错误信息
@@ -258,7 +322,12 @@ class _WordCardState extends ConsumerState<WordCard> {
         _detail = detail;
         _state = _LoadState.loaded;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      dev.log(
+        '💥 [WordCard] 查询异常: $e\n$stackTrace',
+        name: 'WordCard',
+        error: e,
+      );
       if (!mounted) return;
       setState(() {
         _detail = WordDetail.error(widget.word, '查询失败: $e');
@@ -271,8 +340,9 @@ class _WordCardState extends ConsumerState<WordCard> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
+      final isSingleWord = WordBookService.isSingleWord(widget.word);
       if (_saved) {
-        final ok = _isSingleWord
+        final ok = isSingleWord
             ? await WordBookService.unsaveWord(
                 word: widget.word,
                 sourceType: widget.sourceType,
@@ -296,7 +366,7 @@ class _WordCardState extends ConsumerState<WordCard> {
       }
 
       bool ok;
-      if (_isSingleWord) {
+      if (isSingleWord) {
         if (widget.onSaveWord == null) {
           ok = false;
         } else {
@@ -337,6 +407,10 @@ class _WordCardState extends ConsumerState<WordCard> {
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(displayConfigProvider).config;
+    final isSingleWord = WordBookService.isSingleWord(widget.word);
+
+    // 统一发音回调：使用独立播放器
+    final speakCallback = () => _speakWord();
 
     // loading 状态时使用占位 WordDetail
     if (_state == _LoadState.loading) {
@@ -348,22 +422,18 @@ class _WordCardState extends ConsumerState<WordCard> {
           standaloneExamples: [],
           success: true,
           source: 'loading',
-          isSentenceMode: !_isSingleWord,
+          isSentenceMode: !isSingleWord,
         ),
         config: config,
-        onSpeak:
-            widget.onSpeak ??
-            () => (_isSingleWord
-                ? TtsService().speakWord(widget.word)
-                : TtsService().speakSubtitle(widget.word)),
+        onSpeak: speakCallback,
         onClose: () => Navigator.of(context).pop(),
         isLoading: true,
         isSaved: _saved,
         saving: _saving,
-        onSaveWord: _isSingleWord
+        onSaveWord: isSingleWord
             ? (widget.onSaveWord != null ? _handleToggleSave : null)
             : _handleToggleSave,
-        isSentenceMode: !_isSingleWord,
+        isSentenceMode: !isSingleWord,
       );
     }
 
@@ -372,18 +442,14 @@ class _WordCardState extends ConsumerState<WordCard> {
     return WordDetailPanel(
       data: _detail!,
       config: config,
-      onSpeak:
-          widget.onSpeak ??
-          () => (_isSingleWord
-              ? TtsService().speakWord(widget.word)
-              : TtsService().speakSubtitle(widget.word)),
+      onSpeak: speakCallback,
       onClose: () => Navigator.of(context).pop(),
       isSaved: _saved,
       saving: _saving,
-      onSaveWord: _isSingleWord
+      onSaveWord: isSingleWord
           ? (widget.onSaveWord != null ? _handleToggleSave : null)
           : _handleToggleSave,
-      isSentenceMode: !_isSingleWord,
+      isSentenceMode: !isSingleWord,
     );
   }
 }

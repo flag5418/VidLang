@@ -1,11 +1,9 @@
 /// 图标系统
 ///
-/// 统一管理应用中使用的所有图标，包括：
-/// - Flutter内置 Material Icons
-/// - Hugeicons（第三方图标库，4700+ 免费 SVG 图标）
-///   - 官方浏览: https://hugeicons.com/icons
-///   - 用法: HugeIcon(icon: HugeIcons.strokeRoundedXxx, size: 24, color: ...)
-/// - 自定义PNG图标（特殊情况下使用）
+/// 统一管理应用中使用的所有图标，基于 TDesign Icons (TDIcons)。
+/// - 官方文档: https://tdesign.tencent.com/flutter/components/icon
+/// - 图标数量: 2114+
+/// - 风格: Material rounded 线性风格（与 TDesign 组件库完全统一）
 ///
 /// 图标分类：
 /// - Navigation icons（导航图标）
@@ -25,28 +23,25 @@
 ///
 /// 使用方式：
 /// ```dart
-/// // 使用Flutter内置图标
+/// // 使用 TDesign 图标
+/// Icon(AppIcons.home)
+/// Icon(AppIcons.play, size: 24, color: Colors.blue)
+///
+/// // 获取便捷方法
 /// AppIcons.getIcon(AppIcons.videoLibrary)
-///
-/// // 或直接使用Icon类
-/// Icon(AppIcons.videoLibrary)
-///
-/// // Hugeicons 图标
-/// import 'package:hugeicons/hugeicons.dart';
-/// HugeIcon(icon: HugeIcons.strokeRoundedHome01, size: 24)
-///
-/// // 自定义PNG图标
-/// AppIcons.getPngIcon(AppIcons.logo)
 /// ```
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart' show Color, BoxFit;
+import 'package:flutter/widgets.dart' show Widget, Icon, Image, IconData;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 /// 应用图标类
 ///
-/// 包含所有图标定义，提供统一的访问接口
+/// 包含所有图标定义，提供统一的访问接口。
+/// 所有图标均来自 TDesign TDIcons，确保视觉风格统一。
 class AppIcons {
   AppIcons._();
 
@@ -55,722 +50,768 @@ class AppIcons {
   // ============================================================
 
   /// 返回/后退
-  static const IconData arrowBack = Icons.arrow_back_rounded;
+  static const IconData arrowBack = TDIcons.arrow_left;
 
   /// 前进
-  static const IconData arrowForward = Icons.arrow_forward_rounded;
+  static const IconData arrowForward = TDIcons.arrow_right;
 
   /// 展开更多
-  static const IconData expandMore = Icons.expand_more_rounded;
+  static const IconData expandMore = TDIcons.chevron_down;
 
   /// 收起
-  static const IconData expandLess = Icons.expand_less_rounded;
+  static const IconData expandLess = TDIcons.chevron_up;
 
   /// 菜单
-  static const IconData menu = Icons.menu_rounded;
+  static const IconData menu = TDIcons.menu;
 
   /// 关闭
-  static const IconData close = Icons.close_rounded;
+  static const IconData close = TDIcons.close;
 
   /// 检查
-  static const IconData check = Icons.check_rounded;
+  static const IconData check = TDIcons.check;
 
   /// 右箭头
-  static const IconData chevronRight = Icons.chevron_right_rounded;
+  static const IconData chevronRight = TDIcons.chevron_right;
 
   /// 左箭头（iOS风格）
-  static const IconData arrowBackIos = Icons.arrow_back_ios_rounded;
+  static const IconData arrowBackIos = TDIcons.arrow_left;
 
   /// 左箭头（iOS新风格）
-  static const IconData arrowBackIosNew = Icons.arrow_back_ios_new_rounded;
+  static const IconData arrowBackIosNew = TDIcons.arrow_left;
 
   /// 取消
-  static const IconData cancel = Icons.cancel;
+  static const IconData cancel = TDIcons.close_circle;
 
   /// 上箭头
-  static const IconData arrowUpward = Icons.arrow_upward;
+  static const IconData arrowUpward = TDIcons.arrow_up;
 
   /// 下箭头
-  static const IconData arrowDownward = Icons.arrow_downward;
+  static const IconData arrowDownward = TDIcons.arrow_down;
 
   /// 键盘上箭头
-  static const IconData keyboardArrowUp = Icons.keyboard_arrow_up_rounded;
+  static const IconData keyboardArrowUp = TDIcons.caret_up;
 
   /// 键盘下箭头
-  static const IconData keyboardArrowDown = Icons.keyboard_arrow_down_rounded;
+  static const IconData keyboardArrowDown = TDIcons.caret_down;
 
   // ============================================================
   // 操作图标
   // ============================================================
 
   /// 添加
-  static const IconData add = Icons.add_rounded;
+  static const IconData add = TDIcons.add;
 
   /// 添加圆形轮廓
-  static const IconData addCircleOutline = Icons.add_circle_outline;
+  static const IconData addCircleOutline = TDIcons.add_circle;
 
   /// 删除
-  static const IconData delete = Icons.delete_outline_rounded;
+  static const IconData delete = TDIcons.delete;
 
   /// 永久删除
-  static const IconData deleteForever = Icons.delete_forever_rounded;
+  static const IconData deleteForever = TDIcons.delete;
 
   /// 批量删除
-  static const IconData deleteSweep = Icons.delete_sweep;
+  static const IconData deleteSweep = TDIcons.delete;
 
   /// 编辑/修改
-  static const IconData edit = Icons.edit_outlined;
+  static const IconData edit = TDIcons.edit;
 
   /// 分享
-  static const IconData share = Icons.share_outlined;
+  static const IconData share = TDIcons.share;
 
   /// 更多（纵向）
-  static const IconData moreVert = Icons.more_vert_rounded;
+  static const IconData moreVert = TDIcons.more;
 
   /// 更多（横向）
-  static const IconData moreHoriz = Icons.more_horiz_rounded;
+  static const IconData moreHoriz = TDIcons.ellipsis;
 
   /// 设置
-  static const IconData settings = Icons.settings_outlined;
+  static const IconData settings = TDIcons.setting;
 
   /// 搜索
-  static const IconData search = Icons.search_rounded;
+  static const IconData search = TDIcons.search;
 
   /// 刷新
-  static const IconData refresh = Icons.refresh_rounded;
-
-  /// 排序
-  static const IconData sort = Icons.sort_rounded;
+  static const IconData refresh = TDIcons.refresh;
 
   /// 筛选
-  static const IconData filter = Icons.filter_list_rounded;
+  static const IconData filter = TDIcons.filter;
 
   /// 复制
-  static const IconData copy = Icons.copy_outlined;
+  static const IconData copy = TDIcons.copy;
 
   /// 下载
-  static const IconData download = Icons.download_outlined;
+  static const IconData download = TDIcons.download;
 
   /// 上传
-  static const IconData upload = Icons.upload_file_outlined;
+  static const IconData upload = TDIcons.upload;
 
   /// 保存
-  static const IconData save = Icons.save;
+  static const IconData save = TDIcons.save;
 
   /// 清除
-  static const IconData clear = Icons.clear;
+  static const IconData clear = TDIcons.clear;
 
   /// 移除
-  static const IconData remove = Icons.remove_rounded;
+  static const IconData remove = TDIcons.remove;
 
   /// 列表
-  static const IconData list = Icons.list;
-
-  /// 反馈
-  static const IconData feedback = Icons.feedback;
-
-  /// 分类
-  static const IconData category = Icons.category_outlined;
-
-  /// 图层
-  static const IconData layers = Icons.layers;
-
-  /// 拖拽手柄
-  static const IconData dragHandle = Icons.drag_handle;
-
-  /// 返回退格
-  static const IconData backspace = Icons.backspace_outlined;
-
-  /// 自动修复
-  static const IconData autoFixHigh = Icons.auto_fix_high;
-
-  /// 退格
-  static const IconData formatListBulleted = Icons.format_list_bulleted_rounded;
-
-  /// 有序列表
-  static const IconData formatListNumbered = Icons.format_list_numbered_rounded;
-
-  /// 标签轮廓
-  static const IconData labelOutline = Icons.label_outline_rounded;
-
-  /// 应用
-  static const IconData apps = Icons.apps_rounded;
-
-  /// 自动填充
-  static const IconData autoAwesome = Icons.auto_awesome;
+  static const IconData list = TDIcons.list;
 
   /// 钉钉
-  static const IconData pushPin = Icons.push_pin;
+  static const IconData pushPin = TDIcons.pin;
 
   /// 仪表盘
-  static const IconData dashboard = Icons.dashboard;
+  static const IconData dashboard = TDIcons.dashboard;
 
   /// 档案
-  static const IconData assignment = Icons.assignment;
+  static const IconData assignment = TDIcons.assignment;
 
-  /// 类别
-  static const IconData appsRound = Icons.apps_rounded;
+  /// 应用
+  static const IconData apps = TDIcons.app;
+  static const IconData appsRound = TDIcons.app_filled;
 
   // ============================================================
   // 媒体图标
   // ============================================================
 
   /// 播放
-  static const IconData play = Icons.play_arrow_rounded;
+  static const IconData play = TDIcons.play;
 
   /// 暂停
-  static const IconData pause = Icons.pause_rounded;
+  static const IconData pause = TDIcons.pause;
 
   /// 停止
-  static const IconData stop = Icons.stop_rounded;
+  static const IconData stop = TDIcons.stop;
 
   /// 上一首
-  static const IconData skipPrevious = Icons.skip_previous_rounded;
+  static const IconData skipPrevious = TDIcons.previous;
 
   /// 下一首
-  static const IconData skipNext = Icons.skip_next_rounded;
-
-  /// 快退
-  static const IconData rewind = Icons.fast_rewind_rounded;
-
-  /// 快进
-  static const IconData fastForward = Icons.fast_forward_rounded;
-
-  /// 音量
-  static const IconData volumeUp = Icons.volume_up_rounded;
-
-  /// 音量降低
-  static const IconData volumeDown = Icons.volume_down_rounded;
-
-  /// 静音
-  static const IconData volumeOff = Icons.volume_off_rounded;
+  static const IconData skipNext = TDIcons.next;
 
   /// 全屏
-  static const IconData fullscreen = Icons.fullscreen_rounded;
+  static const IconData fullscreen = TDIcons.fullscreen;
 
   /// 退出全屏
-  static const IconData fullscreenExit = Icons.fullscreen_exit_rounded;
+  static const IconData fullscreenExit = TDIcons.fullscreen_exit;
 
   /// 字幕
-  static const IconData subtitles = Icons.subtitles_rounded;
-
-  /// 字幕关闭
-  static const IconData subtitlesOff = Icons.subtitles_off_rounded;
+  static const IconData subtitles = TDIcons.subtitle;
+  static const IconData subtitlesOutline = TDIcons.subtitle;
 
   /// 音频
-  static const IconData audioTrack = Icons.audiotrack_rounded;
+  static const IconData audioTrack = TDIcons.audio;
 
   /// 视频
-  static const IconData video = Icons.videocam_outlined;
+  static const IconData video = TDIcons.video;
 
   /// 摄像机
-  static const IconData videocam = Icons.videocam;
-
-  /// 视频库
-  static const IconData videoLibrary = Icons.video_library_outlined;
-
-  /// 播放列表
-  static const IconData playlistPlay = Icons.playlist_play_rounded;
-
-  /// 循环播放
-  static const IconData repeat = Icons.repeat_rounded;
-
-  /// 单曲循环
-  static const IconData repeatOne = Icons.repeat_one_rounded;
-
-  /// 随机播放
-  static const IconData shuffle = Icons.shuffle_rounded;
-
-  /// 麦克风
-  static const IconData mic = Icons.mic;
-
-  /// 麦克风（圆角）
-  static const IconData micRounded = Icons.mic_rounded;
-
-  /// 麦克风（无）
-  static const IconData micNone = Icons.mic_none_rounded;
+  static const IconData videocam = TDIcons.camera;
 
   /// 音乐笔记
-  static const IconData musicNote = Icons.music_note_outlined;
-
-  /// 音乐关闭
-  static const IconData musicOff = Icons.music_off_outlined;
-
-  /// 电影
-  static const IconData movie = Icons.movie_outlined;
-
-  /// 电影创作
-  static const IconData movieCreation = Icons.movie_creation_rounded;
-
-  /// 播放圆形轮廓
-  static const IconData playCircleOutline = Icons.play_circle_outline_rounded;
-
-  /// 播放圆形填充
-  static const IconData playCircleFill = Icons.play_circle_fill_rounded;
-
-  /// 停止圆形
-  static const IconData stopCircle = Icons.stop_circle_rounded;
-
-  /// 重放
-  static const IconData replay = Icons.replay_rounded;
-
-  /// 录音
-  static const IconData recordVoiceOver = Icons.record_voice_over;
-
-  /// 录音轮廓
-  static const IconData recordVoiceOverOutline = Icons.record_voice_over_outlined;
-
-  /// 速度
-  static const IconData speed = Icons.speed;
-
-  /// 歌词
-  static const IconData lyrics = Icons.lyrics_outlined;
-
-  /// 封闭字幕
-  static const IconData closedCaption = Icons.closed_caption;
+  static const IconData musicNote = TDIcons.audio;
 
   /// 耳机
-  static const IconData headphones = Icons.headphones;
+  static const IconData headphones = TDIcons.earphone;
 
   /// 相机
-  static const IconData cameraAlt = Icons.camera_alt_outlined;
+  static const IconData cameraAlt = TDIcons.camera;
 
   /// 照片库
-  static const IconData photoLibrary = Icons.photo_library_rounded;
-
-  /// 照片相机
-  static const IconData photoCamera = Icons.photo_camera_rounded;
+  static const IconData photoLibrary = TDIcons.browse_gallery;
 
   /// 音频文件
-  static const IconData audioFile = Icons.audio_file;
+  static const IconData audioFile = TDIcons.file_music;
 
-  /// 键盘语音
-  static const IconData keyboardVoice = Icons.keyboard_voice;
+  /// 电影
+  static const IconData movie = TDIcons.film; // 使用 film 作为替代
 
-  /// 文本字段
-  static const IconData textFields = Icons.text_fields_rounded;
-
-  /// 短文本
-  static const IconData shortText = Icons.short_text;
-
-  /// 均衡器
-  static const IconData equalizer = Icons.equalizer_rounded;
-
-  /// 字幕轮廓
-  static const IconData subtitlesOutline = Icons.subtitles_outlined;
+  /// 影片
+  static const IconData film = TDIcons.film;
 
   // ============================================================
   // 文件图标
   // ============================================================
 
   /// 文件夹
-  static const IconData folder = Icons.folder_outlined;
+  static const IconData folder = TDIcons.folder;
 
   /// 文件夹打开
-  static const IconData folderOpen = Icons.folder_open_outlined;
+  static const IconData folderOpen = TDIcons.folder_open;
 
   /// 文件
-  static const IconData insertDriveFile = Icons.insert_drive_file_outlined;
-
-  /// 文档
-  static const IconData description = Icons.description_outlined;
+  static const IconData insertDriveFile = TDIcons.file;
 
   /// 图片
-  static const IconData image = Icons.image_outlined;
+  static const IconData image = TDIcons.image;
 
   /// 压缩包
-  static const IconData zipFile = Icons.folder_zip_outlined;
+  static const IconData zipFile = TDIcons.file_zip;
 
   /// 文章
-  static const IconData article = Icons.article_outlined;
+  static const IconData article = TDIcons.article;
+  static const IconData articleRound = TDIcons.article_filled;
 
   /// 菜单书
-  static const IconData menuBook = Icons.menu_book_outlined;
+  static const IconData menuBook = TDIcons.book_open;
 
   /// 图书
-  static const IconData book = Icons.book_outlined;
-
-  /// 图书馆
-  static const IconData libraryBooks = Icons.library_books_outlined;
-
-  /// 收据
-  static const IconData receiptLong = Icons.receipt_long_outlined;
-
-  /// 自动故事
-  static const IconData autoStories = Icons.auto_stories;
-
-  /// 文章（圆角）
-  static const IconData articleRound = Icons.article_rounded;
+  static const IconData book = TDIcons.book;
 
   // ============================================================
   // 状态图标
   // ============================================================
 
-  /// 收藏/喜欢
-  static const IconData favorite = Icons.favorite_rounded;
+  /// 收藏/喜欢（填充）
+  static const IconData favorite = TDIcons.heart_filled;
 
-  /// 未收藏/不喜欢
-  static const IconData favoriteBorder = Icons.favorite_border_rounded;
+  /// 未收藏/不喜欢（轮廓）
+  static const IconData favoriteBorder = TDIcons.heart;
 
-  /// 星标
-  static const IconData star = Icons.star_rounded;
+  /// 星标（填充）
+  static const IconData star = TDIcons.star_filled;
 
-  /// 空星标
-  static const IconData starBorder = Icons.star_border_rounded;
-
-  /// 半星标
-  static const IconData starHalf = Icons.star_half_rounded;
-
-  /// 星标轮廓
-  static const IconData starOutline = Icons.star_outline_rounded;
+  /// 空星标（轮廓）
+  static const IconData starBorder = TDIcons.star;
+  static const IconData starOutline = TDIcons.star;
 
   /// 可见
-  static const IconData visibility = Icons.visibility_outlined;
+  static const IconData visibility = TDIcons.browse;
 
   /// 不可见
-  static const IconData visibilityOff = Icons.visibility_off_rounded;
-
-  /// 锁定
-  static const IconData lock = Icons.lock_outlined;
-
-  /// 解锁
-  static const IconData lockOpen = Icons.lock_open_outlined;
-
-  /// 警告
-  static const IconData warning = Icons.warning_amber_rounded;
+  static const IconData visibilityOff = TDIcons.browse_off;
 
   /// 错误
-  static const IconData error = Icons.error_outline_rounded;
+  static const IconData error = TDIcons.error;
+  static const IconData errorState = TDIcons.error_circle;
 
-  /// 信息
-  static const IconData info = Icons.info_outline_rounded;
+  /// 警告 - 使用 error_circle 作为替代（TDesign无专用warning图标）
+  static const IconData warning = TDIcons.error_circle;
+
+  /// 信息 - 使用 info_circle
+  static const IconData info = TDIcons.info_circle;
 
   /// 帮助
-  static const IconData help = Icons.help_outline_rounded;
+  static const IconData help = TDIcons.help;
 
-  /// 检查圆圈
-  static const IconData checkCircle = Icons.check_circle;
+  /// 检查圆圈（填充）
+  static const IconData checkCircle = TDIcons.check_circle_filled;
 
-  /// 检查圆圈轮廓
-  static const IconData checkCircleOutline = Icons.check_circle_outline;
-
-  /// 复选框
-  static const IconData checkBox = Icons.check_box_rounded;
-
-  /// 复选框空白
-  static const IconData checkBoxOutlineBlank = Icons.check_box_outline_blank_rounded;
-
-  /// 单选按钮未选中
-  static const IconData radioButtonUnchecked = Icons.radio_button_unchecked;
-
-  /// 趋势上升
-  static const IconData trendingUp = Icons.trending_up;
+  /// 检查圆圈（轮廓）
+  static const IconData checkCircleOutline = TDIcons.check_circle;
 
   /// 书签边框
-  static const IconData bookmarkBorder = Icons.bookmark_border;
+  static const IconData bookmarkBorder = TDIcons.bookmark;
 
   /// 书签填充
-  static const IconData bookmarkFill = Icons.bookmark_rounded;
+  static const IconData bookmarkFill = TDIcons.bookmark_filled;
 
   /// 旗帜
-  static const IconData flag = Icons.flag;
+  static const IconData flag = TDIcons.flag;
 
-  /// 破损图片
-  static const IconData brokenImage = Icons.broken_image_outlined;
+  /// 安全 - 使用认证/验证图标
+  static const IconData security = TDIcons.verified;
+  static const IconData shield = TDIcons.verified;
 
-  /// 提示更新
-  static const IconData tipsAndUpdates = Icons.tips_and_updates;
-
-  /// 灯泡
-  static const IconData lightbulb = Icons.lightbulb;
-
-  /// 灯泡轮廓
-  static const IconData lightbulbOutline = Icons.lightbulb_outline_rounded;
-
-  /// 安全
-  static const IconData security = Icons.security;
-
-  /// 盾牌
-  static const IconData shield = Icons.shield;
-
-  /// 本地火灾
-  static const IconData localFireDepartment = Icons.local_fire_department_rounded;
+  /// 趋势上升
+  static const IconData trendingUp = TDIcons.trending_up;
 
   // ============================================================
   // 用户相关图标
   // ============================================================
 
-  /// 用户
-  static const IconData person = Icons.person_outline_rounded;
+  /// 用户（轮廓）
+  static const IconData person = TDIcons.user;
 
   /// 用户（填充）
-  static const IconData personFill = Icons.person_rounded;
-
-  /// 用户组
-  static const IconData group = Icons.group_outlined;
+  static const IconData personFill = TDIcons.user_filled;
 
   /// 退出登录
-  static const IconData logout = Icons.logout_rounded;
+  static const IconData logout = TDIcons.logout;
 
   /// 登录
-  static const IconData login = Icons.login_rounded;
-
-  /// 人群
-  static const IconData people = Icons.people;
-
-  /// 人群轮廓
-  static const IconData peopleOutline = Icons.people_outline;
-
-  /// 管理账户
-  static const IconData manageAccounts = Icons.manage_accounts_outlined;
-
-  /// 添加用户
-  static const IconData personAddAlt = Icons.person_add_alt;
+  static const IconData login = TDIcons.login;
 
   // ============================================================
   // 主页/标签栏图标
   // ============================================================
 
-  /// 首页/主页
-  static const IconData home = Icons.home_outlined;
+  /// 首页/主页（轮廓）
+  static const IconData home = TDIcons.home;
 
-  /// 首页（选中）
-  static const IconData homeFill = Icons.home_rounded;
+  /// 首页（选中/填充）
+  static const IconData homeFill = TDIcons.home_filled;
 
-  /// 发现/探索
-  static const IconData explore = Icons.explore_outlined;
+  /// 发现/探索（轮廓）
+  static const IconData explore = TDIcons.explore;
 
-  /// 发现（选中）
-  static const IconData exploreFill = Icons.explore_rounded;
+  /// 发现（选中/填充）
+  static const IconData exploreFill = TDIcons.explore_filled;
 
-  /// 学习
-  static const IconData school = Icons.school_outlined;
+  /// 学习（轮廓）- 使用 education 图标更贴切
+  static const IconData school = TDIcons.education;
 
-  /// 学习（选中）
-  static const IconData schoolFill = Icons.school_rounded;
+  /// 学习（选中/填充）
+  static const IconData schoolFill = TDIcons.education_filled;
 
-  /// 个人中心
-  static const IconData accountCircle = Icons.account_circle_outlined;
+  /// 个人中心（轮廓）
+  static const IconData accountCircle = TDIcons.user;
 
-  /// 个人中心（选中）
-  static const IconData accountCircleFill = Icons.account_circle_rounded;
+  /// 个人中心（选中/填充）
+  static const IconData accountCircleFill = TDIcons.user_filled;
 
   // ============================================================
   // 网络/连接图标
   // ============================================================
 
   /// WiFi
-  static const IconData wifi = Icons.wifi_rounded;
+  static const IconData wifi = TDIcons.wifi;
 
   /// 断开连接
-  static const IconData wifiOff = Icons.wifi_off_rounded;
+  static const IconData wifiOff = TDIcons.wifi_off;
 
   /// 云上传
-  static const IconData cloudUpload = Icons.cloud_upload_outlined;
+  static const IconData cloudUpload = TDIcons.cloud_upload;
 
   /// 云下载
-  static const IconData cloudDownload = Icons.cloud_download_outlined;
+  static const IconData cloudDownload = TDIcons.cloud_download;
 
-  /// 同步
-  static const IconData sync = Icons.sync_rounded;
-
-  /// WiFi热点
-  static const IconData wifiTethering = Icons.wifi_tethering_outlined;
-
-  /// WiFi热点关闭
-  static const IconData wifiTetheringOff = Icons.wifi_tethering_off_rounded;
-
-  /// 云关闭
-  static const IconData cloudOff = Icons.cloud_off_outlined;
-
-  /// HTTP
-  static const IconData http = Icons.http;
+  /// 云
+  static const IconData cloud = TDIcons.cloud;
 
   /// 链接
-  static const IconData link = Icons.link_rounded;
+  static const IconData link = TDIcons.link;
 
   /// GPS定位
-  static const IconData gpsFixed = Icons.gps_fixed;
+  static const IconData gpsFixed = TDIcons.gps;
 
-  /// 网线
-  static const IconData cable = Icons.cable;
-
-  /// DNS
-  static const IconData dns = Icons.dns;
+  /// 地球
+  static const IconData earth = TDIcons.earth;
 
   /// 邮箱
-  static const IconData email = Icons.email_outlined;
-
-  /// 替代邮件
-  static const IconData alternateEmail = Icons.alternate_email_rounded;
+  static const IconData email = TDIcons.mail;
 
   // ============================================================
   // 时间/日期图标
   // ============================================================
 
-  /// 时钟/时间
-  static const IconData schedule = Icons.schedule_rounded;
-
   /// 日历
-  static const IconData calendarToday = Icons.calendar_today_rounded;
-
-  /// 日期范围
-  static const IconData dateRange = Icons.date_range_rounded;
+  static const IconData calendarToday = TDIcons.calendar;
 
   /// 历史
-  static const IconData history = Icons.history_rounded;
+  static const IconData history = TDIcons.history;
 
-  /// 计时器
-  static const IconData timer = Icons.timer_outlined;
-
-  /// 访问时间
-  static const IconData accessTime = Icons.access_time_rounded;
-
-  /// 历史切换关闭
-  static const IconData historyToggleOff = Icons.history_toggle_off_rounded;
+  /// 时钟/时间 - 使用 time 或 clock
+  static const IconData schedule = TDIcons.time;
+  static const IconData accessTime = TDIcons.time;
 
   // ============================================================
   // 文件操作图标
   // ============================================================
 
   /// 导入
-  static const IconData fileDownload = Icons.file_download_outlined;
+  static const IconData fileDownload = TDIcons.file_download;
 
   /// 导出
-  static const IconData fileUpload = Icons.file_upload_outlined;
+  static const IconData fileUpload = TDIcons.file_export;
 
   /// 创建新文件夹
-  static const IconData createNewFolder = Icons.create_new_folder_outlined;
-
-  /// 重命名
-  static const IconData driveFileRename = Icons.drive_file_rename_outline_rounded;
+  static const IconData createNewFolder = TDIcons.folder_add;
 
   // ============================================================
   // 对话图标
   // ============================================================
 
-  /// 问答
-  static const IconData quiz = Icons.quiz_outlined;
-
-  /// 论坛
-  static const IconData forum = Icons.forum_outlined;
-
   /// 聊天气泡
-  static const IconData chatBubbleOutline = Icons.chat_bubble_outline;
+  static const IconData chatBubbleOutline = TDIcons.chat_bubble;
 
   /// 聊天
-  static const IconData chat = Icons.chat_outlined;
-
-  /// 评论
-  static const IconData comment = Icons.comment;
-
-  /// 智能机器人
-  static const IconData smartToy = Icons.smart_toy;
+  static const IconData chat = TDIcons.chat;
 
   /// 发送
-  static const IconData send = Icons.send_rounded;
+  static const IconData send = TDIcons.send;
+
+  /// 翻译
+  static const IconData translate = TDIcons.translate;
 
   // ============================================================
   // 评测图标
   // ============================================================
 
-  /// 奖杯
-  static const IconData emojiEvents = Icons.emoji_events;
-
-  /// 规则
-  static const IconData rule = Icons.rule_outlined;
-
   /// 分析
-  static const IconData analytics = Icons.analytics_rounded;
+  static const IconData analytics = TDIcons.analytics;
 
   /// 展示图表
-  static const IconData showChart = Icons.show_chart_rounded;
-
-  /// 数字1
-  static const IconData looksOne = Icons.looks_one;
-
-  /// 数字2
-  static const IconData looksTwo = Icons.looks_two;
-
-  /// 数字3
-  static const IconData looksThree = Icons.looks_3;
-
-  /// 数字4
-  static const IconData looksFour = Icons.looks_4;
-
-  /// 数字5
-  static const IconData looksFive = Icons.looks_5;
+  static const IconData showChart = TDIcons.chart;
 
   /// 竖大拇指
-  static const IconData thumbUp = Icons.thumb_up_outlined;
+  static const IconData thumbUp = TDIcons.thumb_up;
 
   /// 倒大拇指
-  static const IconData thumbDown = Icons.thumb_down_outlined;
+  static const IconData thumbDown = TDIcons.thumb_down;
 
   /// 非常满意
-  static const IconData sentimentVerySatisfied = Icons.sentiment_very_satisfied;
+  static const IconData sentimentVerySatisfied = TDIcons.smile_filled;
 
-  /// 非常不满意
-  static const IconData sentimentVeryDissatisfied = Icons.sentiment_very_dissatisfied;
+  /// 非常不满意 - 使用愤怒表情（TDesign无cry/disappointment）
+  static const IconData sentimentVeryDissatisfied = TDIcons.angry;
 
   /// 满意
-  static const IconData sentimentSatisfied = Icons.sentiment_satisfied;
+  static const IconData sentimentSatisfied = TDIcons.smile;
 
-  /// 中立
-  static const IconData sentimentNeutral = Icons.sentiment_neutral;
+  /// 中立 - 使用中性表情（TDesign无neutral）
+  static const IconData sentimentNeutral = TDIcons.smile;
 
-  /// 不满意
-  static const IconData sentimentDissatisfied = Icons.sentiment_dissatisfied;
+  /// 不满意 - 使用一般不满表情（TDesign无dissatisfied）
+  static const IconData sentimentDissatisfied = TDIcons.angry;
 
-  /// 心理学
-  static const IconData psychology = Icons.psychology_rounded;
-
-  /// 工作空间高级
-  static const IconData workspacePremium = Icons.workspace_premium;
-
-  /// 麦克风
-  static const IconData recordVoice = Icons.record_voice_over;
+  /// 奖杯/礼品
+  static const IconData emojiEvents = TDIcons.gift_filled;
 
   // ============================================================
-  // 单词本图标
+  // 媒体和列表图标补充
   // ============================================================
 
-  /// 翻译
-  static const IconData translate = Icons.translate_outlined;
+  /// 无序列表/项目符号 - 使用 list（TDesign无formatListBulleted）
+  static const IconData formatListBulleted = TDIcons.list;
 
-  /// 语言
-  static const IconData language = Icons.language;
-
-  /// 拼写检查
-  static const IconData spellcheck = Icons.spellcheck;
+  /// 电影创作 - 使用 video 或 film（TDesign无movieCreation）
+  static const IconData movieCreation = TDIcons.video;
 
   // ============================================================
   // 设置图标
   // ============================================================
 
   /// 调整
-  static const IconData tune = Icons.tune_rounded;
+  static const IconData tune = TDIcons.adjustment;
 
-  /// 亮色模式
-  static const IconData lightMode = Icons.light_mode_outlined;
+  /// 亮色模式 - 使用 sunny 图标（TDesign无light_mode/sun_filled）
+  static const IconData lightMode = TDIcons.sunny;
 
   /// 暗色模式
-  static const IconData darkMode = Icons.dark_mode_outlined;
+  static const IconData darkMode = TDIcons.moon_filled;
 
-  /// 亮度自动
-  static const IconData brightnessAuto = Icons.brightness_auto_outlined;
+  /// 亮度自动 - 使用 brightness 图标
+  static const IconData brightnessAuto = TDIcons.brightness;
 
   /// 调色板
-  static const IconData palette = Icons.palette_outlined;
+  static const IconData palette = TDIcons.palette;
 
-  /// 彩色镜头
-  static const IconData colorLens = Icons.color_lens_rounded;
-
-  /// 显示
-  static const IconData display = Icons.desktop_mac_outlined;
+  /// 显示/桌面
+  static const IconData display = TDIcons.desktop;
 
   /// 账户钱包
-  static const IconData accountBalanceWallet = Icons.account_balance_wallet_outlined;
+  static const IconData accountBalanceWallet = TDIcons.wallet;
+
+  /// 亮度
+  static const IconData brightness = TDIcons.brightness;
+
+  // ============================================================
+  // 媒体控制补充图标
+  // ============================================================
+
+  /// 速度/倍速 - 使用 speed 或 time 图标
+  static const IconData speed = TDIcons.time;
+
+  /// 录音 - 使用 microphone 图标
+  static const IconData recordVoiceOver = TDIcons.microphone;
+
+  /// 麦克风
+  static const IconData mic = TDIcons.microphone;
+
+  /// 麦克风（圆角）- 使用 microphone_filled
+  static const IconData micRounded = TDIcons.microphone_filled;
+
+  /// 麦克风（无）- 使用 microphone（TDesign无microphone_off）
+  static const IconData micNone = TDIcons.microphone;
+
+  /// 音量增大 - 使用 sound 图标（TDesign无volume）
+  static const IconData volumeUp = TDIcons.sound;
+
+  /// 音量降低 - 使用 sound 图标
+  static const IconData volumeDown = TDIcons.sound;
+
+  /// 静音 - 使用 sound_mute
+  static const IconData volumeOff = TDIcons.sound_mute;
+
+  /// 停止圆形 - 使用 stop_circle
+  static const IconData stopCircle = TDIcons.stop_circle;
+
+  /// 播放圆形填充 - 使用 play_circle_filled
+  static const IconData playCircleFill = TDIcons.play_circle_filled;
+
+  /// 播放圆形轮廓 - 使用 play_circle
+  static const IconData playCircleOutline = TDIcons.play_circle;
+
+  /// 循环播放 - 使用 anticlockwise（TDesign无repeat）
+  static const IconData repeat = TDIcons.anticlockwise;
+
+  /// 单曲循环 - 使用 anticlockwise_filled
+  static const IconData repeatOne = TDIcons.anticlockwise_filled;
+
+  /// 随机播放 - 使用 swap（TDesign无shuffle）
+  static const IconData shuffle = TDIcons.swap;
+
+  /// 快退 - 使用 previous
+  static const IconData rewind = TDIcons.previous;
+
+  /// 快进 - 使用 next
+  static const IconData fastForward = TDIcons.next;
+
+  /// 歌词 - 使用 subtitle
+  static const IconData lyrics = TDIcons.subtitle;
+
+  /// 封闭字幕 - 使用 subtitle
+  static const IconData closedCaption = TDIcons.subtitle;
+
+  /// 字幕关闭 - 使用 close_circle（TDesign无subtitle_off）
+  static const IconData subtitlesOff = TDIcons.close_circle;
+
+  /// 重放 - 使用 refresh
+  static const IconData replay = TDIcons.refresh;
+
+  // ============================================================
+  // 文本和编辑图标
+  // ============================================================
+
+  /// 文本字段 - 使用 edit（TDesign无text_format）
+  static const IconData textFields = TDIcons.edit;
+
+  /// 短文本 - 使用 edit
+  static const IconData shortText = TDIcons.edit;
+
+  /// 灯泡 - 使用 lightbulb
+  static const IconData lightbulb = TDIcons.lightbulb;
+
+  /// 灯泡轮廓 - 使用 lightbulb
+  static const IconData lightbulbOutline = TDIcons.lightbulb;
+
+  /// 彩色镜头 - 使用 palette
+  static const IconData colorLens = TDIcons.palette;
+
+  /// 自动填充/AI - 使用 star（TDesign无star_1/sparkle）
+  static const IconData autoAwesome = TDIcons.star;
+
+  /// 提示更新 - 使用 tips 或 info
+  static const IconData tipsAndUpdates = TDIcons.info_circle;
+
+  /// 本地火灾 - 使用 fire 或 trending_up
+  static const IconData localFireDepartment = TDIcons.trending_up;
+
+  /// 破损图片 - 使用 error
+  static const IconData brokenImage = TDIcons.error;
+
+  // ============================================================
+  // 其他实用图标
+  // ============================================================
+
+  /// 礼品
+  static const IconData gift = TDIcons.gift;
+
+  /// 卡片
+  static const IconData card = TDIcons.card;
+
+  /// 商店
+  static const IconData shop = TDIcons.shop;
+
+  /// 标签
+  static const IconData tag = TDIcons.tag;
+
+  /// 通知
+  static const IconData notification = TDIcons.notification;
+
+  /// 位置
+  static const IconData location = TDIcons.location;
+
+  /// 服务器
+  static const IconData server = TDIcons.server;
+
+  /// 笔记本/电脑
+  static const IconData laptop = TDIcons.laptop;
+
+  /// 电视
+  static const IconData tv = TDIcons.tv;
+
+  /// 地图
+  static const IconData map = TDIcons.map;
+
+  /// 指南针
+  static const IconData compass = TDIcons.compass;
+
+  /// 代码
+  static const IconData code = TDIcons.code;
+
+  /// 终端
+  static const IconData terminal = TDIcons.terminal;
+
+  /// 密钥
+  static const IconData key = TDIcons.key;
+
+  /// 图层 - 使用 chart_stacked（TDesign无stack/layers）
+  static const IconData layers = TDIcons.chart_stacked;
+
+  /// 排序 - 使用 filter_sort（TDesign无sort）
+  static const IconData sort = TDIcons.filter_sort;
+
+  /// 反馈 - 使用 chat_bubble（TDesign无comment）
+  static const IconData feedback = TDIcons.chat_bubble;
+
+  /// 分类 - 使用 category 或 app
+  static const IconData category = TDIcons.app;
+
+  /// 拖拽手柄 - 使用 drag_move（TDesign无drag）
+  static const IconData dragHandle = TDIcons.drag_move;
+
+  /// 返回退格 - 使用 delete（TDesign无backspace）
+  static const IconData backspace = TDIcons.delete;
+
+  /// 自动修复 - 使用 setting（TDesign无tool）
+  static const IconData autoFixHigh = TDIcons.setting;
+
+  /// 有序列表 - 使用 view_list（TDesign无list_ordered）
+  static const IconData formatListNumbered = TDIcons.view_list;
+
+  /// 标签轮廓 - 使用 tag
+  static const IconData labelOutline = TDIcons.tag;
+
+  /// 应用（圆角）- 已在上面定义，此处删除重复定义
+  // static const IconData appsRound = TDIcons.app_filled; // 重复，已删除
+
+  /// 视频库 - 使用 video_library 或 video
+  static const IconData videoLibrary = TDIcons.video;
+
+  /// 播放列表 - 使用 playlist 或 list
+  static const IconData playlistPlay = TDIcons.list;
+
+  /// 播放列表添加 - 使用 add_circle
+  static const IconData playlistAdd = TDIcons.add_circle;
+
+  /// 锁定 - 使用 file_locked（TDesign无lock）
+  static const IconData lock = TDIcons.file_locked;
+
+  /// 解锁 - 使用 file_unlocked
+  static const IconData lockOpen = TDIcons.file_unlocked;
+
+  /// 同步 - 使用 refresh 或 sync
+  static const IconData sync = TDIcons.refresh;
+
+  /// WiFi热点 - 使用 wifi
+  static const IconData wifiTethering = TDIcons.wifi;
+
+  /// WiFi热点关闭 - 使用 wifi_off
+  static const IconData wifiTetheringOff = TDIcons.wifi_off;
+
+  /// 云关闭 - 使用 cloud（TDesign无cloud_off）
+  static const IconData cloudOff = TDIcons.cloud;
+
+  /// HTTP - 使用 link 或 server
+  static const IconData http = TDIcons.server;
+
+  /// 替代邮件 - 使用 mail
+  static const IconData alternateEmail = TDIcons.mail;
+
+  /// 日期范围 - 使用 calendar_2（TDesign无calendar_range）
+  static const IconData dateRange = TDIcons.calendar_2;
+
+  /// 计时器 - 使用 time（TDesign无timer）
+  static const IconData timer = TDIcons.time;
+
+  /// 历史切换关闭 - 使用 history 或 close
+  static const IconData historyToggleOff = TDIcons.close;
+
+  /// 重命名 - 使用 edit
+  static const IconData driveFileRename = TDIcons.edit;
+
+  /// 问答 - 使用 help 或 question
+  static const IconData quiz = TDIcons.help;
+
+  /// 论坛 - 使用 forum 或 chat
+  static const IconData forum = TDIcons.chat;
+
+  /// 评论 - 使用 chat_bubble（TDesign无comment）
+  static const IconData comment = TDIcons.chat_bubble;
+
+  /// 智能机器人 - 使用 user_talk（TDesign无ai/robot）
+  static const IconData smartToy = TDIcons.user_talk;
+
+  /// 规则 - 使用 fact_check（TDesign无rule/document）
+  static const IconData rule = TDIcons.fact_check;
+
+  /// 数字1 - 使用 chart_bar（TDesign无numeric_x）
+  static const IconData looksOne = TDIcons.chart_bar;
+
+  /// 数字2 - 使用 chart_pie
+  static const IconData looksTwo = TDIcons.chart_pie;
+
+  /// 数字3 - 使用 chart_line
+  static const IconData looksThree = TDIcons.chart_line;
+
+  /// 数字4 - 使用 chart_bubble
+  static const IconData looksFour = TDIcons.chart_bubble;
+
+  /// 数字5 - 使用 chart_bubble（TDesign无chart_histogram）
+  static const IconData looksFive = TDIcons.chart_bubble;
+
+  /// 复选框 - 使用 component_checkbox（TDesign无checkbox）
+  static const IconData checkBox = TDIcons.component_checkbox;
+
+  /// 复选框空白 - 使用 check_rectangle（TDesign无checkbox_unchecked）
+  static const IconData checkBoxOutlineBlank = TDIcons.check_rectangle;
+
+  /// 单选按钮未选中 - 使用 component_radio（TDesign无radio_unchecked）
+  static const IconData radioButtonUnchecked = TDIcons.component_radio;
+
+  /// 管理账户 - 使用 user_setting
+  static const IconData manageAccounts = TDIcons.user_setting;
+
+  /// 添加用户 - 使用 user_add
+  static const IconData personAddAlt = TDIcons.user_add;
+
+  /// 用户组 - 使用 usergroup（TDesign无users）
+  static const IconData group = TDIcons.usergroup;
+
+  /// 人群 - 使用 usergroup
+  static const IconData people = TDIcons.usergroup;
+
+  /// 人群轮廓 - 使用 usergroup
+  static const IconData peopleOutline = TDIcons.usergroup;
+
+  /// 心理学 - 使用 user_safety（TDesign无brain/psychology）
+  static const IconData psychology = TDIcons.user_safety;
+
+  /// 工作空间高级 - 使用 user_vip（TDesign无crown）
+  static const IconData workspacePremium = TDIcons.user_vip;
+
+  /// 麦克风录音 - 使用 microphone
+  static const IconData recordVoice = TDIcons.microphone;
+
+  /// 语言 - 使用 language 或 translate
+  static const IconData language = TDIcons.translate;
+
+  /// 拼写检查 - 使用 spellcheck 或 check
+  static const IconData spellcheck = TDIcons.check;
+
+  /// 文档 - 使用 file_1（TDesign无document/file_text）
+  static const IconData description = TDIcons.file_1;
+
+  /// 图书馆 - 使用 library 或 book
+  static const IconData libraryBooks = TDIcons.book_open;
+
+  /// 收据 - 使用 file_1（TDesign无file_text）
+  static const IconData receiptLong = TDIcons.file_1;
+
+  /// 自动故事 - 使用 auto_stories 或 book
+  static const IconData autoStories = TDIcons.book_open;
+
+  /// 照片相机 - 使用 camera
+  static const IconData photoCamera = TDIcons.camera;
+
+  /// 键盘语音 - 使用 keyboard_voice 或 microphone
+  static const IconData keyboardVoice = TDIcons.microphone;
+
+  /// 均衡器 - 使用 equalizer 或 chart_bar
+  static const IconData equalizer = TDIcons.chart_bar;
 
   // ============================================================
   // 获取图标的便捷方法
@@ -796,38 +837,56 @@ class AppIcons {
   }
 
   /// 将非填充图标转换为填充版本
+  ///
+  /// TDesign 的填充版本通常以 _filled 后缀命名
   static IconData _toFilledIcon(IconData icon) {
     // 导航类
-    if (icon == arrowBack) return Icons.arrow_back;
-    if (icon == arrowForward) return Icons.arrow_forward;
-    if (icon == expandMore) return Icons.expand_more;
-    if (icon == expandLess) return Icons.expand_less;
-    if (icon == menu) return Icons.menu;
-    if (icon == close) return Icons.close;
-    if (icon == check) return Icons.check;
+    if (icon == arrowBack) return TDIcons.arrow_left;
+    if (icon == arrowForward) return TDIcons.arrow_right;
+    if (icon == expandMore) return TDIcons.chevron_down;
+    if (icon == expandLess) return TDIcons.chevron_up;
+    if (icon == menu) return TDIcons.menu_filled;
+    if (icon == close) return TDIcons.close;
+    if (icon == check) return TDIcons.check;
 
     // 操作类
-    if (icon == add) return Icons.add;
-    if (icon == delete) return Icons.delete;
-    if (icon == settings) return Icons.settings;
-    if (icon == search) return Icons.search;
-    if (icon == refresh) return Icons.refresh;
+    if (icon == add) return TDIcons.add;
+    if (icon == delete) return TDIcons.delete_filled;
+    if (icon == edit) return TDIcons.edit_filled;
+    if (icon == settings) return TDIcons.setting_filled;
+    if (icon == search) return TDIcons.search;
+    if (icon == refresh) return TDIcons.refresh;
 
     // 媒体类
-    if (icon == play) return Icons.play_arrow;
-    if (icon == pause) return Icons.pause;
-    if (icon == stop) return Icons.stop;
-    if (icon == subtitles) return Icons.subtitles;
-    if (icon == videoLibrary) return Icons.video_library;
+    if (icon == play) return TDIcons.play;
+    if (icon == pause) return TDIcons.pause;
+    if (icon == stop) return TDIcons.stop;
+    if (icon == subtitles) return TDIcons.subtitle;
+    if (icon == video) return TDIcons.video;
 
     // 用户类
-    if (icon == person) return Icons.person;
-    if (icon == accountCircle) return Icons.account_circle;
+    if (icon == person) return TDIcons.user_filled;
+    if (icon == accountCircle) return TDIcons.user_filled;
 
     // 主页类
-    if (icon == home) return Icons.home;
-    if (icon == explore) return Icons.explore;
-    if (icon == school) return Icons.school;
+    if (icon == home) return TDIcons.home_filled;
+    if (icon == explore) return TDIcons.explore_filled;
+    if (icon == school) return TDIcons.education_filled;
+
+    // 状态类
+    if (icon == favorite) return TDIcons.heart_filled;
+    if (icon == favoriteBorder) return TDIcons.heart_filled;
+    if (icon == star) return TDIcons.star_filled;
+    if (icon == starBorder) return TDIcons.star_filled;
+    if (icon == bookmarkBorder) return TDIcons.bookmark_filled;
+    if (icon == bookmarkFill) return TDIcons.bookmark_filled;
+    if (icon == checkCircleOutline) return TDIcons.check_circle_filled;
+    if (icon == checkCircle) return TDIcons.check_circle_filled;
+
+    // 文件类
+    if (icon == folder) return TDIcons.folder_filled;
+    if (icon == insertDriveFile) return TDIcons.file_filled;
+    if (icon == article) return TDIcons.article_filled;
 
     return icon;
   }
@@ -898,7 +957,7 @@ class PngIcons {
       color: color,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
-        return Icon(Icons.broken_image_outlined, size: width ?? 24, color: Colors.grey);
+        return Icon(TDIcons.error, size: width ?? 24, color: const Color(0xFF9E9E9E)); // grey
       },
     );
   }
@@ -939,10 +998,10 @@ abstract final class ResourceIcons {
   /// 获取类型对应的单资源图标
   static List<List<dynamic>> itemIconFor(String type) => _itemIcons[type] ?? itemVideo;
 
-  // ─── 卡片展示图标（Material Icons） ──────────
-  static const IconData displayVideo = Icons.movie;
-  static const IconData displayArticle = Icons.menu_book;
-  static const IconData displayAudio = Icons.music_note;
+  // ─── 卡片展示图标（TDesign Icons） ──────────
+  static const IconData displayVideo = TDIcons.video;
+  static const IconData displayArticle = TDIcons.article;
+  static const IconData displayAudio = TDIcons.audio;
 
   /// 根据类型取卡片展示图标
   static const Map<String, IconData> _displayIcons = {
