@@ -339,12 +339,137 @@ chore(structure): 重组 docs 目录结构
 
 ---
 
-**文档版本**：V2.0
-**更新时间**：2026-07-15
+## 十一、AI 工具配置
+
+本项目使用多款 AI 编程工具协作开发，配置文件统一以 `AGENTS.md` 为单一事实来源。
+
+| 工具 | 配置文件 | 说明 |
+|------|---------|------|
+| **OpenCode** | `opencode.json` + `.opencode/skills/` | 主开发工具，按 7.1 节操作清单执行 |
+| **CatPaw** | `.catpaw/commands/` | 提供 project-rules / new-module 等命令 |
+| **Trae** | `.trae/rules/project_rules.md` | 项目规则适配入口，指向本文件 |
+| **Marvis** | `.marvis/project-context.md` | 项目上下文参考 |
+
+### Superpowers
+
+项目已集成 [Superpowers](https://github.com/obra/superpowers) 工作流框架（通过 `opencode.json` plugin 安装）。
+可用 Agent（通过 `@` 引用）：
+- `@brainstorm` — 需求澄清与设计
+- `@tdd` — 测试驱动开发
+- `@debug` — 系统化调试
+- `@planner` — 任务分解与计划
+- `@review` — 代码审查
+- `@verify` — 完成验证
+
+### 优化方案
+
+详见 `docs/developer/ai-engineering-optimization-plan-V1.0.md`
+
+---
+
+## 十二、测试规范（必须遵循）
+
+### 12.1 核心原则
+
+- **先测试后代码** — 在新功能开发中优先采用 TDD（红-绿-重构）
+- **无测试 = 未完成** — 每段新代码必须附带对应测试
+- **测试是活的文档** — 测试用例描述系统行为，比注释更可靠
+- **遵循测试金字塔** — 单元 50% > Widget 30% > 集成 15% > E2E 5%
+
+### 12.2 测试文件组织
+
+```
+test/
+├── models/           # 对应 lib/models/
+├── services/         # 对应 lib/services/
+├── views/{module}/   # 对应 lib/views/{module}/
+│   ├── providers/
+│   └── widgets/
+├── integration/      # 跨模块集成测试
+└── e2e/              # 完整用户旅程
+```
+
+测试文件名：`{源文件名}_test.dart`（如 `video_folder.dart` → `video_folder_test.dart`）
+
+### 12.3 技术选型
+
+| 场景 | 技术 | 理由 |
+|------|------|------|
+| Mock 框架 | **mocktail** | 无需代码生成，零配置 |
+| 数据库测试 | `sqflite_common_ffi` | 桌面环境运行 SQLite |
+| 覆盖率 | `flutter test --coverage` | 内置支持 |
+| CI | **GitHub Actions** | 免费、社区标准 |
+
+### 12.4 编写规范
+
+**命名格式**：`<方法/组件>：<场景> → <期望行为>`
+
+```dart
+test('VideoFolder.fromMap: 有效数据 → 正确解析所有字段', () { ... });
+testWidgets('WordCard: 点击收藏按钮 → 切换收藏状态', (tester) async { ... });
+```
+
+**AAA 结构**（Arrange-Act-Assert）：
+
+```dart
+test('DatabaseService.getFolders: 查询成功 → 返回列表', () async {
+  final db = await _createTestDatabase();               // Arrange
+  await db.insert('video_folder', {'name': 'test', ...});
+  
+  final folders = await DatabaseService(db).getAllFolders();  // Act
+  
+  expect(folders.length, 1);                                   // Assert
+  expect(folders.first.name, 'test');
+});
+```
+
+### 12.5 Mock 策略
+
+```yaml
+# pubspec.yaml
+dev_dependencies:
+  mocktail: ^1.0.4
+```
+
+```dart
+class MockDatabaseService extends Mock implements DatabaseService {}
+
+final mockDb = MockDatabaseService();
+when(() => mockDb.getVideoFolders()).thenAnswer((_) async => []);
+```
+
+**渐进式改进**：新服务使用构造函数注入（非静态方法），便于 mock。
+
+### 12.6 覆盖率目标
+
+| 层级 | 目标 |
+|------|------|
+| models/ + utils/ | **90%+** |
+| services/ + providers/ | **80%+** |
+| views/*/widgets/ | **60%+** |
+| 项目整体 | **70%+** |
+
+### 12.7 文档自动测试检查
+
+AI 编写任何设计/技术文档时，**必须包含以下检查清单**：
+
+- [ ] 是否包含对应的测试策略？
+- [ ] 关键边界条件是否说明？
+- [ ] Mock/Stub 策略是否定义？
+- [ ] 验证标准是否明确（怎样算"通过"）？
+- [ ] 是否有性能/并发测试需求？
+
+### 12.8 完整测试规范
+
+详见 `docs/developer/testing-standards-V1.0.md`
+
+---
+
+**文档版本**：V2.2
+**更新时间**：2026-07-22
 **变更**:
-- **重大重构**：组件/Provider 按模块归属分类，废除 widgets/ 全局业务组件目录
-- providers/ 仅保留 4 个全局 Provider，其余迁入各 views/{module}/providers/
-- components/ 精简为纯全局公共组件（ui/ + dialogs/ + 跨模块复用组件）
-- 新增模块自包含目录结构规范（page + logic + providers + widgets）
-- 更新文件存放决策树和新增模块操作清单
+- **新增** 第十二节 测试规范，涵盖原则/组织/技术选型/覆盖率/文档检查
+- **新增** `docs/developer/testing-standards-V1.0.md` 完整测试规范文档
+- **新增** 文档测试完整性检查清单（AI 写文档时自动检查）
+- **新增** mocktail 推荐和渐进式重构指导
 **来源**：从 `项目全局规则.md` 提取核心规则，供 AI 自动加载

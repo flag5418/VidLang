@@ -17,6 +17,9 @@ dependencies:
   # 核心依赖，用于管理应用状态
   flutter_riverpod: ^2.6.1
 
+  # Markdown 渲染 - 帖子正文 Markdown 解析
+  flutter_markdown: ^0.7.4+1
+
   # TDesign Flutter - UI 组件库（统一弹窗/Toast/图标等）
   tdesign_flutter:
     path: plugs/tdesign_flutter
@@ -97,6 +100,9 @@ dependencies:
 
   # 本地键值存储 - 用于持久化用户偏好设置（如主题模式）
   shared_preferences: ^2.3.5
+
+  # 苹果内购 / Google Play 内购
+  in_app_purchase: ^3.2.1
 
   # Hugeicons - 4700+ 免费 SVG 图标，自动适配主题色与暗黑模式
   # 官方浏览: https://hugeicons.com/icons

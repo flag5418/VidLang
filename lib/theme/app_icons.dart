@@ -508,6 +508,25 @@ class AppIcons {
   static const IconData brightness = TDIcons.brightness;
 
   // ============================================================
+  // 难度等级图标
+  // ============================================================
+
+  /// 入门 - 微笑，表示友好简单
+  static const IconData levelBeginner = TDIcons.smile;
+
+  /// 初级 - 星星，表示开始进阶
+  static const IconData levelElementary = TDIcons.star;
+
+  /// 中级 - 点赞，表示不错
+  static const IconData levelIntermediate = TDIcons.thumb_up;
+
+  /// 高级 - 奖杯/成就
+  static const IconData levelAdvanced = TDIcons.gift_filled;
+
+  /// 专业 - VIP/皇冠，表示专业
+  static const IconData levelProfessional = TDIcons.user_vip;
+
+  // ============================================================
   // 媒体控制补充图标
   // ============================================================
 
@@ -660,8 +679,8 @@ class AppIcons {
   /// 分类 - 使用 category 或 app
   static const IconData category = TDIcons.app;
 
-  /// 拖拽手柄 - 使用 drag_move（TDesign无drag）
-  static const IconData dragHandle = TDIcons.drag_move;
+  /// 拖拽手柄 - 使用 component_grid（4点网格设计，更有拖拽感）
+  static const IconData dragHandle = TDIcons.component_grid;
 
   /// 返回退格 - 使用 delete（TDesign无backspace）
   static const IconData backspace = TDIcons.delete;
@@ -812,6 +831,15 @@ class AppIcons {
 
   /// 均衡器 - 使用 equalizer 或 chart_bar
   static const IconData equalizer = TDIcons.chart_bar;
+
+  /// 视图模块/网格布局
+  static const IconData viewModule = TDIcons.view_module;
+
+  /// 引用/引号格式 - TDesign 无 quote，使用 chat 替代
+  static const IconData formatQuote = TDIcons.chat;
+
+  /// 信号强度/难度等级
+  static const IconData signalCellularAlt = TDIcons.chart_bar;
 
   // ============================================================
   // 获取图标的便捷方法

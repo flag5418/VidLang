@@ -23,7 +23,8 @@ docs/
 │   ├── wordbook-design.md     ← 单词本系统设计
 │   ├── test-system-design.md  ← 测试引擎设计
 │   ├── ai-conversation-design.md  ← AI 对话系统设计
-│   └── billing-redesign.md      ← 计费系统设计（V1.1，充值/扣费/优惠策略/billing-center） │
+│   ├── billing-redesign.md      ← 计费系统设计（V1.1，充值/扣费/优惠策略/billing-center）
+│   └── forum-design.md          ← 论坛功能设计（V1.1，自定义域名+Cloudflare代理方案+iOS审核细节） │
 │
 ├── reference/                 ← 【参考】代码级知识库（给 AI/开发者查）
 │   ├── flutter-code-structure.md   ← Flutter 代码结构详解
@@ -33,6 +34,9 @@ docs/
 │   ├── ai-service-integration.md   ← AI 服务集成（V1.1，多通道混合架构：5大通道/12个rule_code/WordDetail模型） │
 │   ├── tdesign-components.md       ← TDesign 组件使用参考
 │   └── design-style-guide.md       ← UI 设计规范
+│
+│   ├── ai-engineering-optimization-plan-V1.0.md ← 【优化方案】AI 工程化优化计划（V1.0）
+│   └── testing-standards-V1.0.md ← 【测试规范】测试策略、Mock、覆盖率、CI（V1.0）
 │
 └── expired/                   ← 【过期】所有过时文档（扁平存放，不再维护）
 ```
@@ -50,6 +54,7 @@ docs/
 | 测试引擎填空/听写/选择 | `modules/test-system-design.md` |
 | AI 对话如何实现 | `modules/ai-conversation-design.md` |
 | 充值扣费怎么算 | `modules/billing-redesign.md` |
+| 论坛功能怎么设计 | `modules/forum-design.md` |
 | Flutter 代码目录结构 | `reference/flutter-code-structure.md` |
 | 服务层有哪些服务 | `reference/services-architecture.md` |
 | 如何使用 TDesign 组件 | `reference/tdesign-components.md` |

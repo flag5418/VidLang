@@ -71,8 +71,8 @@ class TDCalendarBody extends StatelessWidget {
         final mh = _getMonthHeight(months, i, monthHeight);
         if (scrollController.offset >= currentOffset &&
             scrollController.offset < currentOffset + mh) {
-          //只返回下一个月
-          DateTime currentMonth = months[i + 1];
+          // 返回当前月（修复：原来是 i+1，会导致最后一月越界）
+          DateTime currentMonth = months[i];
           // 缓存上一次打印的月份，只有变更时才打印
           if (_lastPrintMonth == null ||
               !_lastPrintMonth!.isAtSameMomentAs(currentMonth)) {

@@ -36,6 +36,7 @@ import 'package:vidlang/views/profile/edit_profile_page.dart';
 import 'package:vidlang/views/profile/learning_stats_page.dart';
 import 'package:vidlang/views/profile/topup_page.dart';
 import 'package:vidlang/views/profile/user_settings_page.dart';
+import 'package:vidlang/views/forum/forum_home_page.dart';
 import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 
@@ -156,16 +157,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
 
                     _SettingItem(
+                      icon: AppIcons.forum,
+                      title: '论坛',
+                      subtitle: '学习交流社区',
+                      onTap: () => _navigateToForum(),
+                    ),
+                    _SettingItem(
                       icon: AppIcons.volumeUp,
                       title: 'TTS 缓存管理',
                       subtitle: _ttsCacheLabel,
                       onTap: () => _showTtsCacheDialog(),
-                    ),
-                    _SettingItem(
-                      icon: AppIcons.receiptLong,
-                      title: '消费明细',
-                      subtitle: '查看今日消费',
-                      onTap: () => _navigateToBillingPage(),
                     ),
                     _SettingItem(
                       icon: AppIcons.rule,
@@ -657,97 +658,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   // ==================== 学习统计 ====================
+  // 注：学习统计入口已移至设置列表中，此处保留方法供未来使用
 
-  Widget _buildLearningStats(ColorScheme colorScheme) {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const LearningStatsPage()),
-      ),
-      child: Container(
-        padding: EdgeInsets.all(AppSpacing.space4),
-        decoration: BoxDecoration(
-          color: AppColors.getSurface(brightness: Theme.of(context).brightness),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        child: Row(
-          children: [
-            _statItem(
-              AppIcons.calendarToday,
-              '${_summaryStats.totalDays}',
-              '天数',
-              colorScheme,
-            ),
-            _statDivider(colorScheme),
-            _statItem(
-              AppIcons.movie,
-              '${_summaryStats.videoTotal}',
-              '视频',
-              colorScheme,
-            ),
-            _statDivider(colorScheme),
-            _statItem(
-              AppIcons.musicNote,
-              '${_summaryStats.audioTotal}',
-              '音频',
-              colorScheme,
-            ),
-            _statDivider(colorScheme),
-            _statItem(
-              AppIcons.menuBook,
-              '${_summaryStats.articleTotal}',
-              '文章',
-              colorScheme,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _statItem(
-    IconData icon,
-    String value,
-    String label,
-    ColorScheme colorScheme,
-  ) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            size: adaptive.Adaptive.sp(20),
-            color: colorScheme.primary.withValues(alpha: 0.7),
-          ),
-          SizedBox(height: adaptive.Adaptive.h(6)),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(18),
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          SizedBox(height: adaptive.Adaptive.h(2)),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: AppTypography.fontSizeXSmall,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statDivider(ColorScheme colorScheme) {
-    return Container(
-      height: adaptive.Adaptive.h(30),
-      width: adaptive.Adaptive.w(1),
-      color: colorScheme.outline.withValues(alpha: 0.3),
-    );
-  }
+  // Widget _buildLearningStats(ColorScheme colorScheme) { ... }
+  // 注：_statItem 和 _statDivider 随 _buildLearningStats 一起注释，需要时恢复
 
   // ==================== 设置列表 ====================
 
@@ -962,6 +876,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
+  void _navigateToForum() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ForumHomePage()),
+    );
+  }
+
   void _navigateToBillingPage() {
     Navigator.push(
       context,
@@ -992,54 +913,64 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void _showThemePicker() async {
     final currentMode = ref.read(themeModeProvider);
     final items = AppThemeMode.values.map((mode) {
-      final isSelected = mode == currentMode;
-      return AppBottomSheetMenuItem(
-        text: mode.label,
+      return AppSelectionItem<AppThemeMode>(
+        value: mode,
         icon: mode.icon,
-        trailing: isSelected
-            ? Icon(
-                AppIcons.check,
-                color: Theme.of(context).colorScheme.primary,
-                size: adaptive.Adaptive.sp(20),
-              )
-            : null,
-        onTap: () async =>
-            await ref.read(themeModeProvider.notifier).setMode(mode),
+        title: mode.label,
       );
     }).toList();
-    await AppBottomSheetMenu.show(context, title: '外观设置', items: items);
+    final result = await AppSelectionDialog.show<AppThemeMode>(
+      context,
+      title: '外观设置',
+      subtitle: '选择你喜欢的界面风格',
+      icon: Icons.palette_outlined,
+      items: items,
+      currentValue: currentMode,
+    );
+    if (result != null && result != currentMode) {
+      await ref.read(themeModeProvider.notifier).setMode(result);
+    }
   }
 
   void _showDifficultyPicker() async {
     final currentLevel = ref.read(difficultyProvider);
     final items = DifficultyLevel.values.map((level) {
-      final isSelected = level == currentLevel;
-      return AppBottomSheetMenuItem(
-        text: level.label,
-        subtitle: level.description,
+      return AppSelectionItem<DifficultyLevel>(
+        value: level,
         icon: level.icon,
-        trailing: isSelected
-            ? Icon(
-                AppIcons.check,
-                color: Theme.of(context).colorScheme.primary,
-                size: adaptive.Adaptive.sp(20),
-              )
-            : null,
-        onTap: () async =>
-            await ref.read(difficultyProvider.notifier).setLevel(level),
+        title: level.label,
+        subtitle: level.description,
       );
     }).toList();
-    await AppBottomSheetMenu.show(context, title: '学习难度', items: items);
+    final result = await AppSelectionDialog.show<DifficultyLevel>(
+      context,
+      title: '学习难度',
+      subtitle: '选择适合你的学习水平',
+      icon: Icons.school_outlined,
+      items: items,
+      currentValue: currentLevel,
+    );
+    if (result != null && result != currentLevel) {
+      await ref.read(difficultyProvider.notifier).setLevel(result);
+    }
   }
 
   void _showDeviceTypeCombobox() async {
     final currentType = ref.read(deviceTypeProvider);
-    final result = await AppComboboxDialog.show<AppDeviceType>(
+    final items = AppDeviceType.values.map((type) {
+      return AppSelectionItem<AppDeviceType>(
+        value: type,
+        icon: type.isTablet ? Icons.tablet_mac : Icons.phone_iphone,
+        title: type.isTablet ? 'iPad 布局' : 'iPhone 布局',
+        subtitle: type.isTablet ? '按平板尺寸适配，布局更宽裕' : '按手机尺寸适配，内容紧凑',
+      );
+    }).toList();
+    final result = await AppSelectionDialog.show<AppDeviceType>(
       context,
       title: '设备类型',
-      items: AppDeviceType.values,
+      icon: Icons.devices_rounded,
+      items: items,
       currentValue: currentType,
-      itemBuilder: (type) => type.isTablet ? 'iPad 布局' : 'iPhone 布局',
     );
     if (result != null && result != currentType) {
       await ref.read(deviceTypeProvider.notifier).setDeviceType(result);

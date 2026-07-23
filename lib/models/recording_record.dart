@@ -138,7 +138,7 @@ class RecordingRecord extends BaseEntity {
     chapterCode = map['chapter_code'];
     sentenceCode = map['sentence_code'];
     audioPath = map['audio_path'] ?? '';
-    durationMs = map['duration_ms'] ?? 0;
+    durationMs = _toInt(map['duration_ms']) ?? 0;
     overallScore = _toDouble(map['overall_score']);
     fluencyScore = _toDouble(map['fluency_score']);
     accuracyScore = _toDouble(map['accuracy_score']);
@@ -147,7 +147,7 @@ class RecordingRecord extends BaseEntity {
     rawResultJson = map['raw_result_json'];
     language = map['language'];
     refText = map['ref_text'];
-    subtitleIndex = map['subtitle_index'];
+    subtitleIndex = _toInt(map['subtitle_index']);
     originalVolume = _toDouble(map['original_volume']);
     headphoneMode = map['headphone_mode'] == 1;
     speed = _toDouble(map['speed']);
@@ -166,6 +166,14 @@ class RecordingRecord extends BaseEntity {
     if (value == null) return null;
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
     return null;
   }
 }

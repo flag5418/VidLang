@@ -1,20 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:vidlang/models/forum/forum_tag.dart';
 import 'package:vidlang/views/forum/providers/forum_providers.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
-/// 创建帖子页面
+/// 创建帖子页 — V2.0 标签单选
 class ForumCreatePostPage extends ConsumerStatefulWidget {
-  final String? initialPostType;
-  final String? initialResourceType;
-
-  const ForumCreatePostPage({
-    super.key,
-    this.initialPostType,
-    this.initialResourceType,
-  });
+  const ForumCreatePostPage({super.key});
 
   @override
   ConsumerState<ForumCreatePostPage> createState() =>
@@ -22,499 +18,449 @@ class ForumCreatePostPage extends ConsumerStatefulWidget {
 }
 
 class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
-  final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  final _resourceUrlController = TextEditingController();
-  final _resourceDescriptionController = TextEditingController();
-  final _tagsController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  String _selectedPostType = 'discussion';
-  String? _selectedResourceType;
-  int? _selectedCategoryId;
-  bool _isLoading = false;
-
-  final List<String> _postTypes = [
-    'discussion',
-    'resource',
-    'help',
-    'feedback',
-  ];
-
-  final List<String> _resourceTypes = [
-    'video',
-    'audio',
-    'article',
-    'image',
-    'other',
-  ];
-
-  final Map<String, String> _postTypeLabels = {
-    'discussion': '学习讨论',
-    'resource': '资源分享',
-    'help': '求助问答',
-    'feedback': '反馈建议',
-  };
-
-  final Map<String, String> _resourceTypeLabels = {
-    'video': '视频',
-    'audio': '音频',
-    'article': '文章',
-    'image': '图片',
-    'other': '其他',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedPostType = widget.initialPostType ?? 'discussion';
-    _selectedResourceType = widget.initialResourceType;
-  }
+  ForumTag? _selectedTag;
+  final List<File> _localImages = [];
+  final List<String> _uploadedUrls = [];
+  bool _isUploading = false;
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
-    _resourceUrlController.dispose();
-    _resourceDescriptionController.dispose();
-    _tagsController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.lightSurfaceElevated,
-      appBar: AppBar(
-        title: const Text('创建新帖子'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 1,
-        // ✅ TDesign 规范：使用 TDButton 替换 TextButton
-        actions: [
-          TDButton(
-            text: _isLoading ? '' : '发布',
-            onTap: _isLoading ? null : _submitPost,
-            type: TDButtonType.text,
-            theme: TDButtonTheme.primary,
-          ),
-        ],
-      ),
-      body: _buildBody(),
-    );
-  }
+    final colors = context.colors;
+    final tagsAsync = ref.watch(forumTagsProvider);
+    final createState = ref.watch(createPostProvider);
 
-  Widget _buildBody() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      child: Form(
+    ref.listen(createPostProvider, (_, next) {
+      if (next.status == CreatePostStatus.success) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('发布成功')));
+        Navigator.pop(context, true);
+      } else if (next.status == CreatePostStatus.error) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.error ?? '发布失败')));
+      }
+    });
+
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: const Text('发布帖子'),
+        backgroundColor: colors.surface,
+        foregroundColor: colors.textPrimary,
+        elevation: 1,
+      ),
+      body: Form(
         key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
+          padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
           children: [
-            _buildPostTypeSection(),
-            SizedBox(height: Adaptive.h(24)),
-            _buildTitleField(),
-            SizedBox(height: Adaptive.h(16)),
-            _buildCategorySelector(),
-            SizedBox(height: Adaptive.h(16)),
-            _buildContentField(),
-            if (_selectedPostType == 'resource') ...[
-              SizedBox(height: Adaptive.h(16)),
-              _buildResourceSection(),
-            ],
-            SizedBox(height: Adaptive.h(16)),
-            _buildTagsField(),
-            SizedBox(height: Adaptive.h(32)),
-            _buildSubmitButton(),
+            // 标签选择（必选，V2.0 替代板块）
+            _buildTagSelector(context, colors, tagsAsync),
+            SizedBox(height: adaptive.Adaptive.h(16)),
+            // 标题
+            _buildTitleField(context, colors),
+            SizedBox(height: adaptive.Adaptive.h(16)),
+            // 正文
+            _buildContentField(context, colors),
+            SizedBox(height: adaptive.Adaptive.h(16)),
+            // 图片
+            _buildImageSection(context, colors),
+            SizedBox(height: adaptive.Adaptive.h(80)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildPostTypeSection() {
-    return Container(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(12)),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '帖子类型',
-            style: TextStyle(
-              fontSize: Adaptive.sp(16),
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          border: Border(top: BorderSide(color: colors.border, width: 0.5)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          adaptive.Adaptive.w(16),
+          adaptive.Adaptive.h(12),
+          adaptive.Adaptive.w(16),
+          adaptive.Adaptive.h(12) + MediaQuery.of(context).padding.bottom,
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: adaptive.Adaptive.h(52),
+          child: ElevatedButton(
+            onPressed: createState.status == CreatePostStatus.loading
+                ? null
+                : () => _submitPost(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+              disabledBackgroundColor: colors.primary.withValues(alpha: 0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+              ),
+              elevation: 0,
             ),
-          ),
-          SizedBox(height: Adaptive.h(12)),
-          Wrap(
-            spacing: Adaptive.w(8),
-            children: _postTypes.map((type) {
-              final isSelected = _selectedPostType == type;
-              return ChoiceChip(
-                label: Text(_postTypeLabels[type]!),
-                selected: isSelected,
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _selectedPostType = type;
-                      // 重置资源相关字段当类型改变时
-                      if (type != 'resource') {
-                        _selectedResourceType = null;
-                        _resourceUrlController.clear();
-                        _resourceDescriptionController.clear();
-                      }
-                    });
-                  }
-                },
-                selectedColor: Theme.of(
-                  context,
-                ).primaryColor.withValues(alpha: 0.2),
-                labelStyle: TextStyle(
-                  color: isSelected
-                      ? Theme.of(context).primaryColor
-                      : AppColors.textSecondary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTitleField() {
-    return Container(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(12)),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: TextFormField(
-        controller: _titleController,
-        decoration: InputDecoration(
-          labelText: '帖子标题 *',
-          hintText: '请输入一个有吸引力的标题',
-          border: InputBorder.none,
-          labelStyle: TextStyle(
-            fontSize: Adaptive.sp(14),
-            color: AppColors.textSecondary,
+            child: createState.status == CreatePostStatus.loading
+                ? SizedBox(
+                    width: adaptive.Adaptive.w(20),
+                    height: adaptive.Adaptive.h(20),
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    '发布',
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(16),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ),
-        style: TextStyle(fontSize: Adaptive.sp(16)),
-        maxLength: 100,
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return '请输入帖子标题';
-          }
-          if (value.trim().length < 5) {
-            return '标题至少需要5个字符';
-          }
-          return null;
-        },
       ),
     );
   }
 
-  Widget _buildCategorySelector() {
-    final categoriesAsync = ref.watch(forumCategoriesProvider);
-
-    return Container(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(12)),
-        border: Border.all(color: AppColors.borderLight),
+  Widget _buildTagSelector(
+    BuildContext context,
+    AppColorsData colors,
+    AsyncValue<List<ForumTag>> tagsAsync,
+  ) {
+    return tagsAsync.when(
+      loading: () => const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       ),
-      child: categoriesAsync.when(
-        data: (categories) => DropdownButtonFormField<int>(
-          initialValue: _selectedCategoryId,
-          decoration: InputDecoration(
-            labelText: '选择分类 *',
-            border: InputBorder.none,
-            labelStyle: TextStyle(
-              fontSize: Adaptive.sp(14),
-              color: AppColors.textSecondary,
-            ),
-          ),
-          style: TextStyle(
-            fontSize: Adaptive.sp(16),
-            color: AppColors.textPrimary,
-          ),
-          items: categories.map((category) {
-            return DropdownMenuItem<int>(
-              value: category.id,
-              child: Text(category.name),
-            );
+      error: (e, _) => Text('加载标签失败', style: TextStyle(color: colors.error)),
+      data: (tags) {
+        if (tags.isEmpty) {
+          return const Text('暂无可用标签');
+        }
+        if (_selectedTag == null && tags.isNotEmpty) {
+          Future.microtask(() {
+            setState(() => _selectedTag = tags.first);
+          });
+        }
+        return DropdownButtonFormField<ForumTag>(
+          initialValue: _selectedTag,
+          items: tags.map((t) {
+            return DropdownMenuItem(value: t, child: Text(t.name));
           }).toList(),
-          validator: (value) {
-            if (value == null) {
-              return '请选择一个分类';
-            }
+          onChanged: (v) => setState(() => _selectedTag = v),
+          decoration: InputDecoration(
+            labelText: '选择标签（必选）',
+            labelStyle: TextStyle(color: colors.textSecondary),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(12),
+              vertical: adaptive.Adaptive.h(12),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+            ),
+            filled: true,
+            fillColor: colors.surfaceContainer,
+          ),
+          validator: (v) {
+            if (v == null) return '请选择标签';
             return null;
           },
-          onChanged: (value) {
-            setState(() {
-              _selectedCategoryId = value;
-            });
+        );
+      },
+    );
+  }
+
+  Widget _buildTitleField(BuildContext context, AppColorsData colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '标题',
+          style: TextStyle(
+            fontSize: adaptive.Adaptive.sp(14),
+            fontWeight: FontWeight.w500,
+            color: colors.textPrimary,
+          ),
+        ),
+        SizedBox(height: adaptive.Adaptive.h(8)),
+        TextFormField(
+          controller: _titleController,
+          maxLength: 80,
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
+          decoration: InputDecoration(
+            hintText: '请输入帖子标题（2-80字）',
+            hintStyle: TextStyle(color: colors.textWeak),
+            filled: true,
+            fillColor: colors.surfaceContainer,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(12),
+              vertical: adaptive.Adaptive.h(12),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+              borderSide: BorderSide.none,
+            ),
+            counterStyle: TextStyle(color: colors.textWeak),
+          ),
+          validator: (v) {
+            if (v == null || v.trim().length < 2) return '标题至少2个字';
+            return null;
           },
         ),
-        loading: () => SizedBox(
-          height: Adaptive.h(50),
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-        error: (error, stack) =>
-            Text('加载分类失败: $error', style: TextStyle(color: AppColors.error)),
-      ),
+      ],
     );
   }
 
-  Widget _buildContentField() {
-    return Container(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(12)),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: TextFormField(
-        controller: _contentController,
-        decoration: InputDecoration(
-          labelText: '帖子内容 *',
-          hintText: '分享你的想法、知识或问题...',
-          border: InputBorder.none,
-          alignLabelWithHint: true,
-          labelStyle: TextStyle(
-            fontSize: Adaptive.sp(14),
-            color: AppColors.textSecondary,
+  Widget _buildContentField(BuildContext context, AppColorsData colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '正文',
+          style: TextStyle(
+            fontSize: adaptive.Adaptive.sp(14),
+            fontWeight: FontWeight.w500,
+            color: colors.textPrimary,
           ),
         ),
-        style: TextStyle(fontSize: Adaptive.sp(16), height: 1.5),
-        maxLines: 8,
-        maxLength: 5000,
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return '请输入帖子内容';
-          }
-          if (value.trim().length < 10) {
-            return '内容至少需要10个字符';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-
-  Widget _buildResourceSection() {
-    return Container(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(Adaptive.r(12)),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '资源信息',
-            style: TextStyle(
-              fontSize: Adaptive.sp(16),
-              fontWeight: FontWeight.w600,
-              color: AppColors.warning,
+        SizedBox(height: adaptive.Adaptive.h(8)),
+        TextFormField(
+          controller: _contentController,
+          maxLines: 10,
+          minLines: 5,
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(14)),
+          decoration: InputDecoration(
+            hintText: '正文内容（Markdown 格式）',
+            hintStyle: TextStyle(color: colors.textWeak),
+            filled: true,
+            fillColor: colors.surfaceContainer,
+            contentPadding: EdgeInsets.fromLTRB(
+              adaptive.Adaptive.w(12),
+              adaptive.Adaptive.h(12),
+              adaptive.Adaptive.w(12),
+              adaptive.Adaptive.h(12),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+              borderSide: BorderSide.none,
             ),
           ),
-          SizedBox(height: Adaptive.h(12)),
-          // 资源类型选择
-          DropdownButtonFormField<String>(
-            initialValue: _selectedResourceType,
-            decoration: InputDecoration(
-              labelText: '资源类型',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Adaptive.r(8)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageSection(BuildContext context, AppColorsData colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              '图片（最多9张）',
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(14),
+                color: colors.textSecondary,
               ),
-              fillColor: AppColors.surface,
-              filled: true,
             ),
-            items: _resourceTypes.map((type) {
-              return DropdownMenuItem<String>(
-                value: type,
-                child: Text('${_resourceTypeLabels[type]}资源'),
-              );
-            }).toList(),
-            onChanged: (value) {
+            SizedBox(width: adaptive.Adaptive.w(8)),
+            GestureDetector(
+              onTap: _isUploading ? null : _pickImages,
+              child: Icon(
+                Icons.add_photo_alternate_outlined,
+                size: adaptive.Adaptive.sp(20),
+                color: colors.primary,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: adaptive.Adaptive.h(8)),
+        if (_localImages.isNotEmpty || _uploadedUrls.isNotEmpty)
+          Wrap(
+            spacing: adaptive.Adaptive.w(8),
+            runSpacing: adaptive.Adaptive.h(8),
+            children: [
+              ..._uploadedUrls.map(
+                (url) => _buildImagePreview(
+                  context,
+                  colors,
+                  isNetwork: true,
+                  url: url,
+                ),
+              ),
+              ..._localImages.asMap().entries.map(
+                (e) => _buildImagePreview(
+                  context,
+                  colors,
+                  localPath: e.value.path,
+                  index: e.key,
+                ),
+              ),
+              if ((_localImages.length + _uploadedUrls.length) < 9)
+                _buildAddImageButton(context, colors),
+            ],
+          )
+        else
+          _buildAddImageButton(context, colors),
+        if (_isUploading)
+          Padding(
+            padding: EdgeInsets.only(top: adaptive.Adaptive.h(8)),
+            child: const LinearProgressIndicator(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildImagePreview(
+    BuildContext context,
+    AppColorsData colors, {
+    bool isNetwork = false,
+    String? url,
+    String? localPath,
+    int? index,
+  }) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
+          child: isNetwork
+              ? Image.network(
+                  url!,
+                  width: adaptive.Adaptive.w(80),
+                  height: adaptive.Adaptive.h(80),
+                  fit: BoxFit.cover,
+                )
+              : Image.file(
+                  File(localPath!),
+                  width: adaptive.Adaptive.w(80),
+                  height: adaptive.Adaptive.h(80),
+                  fit: BoxFit.cover,
+                ),
+        ),
+        Positioned(
+          right: 0,
+          top: 0,
+          child: GestureDetector(
+            onTap: () {
               setState(() {
-                _selectedResourceType = value;
+                if (isNetwork) {
+                  _uploadedUrls.remove(url);
+                } else if (index != null) {
+                  _localImages.removeAt(index);
+                }
               });
             },
-          ),
-          SizedBox(height: Adaptive.h(12)),
-          // 资源链接
-          TextFormField(
-            controller: _resourceUrlController,
-            decoration: InputDecoration(
-              labelText: '资源链接',
-              hintText: 'https://example.com/resource',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Adaptive.r(8)),
+            child: Container(
+              padding: EdgeInsets.all(adaptive.Adaptive.w(2)),
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
               ),
-              fillColor: AppColors.surface,
-              filled: true,
-            ),
-            style: TextStyle(fontSize: Adaptive.sp(14)),
-          ),
-          SizedBox(height: Adaptive.h(12)),
-          // 资源描述
-          TextFormField(
-            controller: _resourceDescriptionController,
-            decoration: InputDecoration(
-              labelText: '资源描述',
-              hintText: '简要描述这个资源的内容和价值',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Adaptive.r(8)),
+              child: Icon(
+                Icons.close,
+                size: adaptive.Adaptive.sp(14),
+                color: Colors.white,
               ),
-              fillColor: AppColors.surface,
-              filled: true,
             ),
-            style: TextStyle(fontSize: Adaptive.sp(14)),
-            maxLines: 3,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTagsField() {
-    return Container(
-      padding: EdgeInsets.all(Adaptive.w(16)),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Adaptive.r(12)),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: TextFormField(
-        controller: _tagsController,
-        decoration: InputDecoration(
-          labelText: '标签 (可选)',
-          hintText: '用逗号分隔多个标签，如: Flutter, Dart, 教程',
-          border: InputBorder.none,
-          labelStyle: TextStyle(
-            fontSize: Adaptive.sp(14),
-            color: AppColors.textSecondary,
           ),
         ),
-        style: TextStyle(fontSize: Adaptive.sp(16)),
+      ],
+    );
+  }
+
+  Widget _buildAddImageButton(BuildContext context, AppColorsData colors) {
+    return GestureDetector(
+      onTap: _isUploading ? null : _pickImages,
+      child: Container(
+        width: adaptive.Adaptive.w(80),
+        height: adaptive.Adaptive.h(80),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainer,
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
+          border: Border.all(color: colors.border, style: BorderStyle.solid),
+        ),
+        child: Icon(
+          Icons.add,
+          color: colors.textWeak,
+          size: adaptive.Adaptive.sp(28),
+        ),
       ),
     );
   }
 
-  // ✅ TDesign 规范：使用 TDButton 替换 ElevatedButton
-  Widget _buildSubmitButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: Adaptive.h(50),
-      child: TDButton(
-        text: _isLoading ? '' : '发布帖子',
-        onTap: _isLoading ? null : _submitPost,
-        type: TDButtonType.fill,
-        theme: TDButtonTheme.primary,
-      ),
-    );
-  }
-
-  Future<void> _submitPost() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_selectedCategoryId == null) {
-      _showErrorMessage('请选择一个分类');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _pickImages() async {
+    final picker = ImagePicker();
+    final maxAllowed = 9 - _localImages.length - _uploadedUrls.length;
+    if (maxAllowed <= 0) return;
 
     try {
-      // 处理标签
-      final tags = _tagsController.text
-          .split(',')
-          .map((tag) => tag.trim())
-          .where((tag) => tag.isNotEmpty)
-          .toList();
-
-      // 构建帖子数据
-      final postData = {
-        'title': _titleController.text.trim(),
-        'content': _contentController.text.trim(),
-        'category_id': _selectedCategoryId!,
-        'post_type': _selectedPostType,
-        if (_selectedResourceType != null)
-          'resource_type': _selectedResourceType,
-        if (_resourceUrlController.text.isNotEmpty)
-          'resource_url': _resourceUrlController.text.trim(),
-        if (_resourceDescriptionController.text.isNotEmpty)
-          'resource_description': _resourceDescriptionController.text.trim(),
-        if (tags.isNotEmpty) 'tags': tags,
-      };
-
-      // 调用模拟API创建帖子
-      await _mockCreatePost(postData);
-
-      // 成功提示
-      if (mounted) {
-        // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
-        TDToast.showSuccess('帖子发布成功！', context: context);
-
-        // 返回论坛主页
-        Navigator.of(context).pop();
-      }
+      final List<XFile> images = await picker.pickMultiImage(
+        limit: maxAllowed,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      if (images.isEmpty) return;
+      setState(() {
+        _localImages.addAll(images.map((x) => File(x.path)));
+      });
     } catch (e) {
-      print('❌ 发布帖子失败: $e');
-      _showErrorMessage('发布失败，请稍后重试');
-    } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('选择图片失败: $e')));
       }
     }
   }
 
-  Future<void> _mockCreatePost(Map<String, dynamic> postData) async {
-    // 模拟网络延迟
-    await Future.delayed(const Duration(seconds: 2));
-
-    // 模拟创建帖子的逻辑
-    print('📝 创建帖子:');
-    print('   标题: ${postData['title']}');
-    print('   类型: ${postData['post_type']}');
-    print('   分类ID: ${postData['category_id']}');
-    print('   内容长度: ${postData['content'].length}');
-    if (postData['resource_type'] != null) {
-      print('   资源类型: ${postData['resource_type']}');
-    }
-    if (postData['tags'] != null) {
-      print('   标签: ${postData['tags']}');
+  Future<void> _submitPost(BuildContext context) async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedTag == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请选择标签')));
+      return;
     }
 
-    // 模拟随机失败率（测试错误处理）
-    if (DateTime.now().millisecond < 100) {
-      throw Exception('网络连接失败');
+    // 上传图片
+    setState(() => _isUploading = true);
+    try {
+      final service = ref.read(forumServiceProvider);
+      for (final file in _localImages) {
+        final url = await service.uploadImage(file.path);
+        _uploadedUrls.add(url);
+      }
+      _localImages.clear();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('图片上传失败: $e')));
+      }
+      setState(() => _isUploading = false);
+      return;
     }
-  }
 
-  void _showErrorMessage(String message) {
-    // ✅ TDesign 规范：使用 TDToast 替代 SnackBar
-    TDToast.showFail(message, context: context);
+    setState(() => _isUploading = false);
+
+    // 创建帖子 — V2.0: tagId + 无 resourceType/resourceCode
+    final notifier = ref.read(createPostProvider.notifier);
+    await notifier.createPost(
+      tagId: _selectedTag!.id,
+      title: _titleController.text.trim(),
+      content: _contentController.text.trim(),
+      imageUrls: _uploadedUrls,
+    );
   }
 }

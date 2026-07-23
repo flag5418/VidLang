@@ -4,7 +4,8 @@
 /// 页面2：评价页 — 总分 + 维度 + AI评价 + 操作按钮
 library;
 
-import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'dart:async';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/utils/app_globals.dart';
 
 import 'dart:convert';
@@ -149,13 +150,9 @@ class ShadowReaderComponent extends ConsumerStatefulWidget {
     showDialog(
       context: context,
       barrierColor: Colors.black54,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.zero,
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: ShadowReaderComponent(config: config),
-        ),
+      builder: (_) => Align(
+        alignment: Alignment.bottomCenter,
+        child: ShadowReaderComponent(config: config),
       ),
     );
   }
@@ -238,9 +235,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     _autoStopTimer?.cancel();
     _recognitionTimer?.cancel();
     _recordingTimer?.cancel();
+    _ttsTimer?.cancel();
     _evaluator?.dispose();
     _audioPlayer.dispose();
-    _recorder.stop();
+    try {
+      _recorder.stop();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -258,7 +258,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       height: MediaQuery.of(context).size.height * 0.6,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(16))),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(adaptive.Adaptive.r(16)),
+        ),
       ),
       child: _currentPage == 'evaluation'
           ? _buildEvaluationPage(context, cfg)
@@ -277,7 +279,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(16))),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(adaptive.Adaptive.r(16)),
+        ),
       ),
       child: Column(
         children: [
@@ -288,7 +292,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           // ── 主内容区 ──
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(16), adaptive.Adaptive.h(12), adaptive.Adaptive.w(16), adaptive.Adaptive.h(4)),
+              padding: EdgeInsets.fromLTRB(
+                adaptive.Adaptive.w(16),
+                adaptive.Adaptive.h(12),
+                adaptive.Adaptive.w(16),
+                adaptive.Adaptive.h(4),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -349,7 +358,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   /// 顶部标题栏
   Widget _buildTitleBar(BuildContext context, ShadowReaderConfig cfg) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(12)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(16),
+        vertical: adaptive.Adaptive.h(12),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -428,7 +440,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     scoreText,
                     style: TextStyle(
                       color: scoreColor,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 23 : 20),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 23 : 20,
+                      ),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
@@ -490,7 +504,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       padding: EdgeInsets.all(adaptive.Adaptive.w(adaptive.isIPad() ? 14 : 12)),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(adaptive.isIPad() ? 10 : 8)),
+        borderRadius: BorderRadius.circular(
+          adaptive.Adaptive.r(adaptive.isIPad() ? 10 : 8),
+        ),
         border: Border.all(color: AppColors.outline),
       ),
       child: Column(
@@ -509,13 +525,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     color: isOriginal
                         ? AppColors.primary.withValues(alpha: 0.2)
                         : AppColors.success.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(adaptive.isIPad() ? 6 : 4)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(adaptive.isIPad() ? 6 : 4),
+                    ),
                   ),
                   child: Text(
                     label,
                     style: TextStyle(
                       color: isOriginal ? AppColors.primary : AppColors.success,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 12 : 10),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 12 : 10,
+                      ),
                       fontWeight: FontWeight.w500,
                       decoration: TextDecoration.none,
                     ),
@@ -536,7 +556,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         color: liveTranscribing
                             ? Colors.amber
                             : AppColors.onSurface,
-                        fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 18 : 16),
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 18 : 16,
+                        ),
                         height: 1.5,
                         decoration: TextDecoration.none,
                       ),
@@ -561,12 +583,14 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             onTap: () => _showWordDetail(word),
             child: Container(
               padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(adaptive.isIPad() ? 10 : 6), 
+                horizontal: adaptive.Adaptive.w(adaptive.isIPad() ? 10 : 6),
                 vertical: adaptive.Adaptive.h(adaptive.isIPad() ? 4 : 2),
               ),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(adaptive.isIPad() ? 6 : 4)),
+                borderRadius: BorderRadius.circular(
+                  adaptive.Adaptive.r(adaptive.isIPad() ? 6 : 4),
+                ),
               ),
               child: Text(
                 word.word,
@@ -626,13 +650,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     color: EvaluationDisplayHelper.getScoreColor(
                       word.score,
                     ).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(12),
+                    ),
                   ),
                   child: Text(
                     '${word.score.toStringAsFixed(0)}分',
                     style: TextStyle(
                       color: EvaluationDisplayHelper.getScoreColor(word.score),
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 14 : 12,
+                      ),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
@@ -648,13 +676,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     ),
                     decoration: BoxDecoration(
                       color: word.readTypeColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(12),
+                      ),
                     ),
                     child: Text(
                       word.readTypeLabel,
                       style: TextStyle(
                         color: word.readTypeColor,
-                        fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 14 : 12,
+                        ),
                         decoration: TextDecoration.none,
                       ),
                     ),
@@ -688,7 +720,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     ),
                     decoration: BoxDecoration(
                       color: phonemeColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(8),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -696,7 +730,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           p.phoneme,
                           style: TextStyle(
                             color: AppColors.onSurface,
-                            fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 18 : 16),
+                            fontSize: adaptive.Adaptive.sp(
+                              adaptive.isIPad() ? 18 : 16,
+                            ),
                             decoration: TextDecoration.none,
                           ),
                         ),
@@ -705,7 +741,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           '${(p.score ?? 0).round()}',
                           style: TextStyle(
                             color: phonemeColor,
-                            fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 16 : 14),
+                            fontSize: adaptive.Adaptive.sp(
+                              adaptive.isIPad() ? 16 : 14,
+                            ),
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.none,
                           ),
@@ -725,7 +763,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '重音: ',
                     style: TextStyle(
                       color: AppColors.onSurfaceVariant,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 15 : 13),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 15 : 13,
+                      ),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -743,7 +783,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       color: word.wordStress!
                           ? AppColors.success
                           : AppColors.error,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 15 : 13),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 15 : 13,
+                      ),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -788,7 +830,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     final state = ref.read(playerEngineProvider);
     final vol = (state.originalVolume * 100).round();
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(adaptive.isIPad() ? 16 : 12), vertical: adaptive.Adaptive.h(adaptive.isIPad() ? 4 : 2)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(adaptive.isIPad() ? 16 : 12),
+        vertical: adaptive.Adaptive.h(adaptive.isIPad() ? 4 : 2),
+      ),
       child: Row(
         children: [
           GestureDetector(
@@ -798,7 +843,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               padding: EdgeInsets.all(adaptive.Adaptive.w(4)),
               child: Icon(
                 _isMuted ? AppIcons.volumeOff : AppIcons.volumeDown,
-                    size: adaptive.Adaptive.icon(adaptive.isIPad() ? 21 : 18),
+                size: adaptive.Adaptive.icon(adaptive.isIPad() ? 21 : 18),
                 color: _isMuted
                     ? AppColors.onSurfaceVariant.withValues(alpha: 0.3)
                     : AppColors.onSurfaceVariant,
@@ -862,7 +907,12 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       top: false,
       bottom: true,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(adaptive.isIPad() ? 16 : 12), adaptive.Adaptive.h(adaptive.isIPad() ? 8 : 6), adaptive.Adaptive.w(adaptive.isIPad() ? 16 : 12), adaptive.Adaptive.h(adaptive.isIPad() ? 12 : 10)),
+        padding: EdgeInsets.fromLTRB(
+          adaptive.Adaptive.w(adaptive.isIPad() ? 16 : 12),
+          adaptive.Adaptive.h(adaptive.isIPad() ? 8 : 6),
+          adaptive.Adaptive.w(adaptive.isIPad() ? 16 : 12),
+          adaptive.Adaptive.h(adaptive.isIPad() ? 12 : 10),
+        ),
         child: Row(
           children: [
             // ── 关闭按钮（内联模式）──
@@ -933,7 +983,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             // ── 中间：录音/停止按钮 ──
             _circleBtn(
               isListening ? AppIcons.stop : AppIcons.micRounded,
-              isListening ? AppColors.onPrimary : AppColors.primary,
+              AppColors.onSurfaceVariant,
               adaptive.isIPad() ? 56.0 : 48,
               adaptive.isIPad() ? 26 : 22,
               onTap: isListening
@@ -962,9 +1012,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
             if (cfg.subscriptionMode == SubscriptionMode.premium)
               _circleBtn(
                 AppIcons.analytics,
-                (!isListening && isScored)
-                    ? AppColors.primary
-                    : AppColors.onSurfaceVariant.withValues(alpha: 0.3),
+                AppColors.onSurfaceVariant,
                 adaptive.isIPad() ? 46.0 : 40,
                 adaptive.isIPad() ? 21 : 18,
                 onTap: (!isListening && isScored)
@@ -1089,16 +1137,21 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
   Widget _buildEvaluationPage(BuildContext context, ShadowReaderConfig cfg) {
     // 根据评测类型显示不同的 UI
     if (_evaluationType == 'word' && _recognizedWords.isNotEmpty) {
-      return _buildWordEvaluationPage(context, cfg);
+      return _buildWordEvaluationPageWithAi(context, cfg);
     }
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(16))),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(adaptive.Adaptive.r(16)),
+        ),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(12), vertical: adaptive.Adaptive.h(10)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(12),
+          vertical: adaptive.Adaptive.h(10),
+        ),
         child: Column(
           children: [
             // ── 主内容区 ──
@@ -1166,10 +1219,15 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(16))),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(adaptive.Adaptive.r(16)),
+        ),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(12)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(16),
+          vertical: adaptive.Adaptive.h(12),
+        ),
         child: Column(
           children: [
             // ── 主内容区 ──
@@ -1189,7 +1247,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                               '总分',
                               style: TextStyle(
                                 color: AppColors.onSurfaceVariant,
-                                fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                                fontSize: adaptive.Adaptive.sp(
+                                  adaptive.isIPad() ? 14 : 12,
+                                ),
                                 decoration: TextDecoration.none,
                               ),
                             ),
@@ -1200,7 +1260,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   '${score.round()}',
                                   style: TextStyle(
                                     color: color,
-                                    fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 56 : 48),
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 56 : 48,
+                                    ),
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.none,
                                   ),
@@ -1214,7 +1276,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                     '分',
                                     style: TextStyle(
                                       color: AppColors.onSurfaceVariant,
-                                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 16 : 14),
+                                      fontSize: adaptive.Adaptive.sp(
+                                        adaptive.isIPad() ? 16 : 14,
+                                      ),
                                       decoration: TextDecoration.none,
                                     ),
                                   ),
@@ -1226,10 +1290,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         // 播放录音按钮
                         OutlinedButton.icon(
                           onPressed: _playRecording,
-                          icon: Icon(
-                            AppIcons.play,
-                            color: AppColors.success,
-                          ),
+                          icon: Icon(AppIcons.play, color: AppColors.success),
                           label: Text(
                             '播放录音',
                             style: TextStyle(color: AppColors.success),
@@ -1239,7 +1300,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                               color: AppColors.success.withValues(alpha: 0.5),
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
+                              borderRadius: BorderRadius.circular(
+                                adaptive.Adaptive.r(20),
+                              ),
                             ),
                           ),
                         ),
@@ -1252,7 +1315,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       word.word,
                       style: TextStyle(
                         color: AppColors.error,
-                        fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 42 : 36),
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 42 : 36,
+                        ),
                         fontWeight: FontWeight.bold,
                         decoration: TextDecoration.none,
                       ),
@@ -1263,7 +1328,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         '/${word.phonemes!.map((p) => p.phoneme).join('')}/',
                         style: TextStyle(
                           color: AppColors.onSurfaceVariant,
-                          fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 21 : 18),
+                          fontSize: adaptive.Adaptive.sp(
+                            adaptive.isIPad() ? 21 : 18,
+                          ),
                           decoration: TextDecoration.none,
                         ),
                       ),
@@ -1280,7 +1347,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceElevated,
-                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
+                          borderRadius: BorderRadius.circular(
+                            adaptive.Adaptive.r(8),
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -1289,7 +1358,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                 '音标',
                                 style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
-                                  fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                                  fontSize: adaptive.Adaptive.sp(
+                                    adaptive.isIPad() ? 14 : 12,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
                                 ),
@@ -1301,7 +1372,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                 '拼写',
                                 style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
-                                  fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                                  fontSize: adaptive.Adaptive.sp(
+                                    adaptive.isIPad() ? 14 : 12,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
                                 ),
@@ -1313,7 +1386,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                 '评分结果',
                                 style: TextStyle(
                                   color: AppColors.onSurfaceVariant,
-                                  fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                                  fontSize: adaptive.Adaptive.sp(
+                                    adaptive.isIPad() ? 14 : 12,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.none,
                                 ),
@@ -1347,7 +1422,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   '/${p.phoneme}/',
                                   style: TextStyle(
                                     color: AppColors.onSurface,
-                                    fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 18 : 16),
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 18 : 16,
+                                    ),
                                     decoration: TextDecoration.none,
                                   ),
                                   textAlign: TextAlign.center,
@@ -1358,7 +1435,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   p.spelling ?? p.expectedPhoneme ?? '',
                                   style: TextStyle(
                                     color: AppColors.onSurface,
-                                    fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 18 : 16),
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 18 : 16,
+                                    ),
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.none,
                                   ),
@@ -1370,7 +1449,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                                   '${(p.score ?? 0).round()}',
                                   style: TextStyle(
                                     color: phonemeColor,
-                                    fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 18 : 16),
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 18 : 16,
+                                    ),
                                     fontWeight: FontWeight.bold,
                                     decoration: TextDecoration.none,
                                   ),
@@ -1381,6 +1462,286 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           ),
                         );
                       }),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            // ── 底部操作栏 ──
+            _buildEvaluationBottomBar(context, cfg),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 单词评测页 — 专用 UI（含 AI 分析结果）
+  Widget _buildWordEvaluationPageWithAi(
+    BuildContext context,
+    ShadowReaderConfig cfg,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(adaptive.Adaptive.r(16)),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(16),
+          vertical: adaptive.Adaptive.h(12),
+        ),
+        child: Column(
+          children: [
+            // ── 主内容区 ──
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // ── 总分 + 播放录音按钮 ──
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '总分',
+                              style: TextStyle(
+                                color: AppColors.onSurfaceVariant,
+                                fontSize: adaptive.Adaptive.sp(
+                                  adaptive.isIPad() ? 14 : 12,
+                                ),
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${_overallScore?.round() ?? 0}',
+                                  style: TextStyle(
+                                    color: _scoreColor(_overallScore ?? 0),
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 56 : 48,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 6,
+                                    left: 4,
+                                  ),
+                                  child: Text(
+                                    '分',
+                                    style: TextStyle(
+                                      color: AppColors.onSurfaceVariant,
+                                      fontSize: adaptive.Adaptive.sp(
+                                        adaptive.isIPad() ? 16 : 14,
+                                      ),
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _playRecording,
+                          icon: Icon(AppIcons.play, color: AppColors.success),
+                          label: Text(
+                            '播放录音',
+                            style: TextStyle(color: AppColors.success),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: AppColors.success.withValues(alpha: 0.5),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                adaptive.Adaptive.r(20),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: adaptive.Adaptive.h(24)),
+
+                    // ── 单词 + 音标 ──
+                    Text(
+                      _recognizedWords.isNotEmpty
+                          ? _recognizedWords.first.word
+                          : '',
+                      style: TextStyle(
+                        color: AppColors.error,
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 42 : 36,
+                        ),
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                    if (_recognizedWords.isNotEmpty &&
+                        _recognizedWords.first.phonemes != null &&
+                        _recognizedWords.first.phonemes!.isNotEmpty) ...[
+                      SizedBox(height: adaptive.Adaptive.h(8)),
+                      Text(
+                        '/${_recognizedWords.first.phonemes!.map((p) => p.phoneme).join('')}/',
+                        style: TextStyle(
+                          color: AppColors.onSurfaceVariant,
+                          fontSize: adaptive.Adaptive.sp(
+                            adaptive.isIPad() ? 21 : 18,
+                          ),
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: adaptive.Adaptive.h(24)),
+
+                    // ── 音素评分表格 ──
+                    if (_recognizedWords.isNotEmpty &&
+                        _recognizedWords.first.phonemes != null &&
+                        _recognizedWords.first.phonemes!.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceElevated,
+                          borderRadius: BorderRadius.circular(
+                            adaptive.Adaptive.r(8),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '音标',
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: adaptive.Adaptive.sp(
+                                    adaptive.isIPad() ? 14 : 12,
+                                  ),
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '拼写',
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: adaptive.Adaptive.sp(
+                                    adaptive.isIPad() ? 14 : 12,
+                                  ),
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                '评分结果',
+                                style: TextStyle(
+                                  color: AppColors.onSurfaceVariant,
+                                  fontSize: adaptive.Adaptive.sp(
+                                    adaptive.isIPad() ? 14 : 12,
+                                  ),
+                                  fontWeight: FontWeight.w500,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: adaptive.Adaptive.h(4)),
+                      ..._recognizedWords.first.phonemes!.map((p) {
+                        final phonemeColor = _scoreColor(p.score ?? 0);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: AppColors.outline.withValues(alpha: 0.2),
+                                width: 0.5,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '/${p.phoneme}/',
+                                  style: TextStyle(
+                                    color: AppColors.onSurface,
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 18 : 16,
+                                    ),
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  p.spelling ?? p.expectedPhoneme ?? '',
+                                  style: TextStyle(
+                                    color: AppColors.onSurface,
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 18 : 16,
+                                    ),
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  '${(p.score ?? 0).round()}',
+                                  style: TextStyle(
+                                    color: phonemeColor,
+                                    fontSize: adaptive.Adaptive.sp(
+                                      adaptive.isIPad() ? 18 : 16,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+
+                    // ── AI 分析结果（仅付费模式）──
+                    if (cfg.subscriptionMode == SubscriptionMode.premium) ...[
+                      SizedBox(height: adaptive.Adaptive.h(20)),
+                      if (_showAiAnalysis && _aiAnalysisResult != null) ...[
+                        _buildAiAnalysisResultInline(),
+                        SizedBox(height: adaptive.Adaptive.h(12)),
+                      ],
+                      if (_showAiAnalysis && _isAiAnalyzing) ...[
+                        _buildAiAnalysisLoadingInline(),
+                        SizedBox(height: adaptive.Adaptive.h(12)),
+                      ],
                     ],
                   ],
                 ),
@@ -1514,7 +1875,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         .length;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(10), vertical: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(10),
+        vertical: adaptive.Adaptive.h(8),
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
@@ -1652,7 +2016,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
           SizedBox(width: adaptive.Adaptive.w(8)),
           Text(
             'AI 分析中...',
-            style: TextStyle(color: AppColors.primary, fontSize: adaptive.Adaptive.sp(13)),
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: adaptive.Adaptive.sp(13),
+            ),
           ),
         ],
       ),
@@ -1671,7 +2038,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     return SafeArea(
       top: false,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(8), vertical: adaptive.Adaptive.h(8)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(8),
+          vertical: adaptive.Adaptive.h(8),
+        ),
         child: Row(
           children: [
             // 返回按钮（最左边）
@@ -1690,7 +2060,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '返回',
                     style: TextStyle(
                       color: AppColors.onSurfaceVariant,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 14 : 12,
+                      ),
                     ),
                   ),
                 ],
@@ -1712,7 +2084,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     color: isAiActive
                         ? AppColors.primary.withValues(alpha: 0.2)
                         : AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(16),
+                    ),
                     border: Border.all(
                       color: isAiActive
                           ? AppColors.primary.withValues(alpha: 0.5)
@@ -1750,7 +2124,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                             : 'AI 分析',
                         style: TextStyle(
                           color: AppColors.primary,
-                          fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                          fontSize: adaptive.Adaptive.sp(
+                            adaptive.isIPad() ? 14 : 12,
+                          ),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1814,7 +2190,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
               onTap: () => _showWordDetailDialog(word),
               child: Container(
                 width: 72,
-                padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(6), vertical: adaptive.Adaptive.h(6)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(6),
+                  vertical: adaptive.Adaptive.h(6),
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
@@ -1828,7 +2207,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       word.word,
                       style: TextStyle(
                         color: color,
-                        fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 14 : 12,
+                        ),
                         fontWeight: FontWeight.w500,
                         decoration: TextDecoration.none,
                       ),
@@ -1859,7 +2240,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           : '${word.score.round()}',
                       style: TextStyle(
                         color: color,
-                        fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 13 : 11),
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 13 : 11,
+                        ),
                         fontWeight: FontWeight.w600,
                         decoration: TextDecoration.none,
                       ),
@@ -1912,13 +2295,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     color: EvaluationDisplayHelper.getScoreColor(
                       word.score,
                     ).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+                    borderRadius: BorderRadius.circular(
+                      adaptive.Adaptive.r(12),
+                    ),
                   ),
                   child: Text(
                     '${word.score.toStringAsFixed(0)}分',
                     style: TextStyle(
                       color: EvaluationDisplayHelper.getScoreColor(word.score),
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 14 : 12,
+                      ),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.none,
                     ),
@@ -1934,13 +2321,17 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     ),
                     decoration: BoxDecoration(
                       color: word.readTypeColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(12),
+                      ),
                     ),
                     child: Text(
                       word.readTypeLabel,
                       style: TextStyle(
                         color: word.readTypeColor,
-                        fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 14 : 12),
+                        fontSize: adaptive.Adaptive.sp(
+                          adaptive.isIPad() ? 14 : 12,
+                        ),
                         decoration: TextDecoration.none,
                       ),
                     ),
@@ -1974,7 +2365,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     ),
                     decoration: BoxDecoration(
                       color: phonemeColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(8),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -1982,7 +2375,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           p.phoneme,
                           style: TextStyle(
                             color: AppColors.onSurface,
-                            fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 18 : 16),
+                            fontSize: adaptive.Adaptive.sp(
+                              adaptive.isIPad() ? 18 : 16,
+                            ),
                             decoration: TextDecoration.none,
                           ),
                         ),
@@ -1991,7 +2386,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                           '${(p.score ?? 0).round()}',
                           style: TextStyle(
                             color: phonemeColor,
-                            fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 16 : 14),
+                            fontSize: adaptive.Adaptive.sp(
+                              adaptive.isIPad() ? 16 : 14,
+                            ),
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.none,
                           ),
@@ -2011,7 +2408,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                     '重音: ',
                     style: TextStyle(
                       color: AppColors.onSurfaceVariant,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 15 : 13),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 15 : 13,
+                      ),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -2029,7 +2428,9 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
                       color: word.wordStress!
                           ? AppColors.success
                           : AppColors.error,
-                      fontSize: adaptive.Adaptive.sp(adaptive.isIPad() ? 15 : 13),
+                      fontSize: adaptive.Adaptive.sp(
+                        adaptive.isIPad() ? 15 : 13,
+                      ),
                       decoration: TextDecoration.none,
                     ),
                   ),
@@ -2060,7 +2461,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         children: [
           Row(
             children: [
-              Icon(AppIcons.tipsAndUpdates, size: adaptive.Adaptive.icon(14), color: AppColors.warning),
+              Icon(
+                AppIcons.tipsAndUpdates,
+                size: adaptive.Adaptive.icon(14),
+                color: AppColors.warning,
+              ),
               SizedBox(width: adaptive.Adaptive.w(6)),
               Text(
                 '提升建议',
@@ -2100,7 +2505,10 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(12), vertical: adaptive.Adaptive.h(8)),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(12),
+          vertical: adaptive.Adaptive.h(8),
+        ),
         decoration: BoxDecoration(
           color: AppColors.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
@@ -2108,7 +2516,11 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: adaptive.Adaptive.icon(16), color: AppColors.primary),
+            Icon(
+              icon,
+              size: adaptive.Adaptive.icon(16),
+              color: AppColors.primary,
+            ),
             SizedBox(width: adaptive.Adaptive.w(6)),
             Text(
               label,
@@ -2308,17 +2720,195 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     debugPrint('🎤 [ShadowReader] 订阅模式: ${cfg.subscriptionMode}');
     debugPrint('🎤 [ShadowReader] 是否付费模式: $isPremium');
 
-    // 严格按模式分流：跟读评分（声通评测）仅限付费模式
+    // 严格按模式分流：付费模式走声通评测，免费模式走本地 STT 评分
     if (isPremium) {
       debugPrint('🎤 [ShadowReader] 进入付费模式评测流程（声通 WebSocket）');
       setState(() => _state = 'evaluating');
       _evaluateRecording(path, cfg);
     } else {
-      debugPrint('🎤 [ShadowReader] 免费模式不支持跟读评分，显示提示');
-      if (mounted) {
-        AppToast.show(context, '跟读评分功能仅限付费模式使用', type: ToastType.info);
-        setState(() => _state = 'idle');
+      // 免费模式：使用本地 STT 识别结果进行简单评分
+      debugPrint('🎤 [ShadowReader] 进入免费模式评分流程（本地 STT）');
+      setState(() => _state = 'evaluating');
+      _evaluateFreeModeRecordingWithStt(path, cfg);
+    }
+  }
+
+  /// 免费模式评分：使用本地 STT 识别结果进行单词级评分
+  Future<void> _evaluateFreeModeRecordingWithStt(
+    String audioPath,
+    ShadowReaderConfig cfg,
+  ) async {
+    if (_isEvaluating) return;
+    _isEvaluating = true;
+
+    try {
+      // 等待语音识别完成
+      String recognizedText = _liveTranscription;
+      if (recognizedText.isEmpty) {
+        debugPrint('🎤 [ShadowReader] 首次检查识别结果为空，等待 500ms 后重试...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        recognizedText = _liveTranscription;
       }
+      if (recognizedText.isEmpty) {
+        debugPrint('🎤 [ShadowReader] 第二次检查仍为空，再等待 500ms...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        recognizedText = _liveTranscription;
+      }
+
+      if (recognizedText.isEmpty) {
+        if (mounted) {
+          setState(() => _state = 'idle');
+          AppToast.show(context, '未能识别到语音，请尝试大声清晰地朗读', type: ToastType.warning);
+        }
+        _isEvaluating = false;
+        return;
+      }
+
+      _liveTranscription = recognizedText;
+
+      final refText = cfg.subtitle.content.trim().toLowerCase();
+      final cleanRecognized = recognizedText
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .replaceAll(RegExp(r'\s+'), ' ');
+      final cleanRef = refText
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .replaceAll(RegExp(r'\s+'), ' ');
+
+      final refWords = cleanRef.split(' ').where((w) => w.isNotEmpty).toList();
+      final recognizedWords = cleanRecognized
+          .split(' ')
+          .where((w) => w.isNotEmpty)
+          .toList();
+
+      int matchedCount = 0;
+      final wordScores = <Map<String, dynamic>>[];
+
+      for (final refWord in refWords) {
+        bool found = false;
+        for (final recWord in recognizedWords) {
+          if (recWord == refWord || _isSimilar(refWord, recWord)) {
+            matchedCount++;
+            found = true;
+            break;
+          }
+        }
+        wordScores.add({'word': refWord, 'score': found ? 90 : 20});
+      }
+
+      final accuracy = refWords.isNotEmpty
+          ? (matchedCount / refWords.length * 100).toDouble()
+          : 0.0;
+      final double overall = accuracy;
+      final double fluency = accuracy > 70 ? 85 : 60;
+      final double completeness = accuracy > 80 ? 90 : 50;
+
+      final recordingDurationMs = _recordingStartTime != null
+          ? DateTime.now().difference(_recordingStartTime!).inMilliseconds
+          : 0;
+      final record = RecordingRecord(
+        resourceCode: cfg.resourceCode,
+        resourceType: cfg.resourceType,
+        scope: cfg.scope,
+        chapterCode: cfg.chapterCode,
+        sentenceCode: cfg.subtitle.code,
+        audioPath: audioPath,
+        durationMs: recordingDurationMs,
+        overallScore: overall,
+        fluencyScore: fluency,
+        accuracyScore: accuracy,
+        completenessScore: completeness,
+        rawResultJson: jsonEncode({
+          'recognized_text': recognizedText,
+          'ref_text': cfg.subtitle.content,
+          'matched_words': matchedCount,
+          'total_words': refWords.length,
+        }),
+        language: cfg.language,
+        refText: cfg.subtitle.content,
+        subtitleIndex: cfg.currentSubtitleIndex,
+        speed: cfg.currentSpeed ?? 1.0,
+        headphoneMode: await cfg.getHeadphoneMode?.call(),
+      );
+      await DatabaseService.insert(record);
+
+      // 通过 LearningStatsService 统一记录跟读评分
+      unawaited(
+        LearningStatsService.instance.recordFollowScore(
+          resourceCode: cfg.resourceCode,
+          score: overall,
+          sentenceCode: cfg.subtitle.code ?? '',
+          resourceType: cfg.resourceType,
+        ),
+      );
+
+      // 设置识别结果用于 UI 显示
+      _setFreeModeRecognitionResult(wordScores);
+
+      // 构建临时的 ShengtongEvaluationResult 供 AI 分析使用
+      _lastEvaluationResult = ShengtongEvaluationResult(
+        rawResult: {
+          'recognizedText': recognizedText,
+          'overall': overall,
+          'fluency': fluency,
+          'integrity': completeness,
+          'accuracy': accuracy,
+          'words': wordScores
+              .map(
+                (ws) => {
+                  'word': ws['word'],
+                  'score': ws['score'],
+                  'readType': (ws['score'] as int) >= 70 ? 'normal' : 'miss',
+                },
+              )
+              .toList(),
+        },
+        overall: overall,
+        fluency: fluency,
+        integrity: completeness,
+        accuracy: accuracy,
+        words: wordScores.map((ws) {
+          final score = (ws['score'] as int);
+          return WordEvaluation(
+            word: ws['word'] as String,
+            score: score.toDouble(),
+            readType: score >= 70 ? 'normal' : 'miss',
+          );
+        }).toList(),
+        recognizedText: recognizedText,
+      );
+
+      if (mounted) {
+        setState(() {
+          _state = 'scored';
+          _overallScore = overall;
+          _fluencyScore = fluency;
+          _accuracyScore = accuracy;
+          _completenessScore = completeness;
+          _aiAnalysisResult = null;
+          _isAiAnalyzing = false;
+        });
+        await cfg.onScore?.call(
+          overall: overall,
+          fluency: fluency,
+          accuracy: accuracy,
+          completeness: completeness,
+          rawResult: {
+            'word_scores': wordScores,
+            'matched_words': matchedCount,
+            'total_words': refWords.length,
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ [ShadowReader] 免费模式评分失败: $e');
+      if (mounted) {
+        setState(() => _state = 'idle');
+        AppToast.show(context, '评分失败: $e', type: ToastType.error);
+      }
+    } finally {
+      _isEvaluating = false;
     }
   }
 
@@ -2365,7 +2955,7 @@ class _ShadowReaderComponentState extends ConsumerState<ShadowReaderComponent>
     cfg.setOriginalVolume?.call(1.0);
     setState(() => _state = 'idle');
     if (mounted) {
-AppToast.show(context, message);
+      AppToast.show(context, message);
     }
   }
 
@@ -2434,7 +3024,7 @@ AppToast.show(context, message);
         debugPrint('⚠️ [ShadowReader] 声通密钥未就绪，跳过评测');
         _isEvaluating = false;
         if (mounted) {
-AppToast.show(context, '声通服务未配置', type: ToastType.warning);
+          AppToast.show(context, '声通服务未配置', type: ToastType.warning);
         }
         return;
       }
@@ -2445,7 +3035,7 @@ AppToast.show(context, '声通服务未配置', type: ToastType.warning);
         debugPrint('❌ [ShadowReader] 音频文件不存在: $_recordingPath');
         _isEvaluating = false;
         if (mounted) {
-AppToast.show(context, '录音文件不存在，请重新录音', type: ToastType.warning);
+          AppToast.show(context, '录音文件不存在，请重新录音', type: ToastType.warning);
         }
         return;
       }
@@ -2578,6 +3168,46 @@ AppToast.show(context, '录音文件不存在，请重新录音', type: ToastTyp
           // 如果准确度为空，使用发音得分
           accuracyScore ??= pronunciationScore;
         }
+      } else if (evaluationResult.recognizedText != null &&
+          evaluationResult.recognizedText!.isNotEmpty) {
+        // 降级方案：声通未返回单词级评分，使用识别文本与参考文本对比计算分数
+        final refText = cfg.subtitle.content.trim().toLowerCase();
+        final cleanRecog = evaluationResult.recognizedText!
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'[^\w\s]'), '')
+            .replaceAll(RegExp(r'\s+'), ' ');
+        final cleanRef = refText
+            .replaceAll(RegExp(r'[^\w\s]'), '')
+            .replaceAll(RegExp(r'\s+'), ' ');
+
+        final refWords = cleanRef
+            .split(' ')
+            .where((w) => w.isNotEmpty)
+            .toList();
+        final recogWords = cleanRecog
+            .split(' ')
+            .where((w) => w.isNotEmpty)
+            .toList();
+
+        int matchedCount = 0;
+        for (final refWord in refWords) {
+          for (final recWord in recogWords) {
+            if (recWord == refWord || _isSimilar(refWord, recWord)) {
+              matchedCount++;
+              break;
+            }
+          }
+        }
+
+        final accuracy = refWords.isNotEmpty
+            ? (matchedCount / refWords.length * 100).toDouble()
+            : 0.0;
+        overallScore ??= accuracy;
+        fluencyScore ??= accuracy > 70 ? 85 : 60;
+        integrityScore ??= accuracy > 80 ? 90 : 50;
+        accuracyScore ??= accuracy;
+        pronunciationScore ??= accuracy;
       }
 
       debugPrint('🎤 [ShadowReader] ========== 声通评测结构化结果 ==========');
@@ -2756,7 +3386,7 @@ AppToast.show(context, '录音文件不存在，请重新录音', type: ToastTyp
       if (recognizedText.isEmpty) {
         if (mounted) {
           setState(() => _state = 'idle');
-AppToast.show(context, '未能识别到语音，请尝试大声清晰地朗读', type: ToastType.warning);
+          AppToast.show(context, '未能识别到语音，请尝试大声清晰地朗读', type: ToastType.warning);
         }
         _isEvaluating = false;
         return;
@@ -2977,29 +3607,78 @@ AppToast.show(context, '未能识别到语音，请尝试大声清晰地朗读',
     final evaluationResult = ShengtongEvaluationResult.fromJson(result);
 
     // 构建 RecognizedWord 列表，包含详细评分信息
-    _recognizedWords = evaluationResult.words.map((wordEval) {
-      // 根据朗读类型和得分判断是否正确
-      final bool isCorrect;
-      if (wordEval.readType == 'miss') {
-        isCorrect = false; // 漏读
-      } else if (wordEval.readType == 'insert') {
-        isCorrect = false; // 多读
-      } else {
-        isCorrect = (wordEval.score ?? 0) >= 70;
-      }
+    if (evaluationResult.words.isNotEmpty) {
+      _recognizedWords = evaluationResult.words.map((wordEval) {
+        // 根据朗读类型和得分判断是否正确
+        final bool isCorrect;
+        if (wordEval.readType == 'miss') {
+          isCorrect = false; // 漏读
+        } else if (wordEval.readType == 'insert') {
+          isCorrect = false; // 多读
+        } else {
+          isCorrect = (wordEval.score ?? 0) >= 70;
+        }
 
-      return RecognizedWord(
-        word: wordEval.word,
-        correct: isCorrect,
-        score: wordEval.score ?? 0,
-        readType: wordEval.readType,
-        phonemes: wordEval.phonemes,
-        wordStress: wordEval.wordStress,
+        return RecognizedWord(
+          word: wordEval.word,
+          correct: isCorrect,
+          score: wordEval.score ?? 0,
+          readType: wordEval.readType,
+          phonemes: wordEval.phonemes,
+          wordStress: wordEval.wordStress,
+        );
+      }).toList();
+    } else if (evaluationResult.recognizedText != null &&
+        evaluationResult.recognizedText!.isNotEmpty) {
+      // 降级方案：声通未返回单词级评分，使用识别文本与参考文本对比
+      _recognizedWords = _buildFallbackRecognizedWords(
+        cfg.subtitle.content,
+        evaluationResult.recognizedText!,
       );
-    }).toList();
+    }
 
     // 保存结构化结果供后续使用
     _lastEvaluationResult = evaluationResult;
+  }
+
+  /// 降级方案：基于识别文本与参考文本对比构建 RecognizedWord 列表
+  List<RecognizedWord> _buildFallbackRecognizedWords(
+    String refText,
+    String recogText,
+  ) {
+    final refWords = refText
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+    final recogWords = recogText
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
+
+    final result = <RecognizedWord>[];
+    for (final refWord in refWords) {
+      bool found = false;
+      for (final recWord in recogWords) {
+        if (recWord == refWord || _isSimilar(refWord, recWord)) {
+          found = true;
+          break;
+        }
+      }
+      result.add(
+        RecognizedWord(
+          word: refWord,
+          correct: found,
+          score: found ? 90.0 : 20.0,
+        ),
+      );
+    }
+    return result;
   }
 
   void _setFreeModeRecognitionResult(List<Map<String, dynamic>> wordScores) {

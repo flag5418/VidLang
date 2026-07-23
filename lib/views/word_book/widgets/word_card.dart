@@ -5,6 +5,9 @@ import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_detail.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:vidlang/utils/app_globals.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/word_book/providers/display_config_provider.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/services/ai/ai_service.dart';
@@ -14,6 +17,7 @@ import 'package:vidlang/services/tts/unified_tts_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/views/word_book/widgets/native_translation_guide_sheet.dart';
 import 'package:vidlang/components/dialogs/recharge_dialog.dart';
+import 'package:vidlang/views/word_book/widgets/free_translation_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_detail_panel.dart';
 
 /// WordBook → WordDetail 映射扩展
@@ -154,7 +158,7 @@ class _WordCardState extends ConsumerState<WordCard> {
     // 加载数据
     _loadSavedState();
     _fetchDefinition();
-    
+
     // 延迟发音：使用独立播放器，不影响 Player
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -165,10 +169,10 @@ class _WordCardState extends ConsumerState<WordCard> {
   /// 🔴 独立发音方法：使用独立的 AudioPlayer，完全隔离 Player
   Future<void> _speakWord() async {
     if (_isSpeaking) _stopSpeaking(); // 同步停止
-    
+
     final mode = _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free;
     _isSpeaking = true;
-    
+
     try {
       if (mode == SubscriptionMode.premium) {
         // 付费模式：使用云端 TTS + 独立 AudioPlayer 播放
@@ -183,7 +187,7 @@ class _WordCardState extends ConsumerState<WordCard> {
       _isSpeaking = false;
     }
   }
-  
+
   /// 免费模式：iOS 原生 TTS
   Future<void> _speakWithLocalTts() async {
     final result = await UnifiedTtsService.instance.synthesize(
@@ -191,33 +195,35 @@ class _WordCardState extends ConsumerState<WordCard> {
       mode: SubscriptionMode.free,
       onWord: null,
     );
-    
+
     if (!mounted || result.success != true) return;
-    
+
     // 直接播放模式（iOS AVSpeechSynthesizer 已在 synthesize 中播放）
     if (result.audioPath.isEmpty || result.format == 'direct') {
       // 估算播放时长并等待
-      final wordCount = widget.word.trim().isEmpty ? 1 : widget.word.trim().split(RegExp(r'\s+')).length;
+      final wordCount = widget.word.trim().isEmpty
+          ? 1
+          : widget.word.trim().split(RegExp(r'\s+')).length;
       final estimatedMs = (wordCount * 400).clamp(500, 30000);
       await Future.delayed(Duration(milliseconds: estimatedMs));
       return;
     }
-    
+
     // 文件播放模式：使用独立 AudioPlayer
     final file = result.audioPath;
     if (file.isEmpty) return;
-    
+
     await _audioPlayer.play(ap.DeviceFileSource(file));
     await _audioPlayer.onPlayerComplete.first;
   }
-  
+
   /// 付费模式：云端 TTS（暂未实现，先用本地降级）
   Future<void> _speakWithCloudTts() async {
     // TODO: 集成 DashScope TTS 到独立实例
     // 目前降级为本地 TTS
     await _speakWithLocalTts();
   }
-  
+
   /// 立即停止发音（同步，参考 Player 的 pause 模式）
   void _stopSpeaking() {
     try {
@@ -410,10 +416,15 @@ class _WordCardState extends ConsumerState<WordCard> {
     final isSingleWord = WordBookService.isSingleWord(widget.word);
 
     // 统一发音回调：使用独立播放器
-    final speakCallback = () => _speakWord();
+    Future<void> speakCallback() => _speakWord();
 
-    // loading 状态时使用占位 WordDetail
+    // loading 状态
     if (_state == _LoadState.loading) {
+      // 免费模式使用极简加载卡片
+      if (!_isPaidMode) {
+        return _buildFreeLoadingCard(context);
+      }
+      // 付费模式使用完整加载面板
       return WordDetailPanel(
         data: WordDetail(
           word: widget.word,
@@ -439,6 +450,12 @@ class _WordCardState extends ConsumerState<WordCard> {
 
     if (_detail == null) return const SizedBox.shrink();
 
+    // 免费模式使用极简翻译卡片
+    if (!_isPaidMode) {
+      return _buildFreeTranslationCard(context);
+    }
+
+    // 付费模式使用完整详情面板
     return WordDetailPanel(
       data: _detail!,
       config: config,
@@ -450,6 +467,101 @@ class _WordCardState extends ConsumerState<WordCard> {
           ? (widget.onSaveWord != null ? _handleToggleSave : null)
           : _handleToggleSave,
       isSentenceMode: !isSingleWord,
+    );
+  }
+
+  Widget _buildFreeLoadingCard(BuildContext context) {
+    final cs = context.colors;
+    final brightness = Theme.of(context).brightness;
+    final screenSize = MediaQuery.of(context).size;
+    final isWide = AppGlobals.isTablet;
+    final cardWidth = isWide ? 420.0 : screenSize.width * 0.88;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: cardWidth,
+        constraints: BoxConstraints(maxHeight: screenSize.height * 0.7),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: brightness == Brightness.dark ? 0.4 : 0.08,
+              ),
+              blurRadius: adaptive.Adaptive.w(20),
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.Adaptive.w(16),
+                vertical: adaptive.Adaptive.h(14),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '翻译',
+                      style: TextStyle(
+                        color: cs.onSurfaceVariant,
+                        fontSize: adaptive.Adaptive.sp(13),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: adaptive.Adaptive.icon(18),
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              height: 1,
+              color: cs.outlineVariant.withValues(
+                alpha: brightness == Brightness.dark ? 0.3 : 0.15,
+              ),
+            ),
+            const Flexible(child: Center(child: CircularProgressIndicator())),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFreeTranslationCard(BuildContext context) {
+    Future<bool> buildSaveCallback({
+      required String word,
+      String? contextSentence,
+      required String sourceType,
+      required String sourceCode,
+      String? sourceTitle,
+    }) async {
+      await _handleToggleSave();
+      return true;
+    }
+
+    return FreeTranslationCard(
+      word: widget.word,
+      contextSentence: widget.contextSentence,
+      translation: _detail!.translation,
+      success: _detail!.success,
+      error: _detail!.error,
+      onSaveWord: widget.onSaveWord != null ? buildSaveCallback : null,
+      sourceType: widget.sourceType,
+      sourceCode: widget.sourceCode,
+      sourceTitle: widget.sourceTitle,
+      onClose: () => Navigator.of(context).pop(),
     );
   }
 }

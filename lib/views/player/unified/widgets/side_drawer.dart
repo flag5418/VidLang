@@ -108,21 +108,16 @@ class SideDrawer extends ConsumerWidget {
           left: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
       ),
-      child: SafeArea(
-        top: true,
-        bottom: false,
-        child: content,
-      ),
+      child: SafeArea(top: true, bottom: false, child: content),
     );
   }
 
   double _getDrawerWidth(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     if (adaptive.isIPad()) {
-      return (screenWidth * 0.33).clamp(
-        adaptive.Adaptive.w(280),
-        screenWidth * 0.5,
-      ).toDouble();
+      return (screenWidth * 0.33)
+          .clamp(adaptive.Adaptive.w(280), screenWidth * 0.5)
+          .toDouble();
     }
     return adaptive.Adaptive.w(320);
   }
@@ -202,7 +197,7 @@ class SideDrawer extends ConsumerWidget {
         vertical: adaptive.Adaptive.h(8),
       ),
       itemCount: videos.length,
-      separatorBuilder: (_, __) => SizedBox(height: adaptive.Adaptive.h(8)),
+      separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(8)),
       itemBuilder: (ctx, index) => _buildListItem(videos[index]),
     );
   }
@@ -254,9 +249,7 @@ class SideDrawer extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: adaptive.Adaptive.sp(14),
                         fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? AppColors.primary
-                            : Colors.white,
+                        color: isSelected ? AppColors.primary : Colors.white,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -331,7 +324,7 @@ class SideDrawer extends ConsumerWidget {
             return Image.file(
               File(path),
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _thumbnailPlaceholder(),
+              errorBuilder: (_, _, _) => _thumbnailPlaceholder(),
             );
           }
           return _thumbnailPlaceholder();

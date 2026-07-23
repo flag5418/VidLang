@@ -1,28 +1,27 @@
-library;
-
+import 'dart:async';
 import 'dart:io';
-import 'package:vidlang/utils/adaptive.dart' as adaptive;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_tag.dart';
-import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/services/word_book/word_tag_service.dart';
 import 'package:vidlang/providers/subscription_provider.dart';
+import 'package:vidlang/theme/theme.dart';
+import 'package:vidlang/utils/app_globals.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/views/test/test_page.dart';
-import 'package:vidlang/views/word_book/camera_translate_page.dart';
+import 'package:vidlang/views/word_book/widgets/collection_detail_sheet.dart';
+import 'package:vidlang/views/word_book/widgets/collection_word_card.dart';
+import 'package:vidlang/views/word_book/widgets/collection_tag_manager.dart';
 import 'package:vidlang/views/word_book/widgets/snippet_detail_sheet.dart';
 import 'package:vidlang/views/word_book/widgets/snippet_list_card.dart';
-import 'package:vidlang/views/word_book/widgets/word_book_list_card.dart';
 import 'package:vidlang/views/word_book/widgets/word_book_nav_panel.dart';
 import 'package:vidlang/views/word_book/widgets/word_card.dart';
+import 'package:vidlang/views/word_book/camera_translate_page.dart';
 import 'package:vidlang/components/ui/ui_components.dart';
-import 'package:vidlang/theme/theme.dart';
-
 import 'word_book_detail_sheet.dart';
 import 'word_book_review_page.dart';
 
@@ -33,11 +32,8 @@ class CollectionPage extends ConsumerStatefulWidget {
   ConsumerState<CollectionPage> createState() => _CollectionPageState();
 }
 
-class _CollectionPageState extends ConsumerState<CollectionPage>
-    with TickerProviderStateMixin {
-  // Tab: 0 = 单词, 1 = 知识库
+class _CollectionPageState extends ConsumerState<CollectionPage> {
   int _currentTab = 0;
-
   List<WordBook> _words = [];
   List<WordBook> _allWords = [];
   List<WordBookNavItem> _learningNavItems = const [];
@@ -52,12 +48,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   final TextEditingController _searchController = TextEditingController();
   int _todayReviewed = 0;
   int _totalWords = 0;
-
-  /// 窄屏时控制 Drawer 的 Key
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool get _isKnowledgeBase => _currentTab == 1;
-
   String get _currentContentType => _isKnowledgeBase ? 'sentence' : 'word';
 
   @override
@@ -74,7 +67,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     super.dispose();
   }
 
-  /// 实时模糊过滤：在本地列表中筛选，不做数据库查询
   void _onSearchChanged() {
     final keyword = _searchController.text.trim().toLowerCase();
     setState(() {
@@ -99,7 +91,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
       final masteredItems = _isKnowledgeBase
           ? await WordBookService.loadNavItemsForKnowledgeBase('mastered')
           : await WordBookService.loadNavItems('mastered');
-
       final rows = await WordBookService.queryWords(
         WordBookFilter(
           status: _selectedStatus,
@@ -119,7 +110,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         _learningNavItems = learningItems;
         _masteredNavItems = masteredItems;
         _allWords = rows;
-        // 应用当前搜索过滤
         final keyword = _searchController.text.trim().toLowerCase();
         if (keyword.isEmpty) {
           _words = List.from(rows);
@@ -157,14 +147,14 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   Widget build(BuildContext context) {
     final colorScheme = context.colors;
     final brightness = Theme.of(context).brightness;
-    final isNarrow = !context.ipad; // iPhone 下使用 Drawer 布局，iPad 使用侧边栏布局
+    final isPad = AppGlobals.isTablet;
 
     return GestureDetector(
       onTap: _selectionMode ? _cancelSelection : null,
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
-        drawer: isNarrow ? _buildDrawer(context) : null,
+        drawer: !isPad ? _buildDrawer(context) : null,
         bottomNavigationBar: _selectionMode
             ? _buildSelectionBar(context)
             : null,
@@ -172,7 +162,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── 头部区：独立背景层，与其他区域视觉分离 ──
               Container(
                 color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
                 padding: EdgeInsets.fromLTRB(
@@ -181,9 +170,63 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                   adaptive.Adaptive.r(16),
                   adaptive.Adaptive.h(14),
                 ),
-                child: _buildHeader(context, isNarrow),
+                child: Row(
+                  children: [
+                    if (!isPad) ...[
+                      Padding(
+                        padding: EdgeInsets.only(right: adaptive.Adaptive.w(4)),
+                        child: IconButton(
+                          onPressed: () =>
+                              _scaffoldKey.currentState?.openDrawer(),
+                          icon: const Icon(AppIcons.menu),
+                          constraints: BoxConstraints(
+                            minWidth: adaptive.Adaptive.w(36),
+                            minHeight: adaptive.Adaptive.h(36),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
+                    Text(
+                      _isKnowledgeBase ? '知识库' : '生词本',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(22),
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: adaptive.Adaptive.w(8),
+                        vertical: adaptive.Adaptive.h(3),
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(
+                          adaptive.Adaptive.r(999),
+                        ),
+                      ),
+                      child: Text(
+                        '${_allWords.length}${_isKnowledgeBase ? '句' : '词'}',
+                        style: TextStyle(
+                          fontSize: adaptive.Adaptive.sp(13),
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '今日 $_todayReviewed/$_totalWords',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(12),
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              // ── Tab + 搜索：紧凑工具栏层 ──
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   adaptive.Adaptive.r(16),
@@ -194,13 +237,12 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTabBar(context),
+                    _buildTabBar(colorScheme),
                     SizedBox(height: adaptive.Adaptive.h(8)),
-                    _buildSearchBar(context),
+                    _buildSearchBar(colorScheme),
                   ],
                 ),
               ),
-              // ── 选择模式提示 ──
               if (_selectionMode)
                 Padding(
                   padding: EdgeInsets.symmetric(
@@ -231,7 +273,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                     ),
                   ),
                 ),
-              // ── 列表区：占满剩余空间 ──（使用 TDesign TDLoading 替换 CircularProgressIndicator）
               Expanded(
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
@@ -254,25 +295,22 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                     width: adaptive.Adaptive.w(240),
                                     child: _buildNavPanel(),
                                   ),
-                                  SizedBox(
-                                    width: adaptive.Adaptive.w(16),
-                                  ),
+                                  SizedBox(width: adaptive.Adaptive.w(16)),
                                   Expanded(
                                     child: _words.isEmpty
-                                        ? _buildEmptyState(context)
+                                        ? _buildEmptyState(colorScheme)
                                         : _buildWordList(),
                                   ),
                                 ],
                               );
                             }
                             return _words.isEmpty
-                                ? _buildEmptyState(context)
+                                ? _buildEmptyState(colorScheme)
                                 : _buildWordList();
                           },
                         ),
                       ),
               ),
-              // ── 功能按钮行：固定在列表底部，无单词时隐藏 ──
               if (!_selectionMode && _allWords.isNotEmpty)
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -316,107 +354,39 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     );
   }
 
-  Widget _buildHeader(BuildContext context, bool isNarrow) {
-    final colorScheme = context.colors;
-    final title = _isKnowledgeBase ? '知识库' : '生词本';
-    final unitLabel = _isKnowledgeBase ? '句' : '词';
-
-    return Row(
-      children: [
-        if (isNarrow)
-          Padding(
-            padding: EdgeInsets.only(right: adaptive.Adaptive.w(4)),
-            child: IconButton(
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-              icon: const Icon(AppIcons.menu),
-              tooltip: '导航',
-              constraints: BoxConstraints(
-                minWidth: adaptive.Adaptive.w(36),
-                minHeight: adaptive.Adaptive.h(36),
-              ),
-              padding: EdgeInsets.zero,
-            ),
-          ),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(22),
-            fontWeight: FontWeight.w700,
-            color: colorScheme.onSurface,
-          ),
-        ),
-        SizedBox(width: adaptive.Adaptive.w(8)),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: adaptive.Adaptive.w(8),
-            vertical: adaptive.Adaptive.h(3),
-          ),
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(
-              adaptive.Adaptive.r(999),
-            ),
-          ),
-          child: Text(
-            '${_allWords.length}$unitLabel',
-            style: TextStyle(
-              fontSize: adaptive.Adaptive.sp(13),
-              fontWeight: FontWeight.w600,
-              color: colorScheme.primary,
-            ),
-          ),
-        ),
-        const Spacer(),
-        Text(
-          '今日 $_todayReviewed/$_totalWords',
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(12),
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabBar(BuildContext context) {
-    final colorScheme = context.colors;
+  Widget _buildTabBar(AppColorsData cs) {
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
+        color: cs.surfaceContainerLow,
         borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
       ),
       padding: EdgeInsets.all(adaptive.Adaptive.r(3)),
       child: Row(
         children: [
-          _buildTabChip(context, '单词', AppIcons.spellcheck, 0),
+          _buildTabChip('单词', AppIcons.spellcheck, 0, cs),
           SizedBox(width: adaptive.Adaptive.w(3)),
-          _buildTabChip(context, '知识库', AppIcons.libraryBooks, 1),
+          _buildTabChip('知识库', AppIcons.libraryBooks, 1, cs),
         ],
       ),
     );
   }
 
   Widget _buildTabChip(
-    BuildContext context,
     String label,
     IconData icon,
     int tabIndex,
+    AppColorsData cs,
   ) {
-    final colorScheme = context.colors;
     final selected = _currentTab == tabIndex;
     return Expanded(
       child: GestureDetector(
         onTap: () => _onTabChanged(tabIndex),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(
-            vertical: adaptive.Adaptive.h(8),
-          ),
+          padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(8)),
           decoration: BoxDecoration(
-            color: selected ? colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(
-              adaptive.Adaptive.r(8),
-            ),
+            color: selected ? cs.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
           ),
           alignment: Alignment.center,
           child: Row(
@@ -425,9 +395,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
               Icon(
                 icon,
                 size: adaptive.Adaptive.sp(16),
-                color: selected
-                    ? colorScheme.onPrimary
-                    : colorScheme.onSurfaceVariant,
+                color: selected ? cs.onPrimary : cs.onSurfaceVariant,
               ),
               SizedBox(width: adaptive.Adaptive.w(4)),
               Text(
@@ -435,9 +403,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                 style: TextStyle(
                   fontSize: adaptive.Adaptive.sp(13),
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSurfaceVariant,
+                  color: selected ? cs.onPrimary : cs.onSurfaceVariant,
                 ),
               ),
             ],
@@ -447,8 +413,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
-    final colorScheme = context.colors;
+  Widget _buildSearchBar(AppColorsData cs) {
     final hint = _isKnowledgeBase ? '搜索句子或备注' : '搜索单词或上下文';
     final hasText = _searchController.text.isNotEmpty;
     final isIOS = Platform.isIOS;
@@ -456,14 +421,18 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     Widget? suffix;
     if (hasText) {
       suffix = IconButton(
-        onPressed: () {
-          _searchController.clear();
-        },
+        onPressed: () => _searchController.clear(),
         icon: const Icon(AppIcons.close),
       );
     } else if (isIOS && !_isKnowledgeBase) {
       suffix = IconButton(
-        onPressed: _handleCameraTranslate,
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const CameraTranslatePage()),
+          );
+          if (mounted) await _reload();
+        },
         icon: const Icon(AppIcons.cameraAlt),
       );
     }
@@ -471,24 +440,21 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     return TextField(
       controller: _searchController,
       onSubmitted: (_) => _handleSearchSubmit(),
-      style: TextStyle(
-        fontSize: adaptive.Adaptive.sp(16),
-        color: colorScheme.onSurface,
-      ),
+      style: TextStyle(fontSize: adaptive.Adaptive.sp(16), color: cs.onSurface),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
           fontSize: adaptive.Adaptive.sp(15),
-          color: colorScheme.onSurfaceVariant,
+          color: cs.onSurfaceVariant,
         ),
         prefixIcon: Icon(
           AppIcons.search,
           size: adaptive.Adaptive.icon(22),
-          color: colorScheme.onSurfaceVariant,
+          color: cs.onSurfaceVariant,
         ),
         suffixIcon: suffix,
         filled: true,
-        fillColor: colorScheme.surfaceContainerLow,
+        fillColor: cs.surfaceContainerLow,
         contentPadding: EdgeInsets.symmetric(
           horizontal: adaptive.Adaptive.w(14),
           vertical: adaptive.Adaptive.h(14),
@@ -501,19 +467,11 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     );
   }
 
-  /// 搜索提交：始终对输入的英文单词弹出翻译弹窗
   Future<void> _handleSearchSubmit() async {
     final keyword = _searchController.text.trim();
-    if (keyword.isEmpty) return;
-
-    // 知识库 Tab 不触发查词
-    if (_isKnowledgeBase) return;
-
-    // 非英文单词模式 → 不触发
+    if (keyword.isEmpty || _isKnowledgeBase) return;
     final wordPattern = RegExp(r"^[a-zA-Z']+$");
     if (!wordPattern.hasMatch(keyword)) return;
-
-    // 弹出翻译弹窗（复用 WordCard 组件，付费模式由组件内部自主判定）
     if (!mounted) return;
     await WordCard.show(
       context,
@@ -523,11 +481,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     );
   }
 
-  Future<void> _speakWord(String word) async {
-    TtsService().speakWord(word);
-  }
-
-  /// 功能按钮行：测试、复习
   Widget _buildActionBar(BuildContext context) {
     final colorScheme = context.colors;
     final isPremium =
@@ -539,10 +492,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         if (!_isKnowledgeBase && isPremium) ...[
           FilledButton.icon(
             onPressed: () => _enterSelectionMode('test'),
-            icon: Icon(
-              AppIcons.quiz,
-              size: adaptive.Adaptive.icon(18),
-            ),
+            icon: Icon(AppIcons.quiz, size: adaptive.Adaptive.icon(18)),
             label: const Text('测试'),
             style: FilledButton.styleFrom(
               backgroundColor: colorScheme.tertiaryContainer,
@@ -557,10 +507,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         ],
         FilledButton.icon(
           onPressed: () => _enterSelectionMode('review'),
-          icon: Icon(
-            AppIcons.refresh,
-            size: adaptive.Adaptive.icon(18),
-          ),
+          icon: Icon(AppIcons.refresh, size: adaptive.Adaptive.icon(18)),
           label: const Text('复习'),
           style: FilledButton.styleFrom(
             backgroundColor: colorScheme.primaryContainer,
@@ -573,14 +520,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         ),
       ],
     );
-  }
-
-  Future<void> _handleCameraTranslate() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const CameraTranslatePage()),
-    );
-    if (mounted) await _reload();
   }
 
   Widget _buildNavPanel() {
@@ -610,7 +549,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(AppColorsData cs) {
     final message = _isKnowledgeBase ? '当前分类下暂无句子' : '当前分类下暂无单词';
     final hint = _isKnowledgeBase
         ? '在播放器或文章阅读时收藏句子即可加入知识库'
@@ -625,8 +564,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   Widget _buildWordList() {
     return ListView.separated(
       itemCount: _words.length,
-      separatorBuilder: (_, _) =>
-          SizedBox(height: adaptive.Adaptive.h(10)),
+      separatorBuilder: (_, _) => SizedBox(height: adaptive.Adaptive.h(10)),
       itemBuilder: (context, index) {
         final item = _words[index];
         final tags = _tagsByWordCode[item.code] ?? const <WordTag>[];
@@ -641,7 +579,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
             onTagTap: () => _editItemTags(item),
           );
         }
-        return WordBookListCard(
+        return CollectionWordCard(
           word: item,
           tags: tags,
           selectionMode: _selectionMode,
@@ -668,12 +606,14 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     }
     if (_isKnowledgeBase) {
       _showSnippetDetail(item);
+    } else if (AppGlobals.isTablet) {
+      _showCollectionDetail(item);
     } else {
       _showWordDetail(item);
     }
   }
 
-  // ── 单词详情 ──
+  // ── 详情弹窗 ──
 
   Future<void> _showWordDetail(WordBook word) async {
     final tags = _tagsByWordCode[word.code] ?? const <WordTag>[];
@@ -703,8 +643,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
       ),
     );
   }
-
-  // ── 知识库句子详情 ──
 
   Future<void> _showSnippetDetail(WordBook snippet) async {
     final tags = _tagsByWordCode[snippet.code] ?? const <WordTag>[];
@@ -743,6 +681,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
     );
   }
 
+  void _showCollectionDetail(WordBook word) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => CollectionDetailSheet(
+        word: word,
+        onClose: () => Navigator.of(context).pop(),
+      ),
+    );
+  }
+
   Future<void> _handleMasteryChange(WordBook item, bool recognized) async {
     final code = item.code;
     if (code == null) return;
@@ -757,298 +706,15 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
   Future<void> _editItemTags(WordBook item) async {
     final code = item.code;
     if (code == null) return;
-    final tags = await WordTagService.listTags();
-    if (!mounted) return;
-    final selectedCodes = (_tagsByWordCode[code] ?? const <WordTag>[])
-        .map((tag) => tag.code)
-        .whereType<String>()
-        .toSet();
-    final newTagController = TextEditingController();
-    final cs = context.colors;
-
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: cs.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(
-                  adaptive.Adaptive.r(16),
-                ),
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: adaptive.Adaptive.w(360),
-                  maxHeight: adaptive.Adaptive.h(420),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(adaptive.Adaptive.r(20)),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 标题
-                      Row(
-                        children: [
-                          Icon(
-                            AppIcons.labelOutline,
-                            size: adaptive.Adaptive.sp(20),
-                            color: cs.primary,
-                          ),
-                          SizedBox(width: adaptive.Adaptive.w(8)),
-                          Text(
-                            '管理标签',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(16),
-                              fontWeight: FontWeight.w700,
-                              color: cs.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: adaptive.Adaptive.h(12)),
-                      // 标签下拉列表
-                      if (tags.isEmpty)
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: adaptive.Adaptive.h(8),
-                          ),
-                          child: Text(
-                            '暂无标签，请在下方输入创建。',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(13),
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          constraints: BoxConstraints(
-                            maxHeight: adaptive.Adaptive.h(200),
-                          ),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(
-                              adaptive.Adaptive.r(12),
-                            ),
-                            border: Border.all(
-                              color: cs.outlineVariant.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            padding: EdgeInsets.symmetric(
-                              vertical: adaptive.Adaptive.h(4),
-                            ),
-                            itemCount: tags.length,
-                            itemBuilder: (_, index) {
-                              final tag = tags[index];
-                              final tagCode = tag.code;
-                              final selected =
-                                  tagCode != null &&
-                                  selectedCodes.contains(tagCode);
-                              return InkWell(
-                                borderRadius: BorderRadius.circular(
-                                  adaptive.Adaptive.r(8),
-                                ),
-                                onTap: tagCode == null
-                                    ? null
-                                    : () {
-                                        setDialogState(() {
-                                          if (selected) {
-                                            selectedCodes.remove(tagCode);
-                                          } else {
-                                            selectedCodes.add(tagCode);
-                                          }
-                                        });
-                                      },
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: adaptive.Adaptive.w(12),
-                                    vertical: adaptive.Adaptive.h(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        selected
-                                            ? AppIcons.checkBox
-                                            : AppIcons.checkBoxOutlineBlank,
-                                        size: adaptive.Adaptive.sp(20),
-                                        color: selected
-                                            ? cs.primary
-                                            : cs.onSurfaceVariant,
-                                      ),
-                                      SizedBox(
-                                        width: adaptive.Adaptive.w(10),
-                                      ),
-                                      Expanded(
-                                        child: Text(
-                                          tag.name,
-                                          style: TextStyle(
-                                            fontSize: adaptive.Adaptive.sp(14),
-                                            fontWeight: selected
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                            color: selected
-                                                ? cs.primary
-                                                : cs.onSurface,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      SizedBox(height: adaptive.Adaptive.h(12)),
-                      // 新增标签输入行
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: newTagController,
-                              style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(14),
-                                color: cs.onSurface,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: '新标签名称',
-                                hintStyle: TextStyle(
-                                  fontSize: adaptive.Adaptive.sp(13),
-                                  color: cs.onSurfaceVariant,
-                                ),
-                                isDense: true,
-                                filled: true,
-                                fillColor: cs.surfaceContainerLow,
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: adaptive.Adaptive.w(12),
-                                  vertical: adaptive.Adaptive.h(10),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    adaptive.Adaptive.r(10),
-                                  ),
-                                  borderSide: BorderSide.none,
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    adaptive.Adaptive.r(10),
-                                  ),
-                                  borderSide: BorderSide.none,
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    adaptive.Adaptive.r(10),
-                                  ),
-                                  borderSide: BorderSide(
-                                    color: cs.primary,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                              onSubmitted: (_) async {
-                                final name = newTagController.text.trim();
-                                if (name.isEmpty) return;
-                                final tag = await WordTagService.createTag(
-                                  name,
-                                );
-                                if (tag != null && tag.code != null) {
-                                  final newTag = tag;
-                                  setDialogState(() {
-                                    tags.add(newTag);
-                                    selectedCodes.add(newTag.code!);
-                                  });
-                                  newTagController.clear();
-                                }
-                              },
-                            ),
-                          ),
-                          SizedBox(width: adaptive.Adaptive.w(8)),
-                          SizedBox(
-                            height: adaptive.Adaptive.h(38),
-                            child: FilledButton.tonal(
-                              onPressed: () async {
-                                final name = newTagController.text.trim();
-                                if (name.isEmpty) return;
-                                final tag = await WordTagService.createTag(
-                                  name,
-                                );
-                                if (tag != null && tag.code != null) {
-                                  final newTag = tag;
-                                  setDialogState(() {
-                                    tags.add(newTag);
-                                    selectedCodes.add(newTag.code!);
-                                  });
-                                  newTagController.clear();
-                                }
-                              },
-                              style: FilledButton.styleFrom(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: adaptive.Adaptive.w(14),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    adaptive.Adaptive.r(10),
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                '添加',
-                                style: TextStyle(
-                                  fontSize: adaptive.Adaptive.sp(13),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: adaptive.Adaptive.h(16)),
-                      // 确定按钮
-                      SizedBox(
-                        width: double.infinity,
-                        height: adaptive.Adaptive.h(44),
-                        child: FilledButton(
-                          onPressed: () async {
-                            final navigator = Navigator.of(context);
-                            await WordTagService.replaceTags(
-                              code,
-                              selectedCodes.toList(),
-                            );
-                            if (!mounted) return;
-                            navigator.pop();
-                            await _reload();
-                          },
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                adaptive.Adaptive.r(12),
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            '确定',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(15),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => CollectionTagManager(
+        wordCode: code,
+        currentTags: _tagsByWordCode[code] ?? const [],
+      ),
     );
-    newTagController.dispose();
+    await _reload();
   }
 
   void _enterSelectionMode(String action) {
@@ -1087,7 +753,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
         ),
         child: Row(
           children: [
-            // 左侧：Checkbox 全选/反选
             SizedBox(
               width: adaptive.Adaptive.w(36),
               height: adaptive.Adaptive.h(36),
@@ -1118,7 +783,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
               ),
             ),
             const Spacer(),
-            // 右侧：主操作按钮
             FilledButton.icon(
               onPressed: selectedCount == 0
                   ? null
@@ -1130,7 +794,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                                 _selectedWordCodes.contains(item.code),
                           )
                           .toList();
-
                       if (_isKnowledgeBase || _selectionAction == 'review') {
                         await Navigator.push(
                           context,
@@ -1146,7 +809,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                         await _reload();
                         return;
                       }
-
                       if (!mounted) return;
                       final changed = await Navigator.push<bool>(
                         context,
@@ -1174,9 +836,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                           ),
                         ),
                       );
-                      if (changed == true && mounted) {
-                        await _reload();
-                      }
+                      if (changed == true && mounted) await _reload();
                     },
               icon: Icon(
                 _selectionAction == 'review' ? AppIcons.refresh : AppIcons.quiz,
@@ -1189,9 +849,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage>
                   vertical: adaptive.Adaptive.h(10),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    adaptive.Adaptive.r(20),
-                  ),
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
                 ),
               ),
             ),

@@ -10,7 +10,7 @@ import 'package:vidlang/views/word_book/widgets/word_detail_panel.dart';
 import 'package:vidlang/views/word_book/providers/display_config_provider.dart';
 
 /// WordCard 测试页面
-/// 
+///
 /// 用于独立测试查词弹窗功能，隔离 Player 和其他组件的干扰
 class WordCardTestPage extends StatefulWidget {
   const WordCardTestPage({super.key});
@@ -20,12 +20,14 @@ class WordCardTestPage extends StatefulWidget {
 }
 
 class _WordCardTestPageState extends State<WordCardTestPage> {
-  final TextEditingController _wordController = TextEditingController(text: 'one');
+  final TextEditingController _wordController = TextEditingController(
+    text: 'one',
+  );
   bool _isLoading = false;
   String? _resultText;
   String? _errorText;
   WordDetail? _detail;
-  
+
   // 独立音频播放器
   final ap.AudioPlayer _audioPlayer = ap.AudioPlayer();
   bool _isSpeaking = false;
@@ -54,9 +56,9 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
       // 模拟 WordCard 的查询逻辑
       final isPremium = false; // 先测试免费模式
       final mode = isPremium ? SubscriptionMode.premium : SubscriptionMode.free;
-      
+
       WordDetail detail;
-      
+
       if (isPremium) {
         detail = await AiService.getDefinition(
           word: word,
@@ -87,9 +89,10 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
       setState(() {
         _detail = detail;
         _isLoading = false;
-        
+
         if (detail.success) {
-          _resultText = '✅ 查询成功\n'
+          _resultText =
+              '✅ 查询成功\n'
               'word: ${detail.word}\n'
               'translation: ${detail.translation ?? "空"}\n'
               'source: ${detail.source}';
@@ -100,7 +103,7 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
     } catch (e, stackTrace) {
       debugPrint('💥 [TestPage] 异常: $e');
       debugPrint(stackTrace.toString());
-      
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -120,7 +123,7 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
 
     try {
       debugPrint('🔊 [TestPage] 开始发音: "$word"');
-      
+
       final result = await UnifiedTtsService.instance.synthesize(
         text: word,
         mode: SubscriptionMode.free,
@@ -129,7 +132,9 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
 
       if (!mounted) return;
 
-      if (result.success && result.audioPath.isNotEmpty && result.format != 'direct') {
+      if (result.success &&
+          result.audioPath.isNotEmpty &&
+          result.format != 'direct') {
         // 文件模式：用独立播放器播放
         await _audioPlayer.play(ap.DeviceFileSource(result.audioPath));
         await _audioPlayer.onPlayerComplete.first;
@@ -162,10 +167,10 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
   Future<void> _testFullFlow() async {
     // 1. 先停止之前的操作
     await _stopSpeaking();
-    
+
     // 2. 查询翻译
     await _testTranslation();
-    
+
     // 3. 如果成功，自动发音
     if (_detail != null && _detail!.success && mounted) {
       await Future.delayed(const Duration(milliseconds: 500));
@@ -189,7 +194,10 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('输入要查询的单词:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '输入要查询的单词:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _wordController,
@@ -209,7 +217,9 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
                         const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: _isSpeaking ? null : _testSpeak,
-                          icon: Icon(_isSpeaking ? Icons.stop : Icons.volume_up),
+                          icon: Icon(
+                            _isSpeaking ? Icons.stop : Icons.volume_up,
+                          ),
                           label: Text(_isSpeaking ? '停止' : '测试发音'),
                         ),
                         const SizedBox(width: 8),
@@ -235,7 +245,10 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
                 color: Colors.red.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(_errorText!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    _errorText!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
               )
             else if (_resultText != null)
@@ -251,7 +264,9 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
               Card(
                 child: WordDetailPanel(
                   data: _detail!,
-                  config: const WordDetailDisplayConfig(sections: WordDetailSection.values),
+                  config: const WordDetailDisplayConfig(
+                    sections: WordDetailSection.values,
+                  ),
                   onSpeak: () => _testSpeak(),
                   onClose: () {},
                   isSaved: false,
@@ -263,9 +278,12 @@ class _WordCardTestPageState extends State<WordCardTestPage> {
             else
               const Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(32),
                   child: Center(
-                    child: Text('点击按钮开始测试', style: TextStyle(color: Colors.grey)),
+                    child: Text(
+                      '点击按钮开始测试',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
                 ),
               ),

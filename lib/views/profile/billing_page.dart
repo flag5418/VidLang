@@ -1,11 +1,23 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';import 'package:vidlang/models/billing_summary.dart';
+import 'package:flutter/material.dart';
+import 'package:vidlang/models/billing_summary.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/services/billing/billing_service.dart';
 import 'package:vidlang/theme/theme.dart';
-import 'package:vidlang/views/profile/billing_rules_page.dart';
 
+/// 消费明细页面数据聚合类
+class _BillingData {
+  final BillingOverview overview;
+  final BillingByCategoryResponse category;
+  final BillingBySourceResponse source;
+
+  const _BillingData({
+    required this.overview,
+    required this.category,
+    required this.source,
+  });
+}
 
 /// 视图模式
 enum BillingViewMode {
@@ -27,31 +39,37 @@ class BillingPage extends StatefulWidget {
 class _BillingPageState extends State<BillingPage> {
   TimeMode _timeMode = TimeMode.day;
   BillingViewMode _viewMode = BillingViewMode.category;
-  late Future<BillingOverview> _overviewFuture;
-  late Future<BillingByCategoryResponse> _categoryFuture;
-  late Future<BillingBySourceResponse> _sourceFuture;
+
+  /// 统一的数据加载 Future，避免多个 FutureBuilder 各自显示 loading
+  late Future<_BillingData> _dataFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _dataFuture = _loadData();
   }
 
-  void _loadData() {
-    _overviewFuture = BillingService.fetchOverview(timeMode: _timeMode);
-    _categoryFuture = BillingService.fetchByCategory(timeMode: _timeMode);
-    _sourceFuture = BillingService.fetchBySource(timeMode: _timeMode);
+  Future<_BillingData> _loadData() async {
+    final overview = await BillingService.fetchOverview(timeMode: _timeMode);
+    final category = await BillingService.fetchByCategory(timeMode: _timeMode);
+    final source = await BillingService.fetchBySource(timeMode: _timeMode);
+    return _BillingData(
+      overview: overview,
+      category: category,
+      source: source,
+    );
   }
 
   Future<void> _refresh() async {
-    _loadData();
-    setState(() {});
+    setState(() {
+      _dataFuture = _loadData();
+    });
   }
 
   void _changeTimeMode(TimeMode mode) {
     setState(() {
       _timeMode = mode;
-      _loadData();
+      _dataFuture = _loadData();
     });
   }
 
@@ -71,42 +89,83 @@ class _BillingPageState extends State<BillingPage> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('消费明细', style: TextStyle(fontSize: adaptive.Adaptive.sp(16))),
-        actions: [
-          // 计费规则入口
-          IconButton(
-            icon: Icon(AppIcons.rule, size: adaptive.Adaptive.icon(20)),
-            tooltip: '计费规则',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const BillingRulesPage()),
-              );
-            },
-          ),
-        ],
+        title: Text(
+          '消费明细',
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
+        ),
       ),
-      body: Column(
-        children: [
-          // 时间范围选择器
-          _buildTimeRangeSelector(colorScheme),
-          // 视图模式切换
-          _buildViewModeSelector(colorScheme),
-          // 内容区域
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _refresh,
-              child: _buildContent(colorScheme),
-            ),
-          ),
-        ],
+      body: FutureBuilder<_BillingData>(
+        future: _dataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    AppIcons.error,
+                    size: adaptive.Adaptive.icon(48),
+                    color: colorScheme.error,
+                  ),
+                  SizedBox(height: adaptive.Adaptive.h(12)),
+                  Text(
+                    '加载失败: ${snapshot.error}',
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(14),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  SizedBox(height: adaptive.Adaptive.h(16)),
+                  FilledButton(
+                    onPressed: _refresh,
+                    child: const Text('重试'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final data = snapshot.data!;
+
+          return Column(
+            children: [
+              // 时间范围选择器
+              _buildTimeRangeSelector(colorScheme),
+              // 视图模式切换
+              _buildViewModeSelector(colorScheme),
+              // 内容区域
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
+                    children: [
+                      _buildOverviewCard(colorScheme, data.overview),
+                      SizedBox(height: adaptive.Adaptive.h(16)),
+                      if (_viewMode == BillingViewMode.category)
+                        _buildCategoryView(colorScheme, data.category)
+                      else
+                        _buildResourceView(colorScheme, data.source),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildTimeRangeSelector(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(16),
+        vertical: adaptive.Adaptive.h(8),
+      ),
       child: Row(
         children: TimeMode.values.map((mode) {
           final isSelected = mode == _timeMode;
@@ -114,12 +173,16 @@ class _BillingPageState extends State<BillingPage> {
             child: GestureDetector(
               onTap: () => _changeTimeMode(mode),
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(4)),
+                margin: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(4),
+                ),
                 padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(8)),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? colorScheme.primary
-                      : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      : colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.5,
+                        ),
                   borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                 ),
                 child: Text(
@@ -141,7 +204,10 @@ class _BillingPageState extends State<BillingPage> {
 
   Widget _buildViewModeSelector(ColorScheme colorScheme) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(16), vertical: adaptive.Adaptive.h(4)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(16),
+        vertical: adaptive.Adaptive.h(4),
+      ),
       child: Row(
         children: BillingViewMode.values.map((mode) {
           final isSelected = mode == _viewMode;
@@ -149,12 +215,16 @@ class _BillingPageState extends State<BillingPage> {
             child: GestureDetector(
               onTap: () => _changeViewMode(mode),
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(4)),
+                margin: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(4),
+                ),
                 padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(6)),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: isSelected ? colorScheme.primary : Colors.transparent,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -165,15 +235,21 @@ class _BillingPageState extends State<BillingPage> {
                     Icon(
                       mode.icon,
                       size: adaptive.Adaptive.icon(16),
-                      color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
                     ),
                     SizedBox(width: adaptive.Adaptive.w(4)),
                     Text(
                       mode.label,
                       style: TextStyle(
                         fontSize: adaptive.Adaptive.sp(13),
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -183,35 +259,6 @@ class _BillingPageState extends State<BillingPage> {
           );
         }).toList(),
       ),
-    );
-  }
-
-  Widget _buildContent(ColorScheme colorScheme) {
-    return ListView(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
-      children: [
-        // 总览卡片
-        FutureBuilder<BillingOverview>(
-          future: _overviewFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return _buildErrorCard(colorScheme, '${snapshot.error}');
-            }
-            final overview = snapshot.data!;
-            return _buildOverviewCard(colorScheme, overview);
-          },
-        ),
-        SizedBox(height: adaptive.Adaptive.h(16)),
-
-        // 根据视图模式显示内容
-        if (_viewMode == BillingViewMode.category)
-          _buildCategoryView(colorScheme)
-        else
-          _buildResourceView(colorScheme),
-      ],
     );
   }
 
@@ -231,30 +278,46 @@ class _BillingPageState extends State<BillingPage> {
             children: [
               Text(
                 '${overview.timeLabel}消费',
-                style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(13),
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               Text(
                 '${overview.totalCount} 次',
-                style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.outline),
+                style: TextStyle(
+                  fontSize: adaptive.Adaptive.sp(12),
+                  color: colorScheme.outline,
+                ),
               ),
             ],
           ),
           SizedBox(height: adaptive.Adaptive.h(8)),
           Text(
             '¥${overview.totalCost.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(28), fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(28),
+              fontWeight: FontWeight.w700,
+            ),
           ),
           SizedBox(height: adaptive.Adaptive.h(12)),
           // 趋势图
-          if (overview.trend.isNotEmpty) _buildTrendChart(colorScheme, overview.trend),
+          if (overview.trend.isNotEmpty)
+            _buildTrendChart(colorScheme, overview.trend),
         ],
       ),
     );
   }
 
-  Widget _buildTrendChart(ColorScheme colorScheme, List<BillingTrendPoint> points) {
+  Widget _buildTrendChart(
+    ColorScheme colorScheme,
+    List<BillingTrendPoint> points,
+  ) {
     if (points.isEmpty) {
-      return SizedBox(height: adaptive.Adaptive.h(100), child: const Center(child: Text('暂无数据')));
+      return SizedBox(
+        height: adaptive.Adaptive.h(100),
+        child: const Center(child: Text('暂无数据')),
+      );
     }
     return SizedBox(
       height: adaptive.Adaptive.h(120),
@@ -270,7 +333,10 @@ class _BillingPageState extends State<BillingPage> {
                   child: Text(
                     point.date.substring(5),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(10), color: colorScheme.outline),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(10),
+                      color: colorScheme.outline,
+                    ),
                   ),
                 ),
             ],
@@ -280,33 +346,29 @@ class _BillingPageState extends State<BillingPage> {
     );
   }
 
-  Widget _buildCategoryView(ColorScheme colorScheme) {
-    return FutureBuilder<BillingByCategoryResponse>(
-      future: _categoryFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return _buildErrorCard(colorScheme, '${snapshot.error}');
-        }
-        final data = snapshot.data!;
-        if (data.categories.isEmpty) {
-          return _buildEmptyCard(colorScheme, '暂无消费记录');
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle('功能分类', colorScheme),
-            SizedBox(height: adaptive.Adaptive.h(8)),
-            ...data.categories.map((cat) => _buildCategoryCard(colorScheme, cat)),
-          ],
-        );
-      },
+  Widget _buildCategoryView(
+    ColorScheme colorScheme,
+    BillingByCategoryResponse data,
+  ) {
+    if (data.categories.isEmpty) {
+      return _buildEmptyCard(colorScheme, '暂无消费记录');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('功能分类', colorScheme),
+        SizedBox(height: adaptive.Adaptive.h(8)),
+        ...data.categories.map(
+          (cat) => _buildCategoryCard(colorScheme, cat),
+        ),
+      ],
     );
   }
 
-  Widget _buildCategoryCard(ColorScheme colorScheme, BillingCategoryItem category) {
+  Widget _buildCategoryCard(
+    ColorScheme colorScheme,
+    BillingCategoryItem category,
+  ) {
     final categoryIcons = {
       'translate': AppIcons.translate,
       'tts': AppIcons.volumeUp,
@@ -324,7 +386,9 @@ class _BillingPageState extends State<BillingPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           color: _panelColor(colorScheme),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.08),
+          ),
         ),
         child: Row(
           children: [
@@ -335,7 +399,11 @@ class _BillingPageState extends State<BillingPage> {
                 color: colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
               ),
-              child: Icon(icon, size: adaptive.Adaptive.icon(20), color: colorScheme.primary),
+              child: Icon(
+                icon,
+                size: adaptive.Adaptive.icon(20),
+                color: colorScheme.primary,
+              ),
             ),
             SizedBox(width: adaptive.Adaptive.w(12)),
             Expanded(
@@ -344,57 +412,66 @@ class _BillingPageState extends State<BillingPage> {
                 children: [
                   Text(
                     category.nameZh,
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(14),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: adaptive.Adaptive.h(4)),
                   Text(
                     '${category.totalCount} 次',
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(12),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
             Text(
               '¥${category.totalCostCny.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(14),
+                fontWeight: FontWeight.w700,
+              ),
             ),
             SizedBox(width: adaptive.Adaptive.w(8)),
-            Icon(AppIcons.chevronRight, size: adaptive.Adaptive.icon(18), color: colorScheme.onSurfaceVariant),
+            Icon(
+              AppIcons.chevronRight,
+              size: adaptive.Adaptive.icon(18),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildResourceView(ColorScheme colorScheme) {
-    return FutureBuilder<BillingBySourceResponse>(
-      future: _sourceFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return _buildErrorCard(colorScheme, '${snapshot.error}');
-        }
-        final data = snapshot.data!;
-        if (data.sources.isEmpty && data.unknownSourceCostCny <= 0) {
-          return _buildEmptyCard(colorScheme, '暂无消费记录');
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle('资源统计', colorScheme),
-            SizedBox(height: adaptive.Adaptive.h(8)),
-            ...data.sources.map((group) => _buildSourceTypeGroup(colorScheme, group)),
-            if (data.unknownSourceCostCny > 0)
-              _buildUnknownSourceCard(colorScheme, data.unknownSourceCostCny),
-          ],
-        );
-      },
+  Widget _buildResourceView(
+    ColorScheme colorScheme,
+    BillingBySourceResponse data,
+  ) {
+    if (data.sources.isEmpty && data.unknownSourceCostCny <= 0) {
+      return _buildEmptyCard(colorScheme, '暂无消费记录');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('资源统计', colorScheme),
+        SizedBox(height: adaptive.Adaptive.h(8)),
+        ...data.sources.map(
+          (group) => _buildSourceTypeGroup(colorScheme, group),
+        ),
+        if (data.unknownSourceCostCny > 0)
+          _buildUnknownSourceCard(colorScheme, data.unknownSourceCostCny),
+      ],
     );
   }
 
-  Widget _buildSourceTypeGroup(ColorScheme colorScheme, BillingSourceTypeGroup group) {
+  Widget _buildSourceTypeGroup(
+    ColorScheme colorScheme,
+    BillingSourceTypeGroup group,
+  ) {
     final typeIcons = {
       'video': AppIcons.movie,
       'music': AppIcons.musicNote,
@@ -410,7 +487,9 @@ class _BillingPageState extends State<BillingPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           color: _panelColor(colorScheme),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.08),
+          ),
         ),
         child: Row(
           children: [
@@ -421,7 +500,11 @@ class _BillingPageState extends State<BillingPage> {
                 color: colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
               ),
-              child: Icon(icon, size: adaptive.Adaptive.icon(20), color: colorScheme.primary),
+              child: Icon(
+                icon,
+                size: adaptive.Adaptive.icon(20),
+                color: colorScheme.primary,
+              ),
             ),
             SizedBox(width: adaptive.Adaptive.w(12)),
             Expanded(
@@ -430,12 +513,18 @@ class _BillingPageState extends State<BillingPage> {
                 children: [
                   Text(
                     '${group.sourceTypeZh} (${group.items.length}个)',
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(14),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: adaptive.Adaptive.h(4)),
                   Text(
                     '${group.items.take(2).map((e) => e.sourceTitle).join("、")}${group.items.length > 2 ? "..." : ""}',
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(12),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -444,10 +533,17 @@ class _BillingPageState extends State<BillingPage> {
             ),
             Text(
               '¥${group.subtotalCny.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(14),
+                fontWeight: FontWeight.w700,
+              ),
             ),
             SizedBox(width: adaptive.Adaptive.w(8)),
-            Icon(AppIcons.chevronRight, size: adaptive.Adaptive.icon(18), color: colorScheme.onSurfaceVariant),
+            Icon(
+              AppIcons.chevronRight,
+              size: adaptive.Adaptive.icon(18),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -464,17 +560,27 @@ class _BillingPageState extends State<BillingPage> {
       ),
       child: Row(
         children: [
-          Icon(AppIcons.help, size: adaptive.Adaptive.icon(20), color: colorScheme.onSurfaceVariant),
+          Icon(
+            AppIcons.help,
+            size: adaptive.Adaptive.icon(20),
+            color: colorScheme.onSurfaceVariant,
+          ),
           SizedBox(width: adaptive.Adaptive.w(12)),
           Expanded(
             child: Text(
               '未关联资源',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(14),
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Text(
             '¥${cost.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(14),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -488,32 +594,6 @@ class _BillingPageState extends State<BillingPage> {
         fontSize: adaptive.Adaptive.sp(15),
         fontWeight: FontWeight.w600,
         color: colorScheme.onSurface,
-      ),
-    );
-  }
-
-  Widget _buildErrorCard(ColorScheme colorScheme, String message) {
-    return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
-        color: colorScheme.errorContainer.withValues(alpha: 0.3),
-      ),
-      child: Column(
-        children: [
-          Icon(AppIcons.error, size: adaptive.Adaptive.icon(32), color: colorScheme.error),
-          SizedBox(height: adaptive.Adaptive.h(8)),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onErrorContainer),
-          ),
-          SizedBox(height: adaptive.Adaptive.h(12)),
-          FilledButton.tonal(
-            onPressed: _refresh,
-            child: const Text('重试'),
-          ),
-        ],
       ),
     );
   }
@@ -535,7 +615,10 @@ class _BillingPageState extends State<BillingPage> {
           SizedBox(height: adaptive.Adaptive.h(12)),
           Text(
             message,
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(14),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -584,7 +667,8 @@ class BillingCategoryDetailPage extends StatefulWidget {
   });
 
   @override
-  State<BillingCategoryDetailPage> createState() => _BillingCategoryDetailPageState();
+  State<BillingCategoryDetailPage> createState() =>
+      _BillingCategoryDetailPageState();
 }
 
 class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
@@ -610,7 +694,10 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.categoryName} · ${widget.timeMode.label}', style: TextStyle(fontSize: adaptive.Adaptive.sp(16))),
+        title: Text(
+          '${widget.categoryName} · ${widget.timeMode.label}',
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
+        ),
       ),
       body: FutureBuilder<BillingCategoryDetailResponse>(
         future: _future,
@@ -625,7 +712,10 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
                 children: [
                   Text('${snapshot.error}'),
                   SizedBox(height: adaptive.Adaptive.h(12)),
-                  FilledButton(onPressed: () => setState(() {}), child: const Text('重试')),
+                  FilledButton(
+                    onPressed: () => setState(() {}),
+                    child: const Text('重试'),
+                  ),
                 ],
               ),
             );
@@ -648,7 +738,9 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
               if (data.bySource.isNotEmpty) ...[
                 _buildSectionTitle('按资源', colorScheme),
                 SizedBox(height: adaptive.Adaptive.h(8)),
-                ...data.bySource.map((source) => _buildSourceItem(colorScheme, source)),
+                ...data.bySource.map(
+                  (source) => _buildSourceItem(colorScheme, source),
+                ),
                 SizedBox(height: adaptive.Adaptive.h(16)),
               ],
               // 每日明细
@@ -664,7 +756,10 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
     );
   }
 
-  Widget _buildOverviewCard(ColorScheme colorScheme, BillingCategoryDetailResponse data) {
+  Widget _buildOverviewCard(
+    ColorScheme colorScheme,
+    BillingCategoryDetailResponse data,
+  ) {
     return Container(
       padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
@@ -677,17 +772,26 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
         children: [
           Text(
             '${data.timeLabel}消费',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(13),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           SizedBox(height: adaptive.Adaptive.h(8)),
           Text(
             '¥${data.totalCostCny.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(28), fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(28),
+              fontWeight: FontWeight.w700,
+            ),
           ),
           SizedBox(height: adaptive.Adaptive.h(4)),
           Text(
             '共 ${data.totalCount} 次',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.outline),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(12),
+              color: colorScheme.outline,
+            ),
           ),
         ],
       ),
@@ -697,7 +801,11 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
   Widget _buildSectionTitle(String title, ColorScheme colorScheme) {
     return Text(
       title,
-      style: TextStyle(fontSize: adaptive.Adaptive.sp(15), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+      style: TextStyle(
+        fontSize: adaptive.Adaptive.sp(15),
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+      ),
     );
   }
 
@@ -715,19 +823,40 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(rule.nameZh, style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w500)),
+                Text(
+                  rule.nameZh,
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(14),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 SizedBox(height: adaptive.Adaptive.h(2)),
-                Text('${rule.count} 次', style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant)),
+                Text(
+                  '${rule.count} 次',
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(12),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
-          Text('¥${rule.costCny.toStringAsFixed(2)}', style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600)),
+          Text(
+            '¥${rule.costCny.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(14),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSourceItem(ColorScheme colorScheme, BillingCategorySourceItem source) {
+  Widget _buildSourceItem(
+    ColorScheme colorScheme,
+    BillingCategorySourceItem source,
+  ) {
     return Container(
       margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
       padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
@@ -743,16 +872,31 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
               children: [
                 Text(
                   source.sourceTitle.isNotEmpty ? source.sourceTitle : '未命名资源',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(14),
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: adaptive.Adaptive.h(2)),
-                Text('${source.count} 次', style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant)),
+                Text(
+                  '${source.count} 次',
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(12),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
-          Text('¥${source.costCny.toStringAsFixed(2)}', style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600)),
+          Text(
+            '¥${source.costCny.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(14),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -769,16 +913,28 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
       child: Row(
         children: [
           Expanded(
-            child: Text(day.date, style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurface)),
+            child: Text(
+              day.date,
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(13),
+                color: colorScheme.onSurface,
+              ),
+            ),
           ),
           Text(
             '${day.count} 次',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(12),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           SizedBox(width: adaptive.Adaptive.w(12)),
           Text(
             '¥${day.costCny.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(13), fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(13),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -812,7 +968,10 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text('$sourceTypeZh · ${timeMode.label}', style: TextStyle(fontSize: adaptive.Adaptive.sp(16))),
+        title: Text(
+          '$sourceTypeZh · ${timeMode.label}',
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
+        ),
       ),
       body: ListView(
         padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
@@ -823,32 +982,46 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
               color: _panelColor(colorScheme),
-              border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
+              border: Border.all(
+                color: colorScheme.outline.withValues(alpha: 0.08),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '共 ${items.length} 个资源',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(13),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 SizedBox(height: adaptive.Adaptive.h(8)),
                 Text(
                   '¥${items.fold(0.0, (sum, item) => sum + item.costCny).toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(28), fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(28),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
           ),
           SizedBox(height: adaptive.Adaptive.h(16)),
           // 资源列表
-          ...items.map((item) => _buildResourceItem(context, colorScheme, item)),
+          ...items.map(
+            (item) => _buildResourceItem(context, colorScheme, item),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildResourceItem(BuildContext context, ColorScheme colorScheme, BillingSourceItem item) {
+  Widget _buildResourceItem(
+    BuildContext context,
+    ColorScheme colorScheme,
+    BillingSourceItem item,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -869,7 +1042,9 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
           color: _panelColor(colorScheme),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.08)),
+          border: Border.all(
+            color: colorScheme.outline.withValues(alpha: 0.08),
+          ),
         ),
         child: Row(
           children: [
@@ -879,24 +1054,37 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
                 children: [
                   Text(
                     item.sourceTitle,
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(14),
+                      fontWeight: FontWeight.w500,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: adaptive.Adaptive.h(4)),
                   Text(
                     '${item.count} 次',
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(12),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
             Text(
               '¥${item.costCny.toStringAsFixed(2)}',
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(14),
+                fontWeight: FontWeight.w700,
+              ),
             ),
             SizedBox(width: adaptive.Adaptive.w(8)),
-            Icon(AppIcons.chevronRight, size: adaptive.Adaptive.icon(18), color: colorScheme.onSurfaceVariant),
+            Icon(
+              AppIcons.chevronRight,
+              size: adaptive.Adaptive.icon(18),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
@@ -920,7 +1108,8 @@ class BillingSourceDetailPage extends StatefulWidget {
   });
 
   @override
-  State<BillingSourceDetailPage> createState() => _BillingSourceDetailPageState();
+  State<BillingSourceDetailPage> createState() =>
+      _BillingSourceDetailPageState();
 }
 
 class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
@@ -947,7 +1136,10 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.sourceTitle, style: TextStyle(fontSize: adaptive.Adaptive.sp(16))),
+        title: Text(
+          widget.sourceTitle,
+          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
+        ),
       ),
       body: FutureBuilder<BillingSourceDetailResponse>(
         future: _future,
@@ -962,7 +1154,10 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
                 children: [
                   Text('${snapshot.error}'),
                   SizedBox(height: adaptive.Adaptive.h(12)),
-                  FilledButton(onPressed: () => setState(() {}), child: const Text('重试')),
+                  FilledButton(
+                    onPressed: () => setState(() {}),
+                    child: const Text('重试'),
+                  ),
                 ],
               ),
             );
@@ -978,7 +1173,9 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
               if (data.byCategory.isNotEmpty) ...[
                 _buildSectionTitle('按功能', colorScheme),
                 SizedBox(height: adaptive.Adaptive.h(8)),
-                ...data.byCategory.map((cat) => _buildCategoryItem(colorScheme, cat)),
+                ...data.byCategory.map(
+                  (cat) => _buildCategoryItem(colorScheme, cat),
+                ),
                 SizedBox(height: adaptive.Adaptive.h(16)),
               ],
               // 每日明细
@@ -994,7 +1191,10 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
     );
   }
 
-  Widget _buildOverviewCard(ColorScheme colorScheme, BillingSourceDetailResponse data) {
+  Widget _buildOverviewCard(
+    ColorScheme colorScheme,
+    BillingSourceDetailResponse data,
+  ) {
     return Container(
       padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
@@ -1007,17 +1207,26 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
         children: [
           Text(
             '${data.timeLabel}消费',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(13),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           SizedBox(height: adaptive.Adaptive.h(8)),
           Text(
             '¥${data.totalCostCny.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(28), fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(28),
+              fontWeight: FontWeight.w700,
+            ),
           ),
           SizedBox(height: adaptive.Adaptive.h(4)),
           Text(
             '共 ${data.totalCount} 次',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.outline),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(12),
+              color: colorScheme.outline,
+            ),
           ),
         ],
       ),
@@ -1027,11 +1236,18 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
   Widget _buildSectionTitle(String title, ColorScheme colorScheme) {
     return Text(
       title,
-      style: TextStyle(fontSize: adaptive.Adaptive.sp(15), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+      style: TextStyle(
+        fontSize: adaptive.Adaptive.sp(15),
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+      ),
     );
   }
 
-  Widget _buildCategoryItem(ColorScheme colorScheme, BillingSourceCategoryItem cat) {
+  Widget _buildCategoryItem(
+    ColorScheme colorScheme,
+    BillingSourceCategoryItem cat,
+  ) {
     final categoryIcons = {
       'translate': AppIcons.translate,
       'tts': AppIcons.volumeUp,
@@ -1050,19 +1266,41 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: adaptive.Adaptive.icon(20), color: colorScheme.primary),
+          Icon(
+            icon,
+            size: adaptive.Adaptive.icon(20),
+            color: colorScheme.primary,
+          ),
           SizedBox(width: adaptive.Adaptive.w(12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(cat.nameZh, style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w500)),
+                Text(
+                  cat.nameZh,
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(14),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 SizedBox(height: adaptive.Adaptive.h(2)),
-                Text('${cat.count} 次', style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant)),
+                Text(
+                  '${cat.count} 次',
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(12),
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
-          Text('¥${cat.costCny.toStringAsFixed(2)}', style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600)),
+          Text(
+            '¥${cat.costCny.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(14),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1079,16 +1317,28 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
       child: Row(
         children: [
           Expanded(
-            child: Text(day.date, style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurface)),
+            child: Text(
+              day.date,
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(13),
+                color: colorScheme.onSurface,
+              ),
+            ),
           ),
           Text(
             '${day.count} 次',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(12),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           SizedBox(width: adaptive.Adaptive.w(12)),
           Text(
             '¥${day.costCny.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: adaptive.Adaptive.sp(13), fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(13),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -1107,7 +1357,10 @@ class _TrendPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final maxValue = math.max(0.0001, points.map((e) => e.total).fold<double>(0, math.max));
+    final maxValue = math.max(
+      0.0001,
+      points.map((e) => e.total).fold<double>(0, math.max),
+    );
     final paint = Paint()
       ..color = color
       ..strokeWidth = 2
@@ -1120,7 +1373,9 @@ class _TrendPainter extends CustomPainter {
     final chartHeight = size.height - 28;
 
     for (var i = 0; i < points.length; i++) {
-      final x = points.length == 1 ? size.width / 2 : (size.width / (points.length - 1)) * i;
+      final x = points.length == 1
+          ? size.width / 2
+          : (size.width / (points.length - 1)) * i;
       final y = chartHeight - (points[i].total / maxValue) * (chartHeight - 10);
       if (i == 0) {
         path.moveTo(x, y);

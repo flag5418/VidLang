@@ -49,7 +49,7 @@ class BottomControls extends ConsumerWidget {
   final GlobalKey fontSizeKey;
   final GlobalKey loopKey;
 
-  BottomControls({
+  const BottomControls({
     super.key,
     required this.isVideo,
     required this.isLandscape,
@@ -70,20 +70,18 @@ class BottomControls extends ConsumerWidget {
     this.onToggleFullscreen,
     // 弹出面板回调（由父页面管理 OverlayEntry）
     /// 显示倍速面板
-    required void Function(BuildContext context) onShowSpeedPicker,
+    required this._onShowSpeedPicker,
 
     /// 显示字号面板
-    required void Function(BuildContext context) onShowFontSizePicker,
+    required this._onShowFontSizePicker,
 
     /// 显示循环模式面板
-    required void Function(BuildContext context) onShowLoopPicker,
+    required this._onShowLoopPicker,
     // 按钮 GlobalKey（由父页面注入）
     required this.speedKey,
     required this.fontSizeKey,
     required this.loopKey,
-  }) : _onShowSpeedPicker = onShowSpeedPicker,
-       _onShowFontSizePicker = onShowFontSizePicker,
-       _onShowLoopPicker = onShowLoopPicker;
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

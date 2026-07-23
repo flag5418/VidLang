@@ -32,15 +32,24 @@ class AppBaseDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = context.colors;
     final isIpad = context.ipad;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 弹窗尺寸策略：
+    // - iPad: 固定宽度 450，居中显示，不随屏幕缩放
+    // - iPhone: 屏幕宽度的 85%，限制在 300-400 之间
+    final dialogWidth = isIpad
+        ? 450.0
+        : (screenWidth * 0.85).clamp(300.0, 400.0);
+    final horizontalPadding = (screenWidth - dialogWidth) / 2;
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: isIpad ? 80 : 32),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         child: Material(
           color: Colors.transparent,
           child: Container(
             constraints: BoxConstraints(
-              maxWidth: width ?? adaptive.Adaptive.w(isIpad ? 360 : 400),
+              maxWidth: width ?? dialogWidth,
             ),
             decoration: BoxDecoration(
               color: cs.surface,
@@ -48,7 +57,7 @@ class AppBaseDialog extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: adaptive.Adaptive.w(32),
+                  blurRadius: 32,
                   offset: const Offset(0, 12),
                 ),
               ],
@@ -305,8 +314,8 @@ class AppAlertDialog extends StatelessWidget {
         textColor: AppColors.onPrimary,
       ),
       action: () {
-        onAction?.call();
         Navigator.of(context).pop();
+        onAction?.call();
       },
       radius: adaptive.Adaptive.r(14),
     );
@@ -455,7 +464,353 @@ class AppInputDialog {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 选择对话框（基于 AppBaseDialog）
+// 高级选择对话框（卡片式选项风格，类似设备类型弹窗）
+// ═══════════════════════════════════════════════════════════════
+
+/// 选择弹窗的数据项
+class AppSelectionItem<T> {
+  final T value;
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+
+  const AppSelectionItem({
+    required this.value,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+  });
+}
+
+class AppSelectionDialog<T> extends StatefulWidget {
+  final String dialogTitle;
+  final String? dialogSubtitle;
+  final IconData? dialogIcon;
+  final List<AppSelectionItem<T>> items;
+  final T currentValue;
+  final ValueChanged<T> onSelected;
+  final String confirmText;
+  final String cancelText;
+
+  const AppSelectionDialog({
+    super.key,
+    required this.dialogTitle,
+    this.dialogSubtitle,
+    this.dialogIcon,
+    required this.items,
+    required this.currentValue,
+    required this.onSelected,
+    this.confirmText = '确定',
+    this.cancelText = '取消',
+  });
+
+  @override
+  State<AppSelectionDialog<T>> createState() => _AppSelectionDialogState<T>();
+
+  /// 便捷显示方法
+  static Future<T?> show<T>(
+    BuildContext context, {
+    required String title,
+    String? subtitle,
+    IconData? icon,
+    required List<AppSelectionItem<T>> items,
+    required T currentValue,
+    String confirmText = '确定',
+    String cancelText = '取消',
+  }) async {
+    T? result;
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'AppSelectionDialog',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, _, _) => AppSelectionDialog<T>(
+        dialogTitle: title,
+        dialogSubtitle: subtitle,
+        dialogIcon: icon,
+        items: items,
+        currentValue: currentValue,
+        confirmText: confirmText,
+        cancelText: cancelText,
+        onSelected: (value) => result = value,
+      ),
+      transitionBuilder: (_, animation, _, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
+    return result;
+  }
+}
+
+class _AppSelectionDialogState<T> extends State<AppSelectionDialog<T>> {
+  late T _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.currentValue;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = context.colors;
+    final isIpad = context.ipad;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 弹窗尺寸策略：
+    // - iPad: 固定宽度 450，居中显示，不随屏幕缩放
+    // - iPhone: 屏幕宽度的 85%，限制在 300-400 之间
+    final dialogWidth = isIpad
+        ? 450.0
+        : (screenWidth * 0.85).clamp(300.0, 400.0);
+    final horizontalPadding = (screenWidth - dialogWidth) / 2;
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(maxWidth: dialogWidth),
+            decoration: BoxDecoration(
+              color: cs.surface,
+              borderRadius: BorderRadius.circular(isIpad ? 16 : 14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 32,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── 标题区 ──
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    adaptive.Adaptive.w(24),
+                    adaptive.Adaptive.h(24),
+                    adaptive.Adaptive.w(24),
+                    adaptive.Adaptive.h(8),
+                  ),
+                  child: Column(
+                    children: [
+                      if (widget.dialogIcon != null) ...[
+                        Container(
+                          padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
+                          decoration: BoxDecoration(
+                            color: cs.primaryContainer.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            widget.dialogIcon,
+                            size: adaptive.Adaptive.icon(28),
+                            color: cs.primary,
+                          ),
+                        ),
+                        SizedBox(height: adaptive.Adaptive.h(10)),
+                      ],
+                      Text(
+                        widget.dialogTitle,
+                        style: TextStyle(
+                          fontSize: adaptive.Adaptive.sp(17),
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      if (widget.dialogSubtitle != null) ...[
+                        SizedBox(height: adaptive.Adaptive.h(4)),
+                        Text(
+                          widget.dialogSubtitle!,
+                          style: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(13),
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // ── 选项区 ──
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(20)),
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < widget.items.length; i++) ...[
+                        if (i > 0) SizedBox(height: adaptive.Adaptive.h(10)),
+                        _SelectionOption(
+                          icon: widget.items[i].icon,
+                          title: widget.items[i].title,
+                          subtitle: widget.items[i].subtitle,
+                          isSelected: widget.items[i].value == _selected,
+                          onTap: () => setState(() => _selected = widget.items[i].value),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // ── 按钮区 ──
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    adaptive.Adaptive.w(20),
+                    adaptive.Adaptive.h(20),
+                    adaptive.Adaptive.w(20),
+                    adaptive.Adaptive.h(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TDButton(
+                          text: widget.cancelText,
+                          size: TDButtonSize.large,
+                          type: TDButtonType.outline,
+                          shape: TDButtonShape.round,
+                          height: adaptive.Adaptive.h(48),
+                          style: TDButtonStyle(
+                            backgroundColor: Colors.transparent,
+                            textColor: AppColors.primary,
+                            frameColor: AppColors.primary,
+                          ),
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+                      SizedBox(width: adaptive.Adaptive.w(12)),
+                      Expanded(
+                        child: TDButton(
+                          text: widget.confirmText,
+                          size: TDButtonSize.large,
+                          type: TDButtonType.fill,
+                          theme: TDButtonTheme.primary,
+                          shape: TDButtonShape.round,
+                          height: adaptive.Adaptive.h(48),
+                          style: TDButtonStyle(
+                            backgroundColor: AppColors.primary,
+                            textColor: AppColors.onPrimary,
+                          ),
+                          onTap: () => widget.onSelected(_selected),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 卡片式选项组件（带图标的选项）
+class _SelectionOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SelectionOption({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = context.colors;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.s(16),
+          vertical: context.s(14),
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? cs.primaryContainer.withValues(alpha: 0.4)
+              : cs.surfaceContainerLow,
+          border: Border.all(
+            color: isSelected ? cs.primary : cs.outlineVariant,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(context.rs(12)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: context.s(44),
+              height: context.s(44),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? cs.primary.withValues(alpha: 0.15)
+                    : cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(context.rs(12)),
+              ),
+              child: Icon(
+                icon,
+                size: context.is_(24),
+                color: isSelected ? cs.primary : cs.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(width: context.s(14)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: context.ts(15),
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? cs.onPrimaryContainer : cs.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    SizedBox(height: context.s(2)),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: context.ts(12),
+                        color: isSelected
+                            ? cs.onPrimaryContainer.withValues(alpha: 0.7)
+                            : cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (isSelected)
+              Container(
+                width: context.s(22),
+                height: context.s(22),
+                decoration: BoxDecoration(
+                  color: cs.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check,
+                  size: context.is_(14),
+                  color: cs.onPrimary,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 选择对话框（基于 AppBaseDialog，简单列表风格）
 // ═══════════════════════════════════════════════════════════════
 
 class AppComboboxDialog<T> {

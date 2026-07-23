@@ -1,9 +1,21 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/word_detail.dart';
 import 'package:vidlang/services/auth_service.dart';
+
+/// 内存缓存条目（带 TTL）
+class _MemCacheEntry {
+  final WordDetail detail;
+  final DateTime expiresAt;
+
+  _MemCacheEntry(this.detail, {required Duration ttl})
+      : expiresAt = DateTime.now().add(ttl);
+
+  bool get isExpired => DateTime.now().isAfter(expiresAt);
+}
 
 /// 统一调用 ai-proxy Edge Function
 ///
@@ -27,6 +39,11 @@ class AiService {
 
   /// 缓存版本号 — 当 Edge Function prompt 更新时，递增此版本使旧缓存失效
   static const _cacheVersion = 2;
+
+  // ─── 内存缓存（LRU，避免重复 SQLite 磁盘 IO） ─────────────────
+  static final Map<String, _MemCacheEntry> _memCache = {};
+  static const int _memCacheMaxSize = 200;
+  static const Duration _memCacheTtl = Duration(minutes: 10);
 
   // ─── 核心调用 ─────────────────────────────────
 
@@ -191,7 +208,22 @@ class AiService {
     final hasContext = contextSentence?.isNotEmpty ?? false;
 
     // ════════════════════════════════════════════
-    // ① 查询缓存（无上下文时直接返回）
+    // ⓪ 内存缓存（最快，避免任何 IO）
+    // ════════════════════════════════════════════
+    final memHit = _memCache[cacheKey];
+    if (memHit != null && !memHit.isExpired) {
+      // 无上下文时直接返回；有上下文时检查是否包含 context_sentence_info
+      if (!hasContext || _hasContextForSentence(memHit.detail, contextSentence!)) {
+        dev.log('word memCache HIT: $cacheKey', name: 'AiService');
+        return memHit.detail;
+      }
+      // 内存缓存缺少上下文信息，继续走后续逻辑（SQLite 缓存或 enrich）
+    }
+    // 清理过期条目
+    _memCache.removeWhere((_, entry) => entry.isExpired);
+
+    // ════════════════════════════════════════════
+    // ① 查询 SQLite 缓存（无上下文时直接返回）
     // ════════════════════════════════════════════
     if (!hasContext) {
       try {
@@ -199,6 +231,8 @@ class AiService {
         if (cached != null) {
           dev.log('word cache HIT (no-context): $cacheKey', name: 'AiService');
           _bumpWordCacheCount(cacheKey);
+          // 回填内存缓存
+          _writeMemCache(cacheKey, cached);
           return cached;
         }
       } catch (e) {
@@ -220,6 +254,7 @@ class AiService {
             // ✅ 完全命中：直接返回
             dev.log('word cache HIT (with-context): $cacheKey', name: 'AiService');
             _bumpWordCacheCount(cacheKey);
+            _writeMemCache(cacheKey, cached);
             return cached;
           } else {
             // ⚡ 部分命中：仅补充 context_sentence_info
@@ -228,10 +263,12 @@ class AiService {
             if (enriched != null) {
               // 异步更新缓存（不阻塞返回）
               _writeWordCache(cacheKey, enriched);
+              _writeMemCache(cacheKey, enriched);
               return enriched;
             }
             // 补充失败，返回基础缓存
             _bumpWordCacheCount(cacheKey);
+            _writeMemCache(cacheKey, cached);
             return cached;
           }
         }
@@ -265,6 +302,7 @@ class AiService {
     if (detail.success && detail.source == 'ai') {
       try {
         await _writeWordCache(cacheKey, detail);
+        _writeMemCache(cacheKey, detail);
       } catch (e) {
         dev.log('word cache write error: $e', name: 'AiService');
       }
@@ -385,6 +423,23 @@ class AiService {
       },
       onConflict: 'word',
     );
+  }
+
+  /// 将 WordDetail 写入内存缓存（LRU 淘汰）
+  static void _writeMemCache(String key, WordDetail detail) {
+    // 容量淘汰：超过上限时移除最旧的条目
+    if (_memCache.length >= _memCacheMaxSize && !_memCache.containsKey(key)) {
+      final oldest = _memCache.entries.reduce((a, b) =>
+          a.value.expiresAt.isBefore(b.value.expiresAt) ? a : b);
+      _memCache.remove(oldest.key);
+    }
+    _memCache[key] = _MemCacheEntry(detail, ttl: _memCacheTtl);
+  }
+
+  /// 清空内存缓存（用于测试）
+  static void clearMemCache() {
+    _memCache.clear();
+    dev.log('word memCache cleared', name: 'AiService');
   }
 
   /// 异步递增 query_count，失败不抛异常

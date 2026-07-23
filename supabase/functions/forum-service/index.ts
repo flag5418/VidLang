@@ -170,7 +170,7 @@ async function getPosts(req: Request) {
     .from('forum_posts')
     .select(`
       *,
-      author:auth.users(email, raw_user_meta_data),
+      author:user_profiles!forum_posts_author_id_fkey(email, raw_user_meta_data),
       category:forum_categories(name, slug),
       like_count,
       comment_count,
@@ -274,7 +274,7 @@ async function getUserFavorites(userId: string) {
       *,
       post:forum_posts(
         *,
-        author:auth.users(email),
+        author:user_profiles!forum_posts_author_id_fkey(email),
         category:forum_categories(name, slug)
       )
     `)
@@ -301,7 +301,7 @@ async function getUserNotifications(userId: string, req: Request) {
     .from('forum_notifications')
     .select(`
       *,
-      from_user:auth.users(email, raw_user_meta_data)
+      from_user:user_profiles(email, raw_user_meta_data)
     `, { count: 'exact' })
     .eq('user_id', userId)
     .order('created_at', { ascending: false })

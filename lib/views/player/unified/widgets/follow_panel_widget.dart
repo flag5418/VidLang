@@ -48,6 +48,7 @@ class FollowPanelWidget extends ConsumerWidget {
 
     return ShadowReaderComponent.inline(
       config: ShadowReaderConfig(
+        subscriptionMode: ref.read(subscriptionProvider).mode,
         subtitle: currentSub,
         resourceType: audioType,
         resourceCode: videoCode,

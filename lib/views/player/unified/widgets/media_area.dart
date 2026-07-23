@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:omni_player/omni_player.dart';
 import 'package:vidlang/models/subtitles.dart';
-import 'package:vidlang/theme/app_colors.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/components/selectable_english_line.dart';
 

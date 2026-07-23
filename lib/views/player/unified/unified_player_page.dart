@@ -327,7 +327,8 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
     // ✅ 关键改进：直接使用 MediaQuery.of(context).orientation（与参考代码一致）
     // 不再依赖全局状态 _isLandscapeMode，完全由系统驱动
     // 全屏模式下强制横屏布局，不改变系统方向
-    final isLandscape = _fullscreenLandscape ||
+    final isLandscape =
+        _fullscreenLandscape ||
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     // 详细日志：每次 build 都输出当前状态（方便排查布局问题）
@@ -439,8 +440,9 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
             isLandscape: isLandscape,
             onBack: _handleBack, // ✅ 使用统一的返回处理方法
             onToggleDrawer: () {
-              if (!showDrawerPermanent)
+              if (!showDrawerPermanent) {
                 setState(() => _showDrawer = !_showDrawer);
+              }
             },
             isDrawerOpen: _showDrawer,
             // 横屏时为右上角全屏按钮让出空间（裁掉该区域背景 + 右移列表/设置按钮）
@@ -521,7 +523,7 @@ class _UnifiedPlayerPageState extends ConsumerState<UnifiedPlayerPage>
         // 右侧浮动按钮组（圆形黑底按钮，仅字幕模式显示）
         // 按钮顺序（从上到下）：跟读、清晰朗读(TTS)、由慢到快
         // 位置：字幕区域右侧中间（竖屏模式下）
-        if (hasSubtitles && !_showDrawer)
+        if (hasSubtitles && !_showDrawer && !_showFollow)
           Positioned(
             right: adaptive.Adaptive.w(12),
             // 字幕区域中间位置：视频区域下方 + 字幕区域高度的 50%

@@ -123,6 +123,9 @@ function buildErrorResponse(
 
 // ─── 主服务 ───
 Deno.serve(async (req: Request) => {
+  const requestStart = Date.now()
+  const requestId = crypto.randomUUID()
+
   // CORS 预检
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -140,22 +143,28 @@ Deno.serve(async (req: Request) => {
       rule_code: ruleCode,
       scene,
       entry,
-      request_id: requestId,
+      request_id: clientRequestId,
       params = {},
     } = body
 
-    if (!ruleCode || !scene || !entry || !requestId) {
+    console.log(`[${requestId}] 🚀 ai-proxy START: rule=${ruleCode} scene=${scene} entry=${entry} word=${params.word || '-'} clientId=${clientRequestId || '-'}`)
+
+    if (!ruleCode || !scene || !entry || !clientRequestId) {
       return json({ ok: false, error: 'missing_required_fields' }, 400)
     }
 
     // 3. 鉴权
+    const authStart = Date.now()
     const userId = await getUserId(req)
+    console.log(`[${requestId}] ⏱️ auth: ${Date.now() - authStart}ms`)
     if (!userId) {
       return json({ ok: false, error: 'unauthorized' }, 401)
     }
 
     // 4. 幂等检查
-    const alreadyDone = await checkIdempotent(requestId)
+    const idempotentStart = Date.now()
+    const alreadyDone = await checkIdempotent(clientRequestId)
+    console.log(`[${requestId}] ⏱️ idempotent: ${Date.now() - idempotentStart}ms`)
     if (alreadyDone) {
       return json(
         { ok: false, error: 'duplicate_request', message: '该请求已处理' },
@@ -164,7 +173,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // 5. 查询计费规则
+    const ruleStart = Date.now()
     const rule = await getPricingRule(ruleCode)
+    console.log(`[${requestId}] ⏱️ pricingRule: ${Date.now() - ruleStart}ms`)
     if (!rule) {
       return json(
         {
@@ -177,7 +188,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // 6. 余额检查
+    const balanceStart = Date.now()
     const balance = await getBalance(userId)
+    console.log(`[${requestId}] ⏱️ balance: ${Date.now() - balanceStart}ms`)
     if (balance < rule.priceCny) {
       return json(
         {
@@ -347,16 +360,20 @@ Deno.serve(async (req: Request) => {
       }
       // 优先使用 pricing_rule 表中配置的 model，未配置则使用默认模型
       const model = rule.model || QWEN_MODELS.TURBO
+      console.log(`[${requestId}] 🤖 AI CALL START: model=${model} word=${params.word || '-'}`)
+      const aiStart = Date.now()
       result = await handler(qwenApiKey, qwenBaseUrl, params, model)
+      console.log(`[${requestId}] ⏱️ AI CALL: ${Date.now() - aiStart}ms`)
     }
 
     // 8. 扣费
+    const deductStart = Date.now()
     const newBalance = await deduct(
       userId,
       ruleCode,
       scene,
       entry,
-      requestId,
+      clientRequestId,
       rule.priceCny,
       balance,
       buildUsageMeta(ruleCode, scene, entry, params, {
@@ -365,11 +382,15 @@ Deno.serve(async (req: Request) => {
         text: params.text,
       }),
     )
+    console.log(`[${requestId}] ⏱️ deduct: ${Date.now() - deductStart}ms`)
 
     // 9. 返回成功（统一结构）
+    const totalMs = Date.now() - requestStart
+    console.log(`[${requestId}] ✅ ai-proxy DONE: ${totalMs}ms`)
     return json(buildSuccessResponse(ruleCode, rule.priceCny, newBalance, result))
   } catch (e: any) {
-    console.error('ai-proxy error:', e.message || e)
+    const totalMs = Date.now() - requestStart
+    console.error(`[${requestId}] ❌ ai-proxy ERROR: ${totalMs}ms`, e.message || e)
     return json(
       { ok: false, error: 'internal_error', message: e.message || String(e) },
       500,

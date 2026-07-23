@@ -157,6 +157,7 @@ export async function qwenChat(
   const model = params.model || DEFAULT_CHAT_MODEL
   const url = `${baseUrl}/chat/completions`
 
+  const qwenStart = Date.now()
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -176,6 +177,7 @@ export async function qwenChat(
       max_tokens: params.maxTokens ?? 1000,
     }),
   })
+  console.log(`    [qwenChat] ⏱️ Qwen API response: ${Date.now() - qwenStart}ms, status=${response.status}, model=${model}, maxTokens=${params.maxTokens ?? 1000}`)
 
   if (!response.ok) {
     const errText = await response.text()

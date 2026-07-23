@@ -1,373 +1,292 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vidlang/models/forum/forum_post.dart';
-import 'package:vidlang/models/forum/forum_category.dart';
+import 'package:vidlang/models/forum/forum_reply.dart';
+import 'package:vidlang/models/forum/forum_notification.dart';
+import 'package:vidlang/models/forum/forum_tag.dart';
+import 'package:vidlang/models/forum/forum_feedback.dart';
+import 'package:vidlang/models/forum/forum_follow.dart';
+import 'package:vidlang/models/forum/forum_tag_follow.dart';
 import 'package:vidlang/services/forum/forum_service.dart';
-import 'forum_mock_provider.dart'; // 导入模拟数据提供者
 
-// Supabase 客户端 provider
+// ═══════════════════════════════════════════════
+// 基础 Provider
+// ═══════════════════════════════════════════════
+
 final supabaseProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
 });
 
-// Forum 服务 provider
 final forumServiceProvider = Provider<ForumService>((ref) {
   final supabase = ref.watch(supabaseProvider);
   return ForumService(supabase);
 });
 
-// 论坛帖子列表 provider
-final forumPostsProvider = FutureProvider.family<PaginatedResponse<ForumPost>, ForumPostsParams>((ref, params) async {
-  // 使用模拟数据来避免404错误
-  if (useMockData) {
-    return ForumMockData.getMockPosts(
-      page: params.page,
-      limit: params.limit,
-      category: params.category,
-      search: params.search,
-    );
-  }
-  
-  try {
-    final forumService = ref.watch(forumServiceProvider);
-    return forumService.getPosts(
-      page: params.page,
-      limit: params.limit,
-      category: params.category,
-      type: params.type,
-      search: params.search,
-    );
-  } catch (e) {
-    // 如果真实验证失败，回退到模拟数据
-    print('⚠️ 论坛API调用失败，使用模拟数据: $e');
-    return ForumMockData.getMockPosts(
-      page: params.page,
-      limit: params.limit,
-      category: params.category,
-      search: params.search,
-    );
-  }
+// ═══════════════════════════════════════════════
+// 标签
+// ═══════════════════════════════════════════════
+
+final forumTagsProvider = FutureProvider<List<ForumTag>>((ref) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getTags();
 });
 
-// 论坛分类 provider
-final forumCategoriesProvider = FutureProvider<List<ForumCategory>>((ref) async {
-  // 使用模拟数据来避免404错误
-  if (useMockData) {
-    await Future.delayed(const Duration(milliseconds: 300)); // 模拟网络延迟
-    return ForumMockData.mockCategories;
-  }
-  
-  try {
-    final forumService = ref.watch(forumServiceProvider);
-    return forumService.getCategories();
-  } catch (e) {
-    // 如果真实验证失败，回退到模拟数据
-    print('⚠️ 分类API调用失败，使用模拟数据: $e');
-    await Future.delayed(const Duration(milliseconds: 300));
-    return ForumMockData.mockCategories;
-  }
+final forumTagFollowsProvider = FutureProvider<List<ForumTagFollow>>((ref) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyTagFollows();
 });
 
-// 用户帖子列表 provider
-final userPostsProvider = FutureProvider.family<PaginatedResponse<ForumPost>, UserPostsParams>((ref, params) async {
-  final forumService = ref.watch(forumServiceProvider);
-  return forumService.getUserPosts(
-    page: params.page,
-    limit: params.limit,
-    includeDrafts: params.includeDrafts,
-  );
-});
+// ═══════════════════════════════════════════════
+// 帖子 — V2.0: tagId + followed
+// ═══════════════════════════════════════════════
 
-// 用户收藏 provider
-final userFavoritesProvider = FutureProvider<List<ForumPost>>((ref) async {
-  final forumService = ref.watch(forumServiceProvider);
-  return forumService.getUserFavorites();
-});
-
-// 论坛统计数据 provider
-final forumStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
-  final forumService = ref.watch(forumServiceProvider);
-  return forumService.getForumStats();
-});
-
-// 当前选中的分类 provider
-final selectedCategoryProvider = StateProvider<String>((ref) => 'all');
-
-// 搜索查询 provider
-final searchQueryProvider = StateProvider<String>((ref) => '');
-
-// 帖子详情 provider
-final postDetailProvider = FutureProvider.family<ForumPost, int>((ref, postId) async {
-  final forumService = ref.watch(forumServiceProvider);
-  return forumService.getPostById(postId);
-});
-
-// 创建帖子状态 provider
-final createPostStateProvider = StateNotifierProvider<CreatePostNotifier, CreatePostState>((ref) {
-  final forumService = ref.watch(forumServiceProvider);
-  return CreatePostNotifier(forumService);
-});
-
-// 点赞状态 provider
-final likeStateProvider = StateNotifierProvider.family<LikeNotifier, LikeState, int>((ref, postId) {
-  final forumService = ref.watch(forumServiceProvider);
-  return LikeNotifier(forumService, postId);
-});
-
-// 收藏状态 provider
-final favoriteStateProvider = StateNotifierProvider.family<FavoriteNotifier, FavoriteState, int>((ref, postId) {
-  final forumService = ref.watch(forumServiceProvider);
-  return FavoriteNotifier(forumService, postId);
-});
-
-// 参数类定义
 class ForumPostsParams {
+  final int? tagId;
+  final bool followed;
   final int page;
   final int limit;
-  final String? category;
-  final String? type;
-  final String? search;
-
-  ForumPostsParams({
+  final String sort;
+  const ForumPostsParams({
+    this.tagId,
+    this.followed = false,
     this.page = 1,
-    this.limit = 10,
-    this.category,
-    this.type,
-    this.search,
+    this.limit = 20,
+    this.sort = 'latest',
   });
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ForumPostsParams &&
-          runtimeType == other.runtimeType &&
+          tagId == other.tagId &&
+          followed == other.followed &&
           page == other.page &&
           limit == other.limit &&
-          category == other.category &&
-          type == other.type &&
-          search == other.search;
-
+          sort == other.sort;
   @override
-  int get hashCode =>
-      page.hashCode ^
-      limit.hashCode ^
-      category.hashCode ^
-      type.hashCode ^
-      search.hashCode;
+  int get hashCode => Object.hash(tagId, followed, page, limit, sort);
 }
 
-class UserPostsParams {
-  final int page;
-  final int limit;
-  final bool includeDrafts;
+final forumPostsProvider =
+    FutureProvider.family<PaginatedResponse<ForumPost>, ForumPostsParams>(
+        (ref, params) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getPosts(
+    tagId: params.tagId,
+    followed: params.followed,
+    page: params.page,
+    limit: params.limit,
+    sort: params.sort,
+  );
+});
 
-  UserPostsParams({
-    this.page = 1,
-    this.limit = 10,
-    this.includeDrafts = false,
-  });
+final forumPostDetailProvider =
+    FutureProvider.family<ForumPost, int>((ref, postId) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getPostDetail(postId);
+});
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is UserPostsParams &&
-          runtimeType == other.runtimeType &&
-          page == other.page &&
-          limit == other.limit &&
-          includeDrafts == other.includeDrafts;
+// ═══════════════════════════════════════════════
+// 回复
+// ═══════════════════════════════════════════════
 
-  @override
-  int get hashCode =>
-      page.hashCode ^ limit.hashCode ^ includeDrafts.hashCode;
-}
+final forumRepliesProvider = FutureProvider.family<
+    PaginatedResponse<ForumReply>, ({int postId, int page})>((ref, params) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getReplies(
+    params.postId,
+    page: params.page,
+  );
+});
 
-// 创建帖子状态管理
+// ═══════════════════════════════════════════════
+// 收藏 — V2.0 新增
+// ═══════════════════════════════════════════════
+
+final forumFavoritesProvider =
+    FutureProvider.family<PaginatedResponse<ForumPost>, int>(
+        (ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyFavorites(page: page);
+});
+
+// ═══════════════════════════════════════════════
+// 关注用户 — V2.0 新增
+// ═══════════════════════════════════════════════
+
+final forumFollowsProvider =
+    FutureProvider.family<PaginatedResponse<ForumFollow>, int>(
+        (ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyFollows(page: page);
+});
+
+// ═══════════════════════════════════════════════
+// 通知
+// ═══════════════════════════════════════════════
+
+final forumNotificationsProvider = FutureProvider.family<
+    PaginatedResponse<ForumNotification>, int>((ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getNotifications(page: page);
+});
+
+final forumUnreadCountProvider = FutureProvider<int>((ref) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getUnreadCount();
+});
+
+// ═══════════════════════════════════════════════
+// 我的
+// ═══════════════════════════════════════════════
+
+final forumMyPostsProvider =
+    FutureProvider.family<PaginatedResponse<ForumPost>, int>((ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyPosts(page: page);
+});
+
+final forumMyRepliesProvider =
+    FutureProvider.family<PaginatedResponse<ForumReply>, int>(
+        (ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyReplies(page: page);
+});
+
+final forumMyLikesProvider =
+    FutureProvider.family<PaginatedResponse<ForumPost>, int>(
+        (ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyLikes(page: page);
+});
+
+// ═══════════════════════════════════════════════
+// 封禁状态
+// ═══════════════════════════════════════════════
+
+final forumBanStatusProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.checkBanStatus();
+});
+
+// ═══════════════════════════════════════════════
+// 我的反馈
+// ═══════════════════════════════════════════════
+
+final forumMyFeedbackProvider =
+    FutureProvider.family<PaginatedResponse<ForumFeedback>, int>(
+        (ref, page) async {
+  final service = ref.watch(forumServiceProvider);
+  return service.getMyFeedback(page: page);
+});
+
+// ═══════════════════════════════════════════════
+// 当前选中的标签（UI 用）
+// ═══════════════════════════════════════════════
+
+final selectedTagIdProvider = StateProvider<int?>((ref) => null);
+
+// ═══════════════════════════════════════════════
+// 创建帖子状态 — V2.0: tagId 替代 boardId
+// ═══════════════════════════════════════════════
+
+enum CreatePostStatus { idle, loading, success, error }
+
 class CreatePostState {
-  final bool isLoading;
+  final CreatePostStatus status;
   final String? error;
-  final ForumPost? createdPost;
-
-  CreatePostState({
-    this.isLoading = false,
-    this.error,
-    this.createdPost,
-  });
-
-  CreatePostState copyWith({
-    bool? isLoading,
-    String? error,
-    ForumPost? createdPost,
-  }) {
+  final ForumPost? post;
+  const CreatePostState(
+      {this.status = CreatePostStatus.idle, this.error, this.post});
+  CreatePostState copyWith(
+      {CreatePostStatus? status, String? error, ForumPost? post}) {
     return CreatePostState(
-      isLoading: isLoading ?? this.isLoading,
+      status: status ?? this.status,
       error: error,
-      createdPost: createdPost ?? this.createdPost,
+      post: post ?? this.post,
     );
   }
 }
 
 class CreatePostNotifier extends StateNotifier<CreatePostState> {
-  final ForumService _forumService;
-
-  CreatePostNotifier(this._forumService) : super(CreatePostState());
+  final ForumService _service;
+  CreatePostNotifier(this._service) : super(const CreatePostState());
 
   Future<void> createPost({
+    required int tagId,
     required String title,
     required String content,
-    required int categoryId,
-    String postType = 'discussion',
-    String? resourceType,
-    String? resourceUrl,
-    String? resourceDescription,
-    List<String>? tags,
+    List<String>? imageUrls,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
-    
+    state = state.copyWith(status: CreatePostStatus.loading, error: null);
     try {
-      final post = await _forumService.createPost(
+      final post = await _service.createPost(
+        tagId: tagId,
         title: title,
         content: content,
-        categoryId: categoryId,
-        postType: postType,
-        resourceType: resourceType,
-        resourceUrl: resourceUrl,
-        resourceDescription: resourceDescription,
-        tags: tags,
+        imageUrls: imageUrls,
       );
-      
-      state = state.copyWith(
-        isLoading: false,
-        createdPost: post,
-      );
+      state = state.copyWith(status: CreatePostStatus.success, post: post);
     } catch (e) {
       state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+          status: CreatePostStatus.error, error: e.toString());
     }
   }
 
-  void reset() {
-    state = CreatePostState();
-  }
+  void reset() => state = const CreatePostState();
 }
 
-// 点赞状态管理
-class LikeState {
-  final bool isLoading;
-  final bool isLiked;
-  final int likeCount;
+final createPostProvider =
+    StateNotifierProvider<CreatePostNotifier, CreatePostState>((ref) {
+  final service = ref.watch(forumServiceProvider);
+  return CreatePostNotifier(service);
+});
+
+// ═══════════════════════════════════════════════
+// 提交反馈状态
+// ═══════════════════════════════════════════════
+
+enum SubmitFeedbackStatus { idle, loading, success, error }
+
+class SubmitFeedbackState {
+  final SubmitFeedbackStatus status;
   final String? error;
-
-  LikeState({
-    this.isLoading = false,
-    this.isLiked = false,
-    this.likeCount = 0,
-    this.error,
-  });
-
-  LikeState copyWith({
-    bool? isLoading,
-    bool? isLiked,
-    int? likeCount,
-    String? error,
-  }) {
-    return LikeState(
-      isLoading: isLoading ?? this.isLoading,
-      isLiked: isLiked ?? this.isLiked,
-      likeCount: likeCount ?? this.likeCount,
+  const SubmitFeedbackState(
+      {this.status = SubmitFeedbackStatus.idle, this.error});
+  SubmitFeedbackState copyWith({SubmitFeedbackStatus? status, String? error}) {
+    return SubmitFeedbackState(
+      status: status ?? this.status,
       error: error,
     );
   }
 }
 
-class LikeNotifier extends StateNotifier<LikeState> {
-  final ForumService _forumService;
-  final int _postId;
+class SubmitFeedbackNotifier extends StateNotifier<SubmitFeedbackState> {
+  final ForumService _service;
+  SubmitFeedbackNotifier(this._service) : super(const SubmitFeedbackState());
 
-  LikeNotifier(this._forumService, this._postId) : super(LikeState());
-
-  Future<void> toggleLike() async {
-    if (state.isLoading) return;
-    
-    state = state.copyWith(isLoading: true, error: null);
-    
+  Future<bool> submit({
+    required String type,
+    required String title,
+    required String content,
+    List<String>? imageUrls,
+  }) async {
+    state = state.copyWith(status: SubmitFeedbackStatus.loading, error: null);
     try {
-      await _forumService.toggleLike(_postId);
-      
-      state = state.copyWith(
-        isLoading: false,
-        isLiked: !state.isLiked,
-        likeCount: state.isLiked ? state.likeCount - 1 : state.likeCount + 1,
-      );
+      await _service.submitFeedback(type, title, content, imageUrls);
+      state = state.copyWith(status: SubmitFeedbackStatus.success);
+      return true;
     } catch (e) {
       state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+          status: SubmitFeedbackStatus.error, error: e.toString());
+      return false;
     }
   }
 
-  void updateLikeInfo(bool isLiked, int likeCount) {
-    state = state.copyWith(
-      isLiked: isLiked,
-      likeCount: likeCount,
-    );
-  }
+  void reset() => state = const SubmitFeedbackState();
 }
 
-// 收藏状态管理
-class FavoriteState {
-  final bool isLoading;
-  final bool isFavorited;
-  final String? error;
-
-  FavoriteState({
-    this.isLoading = false,
-    this.isFavorited = false,
-    this.error,
-  });
-
-  FavoriteState copyWith({
-    bool? isLoading,
-    bool? isFavorited,
-    String? error,
-  }) {
-    return FavoriteState(
-      isLoading: isLoading ?? this.isLoading,
-      isFavorited: isFavorited ?? this.isFavorited,
-      error: error,
-    );
-  }
-}
-
-class FavoriteNotifier extends StateNotifier<FavoriteState> {
-  final ForumService _forumService;
-  final int _postId;
-
-  FavoriteNotifier(this._forumService, this._postId) : super(FavoriteState());
-
-  Future<void> toggleFavorite() async {
-    if (state.isLoading) return;
-    
-    state = state.copyWith(isLoading: true, error: null);
-    
-    try {
-      await _forumService.toggleFavorite(_postId);
-      
-      state = state.copyWith(
-        isLoading: false,
-        isFavorited: !state.isFavorited,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
-    }
-  }
-
-  void updateFavoriteStatus(bool isFavorited) {
-    state = state.copyWith(isFavorited: isFavorited);
-  }
-}
+final submitFeedbackProvider =
+    StateNotifierProvider<SubmitFeedbackNotifier, SubmitFeedbackState>((ref) {
+  final service = ref.watch(forumServiceProvider);
+  return SubmitFeedbackNotifier(service);
+});

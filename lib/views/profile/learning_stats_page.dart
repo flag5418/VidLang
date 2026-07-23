@@ -1,18 +1,22 @@
 /// 学习统计详情页面
 ///
-/// 单页面可滚动布局，自上而下 5 个区域：
-/// 1. 荣誉墙（8 个徽章横向滚动）
-/// 2. 总览数据区（4 项卡片 2×2）
-/// 3. 分类详情区（视频/音频/文章各一张卡片）
-/// 4. 学习趋势区（近 7 天简易柱状图）
-/// 5. AI 学习建议区（占位）
+/// 单页面可滚动布局，自上而下 6 个区域：
+/// 1. 荣誉墙（12 个徽章横向滚动）
+/// 2. 学习日历（TDCalendar 展示学习记录）
+/// 3. 核心指标（4 项卡片 2×2，带时间段筛选）
+/// 4. AI 学习建议区（有数据时显示）
 library;
 
 import 'package:flutter/material.dart';
+import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/components/time_range_selector.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
-// import 'package:vidlang/services/learning/stats_service.dart'; // 已合并到 LearningStatsService
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'package:vidlang/views/profile/widgets/duration_detail_page.dart';
+import 'package:vidlang/views/profile/widgets/follow_detail_page.dart';
+import 'package:vidlang/views/profile/widgets/test_detail_page.dart';
+import 'package:vidlang/views/profile/widgets/word_detail_page.dart';
 
 // ─── 荣誉徽章定义 ───
 class _BadgeDef {
@@ -43,11 +47,20 @@ class LearningStatsPage extends StatefulWidget {
 
 class _LearningStatsPageState extends State<LearningStatsPage> {
   DetailOverview? _overview;
-  List<TypeStats> _typeStats = [];
-  List<DailyTrend> _weeklyTrend = [];
   List<AiSuggestion> _aiSuggestions = [];
   bool _aiLoading = true;
   bool _loading = true;
+
+  // 日历数据
+  List<CalendarDayData> _calendarData = [];
+  DateTime _calendarMonth = DateTime.now();
+
+  // 跟读/评测综合得分
+  double? _followAvgScore;
+  double? _testAvgScore;
+
+  // 时间段筛选
+  String _timeRange = '30d';
 
   @override
   void initState() {
@@ -57,19 +70,63 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
 
   Future<void> _loadData() async {
     try {
-      final results = await Future.wait([StatsService.getDetailOverview(), StatsService.getDetailByType(), StatsService.getWeeklyTrend()]);
+      final results = await Future.wait([
+        StatsService.getDetailOverview(),
+        LearningStatsService.getCalendarData(_calendarMonth.year, _calendarMonth.month),
+        LearningStatsService.getFollowMetrics(_timeRange),
+        LearningStatsService.getTestMetrics(_timeRange),
+      ]);
       if (!mounted) return;
+      final followMetrics = results[2] as FollowMetrics;
+      final testMetrics = results[3] as TestMetrics;
       setState(() {
         _overview = results[0] as DetailOverview;
-        _typeStats = results[1] as List<TypeStats>;
-        _weeklyTrend = results[2] as List<DailyTrend>;
+        _calendarData = results[1] as List<CalendarDayData>;
+        _followAvgScore = followMetrics.totalCount > 0 ? followMetrics.avgScore : null;
+        _testAvgScore = testMetrics.totalCount > 0 ? testMetrics.avgScore : null;
         _loading = false;
       });
+      debugPrint('[LearningStats] 加载成功: overview=${_overview?.totalDays}天, calendar=${_calendarData.length}条');
       // 异步加载 AI 建议（不阻塞主界面）
       _loadAiSuggestions();
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('[LearningStats] 加载失败: $e');
+      debugPrint(stack.toString());
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _overview = null;
+        _calendarData = [];
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _reloadMetrics() async {
+    try {
+      final results = await Future.wait([
+        LearningStatsService.getFollowMetrics(_timeRange),
+        LearningStatsService.getTestMetrics(_timeRange),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _followAvgScore = (results[0] as FollowMetrics).totalCount > 0 ? (results[0] as FollowMetrics).avgScore : null;
+        _testAvgScore = (results[1] as TestMetrics).totalCount > 0 ? (results[1] as TestMetrics).avgScore : null;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadCalendarData() async {
+    try {
+      final data = await LearningStatsService.getCalendarData(_calendarMonth.year, _calendarMonth.month);
+      if (!mounted) return;
+      setState(() => _calendarData = data);
+      debugPrint('[LearningStats] 日历数据加载: ${_calendarMonth.year}-${_calendarMonth.month}, 共${data.length}条');
+      for (final d in data) {
+        debugPrint('  - ${d.date}: 时长=${d.durationSeconds}s, 跟读=${d.followCount}, 评测=${d.testCount}, 单词=${d.wordCount}');
+      }
+    } catch (e, stack) {
+      debugPrint('[LearningStats] 日历数据加载失败: $e');
+      debugPrint(stack.toString());
     }
   }
 
@@ -114,11 +171,9 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                 children: [
                   _buildHonorWall(colorScheme),
                   SizedBox(height: adaptive.Adaptive.h(24)),
+                  _buildCalendar(colorScheme),
+                  SizedBox(height: adaptive.Adaptive.h(24)),
                   _buildOverview(colorScheme),
-                  SizedBox(height: adaptive.Adaptive.h(24)),
-                  _buildCategoryDetails(colorScheme),
-                  SizedBox(height: adaptive.Adaptive.h(24)),
-                  _buildWeeklyTrend(colorScheme),
                   SizedBox(height: adaptive.Adaptive.h(24)),
                   _buildAiSuggestion(colorScheme),
                   SizedBox(height: adaptive.Adaptive.h(32)),
@@ -187,12 +242,11 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
 
   void _showBadgeDetail(_BadgeDef badge) {
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return Container(
-          padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(24), adaptive.Adaptive.h(16), adaptive.Adaptive.w(24), MediaQuery.of(context).padding.bottom + adaptive.Adaptive.h(24)),
+    Navigator.of(context).push(
+      TDSlidePopupRoute(
+        slideTransitionFrom: SlideTransitionFrom.bottom,
+        builder: (popupContext) => Container(
+          padding: EdgeInsets.fromLTRB(adaptive.Adaptive.w(24), adaptive.Adaptive.h(16), adaptive.Adaptive.w(24), MediaQuery.of(popupContext).padding.bottom + adaptive.Adaptive.h(24)),
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(24))),
@@ -255,147 +309,132 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  // ─── 区域 2: 总览数据区 ───
-
-  Widget _buildOverview(ColorScheme colorScheme) {
-    final ov = _overview;
-    if (ov == null) return const SizedBox.shrink();
-
-    final hours = ov.totalDurationSeconds ~/ 3600;
-    final minutes = (ov.totalDurationSeconds % 3600) ~/ 60;
-    final durationText = ov.totalDurationSeconds >= 3600 ? '$hours小时$minutes分钟' : '$minutes分钟';
-
-    final String gradeLabel;
-    final Color gradeColor;
-    if (ov.compositeScore >= 80) {
-      gradeLabel = '优秀';
-      gradeColor = const Color(0xFF30D158);
-    } else if (ov.compositeScore >= 60) {
-      gradeLabel = '良好';
-      gradeColor = const Color(0xFFFFCC00);
-    } else if (ov.compositeScore >= 30) {
-      gradeLabel = '入门';
-      gradeColor = const Color(0xFFFF8E53);
-    } else {
-      gradeLabel = '新手';
-      gradeColor = colorScheme.onSurfaceVariant;
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionTitle('总览数据', AppIcons.dashboard, colorScheme),
-        SizedBox(height: adaptive.Adaptive.h(12)),
-        Row(
-          children: [
-            _overviewCard('累计学习天数', '${ov.totalDays}', '天', AppIcons.calendarToday, colorScheme),
-            SizedBox(width: adaptive.Adaptive.w(10)),
-            _overviewCard('总学习时长', durationText, '', AppIcons.timer, colorScheme),
-          ],
-        ),
-        SizedBox(height: adaptive.Adaptive.h(10)),
-        Row(
-          children: [
-            _overviewCard('已学资源数', '${ov.learnedResources}', '个', AppIcons.playCircleOutline, colorScheme),
-            SizedBox(width: adaptive.Adaptive.w(10)),
-            _overviewCard('综合评分', ov.compositeScore.toStringAsFixed(0), gradeLabel, AppIcons.autoAwesome, colorScheme, valueColor: gradeColor),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _overviewCard(String label, String value, String suffix, IconData icon, ColorScheme colorScheme, {Color? valueColor}) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
-          color: colorScheme.surface,
-          boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: adaptive.Adaptive.w(10), offset: const Offset(0, 4))],
-          border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.all(adaptive.Adaptive.w(8)),
-              decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
-              child: Icon(icon, size: adaptive.Adaptive.w(20), color: colorScheme.primary),
-            ),
-            SizedBox(height: adaptive.Adaptive.h(16)),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Text(
-                    value,
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(26), fontWeight: FontWeight.bold, color: valueColor ?? colorScheme.onSurface, height: 1.1),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (suffix.isNotEmpty) ...[
-                  SizedBox(width: adaptive.Adaptive.w(4)),
-                  Padding(
-                    padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(2)),
-                    child: Text(
-                      suffix,
-                      style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            SizedBox(height: adaptive.Adaptive.h(6)),
-            Text(
-              label,
-              style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  // ─── 区域 3: 分类详情区 ───
+  // ─── 区域 2: 核心指标卡片（点击下钻） ───
 
-  Widget _buildCategoryDetails(ColorScheme colorScheme) {
-    if (_typeStats.isEmpty) return const SizedBox.shrink();
+  Widget _buildOverview(ColorScheme colorScheme) {
+    final ov = _overview;
+    if (ov == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('核心指标', AppIcons.dashboard, colorScheme),
+          SizedBox(height: adaptive.Adaptive.h(12)),
+          Container(
+            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
+              color: colorScheme.surface,
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(AppIcons.info, color: colorScheme.primary),
+                SizedBox(width: adaptive.Adaptive.w(8)),
+                Expanded(
+                  child: Text(
+                    '数据加载失败，请下拉刷新重试',
+                    style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    final durationText = _formatDuration(ov.totalDurationSeconds);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('分类详情', AppIcons.category, colorScheme),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _sectionTitle('核心指标', AppIcons.dashboard, colorScheme),
+            // 时间段筛选下拉
+            TimeRangeSelector(
+              currentValue: _timeRange,
+              onSelected: (value) {
+                if (_timeRange != value) {
+                  setState(() => _timeRange = value);
+                  _reloadMetrics();
+                }
+              },
+            ),
+          ],
+        ),
         SizedBox(height: adaptive.Adaptive.h(12)),
-        ..._typeStats.map(
-          (ts) => Padding(
-            padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(10)),
-            child: _typeCard(ts, colorScheme),
-          ),
+        Row(
+          children: [
+            _overviewCard(
+              '总学习时长',
+              durationText,
+              '',
+              AppIcons.timer,
+              colorScheme,
+              onTap: () => _navigateToDurationDetail(context),
+            ),
+            SizedBox(width: adaptive.Adaptive.w(10)),
+            _overviewCard(
+              '跟读评分',
+              _followAvgScore != null ? _followAvgScore!.toStringAsFixed(1) : '详情',
+              _followAvgScore != null ? '分' : '',
+              AppIcons.mic,
+              colorScheme,
+              valueColor: _followAvgScore != null ? const Color(0xFF30D158) : null,
+              onTap: () => _navigateToDetail(context, const FollowDetailPage()),
+            ),
+          ],
+        ),
+        SizedBox(height: adaptive.Adaptive.h(10)),
+        Row(
+          children: [
+            _overviewCard(
+              '评测成绩',
+              _testAvgScore != null ? _testAvgScore!.toStringAsFixed(1) : '详情',
+              _testAvgScore != null ? '分' : '',
+              AppIcons.rule,
+              colorScheme,
+              valueColor: _testAvgScore != null ? const Color(0xFFFFCC00) : null,
+              onTap: () => _navigateToDetail(context, const TestDetailPage()),
+            ),
+            SizedBox(width: adaptive.Adaptive.w(10)),
+            _overviewCard(
+              '单词收藏',
+              '${ov.learnedResources}',
+              '个',
+              AppIcons.book,
+              colorScheme,
+              onTap: () => _navigateToDetail(context, const WordDetailPage()),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _typeCard(TypeStats ts, ColorScheme colorScheme) {
-    final progress = ts.total > 0 ? (ts.learned / ts.total).clamp(0.0, 1.0) : 0.0;
-    final durationHours = ts.totalDurationSeconds ~/ 3600;
-    final durationMins = (ts.totalDurationSeconds % 3600) ~/ 60;
-    final durationText = ts.totalDurationSeconds >= 3600 ? '$durationHours小时$durationMins分钟' : '$durationMins分钟';
+  void _navigateToDetail(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
+  }
 
-    final iconData = ts.icon == 'video_library'
-        ? AppIcons.movie
-        : ts.icon == 'music_note'
-        ? AppIcons.musicNote
-        : AppIcons.articleRound;
+  void _navigateToDurationDetail(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => DurationDetailPage(timeRange: _timeRange)),
+    );
+  }
 
-    return Container(
+  Widget _overviewCard(String label, String value, String suffix, IconData icon, ColorScheme colorScheme, {Color? valueColor, VoidCallback? onTap}) {
+    Widget card = Container(
       padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
@@ -406,234 +445,225 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: EdgeInsets.all(adaptive.Adaptive.w(8)),
+            decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), shape: BoxShape.circle),
+            child: Icon(icon, size: adaptive.Adaptive.w(20), color: colorScheme.primary),
+          ),
+          SizedBox(height: adaptive.Adaptive.h(16)),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                padding: EdgeInsets.all(adaptive.Adaptive.w(8)),
-                decoration: BoxDecoration(color: colorScheme.primary.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10))),
-                child: Icon(iconData, size: adaptive.Adaptive.w(20), color: colorScheme.primary),
-              ),
-              SizedBox(width: adaptive.Adaptive.w(12)),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ts.label,
-                      style: TextStyle(fontSize: adaptive.Adaptive.sp(16), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
-                    ),
-                    SizedBox(height: adaptive.Adaptive.h(2)),
-                    Text(
-                      '已完成 ${ts.learned} / 共 ${ts.total}',
-                      style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
-                    ),
-                  ],
+                child: Text(
+                  value,
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(26), fontWeight: FontWeight.bold, color: valueColor ?? colorScheme.onSurface, height: 1.1),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (suffix.isNotEmpty) ...[
+                SizedBox(width: adaptive.Adaptive.w(4)),
+                Padding(
+                  padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(2)),
+                  child: Text(
+                    suffix,
+                    style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
             ],
           ),
-          SizedBox(height: adaptive.Adaptive.h(16)),
-          // 进度条
-          ClipRRect(
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: adaptive.Adaptive.h(6),
-              backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.3),
-              valueColor: AlwaysStoppedAnimation(colorScheme.primary),
-            ),
-          ),
-          SizedBox(height: adaptive.Adaptive.h(16)),
-          Row(
-            children: [
-              _typeStatChip(AppIcons.timer, durationText, colorScheme),
-              SizedBox(width: adaptive.Adaptive.w(16)),
-              _typeStatChip(AppIcons.accessTime, ts.lastStudyTime != null ? _formatTimeAgo(ts.lastStudyTime!) : '暂无', colorScheme),
-            ],
+          SizedBox(height: adaptive.Adaptive.h(6)),
+          Text(
+            label,
+            style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8)),
           ),
         ],
       ),
     );
-  }
 
-  Widget _typeStatChip(IconData icon, String text, ColorScheme colorScheme) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: adaptive.Adaptive.sp(14), color: colorScheme.onSurfaceVariant),
-        SizedBox(width: adaptive.Adaptive.w(4)),
-        Text(
-          text,
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(12), color: colorScheme.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
-
-  /// 友好时间格式：x天前 / x小时前 / 今天
-  String _formatTimeAgo(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) {
-      if (diff.inHours == 0) {
-        return '刚刚';
-      }
-      return '${diff.inHours}小时前';
+    if (onTap != null) {
+      card = GestureDetector(onTap: onTap, child: card);
     }
-    if (diff.inDays == 1) return '昨天';
-    if (diff.inDays < 30) return '${diff.inDays}天前';
-    return '${diff.inDays ~/ 30}个月前';
+
+    return Expanded(child: card);
   }
 
-  // ─── 区域 4: 学习趋势区 ───
+  // ─── 区域 2: 学习日历 ───
 
-  Widget _buildWeeklyTrend(ColorScheme colorScheme) {
-    if (_weeklyTrend.isEmpty) return const SizedBox.shrink();
-
-    // 计算最大值用于柱状图比例
-    final maxMinutes = _weeklyTrend.fold<int>(0, (m, t) => t.minutes > m ? t.minutes : m);
+  Widget _buildCalendar(ColorScheme colorScheme) {
+    final dayMap = <String, CalendarDayData>{};
+    for (final d in _calendarData) {
+      dayMap[d.date] = d;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('学习趋势（近7天）', AppIcons.showChart, colorScheme),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _sectionTitle('学习日历', AppIcons.calendarToday, colorScheme),
+            // 月份切换
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(AppIcons.arrowBack, size: adaptive.Adaptive.sp(18), color: colorScheme.onSurfaceVariant),
+                  onPressed: () {
+                    setState(() {
+                      _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month - 1);
+                    });
+                    _loadCalendarData();
+                  },
+                ),
+                Text(
+                  '${_calendarMonth.year}年${_calendarMonth.month}月',
+                  style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
+                ),
+                IconButton(
+                  icon: Icon(AppIcons.arrowForward, size: adaptive.Adaptive.sp(18), color: colorScheme.onSurfaceVariant),
+                  onPressed: () {
+                    setState(() {
+                      _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1);
+                    });
+                    _loadCalendarData();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
         SizedBox(height: adaptive.Adaptive.h(12)),
         Container(
-          padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
             color: colorScheme.surface,
             boxShadow: [BoxShadow(color: AppColors.textPrimary.withValues(alpha: 0.02), blurRadius: adaptive.Adaptive.w(10), offset: const Offset(0, 4))],
             border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.5),
           ),
-          child: Column(
-            children: [
-              // 柱状图
-              SizedBox(
-                height: adaptive.Adaptive.h(140), // 增加高度容纳文字和柱子
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: _weeklyTrend.map((t) {
-                    final ratio = maxMinutes > 0 ? t.minutes / maxMinutes : 0.0;
-                    final barHeight = (adaptive.Adaptive.h(80) * ratio).clamp(adaptive.Adaptive.h(4), adaptive.Adaptive.h(80)); // 缩小柱子最大高度以留出空间
-                    // 从日期中提取星期
-                    final dateStr = t.date.substring(5); // MM-DD
-                    final weekday = _getWeekdayLabel(t.date);
+          child: TDCalendar(
+            key: ValueKey(_calendarMonth), // 强制月份变化时重新构建日历
+            anchorDate: _calendarMonth,
+            firstDayOfWeek: 1,
+            height: adaptive.Adaptive.h(380),
+            cellHeight: adaptive.Adaptive.h(50),
+            value: [DateTime.now().millisecondsSinceEpoch],
+            type: CalendarType.single,
+            // 允许查看过去12个月到未来3个月
+            minDate: DateTime.now().subtract(const Duration(days: 365)).millisecondsSinceEpoch,
+            maxDate: DateTime.now().add(const Duration(days: 90)).millisecondsSinceEpoch,
+            onMonthChange: (date) {
+              // 避免与外部切换重复刷新
+              if (date.year != _calendarMonth.year || date.month != _calendarMonth.month) {
+                setState(() => _calendarMonth = date);
+                _loadCalendarData();
+              }
+            },
+            cellWidget: (context, tdate, selectType) {
+              final dateStr = '${tdate.date.year}-${tdate.date.month.toString().padLeft(2, '0')}-${tdate.date.day.toString().padLeft(2, '0')}';
+              final dayData = dayMap[dateStr];
+              final hasData = dayData != null && (dayData.durationSeconds > 0 || dayData.followCount > 0 || dayData.testCount > 0 || dayData.wordCount > 0);
 
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(3)),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (t.minutes > 0) ...[
-                              Text(
-                                '${t.minutes}',
-                                style: TextStyle(fontSize: adaptive.Adaptive.sp(10), fontWeight: FontWeight.w600, color: colorScheme.primary),
-                              ),
-                              SizedBox(height: adaptive.Adaptive.h(4)),
-                            ],
-                            Container(
-                              height: barHeight,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(adaptive.Adaptive.r(4))),
-                                gradient: t.minutes > 0
-                                    ? LinearGradient(
-                                        begin: Alignment.bottomCenter,
-                                        end: Alignment.topCenter,
-                                        colors: [colorScheme.primary.withValues(alpha: 0.6), colorScheme.primary],
-                                      )
-                                    : null,
-                                color: t.minutes > 0 ? null : colorScheme.outlineVariant.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            SizedBox(height: adaptive.Adaptive.h(6)),
-                            Text(weekday, style: TextStyle(fontSize: adaptive.Adaptive.sp(10), color: colorScheme.onSurfaceVariant)),
-                            SizedBox(height: adaptive.Adaptive.h(2)),
-                            Text(dateStr, style: TextStyle(fontSize: adaptive.Adaptive.sp(9), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
-                          ],
+                      return GestureDetector(
+                        onTap: hasData ? () => _showDayDetail(dateStr, dayData, colorScheme) : null,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: hasData ? colorScheme.primary.withValues(alpha: 0.1) : null,
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${tdate.date.day}',
+                        style: TextStyle(
+                          fontSize: adaptive.Adaptive.sp(14),
+                          fontWeight: FontWeight.w500,
+                          color: selectType == DateSelectType.selected
+                              ? colorScheme.primary
+                              : hasData
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    );
-                  }).toList(),
+                      if (hasData) ...[
+                        SizedBox(height: adaptive.Adaptive.h(2)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (dayData.durationSeconds > 0)
+                              _calendarDot(colorScheme.primary),
+                            if (dayData.followCount > 0)
+                              _calendarDot(const Color(0xFF30D158)),
+                            if (dayData.testCount > 0)
+                              _calendarDot(const Color(0xFFFFCC00)),
+                            if (dayData.wordCount > 0)
+                              _calendarDot(const Color(0xFFFF3B30)),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: adaptive.Adaptive.h(12)),
-              Divider(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-              SizedBox(height: adaptive.Adaptive.h(8)),
-              // 汇总行
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '本周总计',
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(13), color: colorScheme.onSurfaceVariant),
-                  ),
-                  Text(
-                    '${_weeklyTrend.fold<int>(0, (s, t) => s + t.minutes)} 分钟',
-                    style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
-                  ),
-                ],
-              ),
-            ],
+              );
+            },
           ),
+        ),
+        SizedBox(height: adaptive.Adaptive.h(8)),
+        // 图例
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _calendarLegend('学习', colorScheme.primary),
+            SizedBox(width: adaptive.Adaptive.w(12)),
+            _calendarLegend('跟读', const Color(0xFF30D158)),
+            SizedBox(width: adaptive.Adaptive.w(12)),
+            _calendarLegend('评测', const Color(0xFFFFCC00)),
+            SizedBox(width: adaptive.Adaptive.w(12)),
+            _calendarLegend('收藏', const Color(0xFFFF3B30)),
+          ],
         ),
       ],
     );
   }
 
-  String _getWeekdayLabel(String dateStr) {
-    final dt = DateTime.tryParse(dateStr);
-    if (dt == null) return '';
-    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    return weekdays[dt.weekday - 1];
+  Widget _calendarDot(Color color) {
+    return Container(
+      width: adaptive.Adaptive.w(4),
+      height: adaptive.Adaptive.w(4),
+      margin: EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(1)),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  Widget _calendarLegend(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: adaptive.Adaptive.w(6),
+          height: adaptive.Adaptive.w(6),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        SizedBox(width: adaptive.Adaptive.w(4)),
+        Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(11), color: AppColors.textSecondary)),
+      ],
+    );
   }
 
   // ─── AI 学习建议区 ───
 
   Widget _buildAiSuggestion(ColorScheme colorScheme) {
+    // 无数据时自动隐藏（包括加载中和空数据）
+    if (_aiLoading || _aiSuggestions.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionTitle('AI 学习建议', AppIcons.psychology, colorScheme),
         SizedBox(height: adaptive.Adaptive.h(12)),
-        if (_aiLoading)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(32)),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
-              color: colorScheme.surface,
-              boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: adaptive.Adaptive.w(16), offset: const Offset(0, 4))],
-              border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
-            ),
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.primary)),
-          )
-        else if (_aiSuggestions.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
-              color: colorScheme.surface,
-              boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.05), blurRadius: adaptive.Adaptive.w(16), offset: const Offset(0, 4))],
-              border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15), width: 1),
-            ),
-            child: Column(
-              children: [
-                Icon(AppIcons.lightbulbOutline, size: adaptive.Adaptive.sp(36), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-                SizedBox(height: adaptive.Adaptive.h(12)),
-                Text(
-                  '继续学习后这里将显示个性化建议',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-                ),
-              ],
-            ),
-          )
-        else
-          ..._aiSuggestions.map((s) => _aiSuggestionCard(s, colorScheme)),
+        ..._aiSuggestions.map((s) => _aiSuggestionCard(s, colorScheme)),
       ],
     );
   }
@@ -700,12 +730,101 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
   }
 
   void _handleSuggestionAction(AiSuggestion suggestion) {
-    // TODO: 根据建议类型跳转到对应页面或执行操作
-    // 例如：'开始学习' -> 首页推荐资源；'今日目标' -> 显示今日目标弹窗
-    debugPrint('[LearningStats] AI suggestion action: ${suggestion.title}');
+    // 根据建议标题关键词判断类型并跳转
+    final title = suggestion.title;
+    if (title.contains('跟读') || title.contains('发音')) {
+      // 跳转到跟读详情页
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowDetailPage()));
+    } else if (title.contains('评测') || title.contains('测试') || title.contains('正确率')) {
+      // 跳转到评测详情页
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const TestDetailPage()));
+    } else if (title.contains('时长') || title.contains('习惯') || title.contains('学习时段')) {
+      // 跳转到学习时长详情页
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const DurationDetailPage()));
+    } else if (title.contains('单词') || title.contains('收藏')) {
+      // 跳转到单词收藏详情页
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const WordDetailPage()));
+    } else {
+      // 默认提示
+      debugPrint('[LearningStats] AI suggestion action: $title');
+    }
+  }
+
+  // ─── 当日学习详情弹窗 ───
+
+  void _showDayDetail(String dateStr, CalendarDayData dayData, ColorScheme colorScheme) {
+    final durationMin = dayData.durationSeconds ~/ 60;
+    Navigator.of(context).push(
+      TDSlidePopupRoute(
+        slideTransitionFrom: SlideTransitionFrom.bottom,
+        builder: (popupContext) => TDPopupBottomDisplayPanel(
+          title: '$dateStr 学习记录',
+          titleLeft: true,
+          closeClick: () => Navigator.maybePop(popupContext),
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(adaptive.Adaptive.w(20)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (dayData.durationSeconds > 0)
+                    _dayDetailItem(AppIcons.timer, '学习时长', '$durationMin 分钟', colorScheme.primary, colorScheme),
+                  if (dayData.followCount > 0)
+                    _dayDetailItem(AppIcons.mic, '跟读次数', '${dayData.followCount} 次', const Color(0xFF30D158), colorScheme),
+                  if (dayData.testCount > 0)
+                    _dayDetailItem(AppIcons.rule, '评测次数', '${dayData.testCount} 次', const Color(0xFFFFCC00), colorScheme),
+                  if (dayData.wordCount > 0)
+                    _dayDetailItem(AppIcons.book, '收藏单词', '${dayData.wordCount} 个', const Color(0xFFFF3B30), colorScheme),
+                  SizedBox(height: adaptive.Adaptive.h(16)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dayDetailItem(IconData icon, String label, String value, Color color, ColorScheme colorScheme) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(12)),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(adaptive.Adaptive.w(8)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8))),
+            child: Icon(icon, size: adaptive.Adaptive.sp(18), color: color),
+          ),
+          SizedBox(width: adaptive.Adaptive.w(12)),
+          Expanded(
+            child: Text(label, style: TextStyle(fontSize: adaptive.Adaptive.sp(14), color: colorScheme.onSurface)),
+          ),
+          Text(value, style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w600, color: colorScheme.onSurface)),
+        ],
+      ),
+    );
   }
 
   // ─── 通用组件 ───
+
+  /// 格式化学习时长
+  /// - 小于 1 小时：显示 xx分钟
+  /// - 1-24 小时：显示 xx.xx小时
+  /// - 大于 24 小时：显示 xx.xx天
+  String _formatDuration(int totalSeconds) {
+    if (totalSeconds < 3600) {
+      // 小于1小时，显示分钟
+      return '${totalSeconds ~/ 60}分钟';
+    } else if (totalSeconds < 86400) {
+      // 小于1天，显示小时（保留2位小数）
+      final hours = totalSeconds / 3600;
+      return '${hours.toStringAsFixed(2)}小时';
+    } else {
+      // 大于1天，显示天（保留2位小数）
+      final days = totalSeconds / 86400;
+      return '${days.toStringAsFixed(2)}天';
+    }
+  }
 
   Widget _sectionTitle(String title, IconData icon, ColorScheme colorScheme) {
     return Row(

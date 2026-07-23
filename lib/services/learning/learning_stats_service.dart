@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:vidlang/models/article.dart';
+import 'package:vidlang/models/recording_record.dart';
 import 'package:vidlang/models/study_record.dart';
+import 'package:vidlang/models/test_models.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/models/word_book.dart';
@@ -1204,27 +1208,947 @@ class LearningStatsService {
     return trends;
   }
 
-  /// 获取 AI 学习建议（占位实现）
-  static Future<List<AiSuggestion>> getAiLearningSuggestions() async {
-    // TODO: 接入 AI 建议服务，当前返回默认建议
-    return [
-      AiSuggestion(
-        title: '坚持学习',
-        description: '保持每天学习的习惯，持续提升语言能力。',
-        icon: Icons.local_fire_department,
-        actionText: '开始学习',
-      ),
-      AiSuggestion(
-        title: '多样化学习',
-        description: '尝试结合视频、音频和文章多种资源类型，全面提升听说读写能力。',
-        icon: Icons.dashboard,
-      ),
-      AiSuggestion(
-        title: '定期复习',
-        description: '使用生词本复习功能巩固已学单词，间隔重复记忆效果最佳。',
-        icon: Icons.refresh,
-      ),
-    ];
+  // ════════════════════════════════════════════════
+  //  荣誉系统（Badge System）
+  // ════════════════════════════════════════════════
+
+  static const String _badgeConfigKey = 'learning_stats_badge_configs';
+  static const String _badgeConfigVersionKey =
+      'learning_stats_badge_config_version';
+
+  /// 默认荣誉配置（本地兜底，云端未返回时使用）
+  static final List<Map<String, dynamic>> _defaultBadgeConfigs = [
+    {
+      'id': 'video_explorer',
+      'name': '视频探索者',
+      'icon': 'video',
+      'dimension': 'count',
+      'resource_type': 'video',
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 5},
+        {'level': 2, 'name': '入门', 'threshold': 20},
+        {'level': 3, 'name': '进阶', 'threshold': 50},
+        {'level': 4, 'name': '精通', 'threshold': 100},
+        {'level': 5, 'name': '大师', 'threshold': 200},
+      ],
+    },
+    {
+      'id': 'video_master',
+      'name': '视频达人',
+      'icon': 'film',
+      'dimension': 'duration',
+      'resource_type': 'video',
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 3600},
+        {'level': 2, 'name': '入门', 'threshold': 36000},
+        {'level': 3, 'name': '进阶', 'threshold': 180000},
+        {'level': 4, 'name': '精通', 'threshold': 360000},
+        {'level': 5, 'name': '大师', 'threshold': 1080000},
+      ],
+    },
+    {
+      'id': 'audio_explorer',
+      'name': '音频探索者',
+      'icon': 'audio',
+      'dimension': 'count',
+      'resource_type': 'music',
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 5},
+        {'level': 2, 'name': '入门', 'threshold': 20},
+        {'level': 3, 'name': '进阶', 'threshold': 50},
+        {'level': 4, 'name': '精通', 'threshold': 100},
+        {'level': 5, 'name': '大师', 'threshold': 200},
+      ],
+    },
+    {
+      'id': 'audio_master',
+      'name': '音频达人',
+      'icon': 'music',
+      'dimension': 'duration',
+      'resource_type': 'music',
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 3600},
+        {'level': 2, 'name': '入门', 'threshold': 36000},
+        {'level': 3, 'name': '进阶', 'threshold': 180000},
+        {'level': 4, 'name': '精通', 'threshold': 360000},
+        {'level': 5, 'name': '大师', 'threshold': 1080000},
+      ],
+    },
+    {
+      'id': 'article_explorer',
+      'name': '文章探索者',
+      'icon': 'article',
+      'dimension': 'count',
+      'resource_type': 'article',
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 5},
+        {'level': 2, 'name': '入门', 'threshold': 20},
+        {'level': 3, 'name': '进阶', 'threshold': 50},
+        {'level': 4, 'name': '精通', 'threshold': 100},
+        {'level': 5, 'name': '大师', 'threshold': 200},
+      ],
+    },
+    {
+      'id': 'article_master',
+      'name': '文章达人',
+      'icon': 'book_open',
+      'dimension': 'duration',
+      'resource_type': 'article',
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 3600},
+        {'level': 2, 'name': '入门', 'threshold': 36000},
+        {'level': 3, 'name': '进阶', 'threshold': 180000},
+        {'level': 4, 'name': '精通', 'threshold': 360000},
+        {'level': 5, 'name': '大师', 'threshold': 1080000},
+      ],
+    },
+    {
+      'id': 'follow_star',
+      'name': '跟读之星',
+      'icon': 'microphone',
+      'dimension': 'times',
+      'resource_type': null,
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 50},
+        {'level': 2, 'name': '入门', 'threshold': 200},
+        {'level': 3, 'name': '进阶', 'threshold': 500},
+        {'level': 4, 'name': '精通', 'threshold': 1000},
+        {'level': 5, 'name': '大师', 'threshold': 2000},
+      ],
+    },
+    {
+      'id': 'test_star',
+      'name': '评测之星',
+      'icon': 'fact_check',
+      'dimension': 'times',
+      'resource_type': null,
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 10},
+        {'level': 2, 'name': '入门', 'threshold': 50},
+        {'level': 3, 'name': '进阶', 'threshold': 100},
+        {'level': 4, 'name': '精通', 'threshold': 300},
+        {'level': 5, 'name': '大师', 'threshold': 500},
+      ],
+    },
+    {
+      'id': 'word_collector',
+      'name': '词汇收藏家',
+      'icon': 'heart',
+      'dimension': 'times',
+      'resource_type': null,
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 50},
+        {'level': 2, 'name': '入门', 'threshold': 200},
+        {'level': 3, 'name': '进阶', 'threshold': 500},
+        {'level': 4, 'name': '精通', 'threshold': 1000},
+        {'level': 5, 'name': '大师', 'threshold': 2000},
+      ],
+    },
+    // TODO: 恢复 ai_talker 荣誉 —— 需先确认 conversation_record 表已注册实体
+    // {
+    //   'id': 'ai_talker',
+    //   'name': 'AI 对话者',
+    //   'icon': 'user_talk',
+    //   'dimension': 'times',
+    //   'resource_type': null,
+    //   'levels': [
+    //     {'level': 1, 'name': '初探', 'threshold': 10},
+    //     {'level': 2, 'name': '入门', 'threshold': 50},
+    //     {'level': 3, 'name': '进阶', 'threshold': 100},
+    //     {'level': 4, 'name': '精通', 'threshold': 300},
+    //     {'level': 5, 'name': '大师', 'threshold': 500},
+    //   ],
+    // },
+    {
+      'id': 'learning_streak',
+      'name': '学习坚持者',
+      'icon': 'calendar',
+      'dimension': 'days',
+      'resource_type': null,
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 7},
+        {'level': 2, 'name': '入门', 'threshold': 30},
+        {'level': 3, 'name': '进阶', 'threshold': 100},
+        {'level': 4, 'name': '精通', 'threshold': 365},
+        {'level': 5, 'name': '大师', 'threshold': 730},
+      ],
+    },
+    {
+      'id': 'duration_king',
+      'name': '学习时长王',
+      'icon': 'time',
+      'dimension': 'duration',
+      'resource_type': null,
+      'levels': [
+        {'level': 1, 'name': '初探', 'threshold': 36000},
+        {'level': 2, 'name': '入门', 'threshold': 360000},
+        {'level': 3, 'name': '进阶', 'threshold': 1800000},
+        {'level': 4, 'name': '精通', 'threshold': 3600000},
+        {'level': 5, 'name': '大师', 'threshold': 7200000},
+      ],
+    },
+  ];
+
+  /// 从本地获取荣誉配置（先查缓存，再用默认）
+  static Future<List<BadgeConfig>> fetchBadgeConfigs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString(_badgeConfigKey);
+
+      if (cachedJson != null) {
+        final List<dynamic> decoded = jsonDecode(cachedJson);
+        return decoded.map((e) => BadgeConfig.fromJson(e)).toList();
+      }
+    } catch (e) {
+      dev.log(
+        '[LearningStats] Failed to load cached badge configs: \$e',
+        name: 'LearningStats',
+      );
+    }
+
+    // 使用默认配置并缓存
+    final configs = _defaultBadgeConfigs
+        .map((e) => BadgeConfig.fromJson(e))
+        .toList();
+    await _cacheBadgeConfigs(configs);
+    return configs;
+  }
+
+  /// 缓存荣誉配置到本地
+  static Future<void> _cacheBadgeConfigs(List<BadgeConfig> configs) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(configs.map((e) => e.toJson()).toList());
+      await prefs.setString(_badgeConfigKey, jsonStr);
+      await prefs.setInt(
+        _badgeConfigVersionKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+    } catch (e) {
+      dev.log(
+        '[LearningStats] Failed to cache badge configs: \$e',
+        name: 'LearningStats',
+      );
+    }
+  }
+
+  /// 计算用户荣誉进度
+  static Future<List<UserBadgeProgress>> calculateBadgeProgress() async {
+    final configs = await fetchBadgeConfigs();
+    final progressList = <UserBadgeProgress>[];
+
+    for (final config in configs) {
+      final currentValue = await _getBadgeCurrentValue(config);
+      final currentLevel = _calculateCurrentLevel(currentValue, config.levels);
+      final nextThreshold = currentLevel < config.levels.length
+          ? config.levels[currentLevel].threshold
+          : config.levels.last.threshold;
+      final prevThreshold = currentLevel > 0
+          ? config.levels[currentLevel - 1].threshold
+          : 0;
+      final progress = currentLevel >= config.levels.length
+          ? 1.0
+          : (currentValue - prevThreshold) / (nextThreshold - prevThreshold);
+
+      progressList.add(
+        UserBadgeProgress(
+          badgeId: config.id,
+          badgeName: config.name,
+          badgeIcon: config.icon,
+          currentLevel: currentLevel,
+          currentValue: currentValue,
+          nextThreshold: nextThreshold,
+          progress: progress.clamp(0.0, 1.0),
+          maxLevel: config.levels.length,
+        ),
+      );
+    }
+
+    return progressList;
+  }
+
+  /// 获取荣誉当前进度值
+  static Future<int> _getBadgeCurrentValue(BadgeConfig config) async {
+    switch (config.dimension) {
+      case 'count':
+        return await _getResourceCount(config.resourceType!);
+      case 'duration':
+        return await _getResourceDuration(config.resourceType);
+      case 'times':
+        return await _getActivityCount(config.id);
+      case 'days':
+        return await _getLearningDays();
+      default:
+        return 0;
+    }
+  }
+
+  /// 获取资源数量（去重）
+  static Future<int> _getResourceCount(String resourceType) async {
+    final records = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0 AND resource_type = ?',
+      whereArgs: [resourceType],
+    );
+    final Set<String> unique = {};
+    for (final r in records) {
+      unique.add(r.resourceCode);
+    }
+    return unique.length;
+  }
+
+  /// 获取资源学习时长（秒）
+  static Future<int> _getResourceDuration(String? resourceType) async {
+    String whereClause = 'is_deleted = 0';
+    List<dynamic> whereArgs = [];
+    if (resourceType != null) {
+      whereClause += ' AND resource_type = ?';
+      whereArgs.add(resourceType);
+    }
+    final records = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: whereClause,
+      whereArgs: whereArgs,
+    );
+    int total = 0;
+    for (final r in records) {
+      total += r.duration;
+    }
+    return total;
+  }
+
+  /// 获取活动次数
+  static Future<int> _getActivityCount(String badgeId) async {
+    switch (badgeId) {
+      case 'follow_star':
+        final records = await DatabaseService.findByCondition(
+          () => RecordingRecord(),
+          where: 'is_deleted = 0',
+        );
+        return records.length;
+      case 'test_star':
+        final records = await DatabaseService.findByCondition(
+          () => TestSession(),
+          where: "is_deleted = 0 AND status = 'completed'",
+        );
+        return records.length;
+      case 'word_collector':
+        return await DatabaseService.count(
+          () => WordBook(),
+          where: 'is_deleted = 0',
+        );
+      case 'ai_talker':
+        // 荣誉已禁用：conversation_record 实体未注册
+        return 0;
+      default:
+        return 0;
+    }
+  }
+
+  /// 获取累计学习天数
+  static Future<int> _getLearningDays() async {
+    final records = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0',
+    );
+    final Set<String> uniqueDates = {};
+    for (final r in records) {
+      uniqueDates.add(r.date.toIso8601String().substring(0, 10));
+    }
+    return uniqueDates.length;
+  }
+
+  /// 计算当前等级
+  static int _calculateCurrentLevel(int value, List<BadgeLevel> levels) {
+    int level = 0;
+    for (final l in levels) {
+      if (value >= l.threshold) {
+        level = l.level;
+      } else {
+        break;
+      }
+    }
+    return level;
+  }
+
+  // ════════════════════════════════════════════════
+  //  日历数据查询
+  // ════════════════════════════════════════════════
+
+  /// 获取指定月份的日历数据
+  static Future<List<CalendarDayData>> getCalendarData(
+    int year,
+    int month,
+  ) async {
+    final startDate = DateTime(year, month, 1);
+    final endDate = DateTime(year, month + 1, 1);
+
+    // 查询学习记录
+    final studyRecords = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0 AND date >= ? AND date < ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    // 查询跟读记录
+    final followRecords = await DatabaseService.findByCondition(
+      () => RecordingRecord(),
+      where: 'is_deleted = 0 AND recorded_at >= ? AND recorded_at < ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    // 查询评测记录
+    final testRecords = await DatabaseService.findByCondition(
+      () => TestSession(),
+      where:
+          "is_deleted = 0 AND status = 'completed' AND started_at >= ? AND started_at < ?",
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    // 查询单词收藏
+    final wordRecords = await DatabaseService.findByCondition(
+      () => WordBook(),
+      where: 'is_deleted = 0 AND created_at >= ? AND created_at < ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    // 按日期聚合
+    final Map<String, CalendarDayData> dayMap = {};
+
+    for (final r in studyRecords) {
+      final dateStr = r.date.toIso8601String().substring(0, 10);
+      dayMap.putIfAbsent(dateStr, () => CalendarDayData(date: dateStr));
+      dayMap[dateStr]!.durationSeconds += r.duration;
+    }
+
+    for (final r in followRecords) {
+      final dateStr = r.recordedAt.toIso8601String().substring(0, 10);
+      dayMap.putIfAbsent(dateStr, () => CalendarDayData(date: dateStr));
+      dayMap[dateStr]!.followCount++;
+    }
+
+    for (final r in testRecords) {
+      final dateStr = r.startedAt.toIso8601String().substring(0, 10);
+      dayMap.putIfAbsent(dateStr, () => CalendarDayData(date: dateStr));
+      dayMap[dateStr]!.testCount++;
+    }
+
+    for (final r in wordRecords) {
+      final dateStr = r.createdAt!.toIso8601String().substring(0, 10);
+      dayMap.putIfAbsent(dateStr, () => CalendarDayData(date: dateStr));
+      dayMap[dateStr]!.wordCount++;
+    }
+
+    return dayMap.values.toList()..sort((a, b) => a.date.compareTo(b.date));
+  }
+
+  // ════════════════════════════════════════════════
+  //  时间段工具方法
+  // ════════════════════════════════════════════════
+
+  /// 根据时间范围字符串获取起始日期
+  static DateTime _getStartDate(String timeRange) {
+    final now = DateTime.now();
+    switch (timeRange) {
+      case '7d':
+        return now.subtract(const Duration(days: 7));
+      case '30d':
+        return now.subtract(const Duration(days: 30));
+      case '90d':
+        return now.subtract(const Duration(days: 90));
+      case 'year':
+        return DateTime(now.year, 1, 1);
+      case 'all':
+      default:
+        return DateTime(2000, 1, 1);
+    }
+  }
+
+  /// 获取时间范围内的 StudyRecord
+  static Future<List<StudyRecord>> _getStudyRecordsInRange(
+    String timeRange,
+  ) async {
+    final startDate = _getStartDate(timeRange);
+    final endDate = DateTime.now();
+    return await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0 AND date >= ? AND date <= ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+  }
+
+  // ════════════════════════════════════════════════
+  //  核心指标查询（带时间段筛选）
+  // ════════════════════════════════════════════════
+
+  /// 获取学习时长指标
+  static Future<DurationMetrics> getDurationMetrics(String timeRange) async {
+    final records = await _getStudyRecordsInRange(timeRange);
+    int totalSeconds = 0;
+    int sessionCount = 0;
+    int maxDuration = 0;
+    final Map<String, int> dailyDuration = {};
+
+    for (final r in records) {
+      totalSeconds += r.duration;
+      sessionCount++;
+      if (r.duration > maxDuration) maxDuration = r.duration;
+      final dateStr = r.date.toIso8601String().substring(0, 10);
+      dailyDuration[dateStr] = (dailyDuration[dateStr] ?? 0) + r.duration;
+    }
+
+    // 计算日均时长
+    final days = dailyDuration.length;
+    final avgDaily = days > 0 ? totalSeconds ~/ days : 0;
+
+    // 计算环比（与上一个同等长度周期对比）
+    final periodDays = _getPeriodDays(timeRange);
+    final prevStart = _getStartDate(
+      timeRange,
+    ).subtract(Duration(days: periodDays));
+    final prevEnd = _getStartDate(timeRange);
+    final prevRecords = await DatabaseService.findByCondition(
+      () => StudyRecord(),
+      where: 'is_deleted = 0 AND date >= ? AND date < ?',
+      whereArgs: [prevStart.toIso8601String(), prevEnd.toIso8601String()],
+    );
+    int prevTotal = 0;
+    for (final r in prevRecords) {
+      prevTotal += r.duration;
+    }
+    final changePercent = prevTotal > 0
+        ? ((totalSeconds - prevTotal) / prevTotal * 100).round()
+        : 0;
+
+    return DurationMetrics(
+      totalSeconds: totalSeconds,
+      sessionCount: sessionCount,
+      avgDailySeconds: avgDaily,
+      maxSessionSeconds: maxDuration,
+      changePercent: changePercent,
+      dailyData: dailyDuration,
+    );
+  }
+
+  /// 获取跟读指标
+  static Future<FollowMetrics> getFollowMetrics(String timeRange) async {
+    final startDate = _getStartDate(timeRange);
+    final endDate = DateTime.now();
+
+    final records = await DatabaseService.findByCondition(
+      () => RecordingRecord(),
+      where: 'is_deleted = 0 AND recorded_at >= ? AND recorded_at <= ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    int totalCount = 0;
+    double totalScore = 0;
+    double? maxScore;
+    double? minScore;
+    final Map<String, List<double>> resourceScores = {};
+    final Map<String, int> dailyCount = {};
+
+    for (final r in records) {
+      if (r.overallScore == null) continue;
+      totalCount++;
+      totalScore += r.overallScore!;
+      if (maxScore == null || r.overallScore! > maxScore) {
+        maxScore = r.overallScore!;
+      }
+      if (minScore == null || r.overallScore! < minScore) {
+        minScore = r.overallScore!;
+      }
+
+      resourceScores.putIfAbsent(r.resourceCode, () => []);
+      resourceScores[r.resourceCode]!.add(r.overallScore!);
+
+      final dateStr = r.recordedAt.toIso8601String().substring(0, 10);
+      dailyCount[dateStr] = (dailyCount[dateStr] ?? 0) + 1;
+    }
+
+    final avgScore = totalCount > 0 ? totalScore / totalCount : 0.0;
+
+    // 计算每个资源的平均分
+    final resourceAvgScores = <String, double>{};
+    resourceScores.forEach((code, scores) {
+      if (scores.isNotEmpty) {
+        resourceAvgScores[code] =
+            scores.reduce((a, b) => a + b) / scores.length;
+      }
+    });
+
+    return FollowMetrics(
+      totalCount: totalCount,
+      avgScore: avgScore,
+      maxScore: maxScore ?? 0,
+      minScore: minScore ?? 0,
+      resourceAvgScores: resourceAvgScores,
+      dailyCount: dailyCount,
+    );
+  }
+
+  /// 获取评测指标
+  static Future<TestMetrics> getTestMetrics(String timeRange) async {
+    final startDate = _getStartDate(timeRange);
+    final endDate = DateTime.now();
+
+    final records = await DatabaseService.findByCondition(
+      () => TestSession(),
+      where:
+          "is_deleted = 0 AND status = 'completed' AND completed_at >= ? AND completed_at <= ?",
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    int totalCount = 0;
+    double totalScore = 0;
+    int passCount = 0;
+    double? maxScore;
+    double? minScore;
+    final Map<String, List<double>> resourceScores = {};
+
+    for (final r in records) {
+      if (r.totalScore == null) continue;
+      totalCount++;
+      totalScore += r.totalScore!;
+      if (r.totalScore! >= 60) passCount++;
+      if (maxScore == null || r.totalScore! > maxScore) {
+        maxScore = r.totalScore!;
+      }
+      if (minScore == null || r.totalScore! < minScore) {
+        minScore = r.totalScore!;
+      }
+
+      if (r.resourceCode != null) {
+        resourceScores.putIfAbsent(r.resourceCode!, () => []);
+        resourceScores[r.resourceCode!]!.add(r.totalScore!);
+      }
+    }
+
+    final avgScore = totalCount > 0 ? totalScore / totalCount : 0.0;
+    final passRate = totalCount > 0 ? passCount / totalCount : 0.0;
+
+    // 计算每个资源的平均分
+    final resourceAvgScores = <String, double>{};
+    resourceScores.forEach((code, scores) {
+      if (scores.isNotEmpty) {
+        resourceAvgScores[code] =
+            scores.reduce((a, b) => a + b) / scores.length;
+      }
+    });
+
+    return TestMetrics(
+      totalCount: totalCount,
+      avgScore: avgScore,
+      maxScore: maxScore ?? 0,
+      minScore: minScore ?? 0,
+      passRate: passRate,
+      resourceAvgScores: resourceAvgScores,
+    );
+  }
+
+  /// 获取单词指标
+  static Future<WordMetrics> getWordMetrics(String timeRange) async {
+    final startDate = _getStartDate(timeRange);
+    final endDate = DateTime.now();
+
+    // 总数
+    final totalCount = await DatabaseService.count(
+      () => WordBook(),
+      where: 'is_deleted = 0',
+    );
+
+    // 周期内新增
+    final newCount = await DatabaseService.count(
+      () => WordBook(),
+      where: 'is_deleted = 0 AND created_at >= ? AND created_at <= ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    // 已掌握数
+    final masteredCount = await DatabaseService.count(
+      () => WordBook(),
+      where: "is_deleted = 0 AND mastery_level = 'mastered'",
+    );
+
+    return WordMetrics(
+      totalCount: totalCount,
+      newCount: newCount,
+      masteredCount: masteredCount,
+    );
+  }
+
+  static int _getPeriodDays(String timeRange) {
+    switch (timeRange) {
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      case 'year':
+        return 365;
+      default:
+        return 30;
+    }
+  }
+
+  // ════════════════════════════════════════════════
+  //  AI 学习洞察生成
+  // ════════════════════════════════════════════════
+
+  /// 生成 AI 学习洞察（基于规则引擎）
+  static Future<List<AiInsight>> generateAiInsights(String timeRange) async {
+    final insights = <AiInsight>[];
+
+    // 1. 学习习惯分析
+    final habitInsight = await _analyzeHabits(timeRange);
+    if (habitInsight != null) insights.add(habitInsight);
+
+    // 2. 跟读薄弱资源
+    final followWeakness = await _analyzeFollowWeakness(timeRange);
+    if (followWeakness != null) insights.add(followWeakness);
+
+    // 3. 评测薄弱资源
+    final testWeakness = await _analyzeTestWeakness(timeRange);
+    if (testWeakness != null) insights.add(testWeakness);
+
+    return insights;
+  }
+
+  /// 学习习惯分析
+  static Future<AiInsight?> _analyzeHabits(String timeRange) async {
+    final records = await _getStudyRecordsInRange(timeRange);
+    if (records.isEmpty) return null;
+
+    // 检查是否有学习但缺少跟读/评测
+    final startDate = _getStartDate(timeRange);
+    final endDate = DateTime.now();
+
+    final followRecords = await DatabaseService.findByCondition(
+      () => RecordingRecord(),
+      where: 'is_deleted = 0 AND recorded_at >= ? AND recorded_at <= ?',
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    final testRecords = await DatabaseService.findByCondition(
+      () => TestSession(),
+      where:
+          "is_deleted = 0 AND status = 'completed' AND started_at >= ? AND started_at <= ?",
+      whereArgs: [startDate.toIso8601String(), endDate.toIso8601String()],
+    );
+
+    // 分析学习时段分布
+    final hourDistribution = <int, int>{};
+    for (final r in records) {
+      final hour = r.date.hour;
+      hourDistribution[hour] = (hourDistribution[hour] ?? 0) + r.duration;
+    }
+
+    String? bestPeriod;
+    if (hourDistribution.isNotEmpty) {
+      final bestHour = hourDistribution.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
+      if (bestHour >= 5 && bestHour < 12) {
+        bestPeriod = '上午';
+      } else if (bestHour >= 12 && bestHour < 18)
+        bestPeriod = '下午';
+      else if (bestHour >= 18 && bestHour < 22)
+        bestPeriod = '晚上';
+      else
+        bestPeriod = '深夜';
+    }
+
+    // 生成建议
+    if (records.isNotEmpty && followRecords.isEmpty && testRecords.isEmpty) {
+      return AiInsight(
+        type: 'habit',
+        title: '学习习惯提醒',
+        description: '本周期内有学习记录，但缺少跟读和评测练习。建议每天跟读 10 句巩固发音，定期进行评测检验学习效果。',
+      );
+    }
+
+    if (bestPeriod != null) {
+      return AiInsight(
+        type: 'habit',
+        title: '学习习惯分析',
+        description: '你在\$bestPeriod的学习时长最多，建议保持这个学习时段的规律性，有助于形成稳定的学习节奏。',
+      );
+    }
+
+    return null;
+  }
+
+  /// 跟读薄弱资源分析
+  static Future<AiInsight?> _analyzeFollowWeakness(String timeRange) async {
+    final followMetrics = await getFollowMetrics(timeRange);
+    if (followMetrics.totalCount == 0) return null;
+
+    // 找平均分最低的资源
+    String? weakestResource;
+    double? lowestScore;
+    followMetrics.resourceAvgScores.forEach((code, score) {
+      if (lowestScore == null || score < lowestScore!) {
+        lowestScore = score;
+        weakestResource = code;
+      }
+    });
+
+    if (weakestResource == null || lowestScore == null || lowestScore! >= 70) {
+      return null;
+    }
+
+    // 查询资源类型和名称
+    String resourceType = 'video'; // 默认类型
+    try {
+      final records = await DatabaseService.findByCondition(
+        () => RecordingRecord(),
+        where: 'resource_code = ? AND is_deleted = 0',
+        whereArgs: [weakestResource],
+        limit: 1,
+      );
+      if (records.isNotEmpty) {
+        resourceType = records.first.resourceType;
+      }
+    } catch (_) {}
+
+    // 获取资源标题
+    final resourceName = await _getResourceName(weakestResource!, resourceType);
+    final resourceTitle = resourceName ?? weakestResource!;
+
+    return AiInsight(
+      type: 'follow_weakness',
+      title: resourceTitle,
+      description:
+          '跟读得分偏低(${lowestScore!.toStringAsFixed(0)}分)，建议放慢语速、注意发音准确度，多练习该资源的重点句子。',
+      resourceCode: weakestResource,
+    );
+  }
+
+  /// 评测薄弱资源分析
+  static Future<AiInsight?> _analyzeTestWeakness(String timeRange) async {
+    final testMetrics = await getTestMetrics(timeRange);
+    if (testMetrics.totalCount == 0) return null;
+
+    // 找平均分最低的资源
+    String? weakestResource;
+    double? lowestScore;
+    testMetrics.resourceAvgScores.forEach((code, score) {
+      if (lowestScore == null || score < lowestScore!) {
+        lowestScore = score;
+        weakestResource = code;
+      }
+    });
+
+    if (weakestResource == null || lowestScore == null || lowestScore! >= 60) {
+      return null;
+    }
+
+    // 查询资源类型和名称
+    String resourceType = 'video'; // 默认类型
+    try {
+      final sessions = await DatabaseService.findByCondition(
+        () => TestSession(),
+        where: 'resource_code = ? AND is_deleted = 0',
+        whereArgs: [weakestResource],
+        limit: 1,
+      );
+      if (sessions.isNotEmpty) {
+        resourceType = sessions.first.resourceType ?? 'video';
+      }
+    } catch (_) {}
+
+    // 获取资源标题
+    final resourceName = await _getResourceName(weakestResource!, resourceType);
+    final resourceTitle = resourceName ?? weakestResource!;
+
+    return AiInsight(
+      type: 'test_weakness',
+      title: resourceTitle,
+      description:
+          '评测正确率仅 ${lowestScore!.toStringAsFixed(0)} 分，建议重新学习该资源字幕后再次测试，重点复习薄弱题型。',
+      resourceCode: weakestResource,
+    );
+  }
+
+  /// 获取资源学习时长排行
+  static Future<List<ResourceDurationDetail>> getResourceDurationRanking(
+    String timeRange,
+  ) async {
+    final records = await _getStudyRecordsInRange(timeRange);
+    final Map<String, ResourceDurationDetail> resourceMap = {};
+
+    for (final r in records) {
+      final existing = resourceMap[r.resourceCode];
+      if (existing == null) {
+        resourceMap[r.resourceCode] = ResourceDurationDetail(
+          resourceCode: r.resourceCode,
+          resourceType: r.resourceType,
+          totalSeconds: r.duration,
+          sessionCount: 1,
+        );
+      } else {
+        resourceMap[r.resourceCode] = ResourceDurationDetail(
+          resourceCode: r.resourceCode,
+          resourceType: r.resourceType,
+          totalSeconds: existing.totalSeconds + r.duration,
+          sessionCount: existing.sessionCount + 1,
+        );
+      }
+    }
+
+    // 查询资源名称
+    final result = <ResourceDurationDetail>[];
+    for (final detail in resourceMap.values) {
+      final resourceName = await _getResourceName(
+        detail.resourceCode,
+        detail.resourceType,
+      );
+      result.add(
+        ResourceDurationDetail(
+          resourceCode: detail.resourceCode,
+          resourceName: resourceName,
+          resourceType: detail.resourceType,
+          totalSeconds: detail.totalSeconds,
+          sessionCount: detail.sessionCount,
+        ),
+      );
+    }
+
+    result.sort((a, b) => b.totalSeconds.compareTo(a.totalSeconds));
+    return result;
+  }
+
+  /// 获取资源名称
+  static Future<String?> _getResourceName(
+    String resourceCode,
+    String resourceType,
+  ) async {
+    try {
+      if (resourceType == 'article') {
+        final articles = await DatabaseService.findByCondition(
+          () => Article(),
+          where: 'code = ? AND is_deleted = 0',
+          whereArgs: [resourceCode],
+          limit: 1,
+        );
+        if (articles.isNotEmpty) {
+          return articles.first.title;
+        }
+      } else {
+        // video 或 music
+        final videos = await DatabaseService.findByCondition(
+          () => VideoInfo(),
+          where: 'code = ? AND is_deleted = 0',
+          whereArgs: [resourceCode],
+          limit: 1,
+        );
+        if (videos.isNotEmpty) {
+          return videos.first.name;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// 获取「我的」页面汇总统计（内部方法）
@@ -1449,9 +2373,19 @@ class StatsService {
   static Future<List<DailyTrend>> getWeeklyTrend() =>
       LearningStatsService.getWeeklyTrend();
 
-  /// @Deprecated 获取 AI 学习建议
-  static Future<List<AiSuggestion>> getAiLearningSuggestions() =>
-      LearningStatsService.getAiLearningSuggestions();
+  /// @Deprecated 获取 AI 学习建议（已迁移至 generateAiInsights）
+  static Future<List<AiSuggestion>> getAiLearningSuggestions() async {
+    final insights = await LearningStatsService.generateAiInsights('30d');
+    return insights
+        .map(
+          (i) => AiSuggestion(
+            title: i.title,
+            description: i.description,
+            icon: i.type == 'habit' ? Icons.schedule : Icons.trending_down,
+          ),
+        )
+        .toList();
+  }
 
   /// @Deprecated 获取「我的」页面汇总统计
   static Future<SummaryStats> getSummaryStats() =>
@@ -1519,4 +2453,262 @@ class AiSuggestion {
     required this.icon,
     this.actionText,
   });
+}
+
+// ═══════════════════════════════════════════════════
+//  荣誉系统数据模型
+// ═══════════════════════════════════════════════════
+
+/// 荣誉配置
+class BadgeConfig {
+  final String id;
+  final String name;
+  final String icon;
+  final String dimension;
+  final String? resourceType;
+  final List<BadgeLevel> levels;
+
+  const BadgeConfig({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.dimension,
+    this.resourceType,
+    required this.levels,
+  });
+
+  factory BadgeConfig.fromJson(Map<String, dynamic> json) {
+    return BadgeConfig(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      icon: json['icon'] as String,
+      dimension: json['dimension'] as String,
+      resourceType: json['resource_type'] as String?,
+      levels: (json['levels'] as List<dynamic>)
+          .map((e) => BadgeLevel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'icon': icon,
+    'dimension': dimension,
+    'resource_type': resourceType,
+    'levels': levels.map((e) => e.toJson()).toList(),
+  };
+}
+
+/// 荣誉等级
+class BadgeLevel {
+  final int level;
+  final String name;
+  final int threshold;
+
+  const BadgeLevel({
+    required this.level,
+    required this.name,
+    required this.threshold,
+  });
+
+  factory BadgeLevel.fromJson(Map<String, dynamic> json) {
+    return BadgeLevel(
+      level: json['level'] as int,
+      name: json['name'] as String,
+      threshold: json['threshold'] as int,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'level': level,
+    'name': name,
+    'threshold': threshold,
+  };
+}
+
+/// 用户荣誉进度
+class UserBadgeProgress {
+  final String badgeId;
+  final String badgeName;
+  final String badgeIcon;
+  final int currentLevel;
+  final int currentValue;
+  final int nextThreshold;
+  final double progress;
+  final int maxLevel;
+
+  const UserBadgeProgress({
+    required this.badgeId,
+    required this.badgeName,
+    required this.badgeIcon,
+    required this.currentLevel,
+    required this.currentValue,
+    required this.nextThreshold,
+    required this.progress,
+    required this.maxLevel,
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  日历数据模型
+// ═══════════════════════════════════════════════════
+
+/// 日历单日数据
+class CalendarDayData {
+  final String date;
+  int durationSeconds;
+  int followCount;
+  int testCount;
+  int wordCount;
+
+  CalendarDayData({
+    required this.date,
+    this.durationSeconds = 0,
+    this.followCount = 0,
+    this.testCount = 0,
+    this.wordCount = 0,
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  核心指标数据模型
+// ═══════════════════════════════════════════════════
+
+/// 学习时长指标
+class DurationMetrics {
+  final int totalSeconds;
+  final int sessionCount;
+  final int avgDailySeconds;
+  final int maxSessionSeconds;
+  final int changePercent;
+  final Map<String, int> dailyData;
+
+  const DurationMetrics({
+    required this.totalSeconds,
+    required this.sessionCount,
+    required this.avgDailySeconds,
+    required this.maxSessionSeconds,
+    required this.changePercent,
+    required this.dailyData,
+  });
+
+  String get formattedTotal => _formatDurationChinese(totalSeconds);
+
+  String get formattedAvgDaily => _formatDurationChinese(avgDailySeconds);
+
+  /// 格式化为中文时长显示
+  static String _formatDurationChinese(int seconds) {
+    if (seconds < 60) {
+      return '$seconds秒';
+    } else if (seconds < 3600) {
+      return '${seconds ~/ 60}分钟';
+    } else {
+      final hours = seconds ~/ 3600;
+      final minutes = (seconds % 3600) ~/ 60;
+      if (minutes > 0) {
+        return '$hours小时$minutes分钟';
+      } else {
+        return '$hours小时';
+      }
+    }
+  }
+}
+
+/// 跟读指标
+class FollowMetrics {
+  final int totalCount;
+  final double avgScore;
+  final double maxScore;
+  final double minScore;
+  final Map<String, double> resourceAvgScores;
+  final Map<String, int> dailyCount;
+
+  const FollowMetrics({
+    required this.totalCount,
+    required this.avgScore,
+    required this.maxScore,
+    required this.minScore,
+    required this.resourceAvgScores,
+    required this.dailyCount,
+  });
+}
+
+/// 评测指标
+class TestMetrics {
+  final int totalCount;
+  final double avgScore;
+  final double maxScore;
+  final double minScore;
+  final double passRate;
+  final Map<String, double> resourceAvgScores;
+
+  const TestMetrics({
+    required this.totalCount,
+    required this.avgScore,
+    required this.maxScore,
+    required this.minScore,
+    required this.passRate,
+    required this.resourceAvgScores,
+  });
+}
+
+/// 单词指标
+class WordMetrics {
+  final int totalCount;
+  final int newCount;
+  final int masteredCount;
+
+  const WordMetrics({
+    required this.totalCount,
+    required this.newCount,
+    required this.masteredCount,
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  AI 洞察数据模型
+// ═══════════════════════════════════════════════════
+
+/// AI 学习洞察
+class AiInsight {
+  final String type;
+  final String title;
+  final String description;
+  final String? resourceCode;
+
+  const AiInsight({
+    required this.type,
+    required this.title,
+    required this.description,
+    this.resourceCode,
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  二级页面数据模型
+// ═══════════════════════════════════════════════════
+
+/// 资源学习时长详情
+class ResourceDurationDetail {
+  final String resourceCode;
+  final String? resourceName; // 资源名称（优先使用）
+  final String resourceType;
+  final int totalSeconds;
+  final int sessionCount;
+
+  const ResourceDurationDetail({
+    required this.resourceCode,
+    this.resourceName,
+    required this.resourceType,
+    required this.totalSeconds,
+    required this.sessionCount,
+  });
+
+  /// 显示名称：优先使用资源名称，否则使用 code
+  String get displayName =>
+      resourceName?.isNotEmpty == true ? resourceName! : resourceCode;
+
+  String get formattedDuration =>
+      DurationMetrics._formatDurationChinese(totalSeconds);
 }

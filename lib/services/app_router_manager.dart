@@ -200,6 +200,11 @@ class AppRouterManager extends NavigatorObserver {
 
   /// 为指定路由应用对应的页面配置
   void _applyConfigForRoute(Route route) {
+    // 跳过弹窗/对话框路由，不应用页面配置（弹窗不是页面）
+    if (route is RawDialogRoute || route is DialogRoute) {
+      return;
+    }
+
     // 延迟一帧执行，确保路由已准备好
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final widgetType = _getWidgetTypeFromRoute(route);

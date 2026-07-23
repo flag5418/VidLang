@@ -164,38 +164,14 @@ class _DeviceTypeDialogState extends State<_DeviceTypeDialog> {
                     context.s(24),
                     context.s(8),
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(context.s(12)),
-                        decoration: BoxDecoration(
-                          color: cs.primaryContainer.withValues(alpha: 0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.devices_rounded,
-                          size: context.is_(28),
-                          color: cs.primary,
-                        ),
-                      ),
-                      SizedBox(height: context.s(10)),
-                      Text(
-                        '选择设备类型',
-                        style: TextStyle(
-                          fontSize: context.ts(17),
-                          fontWeight: FontWeight.w600,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                      SizedBox(height: context.s(4)),
-                      Text(
-                        '切换后界面将立即刷新',
-                        style: TextStyle(
-                          fontSize: context.ts(13),
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    '选择设备类型',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: context.ts(17),
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
                   ),
                 ),
 

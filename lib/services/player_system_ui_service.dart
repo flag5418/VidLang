@@ -46,7 +46,9 @@ class PlayerSystemUIService {
   /// 进入播放器模式
   ///
   /// ⚠️ 已废弃：由 AppRouterManager.didPush() 自动处理
-  @Deprecated('Use AppRouterManager.registerPage() with PageConfiguration.player()')
+  @Deprecated(
+    'Use AppRouterManager.registerPage() with PageConfiguration.player()',
+  )
   Future<void> enterPlayer() async {
     // 允许所有方向
     await setOrientationAll();
@@ -144,8 +146,9 @@ class PlayerSystemUIService {
 
   /// 恢复正常 UI 模式（显示状态栏和导航栏）
   Future<void> restoreToNormal() async {
-    if (_lastSystemUiMode == null ||
-        _lastSystemUiMode == SystemUiMode.manual) return;
+    if (_lastSystemUiMode == null || _lastSystemUiMode == SystemUiMode.manual) {
+      return;
+    }
 
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,

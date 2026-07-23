@@ -1172,6 +1172,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
   // ── 跟读 ──
 
   void _startShadowReader(String text, String contextSentence) {
+    // 清理划词状态，避免叠加在 ShadowReader 弹窗上层
+    _selectionText = null;
+    _toolbarOffset = null;
+    _selectionController.clearSelection();
+
     // 创建临时的 Subtitles 对象用于跟读组件（只跟读选中的单词或短语）
     final shadowSub = Subtitles(
       videoCode: widget.articleCode,
@@ -1186,6 +1191,7 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         ShadowReaderComponent.show(
           context,
           config: ShadowReaderConfig(
+            subscriptionMode: _isPaidMode ? SubscriptionMode.premium : SubscriptionMode.free,
             subtitle: shadowSub,
             resourceType: 'article',
             resourceCode: widget.articleCode,

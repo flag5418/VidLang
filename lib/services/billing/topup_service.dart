@@ -37,15 +37,23 @@ class TopupService {
   static List<TopupConfig> _fallbackConfigs() {
     return [
       TopupConfig(
-        id: -1, originalAmount: 10, actualAmount: 10,
-        bonusAmount: 0, label: '体验',
+        id: -1, originalAmount: 5, actualAmount: 5,
+        bonusAmount: 1, label: '体验', discountLabel: '送 ¥1',
       ),
       TopupConfig(
-        id: -2, originalAmount: 50, actualAmount: 55,
+        id: -2, originalAmount: 10, actualAmount: 10,
+        bonusAmount: 2, label: null, discountLabel: '送 ¥2',
+      ),
+      TopupConfig(
+        id: -3, originalAmount: 20, actualAmount: 20,
         bonusAmount: 5, label: '热门', discountLabel: '送 ¥5',
       ),
       TopupConfig(
-        id: -3, originalAmount: 100, actualAmount: 120,
+        id: -4, originalAmount: 50, actualAmount: 50,
+        bonusAmount: 10, label: null, discountLabel: '送 ¥10',
+      ),
+      TopupConfig(
+        id: -5, originalAmount: 100, actualAmount: 100,
         bonusAmount: 20, label: '最划算', discountLabel: '送 ¥20',
       ),
     ];

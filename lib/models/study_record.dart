@@ -118,12 +118,12 @@ class StudyRecord extends BaseEntity {
     date = map['date'] != null ? DateTime.parse(map['date']) : DateTime.now();
     startTime = map['start_time'] != null ? DateTime.parse(map['start_time']) : DateTime.now();
     endTime = map['end_time'] != null ? DateTime.parse(map['end_time']) : null;
-    duration = map['duration'] ?? 0;
-    playCount = map['play_count'] ?? 0;
-    segmentsStudied = map['segments_studied'] ?? 0;
-    wordsSaved = map['words_saved'] ?? 0;
+    duration = _toInt(map['duration']) ?? 0;
+    playCount = _toInt(map['play_count']) ?? 0;
+    segmentsStudied = _toInt(map['segments_studied']) ?? 0;
+    wordsSaved = _toInt(map['words_saved']) ?? 0;
     testScore = _toDouble(map['test_score']);
-    followCount = map['follow_count'] ?? 0;
+    followCount = _toInt(map['follow_count']) ?? 0;
     bestFollowScore = _toDouble(map['best_follow_score']);
     createdAt = map['created_at'] != null ? DateTime.parse(map['created_at']) : null;
     updatedAt = map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null;
@@ -139,6 +139,14 @@ class StudyRecord extends BaseEntity {
     if (value == null) return null;
     if (value is num) return value.toDouble();
     if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
     return null;
   }
 }

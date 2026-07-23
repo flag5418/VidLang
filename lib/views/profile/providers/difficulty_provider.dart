@@ -58,15 +58,15 @@ enum DifficultyLevel {
   IconData get icon {
     switch (this) {
       case DifficultyLevel.beginner:
-        return AppIcons.looksOne;
+        return AppIcons.levelBeginner;
       case DifficultyLevel.elementary:
-        return AppIcons.looksTwo;
+        return AppIcons.levelElementary;
       case DifficultyLevel.intermediate:
-        return AppIcons.looksThree;
+        return AppIcons.levelIntermediate;
       case DifficultyLevel.advanced:
-        return AppIcons.looksFour;
+        return AppIcons.levelAdvanced;
       case DifficultyLevel.professional:
-        return AppIcons.looksFive;
+        return AppIcons.levelProfessional;
     }
   }
 

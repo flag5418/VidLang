@@ -1,690 +1,414 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:vidlang/components/ui/loading_widget.dart';
+import 'package:vidlang/models/forum/forum_post.dart';
+import 'package:vidlang/models/forum/forum_tag.dart';
+import 'package:vidlang/views/forum/providers/forum_providers.dart';
+import 'package:vidlang/services/forum/forum_service.dart';
+import 'package:vidlang/views/forum/widgets/forum_post_card.dart';
+import 'package:vidlang/views/forum/forum_post_detail_page.dart';
+import 'package:vidlang/views/forum/forum_create_post_page.dart';
+import 'package:vidlang/views/forum/forum_search_page.dart';
+import 'package:vidlang/views/forum/forum_notifications_page.dart';
+import 'package:vidlang/views/forum/forum_my_page.dart';
+import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/forum/forum_post.dart';
-import 'package:vidlang/views/forum/providers/forum_providers.dart';
-import 'package:vidlang/components/ui/loading_widget.dart';
-import 'package:vidlang/components/ui/error_widget.dart';
-import 'forum_create_post_page.dart';
-import 'package:vidlang/theme/theme.dart';
-
+/// 论坛首页 — V2.0 标签驱动（今日头条风格：关注 + 标签 Tab）
 class ForumHomePage extends ConsumerStatefulWidget {
-  const ForumHomePage({super.key});
+  /// 可选：指定初始标签 ID（0 为关注）
+  final int? initialTagId;
+
+  const ForumHomePage({
+    super.key,
+    this.initialTagId,
+  });
 
   @override
   ConsumerState<ForumHomePage> createState() => _ForumHomePageState();
 }
 
-class _ForumHomePageState extends ConsumerState<ForumHomePage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  // ignore: unused_field
-  final String _selectedCategory = 'all';
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
+class _ForumHomePageState extends ConsumerState<ForumHomePage> {
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final List<ForumPost> _posts = [];
+  int? _activeTagId;
+  bool _isFollowedTab = false;
+
+  ForumPostsParams get _params => ForumPostsParams(
+        tagId: _isFollowedTab ? null : _activeTagId,
+        followed: _isFollowedTab,
+        page: _currentPage,
+      );
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    if (widget.initialTagId != null) {
+      _activeTagId = widget.initialTagId;
+      _isFollowedTab = widget.initialTagId == 0;
+    } else {
+      _isFollowedTab = true;
+    }
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(forumPostsProvider(_params));
+    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (_hasMore && !ref.read(forumPostsProvider(_params)).isLoading) {
+        setState(() => _currentPage++);
+      }
+    }
+  }
+
+  void _switchTab({int? tagId, bool isFollowed = false}) {
+    if (isFollowed && _isFollowedTab) return;
+    if (!isFollowed && _activeTagId == tagId) return;
+    setState(() {
+      _isFollowedTab = isFollowed;
+      _activeTagId = tagId;
+      _currentPage = 1;
+      _posts.clear();
+      _hasMore = true;
+    });
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _currentPage = 1;
+      _posts.clear();
+      _hasMore = true;
+    });
+    ref.invalidate(forumPostsProvider(_params));
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final tagsAsync = ref.watch(forumTagsProvider);
+    final postsAsync = ref.watch(forumPostsProvider(_params));
+
+    ref.listen(forumPostsProvider(_params), (_, next) {
+      next.whenData((response) {
+        if (_currentPage == 1) _posts.clear();
+        _posts.addAll(response.data);
+        _hasMore = response.pagination.hasMore;
+      });
+    });
+
+    // 首次加载
+    if (tagsAsync.isLoading && postsAsync.isLoading) {
+      return Scaffold(
+        backgroundColor: colors.background,
+        appBar: _buildAppBar(context, colors),
+        body: const Center(child: LoadingWidget()),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(
-        title: const Text('学习论坛'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 1,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(adaptive.Adaptive.h(120)),
-          child: Container(
-            color: AppColors.surface,
-            child: Column(children: [_buildSearchBar(), _buildCategoryTabs()]),
-          ),
-        ),
-      ),
+      backgroundColor: colors.background,
+      appBar: _buildAppBar(context, colors),
       body: Column(
         children: [
-          _buildQuickActions(),
+          _buildTagTabs(context, colors, tagsAsync),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildPostList('all'),
-                _buildPostList('resources'),
-                _buildPostList('discussion'),
-                _buildPostList('feedback'),
-                _buildPostList('help'),
-              ],
-            ),
+            child: _buildPostList(context, colors, postsAsync),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToCreatePost(),
-        backgroundColor: Theme.of(context).primaryColor,
-        child: const Icon(AppIcons.add, color: AppColors.surface),
+        onPressed: () => _navigateToCreatePost(context),
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+        child: const Icon(Icons.edit),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      margin: EdgeInsets.all(adaptive.Adaptive.w(16)),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: '搜索帖子、用户或标签...',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
-          ),
-          filled: true,
-          fillColor: AppColors.lightBackground,
-          suffixIcon: IconButton(
-            icon: const Icon(AppIcons.clear),
-            onPressed: () {
-              setState(() {
-                _searchQuery = '';
-                _searchController.clear();
-              });
-            },
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    AppColorsData colors,
+  ) {
+    return AppBar(
+      title: const Text('学习论坛'),
+      backgroundColor: colors.surface,
+      foregroundColor: colors.textPrimary,
+      elevation: 1,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => _navigateToSearch(context),
+        ),
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () => _navigateToNotifications(context),
+            ),
+            const _UnreadBadge(),
+          ],
+        ),
+        IconButton(
+          icon: const Icon(Icons.person_outline),
+          onPressed: () => _navigateToMyPage(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTagTabs(
+    BuildContext context,
+    AppColorsData colors,
+    AsyncValue<List<ForumTag>> tagsAsync,
+  ) {
+    return tagsAsync.when(
+      loading: () => const SizedBox(
+        height: 44,
+        child: Center(
+          child: SizedBox(
+            width: 16, height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
-        onSubmitted: (value) {
-          setState(() {
-            _searchQuery = value;
-          });
-        },
       ),
+      error: (e, _) => const SizedBox.shrink(),
+      data: (tags) {
+        return Container(
+          height: adaptive.Adaptive.h(44),
+          color: colors.surface,
+          child: Row(
+            children: [
+              Expanded(
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(
+                      horizontal: adaptive.Adaptive.w(12)),
+                  itemCount: tags.length + 1,
+                  separatorBuilder: (_, _) =>
+                      SizedBox(width: adaptive.Adaptive.w(4)),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return _buildTabChip(
+                        context, colors, '关注',
+                        isActive: _isFollowedTab,
+                        onTap: () => _switchTab(isFollowed: true),
+                      );
+                    }
+                    final tag = tags[index - 1];
+                    return _buildTabChip(
+                      context, colors, tag.name,
+                      isActive: !_isFollowedTab && _activeTagId == tag.id,
+                      onTap: () => _switchTab(tagId: tag.id),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildCategoryTabs() {
-    final tabs = ['全部', '资源分享', '学习讨论', '反馈建议', '学习互助'];
-
-    return TabBar(
-      controller: _tabController,
-      isScrollable: true,
-      labelColor: Theme.of(context).primaryColor,
-      unselectedLabelColor: AppColors.onSurfaceVariant,
-      indicatorColor: Theme.of(context).primaryColor,
-      indicatorSize: TabBarIndicatorSize.tab,
-      labelStyle: TextStyle(
-        fontSize: adaptive.Adaptive.sp(14),
-        fontWeight: FontWeight.w500,
-      ),
-      tabs: tabs.map((tab) => Tab(text: tab)).toList(),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return Container(
-      height: adaptive.Adaptive.h(60),
-      margin: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(16),
-        vertical: adaptive.Adaptive.h(8),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildQuickActionButton(
-              icon: AppIcons.movie,
-              label: '分享视频',
-              onTap: () => _navigateToCreatePost('resource', 'video'),
-            ),
-          ),
-          SizedBox(width: adaptive.Adaptive.w(8)),
-          Expanded(
-            child: _buildQuickActionButton(
-              icon: AppIcons.audioFile,
-              label: '分享音频',
-              onTap: () => _navigateToCreatePost('resource', 'audio'),
-            ),
-          ),
-          SizedBox(width: adaptive.Adaptive.w(8)),
-          Expanded(
-            child: _buildQuickActionButton(
-              icon: AppIcons.chat,
-              label: '学习讨论',
-              onTap: () => _navigateToCreatePost('discussion'),
-            ),
-          ),
-          SizedBox(width: adaptive.Adaptive.w(8)),
-          Expanded(
-            child: _buildQuickActionButton(
-              icon: AppIcons.help,
-              label: '求助问答',
-              onTap: () => _navigateToCreatePost('help'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
+  Widget _buildTabChip(
+    BuildContext context,
+    AppColorsData colors,
+    String label, {
+    required bool isActive,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(8)),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
-          border: Border.all(color: AppColors.borderLight),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.Adaptive.w(14),
+          vertical: adaptive.Adaptive.h(8),
         ),
+        alignment: Alignment.center,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: adaptive.Adaptive.sp(20),
-              color: Theme.of(context).primaryColor,
-            ),
-            SizedBox(height: adaptive.Adaptive.h(4)),
             Text(
               label,
               style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(10),
-                color: AppColors.textSecondary,
+                fontSize: adaptive.Adaptive.sp(14),
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive ? colors.primary : colors.textSecondary,
               ),
             ),
+            if (isActive)
+              Container(
+                margin: EdgeInsets.only(top: adaptive.Adaptive.h(4)),
+                width: adaptive.Adaptive.w(16),
+                height: adaptive.Adaptive.h(2),
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPostList(String category) {
-    final postsAsync = ref.watch(
-      forumPostsProvider(
-        ForumPostsParams(
-          category: category == 'all' ? null : category,
-          search: _searchQuery.isEmpty ? null : _searchQuery,
+  Widget _buildPostList(
+    BuildContext context,
+    AppColorsData colors,
+    AsyncValue<PaginatedResponse<ForumPost>> postsAsync,
+  ) {
+    if (_posts.isEmpty && postsAsync.isLoading) {
+      return const Center(child: LoadingWidget());
+    }
+
+    if (_posts.isEmpty && postsAsync.hasError) {
+      return Center(
+        child: EmptyState(
+          icon: Icons.error_outline,
+          title: '加载失败',
+          description: postsAsync.error.toString(),
+          actionLabel: '重试',
+          onAction: _refresh,
         ),
-      ),
-    );
+      );
+    }
 
-    return postsAsync.when(
-      data: (postsResponse) {
-        final posts = postsResponse.data;
-        if (posts.isEmpty) {
-          return _buildEmptyState(category);
-        }
+    if (_posts.isEmpty) {
+      return EmptyState(
+        icon: Icons.forum_outlined,
+        title: '暂无帖子',
+        description: _isFollowedTab
+            ? '关注一些用户或标签，这里会显示他们的最新动态'
+            : '快来发布第一个帖子吧',
+        actionLabel: '发布帖子',
+        onAction: () => _navigateToCreatePost(context),
+      );
+    }
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(
-              forumPostsProvider(
-                ForumPostsParams(
-                  category: category == 'all' ? null : category,
-                  search: _searchQuery.isEmpty ? null : _searchQuery,
-                ),
+    final pinned = _posts.where((p) => p.isPinned).toList();
+    final normal = _posts.where((p) => !p.isPinned).toList();
+
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.only(
+          top: adaptive.Adaptive.h(8),
+          bottom: adaptive.Adaptive.h(80),
+        ),
+        itemCount: pinned.length + normal.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index < pinned.length) {
+            return ForumPostCard(
+              post: pinned[index],
+              onTap: () => _navigateToDetail(context, pinned[index].id),
+            );
+          }
+          final normalIndex = index - pinned.length;
+          if (normalIndex >= normal.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             );
-          },
-          child: ListView.separated(
-            padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(16),
-              vertical: adaptive.Adaptive.h(8),
-            ),
-            itemCount: posts.length,
-            separatorBuilder: (context, index) =>
-                SizedBox(height: adaptive.Adaptive.h(8)),
-            itemBuilder: (context, index) {
-              return _buildPostCard(posts[index]);
-            },
-          ),
-        );
-      },
-      loading: () => const LoadingWidget(),
-      error: (error, stack) => ErrorDisplayWidget(
-        error: error.toString(),
-        onRetry: () {
-          ref.invalidate(
-            forumPostsProvider(
-              ForumPostsParams(
-                category: category == 'all' ? null : category,
-                search: _searchQuery.isEmpty ? null : _searchQuery,
-              ),
-            ),
+          }
+          return ForumPostCard(
+            post: normal[normalIndex],
+            onTap: () => _navigateToDetail(context, normal[normalIndex].id),
           );
         },
       ),
     );
   }
 
-  Widget _buildEmptyState(String category) {
-    String message;
-    IconData icon;
-
-    switch (category) {
-      case 'resources':
-        message = '暂无资源分享';
-        icon = AppIcons.movie;
-        break;
-      case 'discussion':
-        message = '暂无学习讨论';
-        icon = AppIcons.chat;
-        break;
-      case 'feedback':
-        message = '暂无反馈建议';
-        icon = AppIcons.feedback;
-        break;
-      case 'help':
-        message = '暂无求助内容';
-        icon = AppIcons.help;
-        break;
-      default:
-        message = '暂无帖子内容';
-        icon = AppIcons.forum;
-    }
-
-    return EmptyState(
-      icon: icon,
-      title: message,
-      actionLabel: '发布第一个帖子',
-      onAction: () => _navigateToCreatePost(category),
-    );
-  }
-
-  Widget _buildPostCard(ForumPost post) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.textPrimary.withValues(alpha: 0.05),
-            blurRadius: adaptive.Adaptive.w(8),
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _navigateToPostDetail(post),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
-          child: Padding(
-            padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildPostHeader(post),
-                SizedBox(height: adaptive.Adaptive.h(12)),
-                _buildPostContent(post),
-                if (post.resourceType != null) ...[
-                  SizedBox(height: adaptive.Adaptive.h(12)),
-                  _buildResourceInfo(post),
-                ],
-                SizedBox(height: adaptive.Adaptive.h(12)),
-                _buildPostFooter(post),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPostHeader(ForumPost post) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: adaptive.Adaptive.r(16),
-          backgroundColor: Theme.of(context).primaryColor,
-          child: Text(
-            post.authorName?.substring(0, 1) ?? 'U',
-            style: TextStyle(
-              color: AppColors.surface,
-              fontSize: adaptive.Adaptive.sp(14),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        SizedBox(width: adaptive.Adaptive.w(8)),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    post.authorName ?? '未知用户',
-                    style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(14),
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  if (post.isPinned) ...[
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-                    Icon(
-                      AppIcons.pushPin,
-                      size: adaptive.Adaptive.sp(14),
-                      color: AppColors.warning,
-                    ),
-                  ],
-                  if (post.isFeatured) ...[
-                    SizedBox(width: adaptive.Adaptive.w(4)),
-                    Icon(
-                      AppIcons.star,
-                      size: adaptive.Adaptive.sp(14),
-                      color: AppColors.warning,
-                    ),
-                  ],
-                ],
-              ),
-              Text(
-                _formatTime(post.createdAt),
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(12),
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-        _buildCategoryTag(post),
-      ],
-    );
-  }
-
-  Widget _buildCategoryTag(ForumPost post) {
-    Color tagColor;
-    String tagText;
-
-    switch (post.postType) {
-      case 'resource':
-        tagColor = Theme.of(context).primaryColor;
-        tagText = '资源';
-        break;
-      case 'discussion':
-        tagColor = AppColors.success;
-        tagText = '讨论';
-        break;
-      case 'feedback':
-        tagColor = AppColors.warning;
-        tagText = '反馈';
-        break;
-      case 'help':
-        tagColor = AppColors.error;
-        tagText = '求助';
-        break;
-      default:
-        tagColor = AppColors.onSurfaceVariant;
-        tagText = '其他';
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: adaptive.Adaptive.w(8),
-        vertical: adaptive.Adaptive.h(2),
-      ),
-      decoration: BoxDecoration(
-        color: tagColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(4)),
-      ),
-      child: Text(
-        tagText,
-        style: TextStyle(
-          fontSize: adaptive.Adaptive.sp(10),
-          color: tagColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPostContent(ForumPost post) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          post.title,
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(16),
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        SizedBox(height: adaptive.Adaptive.h(8)),
-        Text(
-          post.summary ?? post.content,
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(14),
-            color: AppColors.textSecondary,
-            height: 1.4,
-          ),
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (post.tags.isNotEmpty) ...[
-          SizedBox(height: adaptive.Adaptive.h(8)),
-          Wrap(
-            spacing: adaptive.Adaptive.w(6),
-            runSpacing: adaptive.Adaptive.h(4),
-            children: post.tags.take(3).map((tag) {
-              return Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: adaptive.Adaptive.w(6),
-                  vertical: adaptive.Adaptive.h(2),
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.borderLight,
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(3)),
-                ),
-                child: Text(
-                  '#$tag',
-                  style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(10),
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildResourceInfo(ForumPost post) {
-    IconData resourceIcon;
-    String resourceLabel;
-
-    switch (post.resourceType) {
-      case 'video':
-        resourceIcon = AppIcons.movie;
-        resourceLabel = '视频资源';
-        break;
-      case 'audio':
-        resourceIcon = AppIcons.audioFile;
-        resourceLabel = '音频资源';
-        break;
-      case 'article':
-        resourceIcon = AppIcons.article;
-        resourceLabel = '文章资源';
-        break;
-      default:
-        resourceIcon = AppIcons.link;
-        resourceLabel = '其他资源';
-    }
-
-    return Container(
-      padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
-        border: Border.all(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            resourceIcon,
-            size: adaptive.Adaptive.sp(16),
-            color: Theme.of(context).primaryColor,
-          ),
-          SizedBox(width: adaptive.Adaptive.w(8)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  resourceLabel,
-                  style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(12),
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-                if (post.resourceDescription != null)
-                  Text(
-                    post.resourceDescription!,
-                    style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(11),
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPostFooter(ForumPost post) {
-    return Row(
-      children: [
-        _buildFooterButton(
-          icon: AppIcons.visibility,
-          count: post.viewCount,
-          label: '浏览',
-          onTap: null,
-        ),
-        SizedBox(width: adaptive.Adaptive.w(16)),
-        _buildFooterButton(
-          icon: AppIcons.favorite,
-          count: post.likeCount,
-          label: '点赞',
-          onTap: () => _handleLike(post),
-          isActive: post.isLikedByCurrentUser,
-        ),
-        SizedBox(width: adaptive.Adaptive.w(16)),
-        _buildFooterButton(
-          icon: AppIcons.chat,
-          count: post.commentCount,
-          label: '评论',
-          onTap: () => _navigateToPostDetail(post, focusComment: true),
-        ),
-        const Spacer(),
-        _buildFooterButton(
-          icon: AppIcons.bookmarkFill,
-          count: 0,
-          label: '收藏',
-          onTap: () => _handleFavorite(post),
-          isActive: post.isFavoritedByCurrentUser,
-          showCount: false,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFooterButton({
-    required IconData icon,
-    required int count,
-    required String label,
-    VoidCallback? onTap,
-    bool isActive = false,
-    bool showCount = true,
-  }) {
-    final color = isActive
-        ? Theme.of(context).primaryColor
-        : AppColors.onSurfaceVariant;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: adaptive.Adaptive.sp(16), color: color),
-          if (showCount) ...[
-            SizedBox(width: adaptive.Adaptive.w(4)),
-            Text(
-              count > 0 ? count.toString() : label,
-              style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(12),
-                color: color,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _navigateToCreatePost([String? postType, String? resourceType]) {
+  void _navigateToDetail(BuildContext context, int postId) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ForumCreatePostPage(
-          initialPostType: postType,
-          initialResourceType: resourceType,
-        ),
+        builder: (_) => ForumPostDetailPage(postId: postId),
       ),
     );
   }
 
-  void _navigateToPostDetail(ForumPost post, {bool focusComment = false}) {
-    // TODO: 导航到帖子详情页面
-    print('导航到帖子详情: ${post.id}, 聚焦评论: $focusComment');
+  void _navigateToCreatePost(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ForumCreatePostPage()),
+    );
   }
 
-  void _handleLike(ForumPost post) {
-    // TODO: 处理点赞操作
-    ref.read(forumServiceProvider).toggleLike(post.id);
+  void _navigateToSearch(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ForumSearchPage()),
+    );
   }
 
-  void _handleFavorite(ForumPost post) {
-    // TODO: 处理收藏操作
-    ref.read(forumServiceProvider).toggleFavorite(post.id);
+  void _navigateToNotifications(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ForumNotificationsPage()),
+    );
   }
 
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+  void _navigateToMyPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ForumMyPage()),
+    );
+  }
+}
 
-    if (difference.inDays > 0) {
-      return '${difference.inDays}天前';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}小时前';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}分钟前';
-    } else {
-      return '刚刚';
-    }
+class _UnreadBadge extends ConsumerWidget {
+  const _UnreadBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadAsync = ref.watch(forumUnreadCountProvider);
+    return unreadAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (count) {
+        if (count <= 0) return const SizedBox.shrink();
+        return Positioned(
+          right: adaptive.Adaptive.w(4),
+          top: adaptive.Adaptive.h(4),
+          child: Container(
+            padding:
+                EdgeInsets.symmetric(horizontal: adaptive.Adaptive.w(5)),
+            constraints:
+                BoxConstraints(minWidth: adaptive.Adaptive.w(16)),
+            height: adaptive.Adaptive.h(16),
+            decoration: const BoxDecoration(
+              color: AppColors.error,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              count > 99 ? '99+' : count.toString(),
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(10),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

@@ -8,6 +8,14 @@ import 'package:vidlang/views/word_book/providers/display_config_provider.dart';
 import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 
+/// 设置项的图标和副标题信息
+class _SectionInfo {
+  final IconData icon;
+  final String subtitle;
+
+  const _SectionInfo({required this.icon, required this.subtitle});
+}
+
 /// 统一词条详情弹窗组件
 ///
 /// 三种状态：
@@ -60,6 +68,42 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   bool _showSettings = false;
   late List<WordDetailSection> _settingsSections;
   bool _settingsSaving = false;
+
+  /// 各 Section 的图标和副标题信息
+  static final Map<WordDetailSection, _SectionInfo> _sectionInfo = {
+    WordDetailSection.chineseMeaning: _SectionInfo(
+      icon: AppIcons.translate,
+      subtitle: '中文释义',
+    ),
+    WordDetailSection.sentenceTranslation: _SectionInfo(
+      icon: AppIcons.subtitles,
+      subtitle: '当前句释义',
+    ),
+    WordDetailSection.englishMeaning: _SectionInfo(
+      icon: AppIcons.language,
+      subtitle: 'English definition',
+    ),
+    WordDetailSection.partOfSpeech: _SectionInfo(
+      icon: AppIcons.category,
+      subtitle: '词性标注',
+    ),
+    WordDetailSection.examples: _SectionInfo(
+      icon: AppIcons.formatQuote,
+      subtitle: '例句展示',
+    ),
+    WordDetailSection.difficulty: _SectionInfo(
+      icon: AppIcons.signalCellularAlt,
+      subtitle: '难度等级',
+    ),
+    WordDetailSection.morphology: _SectionInfo(
+      icon: AppIcons.autoFixHigh,
+      subtitle: '词形变化',
+    ),
+    WordDetailSection.mnemonic: _SectionInfo(
+      icon: AppIcons.lightbulbOutline,
+      subtitle: '记忆技巧',
+    ),
+  };
 
   @override
   void initState() {
@@ -186,8 +230,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     // iOS 原生翻译返回错误信息时，也显示错误状态
     if (widget.data.source == 'ios_translate') {
       final translation = widget.data.translation ?? '';
-      final error = widget.data.error ?? '';
-      if (_isErrorContent(translation) || _isErrorContent(error)) {
+      if (translation.isEmpty || _isErrorContent(translation)) {
         return _buildErrorState();
       }
     }
@@ -372,6 +415,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   //
   // 结构：顶部 Header + 下方 Row(左导航 + 右内容滚动区)
   // 仅通过尺寸参数区分横竖屏
+  // iPhone 设备：隐藏左侧导航栏，内容直接滚动展示
 
   Widget _buildContentLayout() {
     final cs = context.colors;
@@ -379,23 +423,28 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final screenSize = MediaQuery.of(context).size;
     final isLandscape = screenSize.width > screenSize.height;
     final pad = adaptive.isIPad();
+    final isPhone = AppGlobals.isPhone;
 
-    // 横竖屏尺寸参数 — iPad 下大幅放大
+    // 横竖屏尺寸参数 — iPad 下大幅放大，iPhone 更紧凑
     final cardWidth =
         screenSize.width *
-        (isLandscape ? (pad ? 0.78 : 0.65) : (pad ? 0.90 : 0.9));
+        (isLandscape ? (pad ? 0.78 : 0.65) : (pad ? 0.90 : 0.92));
     final maxHeight =
         screenSize.height *
-        (isLandscape ? (pad ? 0.90 : 0.82) : (pad ? 0.80 : 0.65));
+        (isLandscape ? (pad ? 0.90 : 0.82) : (pad ? 0.80 : 0.70));
     final navWidth = isLandscape ? (pad ? 180.0 : 110.0) : (pad ? 150.0 : 96.0);
+
+    // iPhone 设备：弹窗更宽，充分利用屏幕空间
+    final effectiveCardWidth = isPhone ? screenSize.width * 0.92 : cardWidth;
+    final effectiveMaxHeight = isPhone ? screenSize.height * 0.72 : maxHeight;
 
     return Material(
       color: Colors.transparent,
       child: Container(
-        width: cardWidth,
+        width: effectiveCardWidth,
         constraints: BoxConstraints(
           maxWidth: pad ? 1000 : 700,
-          maxHeight: maxHeight,
+          maxHeight: effectiveMaxHeight,
         ),
         decoration: BoxDecoration(
           color: cs.surface,
@@ -438,47 +487,169 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
                       alpha: brightness == Brightness.dark ? 0.3 : 0.15,
                     ),
                   ),
-                  // 下方：左导航 + 右内容
+                  // 下方内容区：iPhone 直接滚动，其他设备左导航+右内容
                   Flexible(
                     fit: FlexFit.loose,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 左侧固定导航
-                        SizedBox(
-                          width: navWidth,
-                          child: _buildNavList(cs, isLandscape),
-                        ),
-                        // 分割线
-                        Container(
-                          width: 1,
-                          color: cs.outlineVariant.withValues(
-                            alpha: brightness == Brightness.dark ? 0.3 : 0.15,
-                          ),
-                        ),
-                        // 右侧可滚动内容
-                        Expanded(
-                          child: SingleChildScrollView(
-                            controller: _scrollController,
-                            padding: EdgeInsets.fromLTRB(
-                              adaptive.Adaptive.w(20),
-                              adaptive.Adaptive.h(16),
-                              adaptive.Adaptive.w(20),
-                              adaptive.Adaptive.h(24),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: _buildAllSections(_effectiveSections),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: isPhone
+                        ? _buildPhoneContent(cs)
+                        : _buildTabletContent(cs, navWidth, isLandscape),
                   ),
                   _buildBottomBar(),
                 ],
               ),
       ),
+    );
+  }
+
+  /// iPhone 设备：直接滚动展示，无左侧导航栏
+  Widget _buildPhoneContent(AppColorsData cs) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      padding: EdgeInsets.fromLTRB(
+        adaptive.Adaptive.w(20),
+        adaptive.Adaptive.h(16),
+        adaptive.Adaptive.w(20),
+        adaptive.Adaptive.h(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 小标签导航（横向滚动，替代左侧导航栏）
+          _buildPhoneSectionTags(cs),
+          SizedBox(height: adaptive.Adaptive.h(12)),
+          ..._buildAllSections(_effectiveSections),
+          // iPhone 设置入口（底部）
+          _buildPhoneSettingsEntry(cs),
+        ],
+      ),
+    );
+  }
+
+  /// iPhone 设置入口按钮
+  Widget _buildPhoneSettingsEntry(AppColorsData cs) {
+    return GestureDetector(
+      onTap: _enterSettings,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: EdgeInsets.only(top: adaptive.Adaptive.h(16)),
+        padding: EdgeInsets.symmetric(
+          vertical: adaptive.Adaptive.h(12),
+        ),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+          border: Border.all(
+            color: cs.outlineVariant.withValues(alpha: 0.15),
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              AppIcons.settings,
+              size: adaptive.Adaptive.icon(16),
+              color: cs.onSurfaceVariant,
+            ),
+            SizedBox(width: adaptive.Adaptive.w(8)),
+            Text(
+              '显示设置',
+              style: TextStyle(
+                color: cs.onSurfaceVariant,
+                fontSize: adaptive.Adaptive.sp(13),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(width: adaptive.Adaptive.w(4)),
+            Icon(
+              AppIcons.chevronRight,
+              size: adaptive.Adaptive.icon(14),
+              color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// iPhone 横向标签导航（替代左侧导航栏）
+  Widget _buildPhoneSectionTags(AppColorsData cs) {
+    if (_effectiveSections.length <= 1) return const SizedBox.shrink();
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: _effectiveSections.map((s) {
+          final isActive = s == _currentSection;
+          return GestureDetector(
+            onTap: () => _scrollToSection(s),
+            child: Container(
+              margin: EdgeInsets.only(right: adaptive.Adaptive.w(8)),
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.Adaptive.w(12),
+                vertical: adaptive.Adaptive.h(6),
+              ),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? cs.primary.withValues(alpha: 0.1)
+                    : cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
+                border: Border.all(
+                  color: isActive
+                      ? cs.primary.withValues(alpha: 0.3)
+                      : cs.outlineVariant.withValues(alpha: 0.2),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                s.label,
+                style: TextStyle(
+                  color: isActive ? cs.primary : cs.onSurfaceVariant,
+                  fontSize: adaptive.Adaptive.sp(12),
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// iPad/Tablet 设备：左侧导航 + 右侧内容
+  Widget _buildTabletContent(AppColorsData cs, double navWidth, bool isLandscape) {
+    final brightness = Theme.of(context).brightness;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 左侧固定导航
+        SizedBox(
+          width: navWidth,
+          child: _buildNavList(cs, isLandscape),
+        ),
+        // 分割线
+        Container(
+          width: 1,
+          color: cs.outlineVariant.withValues(
+            alpha: brightness == Brightness.dark ? 0.3 : 0.15,
+          ),
+        ),
+        // 右侧可滚动内容
+        Expanded(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: EdgeInsets.fromLTRB(
+              adaptive.Adaptive.w(20),
+              adaptive.Adaptive.h(16),
+              adaptive.Adaptive.w(20),
+              adaptive.Adaptive.h(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _buildAllSections(_effectiveSections),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1274,7 +1445,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
 
     if (allExamples.isEmpty) return const SizedBox.shrink();
 
-    // 去重：基于英文内容
+    // 去重：基于英文内容，限制最多 3 个例句
     final seen = <String>{};
     final uniqueExamples = <WordExample>[];
     for (final ex in allExamples) {
@@ -1283,6 +1454,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         seen.add(key);
         uniqueExamples.add(ex);
       }
+      if (uniqueExamples.length >= 3) break;
     }
 
     return _buildSectionContainer(
@@ -1766,6 +1938,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
   }
 
   /// 设置视图：顶部返回+标题 + 可滚动设置列表
+  /// 参考设计：拖动图标 + 功能图标 + 标题 + 副标题 + Switch
   Widget _buildSettingsView(AppColorsData cs) {
     final hidden = WordDetailSection.values
         .where((s) => !_settingsSections.contains(s))
@@ -1776,7 +1949,7 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
         // 顶部栏：返回按钮 + 标题
         Padding(
           padding: EdgeInsets.fromLTRB(
-            adaptive.Adaptive.w(8),
+            adaptive.Adaptive.w(12),
             adaptive.Adaptive.h(12),
             adaptive.Adaptive.w(16),
             adaptive.Adaptive.h(0),
@@ -1831,138 +2004,94 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '拖动调整顺序，点击开关控制显示',
-                  style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(12),
-                    color: cs.onSurfaceVariant,
+                // 标题区
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: adaptive.Adaptive.w(4),
+                    bottom: adaptive.Adaptive.h(4),
                   ),
-                ),
-                SizedBox(height: adaptive.Adaptive.h(12)),
-                // 已显示的区块
-                ..._settingsSections.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final section = entry.value;
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: adaptive.Adaptive.h(2),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          AppIcons.dragHandle,
-                          size: adaptive.Adaptive.icon(20),
-                          color: cs.onSurfaceVariant,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: adaptive.Adaptive.w(28),
+                        height: adaptive.Adaptive.w(28),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
                         ),
-                        SizedBox(width: adaptive.Adaptive.w(8)),
-                        Expanded(
-                          child: Text(
-                            section.label,
+                        child: Icon(
+                          AppIcons.viewModule,
+                          size: adaptive.Adaptive.icon(16),
+                          color: cs.primary,
+                        ),
+                      ),
+                      SizedBox(width: adaptive.Adaptive.w(10)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '区域布局',
                             style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(14),
+                              fontSize: adaptive.Adaptive.sp(15),
+                              fontWeight: FontWeight.w600,
                               color: cs.onSurface,
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            AppIcons.arrowUpward,
-                            size: adaptive.Adaptive.icon(18),
-                            color: index == 0
-                                ? cs.onSurface.withValues(alpha: 0.2)
-                                : cs.onSurfaceVariant,
-                          ),
-                          onPressed: index == 0
-                              ? null
-                              : () => _settingsMoveUp(index),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.all(
-                            adaptive.Adaptive.w(4),
-                          ),
-                          constraints: const BoxConstraints(),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            AppIcons.arrowDownward,
-                            size: adaptive.Adaptive.icon(18),
-                            color: index == _settingsSections.length - 1
-                                ? cs.onSurface.withValues(alpha: 0.2)
-                                : cs.onSurfaceVariant,
-                          ),
-                          onPressed: index == _settingsSections.length - 1
-                              ? null
-                              : () => _settingsMoveDown(index),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.all(
-                            adaptive.Adaptive.w(4),
-                          ),
-                          constraints: const BoxConstraints(),
-                        ),
-                        Switch(
-                          value: true,
-                          onChanged: (_) => _settingsToggle(section),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-                // 未显示的区块
-                if (hidden.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Divider(height: 1, thickness: 0.5),
-                  ),
-                  Text(
-                    '未显示的区块',
-                    style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(13),
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: adaptive.Adaptive.h(8)),
-                  ...hidden.map((section) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: adaptive.Adaptive.h(2),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(width: adaptive.Adaptive.w(28)),
-                          Expanded(
-                            child: Text(
-                              section.label,
-                              style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(14),
-                                color: cs.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: () => _settingsToggle(section),
-                            icon: Icon(
-                              AppIcons.add,
-                              size: adaptive.Adaptive.icon(12),
-                            ),
-                            label: Text(
-                              '添加',
-                              style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(12),
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: adaptive.Adaptive.w(8),
-                                vertical: adaptive.Adaptive.h(2),
-                              ),
-                              minimumSize: const Size(0, 0),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          Text(
+                            '拖动排序，开关控制是否显示',
+                            style: TextStyle(
+                              fontSize: adaptive.Adaptive.sp(11),
+                              color: cs.onSurfaceVariant,
                             ),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: adaptive.Adaptive.h(12)),
+                // 已显示的区块 — 卡片式列表
+                ..._settingsSections.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final section = entry.value;
+                  return _buildSettingsItem(
+                    cs: cs,
+                    section: section,
+                    index: index,
+                    isEnabled: true,
+                    onToggle: () => _settingsToggle(section),
+                    onDragUp: index > 0 ? () => _settingsMoveUp(index) : null,
+                    onDragDown: index < _settingsSections.length - 1
+                        ? () => _settingsMoveDown(index)
+                        : null,
+                  );
+                }),
+                // 未显示的区块
+                if (hidden.isNotEmpty) ...[
+                  SizedBox(height: adaptive.Adaptive.h(16)),
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: adaptive.Adaptive.w(4),
+                      bottom: adaptive.Adaptive.h(8),
+                    ),
+                    child: Text(
+                      '未显示的区域',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(13),
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  ...hidden.map((section) {
+                    return _buildSettingsItem(
+                      cs: cs,
+                      section: section,
+                      index: -1,
+                      isEnabled: false,
+                      onToggle: () => _settingsToggle(section),
+                      onDragUp: null,
+                      onDragDown: null,
                     );
                   }),
                 ],
@@ -1971,6 +2100,126 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 设置项卡片：拖动图标 + 功能图标 + 标题 + 副标题 + Switch
+  Widget _buildSettingsItem({
+    required AppColorsData cs,
+    required WordDetailSection section,
+    required int index,
+    required bool isEnabled,
+    required VoidCallback onToggle,
+    VoidCallback? onDragUp,
+    VoidCallback? onDragDown,
+  }) {
+    final info = _sectionInfo[section]!;
+    return Container(
+      margin: EdgeInsets.only(bottom: adaptive.Adaptive.h(8)),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(12),
+        vertical: adaptive.Adaptive.h(10),
+      ),
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? cs.surface
+            : cs.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+        border: Border.all(
+          color: isEnabled
+              ? cs.outlineVariant.withValues(alpha: 0.2)
+              : cs.outlineVariant.withValues(alpha: 0.1),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          // 拖动手柄（仅已显示项）
+          if (isEnabled) ...[
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: onDragUp,
+                  child: Icon(
+                    AppIcons.arrowUpward,
+                    size: adaptive.Adaptive.icon(14),
+                    color: onDragUp != null
+                        ? cs.onSurfaceVariant.withValues(alpha: 0.5)
+                        : cs.onSurface.withValues(alpha: 0.15),
+                  ),
+                ),
+                SizedBox(height: adaptive.Adaptive.h(2)),
+                GestureDetector(
+                  onTap: onDragDown,
+                  child: Icon(
+                    AppIcons.arrowDownward,
+                    size: adaptive.Adaptive.icon(14),
+                    color: onDragDown != null
+                        ? cs.onSurfaceVariant.withValues(alpha: 0.5)
+                        : cs.onSurface.withValues(alpha: 0.15),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: adaptive.Adaptive.w(10)),
+          ] else ...[
+            SizedBox(width: adaptive.Adaptive.w(36)),
+            SizedBox(width: adaptive.Adaptive.w(10)),
+          ],
+          // 功能图标
+          Container(
+            width: adaptive.Adaptive.w(32),
+            height: adaptive.Adaptive.w(32),
+            decoration: BoxDecoration(
+              color: isEnabled
+                  ? cs.primary.withValues(alpha: 0.1)
+                  : cs.surfaceContainerHighest.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
+            ),
+            child: Icon(
+              info.icon,
+              size: adaptive.Adaptive.icon(16),
+              color: isEnabled ? cs.primary : cs.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ),
+          SizedBox(width: adaptive.Adaptive.w(12)),
+          // 标题 + 副标题
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  section.label,
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(14),
+                    fontWeight: FontWeight.w600,
+                    color: isEnabled ? cs.onSurface : cs.onSurfaceVariant,
+                  ),
+                ),
+                SizedBox(height: adaptive.Adaptive.h(2)),
+                Text(
+                  info.subtitle,
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(11),
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Switch
+          Switch(
+            value: isEnabled,
+            onChanged: (_) => onToggle(),
+            activeThumbColor: cs.primary,
+            activeTrackColor: cs.primary.withValues(alpha: 0.3),
+            inactiveThumbColor: cs.surface,
+            inactiveTrackColor: cs.outlineVariant.withValues(alpha: 0.4),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
     );
   }
 
@@ -1989,18 +2238,18 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
     final cs = context.colors;
     final brightness = Theme.of(context).brightness;
     return Padding(
-      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(16)),
+      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(12)),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(adaptive.Adaptive.r(16)),
+        padding: EdgeInsets.all(adaptive.Adaptive.r(14)),
         decoration: BoxDecoration(
           color: brightness == Brightness.dark
               ? cs.surfaceContainerLow
-              : cs.surfaceContainerHigh.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(16)),
+              : cs.surfaceContainerHighest.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
           border: Border.all(
             color: cs.outlineVariant.withValues(
-              alpha: brightness == Brightness.dark ? 0.15 : 0.2,
+              alpha: brightness == Brightness.dark ? 0.12 : 0.15,
             ),
             width: 0.5,
           ),
@@ -2011,33 +2260,33 @@ class _WordDetailPanelState extends State<WordDetailPanel> {
             // Section 标题行
             Padding(
               padding: EdgeInsets.only(
-                bottom: adaptive.Adaptive.h(12),
+                bottom: adaptive.Adaptive.h(10),
               ),
               child: Row(
                 children: [
                   Container(
                     constraints: BoxConstraints(
-                      minWidth: adaptive.Adaptive.w(4),
+                      minWidth: adaptive.Adaptive.w(3),
                     ),
-                    height: adaptive.Adaptive.h(18),
-                    width: adaptive.Adaptive.w(4),
+                    height: adaptive.Adaptive.h(16),
+                    width: adaptive.Adaptive.w(3),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0xFF6366F1), Color(0xFF3B82F6)],
+                        colors: [cs.primary, cs.primary.withValues(alpha: 0.7)],
                       ),
                       borderRadius: BorderRadius.circular(
-                        adaptive.Adaptive.r(3),
+                        adaptive.Adaptive.r(2),
                       ),
                     ),
                   ),
-                  SizedBox(width: adaptive.Adaptive.w(10)),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
                   Text(
                     title,
                     style: TextStyle(
                       color: cs.onSurface,
-                      fontSize: adaptive.Adaptive.sp(14),
+                      fontSize: adaptive.Adaptive.sp(13),
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
                     ),

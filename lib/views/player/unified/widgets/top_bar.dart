@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:vidlang/theme/app_icons.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
@@ -39,11 +37,13 @@ class TopBar extends StatelessWidget {
     final topPadding = MediaQuery.of(context).padding.top;
     final barHeight = adaptive.Adaptive.h(isLandscape ? 44 : 52);
 
-    debugPrint('🔝 TopBar.build: '
-        'isLandscape=$isLandscape, '
-        'topPadding=$topPadding, '
-        'barHeight=$barHeight, '
-        'totalHeight=${topPadding + barHeight}');
+    debugPrint(
+      '🔝 TopBar.build: '
+      'isLandscape=$isLandscape, '
+      'topPadding=$topPadding, '
+      'barHeight=$barHeight, '
+      'totalHeight=${topPadding + barHeight}',
+    );
 
     return Stack(
       children: [
@@ -73,7 +73,8 @@ class TopBar extends StatelessWidget {
         Container(
           padding: EdgeInsets.only(
             left: adaptive.Adaptive.w(isLandscape ? 12 : 16),
-            right: adaptive.Adaptive.w(isLandscape ? 12 : 16) + trailingRightInset,
+            right:
+                adaptive.Adaptive.w(isLandscape ? 12 : 16) + trailingRightInset,
             top: topPadding, // 手动处理状态栏
           ),
           height: topPadding + barHeight,

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';import 'package:vidlang/utils/adaptive.dart' as adaptive;
-
+import 'package:flutter/material.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
-
+import 'package:vidlang/utils/adaptive.dart';
+import 'package:vidlang/views/word_book/widgets/review_card.dart';
 import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 class WordBookReviewPage extends StatefulWidget {
@@ -15,90 +15,51 @@ class WordBookReviewPage extends StatefulWidget {
   State<WordBookReviewPage> createState() => _WordBookReviewPageState();
 }
 
-class _WordBookReviewPageState extends State<WordBookReviewPage>
-    with SingleTickerProviderStateMixin {
+class _WordBookReviewPageState extends State<WordBookReviewPage> {
   late List<WordBook> _remaining;
-  final int _currentIndex = 0;
   bool _isFlipped = false;
-  late AnimationController _flipController;
-  late Animation<double> _flipAnimation;
+  int _correctCount = 0;
+  int _totalCount = 0;
 
-  WordBook get _currentWord => _remaining[_currentIndex];
+  WordBook get _currentWord => _remaining.first;
 
   @override
   void initState() {
     super.initState();
     _remaining = List.of(widget.words);
-    _flipController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
-    );
+    _totalCount = widget.words.length;
   }
 
-  @override
-  void dispose() {
-    _flipController.dispose();
-    super.dispose();
-  }
-
-  void _flip() {
-    if (_isFlipped) {
-      _flipController.reverse();
-    } else {
-      _flipController.forward();
-    }
-    setState(() {
-      _isFlipped = !_isFlipped;
-    });
-  }
-
-  void _markRecognized() async {
+  void _nextWord({required bool recognized}) async {
+    if (recognized) _correctCount++;
     await WordBookService.updateMastery(
       wordBookCode: _currentWord.code!,
-      recognized: true,
+      recognized: recognized,
     );
-    // Update local state
-    _currentWord.masteryLevel = 'mastered';
-    _currentWord.masteredAt = DateTime.now();
-    _nextWord();
-  }
-
-  void _markUnrecognized() {
-    _nextWord();
-  }
-
-  void _nextWord() {
     setState(() {
-      _remaining.removeAt(_currentIndex);
-      if (_remaining.isEmpty) {
-        _showComplete();
-        return;
-      }
+      _remaining.removeAt(0);
       _isFlipped = false;
-      _flipController.value = 0;
-      // _currentIndex stays 0 since we just removed it
     });
+    if (_remaining.isEmpty) {
+      _showComplete();
+    }
   }
 
   void _showComplete() {
-    final total = widget.words.length;
     AppConfirmDialog.show(
       context,
       title: '复习完成',
-      content: '已复习 $total 词',
+      content:
+          '已复习 ${widget.words.length} 词，正确 $_correctCount 题，正确率 ${_totalCount > 0 ? (_correctCount * 100 / _totalCount).toStringAsFixed(1) : '0'}%',
       confirmText: '返回',
-      onConfirm: () {
-        Navigator.of(context).pop();
-      },
+      onConfirm: () => Navigator.of(context).pop(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final progress = _totalCount > 0 ? _remaining.length / _totalCount : 0.0;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -107,7 +68,7 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
         title: Text(
           '复习中 · 剩余 ${_remaining.length} 词',
           style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(16),
+            fontSize: Adaptive.sp(16),
             fontWeight: FontWeight.w600,
             color: cs.onSurface,
           ),
@@ -121,30 +82,38 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
       ),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            adaptive.Adaptive.w(24),
-            adaptive.Adaptive.h(16),
-            adaptive.Adaptive.w(24),
-            adaptive.Adaptive.h(16),
-          ),
+          padding: EdgeInsets.all(Adaptive.w(24)),
           child: Column(
             children: [
-              Expanded(child: Center(child: _buildCard(cs))),
-              SizedBox(height: adaptive.Adaptive.h(24)),
+              // 进度条
+              LinearProgressIndicator(
+                value: progress,
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(Adaptive.r(2)),
+                backgroundColor: cs.outline.withValues(alpha: 0.3),
+                valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+              ),
+              SizedBox(height: Adaptive.h(16)),
+              Expanded(
+                child: Center(
+                  child: ReviewCard(word: _currentWord, isFlipped: _isFlipped),
+                ),
+              ),
+              SizedBox(height: Adaptive.h(24)),
               Row(
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: adaptive.Adaptive.h(48),
+                      height: Adaptive.h(48),
                       child: OutlinedButton(
-                        onPressed: _isFlipped ? _markUnrecognized : null,
+                        onPressed: _isFlipped
+                            ? () => _nextWord(recognized: false)
+                            : null,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: cs.error,
                           side: BorderSide(color: cs.error),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              adaptive.Adaptive.r(24),
-                            ),
+                            borderRadius: BorderRadius.circular(Adaptive.r(24)),
                           ),
                         ),
                         child: Column(
@@ -153,14 +122,14 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                             Text(
                               '不认识',
                               style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(14),
+                                fontSize: Adaptive.sp(14),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               '留在生词本',
                               style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(13),
+                                fontSize: Adaptive.sp(13),
                                 color: cs.error.withValues(alpha: 0.7),
                               ),
                             ),
@@ -169,19 +138,19 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                       ),
                     ),
                   ),
-                  SizedBox(width: adaptive.Adaptive.w(16)),
+                  SizedBox(width: Adaptive.w(16)),
                   Expanded(
                     child: SizedBox(
-                      height: adaptive.Adaptive.h(48),
+                      height: Adaptive.h(48),
                       child: FilledButton(
-                        onPressed: _isFlipped ? _markRecognized : null,
+                        onPressed: _isFlipped
+                            ? () => _nextWord(recognized: true)
+                            : null,
                         style: FilledButton.styleFrom(
                           backgroundColor: cs.primary,
                           foregroundColor: cs.onPrimary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              adaptive.Adaptive.r(24),
-                            ),
+                            borderRadius: BorderRadius.circular(Adaptive.r(24)),
                           ),
                         ),
                         child: Column(
@@ -190,14 +159,14 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
                             Text(
                               '认识',
                               style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(14),
+                                fontSize: Adaptive.sp(14),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               '移入已掌握',
                               style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(13),
+                                fontSize: Adaptive.sp(13),
                                 color: cs.onPrimary.withValues(alpha: 0.7),
                               ),
                             ),
@@ -210,242 +179,6 @@ class _WordBookReviewPageState extends State<WordBookReviewPage>
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCard(ColorScheme cs) {
-    return AnimatedBuilder(
-      animation: _flipAnimation,
-      builder: (context, child) {
-        final angle = _flipAnimation.value * 3.1415926;
-        return Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateY(angle),
-          child: angle < 1.5708
-              ? _buildFront(cs)
-              : Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..rotateY(3.1415926),
-                  child: _buildBack(cs),
-                ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFront(ColorScheme cs) {
-    return GestureDetector(
-      onTap: _flip,
-      child: Container(
-        width: adaptive.Adaptive.w(311),
-        constraints: BoxConstraints(minHeight: adaptive.Adaptive.h(360)),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
-          boxShadow: [
-            BoxShadow(
-              color: cs.shadow.withValues(alpha: 0.08),
-              blurRadius: adaptive.Adaptive.w(16),
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _currentWord.word,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(28),
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface,
-              ),
-            ),
-            SizedBox(height: adaptive.Adaptive.h(8)),
-            if ((_currentWord.phoneticUk ?? _currentWord.phoneticUs)
-                    ?.isNotEmpty ??
-                false)
-              Text(
-                '/${_currentWord.phoneticUk ?? _currentWord.phoneticUs}/',
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(16),
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            SizedBox(height: adaptive.Adaptive.h(16)),
-            Icon(
-              AppIcons.volumeUp,
-              size: adaptive.Adaptive.sp(32),
-              color: cs.primary,
-            ),
-            SizedBox(height: adaptive.Adaptive.h(24)),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(24),
-                vertical: adaptive.Adaptive.h(12),
-              ),
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
-              ),
-              child: Text(
-                '点击显示释义',
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(14),
-                  color: cs.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBack(ColorScheme cs) {
-    final definitions = WordBookService.parseDefinitions(
-      _currentWord.definitionsJson,
-    );
-    final morphology = WordBookService.parseMorphology(
-      _currentWord.morphologyJson,
-    );
-
-    return Container(
-      width: adaptive.Adaptive.w(311),
-      constraints: BoxConstraints(minHeight: adaptive.Adaptive.h(360)),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
-        boxShadow: [
-          BoxShadow(
-            color: cs.shadow.withValues(alpha: 0.08),
-            blurRadius: adaptive.Adaptive.w(16),
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(adaptive.Adaptive.r(20)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Text(
-                _currentWord.word,
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(22),
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
-                ),
-              ),
-            ),
-            if ((_currentWord.phoneticUk ?? _currentWord.phoneticUs)
-                    ?.isNotEmpty ??
-                false) ...[
-              SizedBox(height: adaptive.Adaptive.h(4)),
-              Center(
-                child: Text(
-                  '/${_currentWord.phoneticUk ?? _currentWord.phoneticUs}/',
-                  style: TextStyle(
-                    fontSize: adaptive.Adaptive.sp(14),
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-            if (definitions.isNotEmpty) ...[
-              SizedBox(height: adaptive.Adaptive.h(16)),
-              ...definitions.map(
-                (d) => Padding(
-                  padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(6)),
-                  child: Text(
-                    '${d.partOfSpeech != null ? '${d.partOfSpeech}. ' : ''}${d.meaning}',
-                    style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(14),
-                      color: cs.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-            if (definitions.any(
-              (d) => d.example != null && d.example!.isNotEmpty,
-            )) ...[
-              SizedBox(height: adaptive.Adaptive.h(12)),
-              Text(
-                '例句',
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(13),
-                  fontWeight: FontWeight.w600,
-                  color: cs.primary,
-                ),
-              ),
-              SizedBox(height: adaptive.Adaptive.h(4)),
-              ...definitions
-                  .where((d) => d.example != null && d.example!.isNotEmpty)
-                  .map(
-                    (d) => Padding(
-                      padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(4)),
-                      child: Text(
-                        '• ${d.example}',
-                        style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(13),
-                          color: cs.onSurface,
-                        ),
-                      ),
-                    ),
-                  ),
-            ],
-            if (morphology.isNotEmpty) ...[
-              SizedBox(height: adaptive.Adaptive.h(12)),
-              Text(
-                '词形变化',
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(13),
-                  fontWeight: FontWeight.w600,
-                  color: cs.primary,
-                ),
-              ),
-              SizedBox(height: adaptive.Adaptive.h(4)),
-              ...morphology.entries.map(
-                (e) => Padding(
-                  padding: EdgeInsets.only(bottom: adaptive.Adaptive.h(4)),
-                  child: Text(
-                    '${e.key}: ${e.value}',
-                    style: TextStyle(
-                      fontSize: adaptive.Adaptive.sp(13),
-                      color: cs.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-            if ((_currentWord.mnemonic ?? '').isNotEmpty) ...[
-              SizedBox(height: adaptive.Adaptive.h(12)),
-              Text(
-                '助记',
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(13),
-                  fontWeight: FontWeight.w600,
-                  color: cs.primary,
-                ),
-              ),
-              SizedBox(height: adaptive.Adaptive.h(4)),
-              Text(
-                _currentWord.mnemonic!,
-                style: TextStyle(
-                  fontSize: adaptive.Adaptive.sp(13),
-                  color: cs.onSurface,
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );

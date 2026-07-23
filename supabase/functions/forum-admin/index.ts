@@ -1,665 +1,323 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { corsHeaders } from '../_shared/cors.ts'
 
-// Supabase 配置
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// 简单的管理后台 HTML 页面路由
+// 返回内联的基础 HTML 页面（生产环境可替换为完整前端构建产物）
 
-// 创建 Supabase 客户端（服务角色权限）
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+const PAGES: Record<string, string> = {
+  login: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VidLang 论坛管理后台</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+    .login-box { background:#fff; padding:40px; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,.08); width:400px; max-width:90vw; }
+    h1 { text-align:center; margin-bottom:32px; color:#333; font-size:24px; }
+    label { display:block; margin-bottom:6px; color:#555; font-size:14px; }
+    input { width:100%; padding:12px; margin-bottom:20px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+    button { width:100%; padding:12px; background:#4f46e5; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; }
+    button:hover { background:#4338ca; }
+    .error { color:#ef4444; text-align:center; margin-top:12px; font-size:13px; display:none; }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>论坛管理后台</h1>
+    <form id="loginForm">
+      <label>邮箱</label>
+      <input type="email" id="email" placeholder="admin@vidlang.com" required>
+      <label>密码</label>
+      <input type="password" id="password" placeholder="••••••••" required>
+      <button type="submit">登 录</button>
+      <p class="error" id="error"></p>
+    </form>
+  </div>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errEl = document.getElementById('error');
+      try {
+        const res = await fetch('/forum-admin-auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          localStorage.setItem('admin_token', data.token);
+          localStorage.setItem('admin_user', JSON.stringify(data.user));
+          window.location.href = '/forum-admin/dashboard';
+        } else {
+          errEl.textContent = data.error || '登录失败';
+          errEl.style.display = 'block';
+        }
+      } catch {
+        errEl.textContent = '网络错误';
+        errEl.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>`,
+
+  dashboard: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仪表盘 - VidLang 管理后台</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f5f5f5; display:flex; min-height:100vh; }
+    nav { width:220px; background:#1e1b4b; color:#fff; padding:20px 0; }
+    nav a { display:block; padding:12px 24px; color:#c7d2fe; text-decoration:none; font-size:14px; }
+    nav a:hover, nav a.active { background:#312e81; color:#fff; }
+    main { flex:1; padding:32px; }
+    h2 { margin-bottom:24px; color:#333; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:32px; }
+    .stat-card { background:#fff; padding:20px; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+    .stat-card .num { font-size:28px; font-weight:700; color:#4f46e5; }
+    .stat-card .label { font-size:13px; color:#888; margin-top:4px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div style="padding:12px 24px 24px;font-weight:700;">VidLang 管理</div>
+    <a href="/forum-admin/dashboard" class="active">仪表盘</a>
+    <a href="/forum-admin/posts">帖子管理</a>
+    <a href="/forum-admin/reports">举报管理</a>
+    <a href="/forum-admin/users">用户管理</a>
+    <a href="/forum-admin/feedback">反馈管理</a>
+    <a href="/forum-admin/boards">板块管理</a>
+    <a href="#" onclick="logout()" style="margin-top:16px;color:#f87171;">退出登录</a>
+  </nav>
+  <main>
+    <h2>仪表盘</h2>
+    <div class="stats" id="stats"></div>
+  </main>
+  <script>
+    // 验证登录
+    const token = localStorage.getItem('admin_token');
+    if (!token) { window.location.href = '/forum-admin/login'; }
+
+    function logout() { localStorage.clear(); window.location.href = '/forum-admin/login'; }
+
+    async function loadDashboard() {
+      const res = await fetch('/forum-admin-dashboard', { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) { logout(); return; }
+      const { data } = await res.json();
+      document.getElementById('stats').innerHTML = [
+        { label:'总用户数', num: data.total_users },
+        { label:'帖子总数', num: data.total_posts },
+        { label:'今日新帖', num: data.today_posts },
+        { label:'回复总数', num: data.total_replies },
+        { label:'今日新回复', num: data.today_replies },
+        { label:'待处理举报', num: data.pending_reports },
+        { label:'待处理反馈', num: data.pending_feedback },
+        { label:'被封禁用户', num: data.banned_users },
+      ].map(s => '<div class="stat-card"><div class="num">'+s.num+'</div><div class="label">'+s.label+'</div></div>').join('');
+    }
+    loadDashboard();
+  </script>
+</body>
+</html>`,
+
+  posts: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>帖子管理 - VidLang 管理后台</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#f5f5f5; display:flex; min-height:100vh; }
+    nav { width:220px; background:#1e1b4b; color:#fff; padding:20px 0; }
+    nav a { display:block; padding:12px 24px; color:#c7d2fe; text-decoration:none; font-size:14px; }
+    nav a:hover, nav a.active { background:#312e81; color:#fff; }
+    main { flex:1; padding:32px; }
+    h2 { margin-bottom:24px; color:#333; }
+    table { width:100%; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.06); }
+    th, td { padding:12px 16px; text-align:left; border-bottom:1px solid #f0f0f0; font-size:14px; }
+    th { background:#fafafa; color:#555; font-weight:600; }
+    button { padding:4px 12px; border-radius:4px; border:1px solid #ddd; cursor:pointer; font-size:12px; margin:0 2px; }
+    .pin { background:#fef3c7; color:#92400e; }
+    .essence { background:#ede9fe; color:#5b21b6; }
+    .del { background:#fee2e2; color:#991b1b; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div style="padding:12px 24px 24px;font-weight:700;">VidLang 管理</div>
+    <a href="/forum-admin/dashboard">仪表盘</a>
+    <a href="/forum-admin/posts" class="active">帖子管理</a>
+    <a href="/forum-admin/reports">举报管理</a>
+    <a href="/forum-admin/users">用户管理</a>
+    <a href="/forum-admin/feedback">反馈管理</a>
+    <a href="/forum-admin/boards">板块管理</a>
+    <a href="#" onclick="logout()" style="margin-top:16px;color:#f87171;">退出登录</a>
+  </nav>
+  <main>
+    <h2>帖子管理</h2>
+    <div id="content">加载中...</div>
+  </main>
+  <script>
+    const token = localStorage.getItem('admin_token');
+    if (!token) { window.location.href = '/forum-admin/login'; }
+    function logout() { localStorage.clear(); window.location.href = '/forum-admin/login'; }
+    async function load() {
+      const res = await fetch('/forum-admin-posts?limit=50', { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) { logout(); return; }
+      const { data } = await res.json();
+      const rows = data.map(p => '<tr><td>'+p.title+'</td><td>'+p.board?.name+'</td><td>'+p.reply_count+'</td><td>'+new Date(p.created_at).toLocaleDateString()+'</td><td>'+
+        '<button class="pin" onclick="togglePin('+p.id+','+p.is_pinned+')">'+(p.is_pinned?'取消置顶':'置顶')+'</button>'+
+        '<button class="essence" onclick="toggleEssence('+p.id+','+p.is_essence+')">'+(p.is_essence?'取消加精':'加精')+'</button>'+
+        '<button class="del" onclick="delPost('+p.id+')">删除</button></td></tr>').join('');
+      document.getElementById('content').innerHTML = '<table><thead><tr><th>标题</th><th>板块</th><th>回复</th><th>创建时间</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    }
+    load();
+    async function togglePin(id, current) {
+      await fetch('/forum-admin-posts/'+id+'/pin', { method:'PUT', headers:{ Authorization:'Bearer '+token } });
+      load();
+    }
+    async function toggleEssence(id, current) {
+      await fetch('/forum-admin-posts/'+id+'/essence', { method:'PUT', headers:{ Authorization:'Bearer '+token } });
+      load();
+    }
+    async function delPost(id) {
+      if (!confirm('确认删除？')) return;
+      await fetch('/forum-admin-posts/'+id, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/json' }, body: JSON.stringify({is_deleted:true, deleted_reason:'Admin deleted'}) });
+      load();
+    }
+  </script>
+</body>
+</html>`,
+
+  reports: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>举报管理</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;display:flex;min-height:100vh}nav{width:220px;background:#1e1b4b;color:#fff;padding:20px 0}nav a{display:block;padding:12px 24px;color:#c7d2fe;text-decoration:none;font-size:14px}nav a:hover,nav a.active{background:#312e81;color:#fff}main{flex:1;padding:32px}h2{margin-bottom:24px}table{width:100%;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:14px}th{background:#fafafa;color:#555}button{padding:4px 12px;border-radius:4px;border:1px solid #ddd;cursor:pointer;font-size:12px}.res{background:#d1fae5;color:#065f46}.dis{background:#fee2e2;color:#991b1b}</style>
+</head>
+<body>
+  <nav><div style="padding:12px 24px 24px;font-weight:700">VidLang管理</div><a href="/forum-admin/dashboard">仪表盘</a><a href="/forum-admin/posts">帖子管理</a><a href="/forum-admin/reports" class="active">举报管理</a><a href="/forum-admin/users">用户管理</a><a href="/forum-admin/feedback">反馈管理</a><a href="/forum-admin/boards">板块管理</a><a href="#" onclick="logout()" style="margin-top:16px;color:#f87171">退出</a></nav>
+  <main><h2>举报管理</h2><div id="content">加载中...</div></main>
+  <script>
+    const token=localStorage.getItem('admin_token');if(!token)location.href='/forum-admin/login';
+    function logout(){localStorage.clear();location.href='/forum-admin/login'}
+    async function load(){
+      const res=await fetch('/forum-admin-reports?status=pending&limit=50',{headers:{Authorization:'Bearer '+token}});
+      if(!res.ok){logout();return}
+      const {data}=await res.json();
+      document.getElementById('content').innerHTML='<table><thead><tr><th>类型</th><th>原因</th><th>详情</th><th>时间</th><th>操作</th></tr></thead><tbody>'+data.map(r=>'<tr><td>'+r.target_type+' #'+r.target_id+'</td><td>'+r.reason+'</td><td>'+r.detail.substring(0,50)+'</td><td>'+new Date(r.created_at).toLocaleDateString()+'</td><td><button class="res" onclick="resolve('+r.id+')">处理</button><button class="dis" onclick="dismiss('+r.id+')">忽略</button></td></tr>').join('')+'</tbody></table>';
+    }
+    load();
+    async function resolve(id){await fetch('/forum-admin-reports/'+id+'/resolve',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({resolution:'Handled by admin'})});load()}
+    async function dismiss(id){await fetch('/forum-admin-reports/'+id+'/dismiss',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});load()}
+  </script>
+</body>
+</html>`,
+
+  users: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>用户管理</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;display:flex;min-height:100vh}nav{width:220px;background:#1e1b4b;color:#fff;padding:20px 0}nav a{display:block;padding:12px 24px;color:#c7d2fe;text-decoration:none;font-size:14px}nav a:hover,nav a.active{background:#312e81;color:#fff}main{flex:1;padding:32px}h2{margin-bottom:24px}table{width:100%;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:14px}th{background:#fafafa;color:#555}button{padding:4px 12px;border-radius:4px;border:1px solid #ddd;cursor:pointer;font-size:12px;margin:0 2px}.ban{background:#fee2e2;color:#991b1b}.unban{background:#d1fae5;color:#065f46}</style>
+</head>
+<body>
+  <nav><div style="padding:12px 24px 24px;font-weight:700">VidLang管理</div><a href="/forum-admin/dashboard">仪表盘</a><a href="/forum-admin/posts">帖子管理</a><a href="/forum-admin/reports">举报管理</a><a href="/forum-admin/users" class="active">用户管理</a><a href="/forum-admin/feedback">反馈管理</a><a href="/forum-admin/boards">板块管理</a><a href="#" onclick="logout()" style="margin-top:16px;color:#f87171">退出</a></nav>
+  <main><h2>用户管理</h2><div id="content">加载中...</div></main>
+  <script>
+    const token=localStorage.getItem('admin_token');if(!token)location.href='/forum-admin/login';
+    function logout(){localStorage.clear();location.href='/forum-admin/login'}
+    async function load(){
+      const res=await fetch('/forum-admin-users?limit=50',{headers:{Authorization:'Bearer '+token}});
+      if(!res.ok){logout();return}
+      const {data}=await res.json();
+      document.getElementById('content').innerHTML='<table><thead><tr><th>邮箱</th><th>角色</th><th>注册时间</th><th>状态</th><th>操作</th></tr></thead><tbody>'+data.map(u=>'<tr><td>'+u.email+'</td><td>'+u.role+'</td><td>'+new Date(u.created_at).toLocaleDateString()+'</td><td>'+(u.ban?'封禁中':'正常')+'</td><td>'+(u.ban?'<button class="unban" onclick="unban(\''+u.id+'\')">解封</button>':'<button class="ban" onclick="ban(\''+u.id+'\')">封禁</button>')+'</td></tr>').join('')+'</tbody></table>';
+    }
+    load();
+    async function ban(uid){const d=prompt('封禁天数（0=永久）：','7');if(!d&&d!=='0')return;await fetch('/forum-admin-users/'+uid+'/ban',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({reason:'违反社区规定',duration_days:parseInt(d)})});load()}
+    async function unban(uid){await fetch('/forum-admin-users/'+uid+'/unban',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});load()}
+  </script>
+</body>
+</html>`,
+
+  feedback: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>反馈管理</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;display:flex;min-height:100vh}nav{width:220px;background:#1e1b4b;color:#fff;padding:20px 0}nav a{display:block;padding:12px 24px;color:#c7d2fe;text-decoration:none;font-size:14px}nav a:hover,nav a.active{background:#312e81;color:#fff}main{flex:1;padding:32px}h2{margin-bottom:24px}table{width:100%;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:14px}th{background:#fafafa;color:#555}button{padding:4px 12px;border-radius:4px;border:1px solid #ddd;cursor:pointer;font-size:12px}.pro{background:#fef3c7;color:#92400e}.res{background:#d1fae5;color:#065f46}</style>
+</head>
+<body>
+  <nav><div style="padding:12px 24px 24px;font-weight:700">VidLang管理</div><a href="/forum-admin/dashboard">仪表盘</a><a href="/forum-admin/posts">帖子管理</a><a href="/forum-admin/reports">举报管理</a><a href="/forum-admin/users">用户管理</a><a href="/forum-admin/feedback" class="active">反馈管理</a><a href="/forum-admin/boards">板块管理</a><a href="#" onclick="logout()" style="margin-top:16px;color:#f87171">退出</a></nav>
+  <main><h2>反馈管理</h2><div id="content">加载中...</div></main>
+  <script>
+    const token=localStorage.getItem('admin_token');if(!token)location.href='/forum-admin/login';
+    function logout(){localStorage.clear();location.href='/forum-admin/login'}
+    async function load(){
+      const res=await fetch('/forum-admin-feedback?status=all&limit=50',{headers:{Authorization:'Bearer '+token}});
+      if(!res.ok){logout();return}
+      const {data}=await res.json();
+      document.getElementById('content').innerHTML='<table><thead><tr><th>类型</th><th>标题</th><th>状态</th><th>时间</th><th>操作</th></tr></thead><tbody>'+data.map(f=>'<tr><td>'+f.type+'</td><td>'+f.title+'</td><td>'+f.status+'</td><td>'+new Date(f.created_at).toLocaleDateString()+'</td><td>'+(f.status==='pending'?'<button class="pro" onclick="processing('+f.id+')">处理中</button><button class="res" onclick="resolve('+f.id+')">已解决</button>':'')+'</td></tr>').join('')+'</tbody></table>';
+    }
+    load();
+    async function processing(id){await fetch('/forum-admin-feedback/'+id,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({status:'processing'})});load()}
+    async function resolve(id){await fetch('/forum-admin-feedback/'+id,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({status:'resolved'})});load()}
+  </script>
+</body>
+</html>`,
+
+  boards: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>板块管理</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;display:flex;min-height:100vh}nav{width:220px;background:#1e1b4b;color:#fff;padding:20px 0}nav a{display:block;padding:12px 24px;color:#c7d2fe;text-decoration:none;font-size:14px}nav a:hover,nav a.active{background:#312e81;color:#fff}main{flex:1;padding:32px}h2{margin-bottom:24px}table{width:100%;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:14px}th{background:#fafafa;color:#555}button{padding:4px 12px;border-radius:4px;border:1px solid #ddd;cursor:pointer;font-size:12px;margin:0 2px}.edit{background:#ede9fe;color:#5b21b6}.del{background:#fee2e2;color:#991b1b}</style>
+</head>
+<body>
+  <nav><div style="padding:12px 24px 24px;font-weight:700">VidLang管理</div><a href="/forum-admin/dashboard">仪表盘</a><a href="/forum-admin/posts">帖子管理</a><a href="/forum-admin/reports">举报管理</a><a href="/forum-admin/users">用户管理</a><a href="/forum-admin/feedback">反馈管理</a><a href="/forum-admin/boards" class="active">板块管理</a><a href="#" onclick="logout()" style="margin-top:16px;color:#f87171">退出</a></nav>
+  <main><h2>板块管理</h2><div id="content">加载中...</div></main>
+  <script>
+    const token=localStorage.getItem('admin_token');if(!token)location.href='/forum-admin/login';
+    function logout(){localStorage.clear();location.href='/forum-admin/login'}
+    async function load(){
+      const res=await fetch('/forum-admin-boards',{headers:{Authorization:'Bearer '+token}});
+      if(!res.ok){logout();return}
+      const {data}=await res.json();
+      document.getElementById('content').innerHTML='<table><thead><tr><th>名称</th><th>Slug</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody>'+data.map(b=>'<tr><td>'+b.name+'</td><td>'+b.slug+'</td><td>'+b.sort_order+'</td><td>'+(b.is_active?'启用':'禁用')+'</td><td><button class="edit" onclick="editBoard('+b.id+')">编辑</button>'+(b.is_active?'<button class="del" onclick="toggleActive('+b.id+',false)">隐藏</button>':'<button onclick="toggleActive('+b.id+',true)">启用</button>')+'</td></tr>').join('')+'</tbody></table>';
+    }
+    load();
+    async function toggleActive(id,active){await fetch('/forum-admin-boards/'+id,{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({is_active:active})});load()}
+    function editBoard(id){alert('编辑功能请直接调用 API：PUT /forum-admin-boards/'+id)}
+  </script>
+</body>
+</html>`,
+};
 
 serve(async (req) => {
-  // 处理 CORS 预检请求
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 验证认证和权限
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return Response.json({ error: 'Unauthorized' }, { 
-        status: 401, 
-        headers: corsHeaders 
-      })
+    const url = new URL(req.url);
+    // 路径 /forum-admin/ 后面跟的是页面路径
+    const path = url.pathname.replace('/forum-admin', '').replace(/^\//, '');
+
+    // 根路径重定向到 login
+    if (!path) {
+      return new Response(null, { status: 302, headers: { ...corsHeaders, Location: '/forum-admin/login' } });
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      return Response.json({ error: 'Invalid token' }, { 
-        status: 401, 
-        headers: corsHeaders 
-      })
+    const page = PAGES[path];
+    if (page) {
+      return new Response(page, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+      });
     }
 
-    // 检查是否为管理员
-    const isAdmin = await checkAdminPermission(user.id)
-    if (!isAdmin) {
-      return Response.json({ error: 'Insufficient permissions' }, { 
-        status: 403, 
-        headers: corsHeaders 
-      })
-    }
-
-    const url = new URL(req.url)
-    const path = url.pathname.split('/').pop()
-
-    switch (req.method) {
-      case 'GET':
-        return handleGet(req, path, user)
-      case 'POST':
-        return handlePost(req, path, user)
-      case 'PUT':
-        return handlePut(req, path, user)
-      case 'DELETE':
-        return handleDelete(req, path, user)
-      default:
-        return Response.json({ error: 'Method not allowed' }, { 
-          status: 405, 
-          headers: corsHeaders 
-        })
-    }
+    return new Response('Page not found', { status: 404, headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
   } catch (error) {
-    console.error('Forum admin error:', error)
-    return Response.json({ error: 'Internal server error' }, { 
-      status: 500, 
-      headers: corsHeaders 
-    })
+    console.error('forum-admin error:', error);
+    return new Response('Internal server error', { status: 500, headers: corsHeaders });
   }
-})
-
-// 检查管理员权限
-async function checkAdminPermission(userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('auth.users')
-    .select('raw_user_meta_data')
-    .eq('id', userId)
-    .single()
-
-  if (error || !data) {
-    return false
-  }
-
-  return data.raw_user_meta_data?.role === 'admin'
-}
-
-// GET 请求处理
-async function handleGet(req: Request, path: string | undefined, user: any) {
-  const url = new URL(req.url)
-  
-  switch (path) {
-    case 'pending-posts':
-      return getPendingPosts(req)
-    case 'pending-comments':
-      return getPendingComments(req)
-    case 'user-management':
-      return getUserManagement(req)
-    case 'feedback-management':
-      return getFeedbackManagement(req)
-    case 'forum-analytics':
-      return getForumAnalytics(req)
-    case 'categories':
-      return getCategoriesAdmin(req)
-    default:
-      return Response.json({ error: 'Not found' }, { 
-        status: 404, 
-        headers: corsHeaders 
-      })
-  }
-}
-
-// POST 请求处理
-async function handlePost(req: Request, path: string | undefined, user: any) {
-  const body = await req.json()
-  
-  switch (path) {
-    case 'moderate-post':
-      return moderatePost(body, user)
-    case 'moderate-comment':
-      return moderateComment(body, user)
-    case 'update-category':
-      return updateCategory(body, user)
-    case 'feature-post':
-      return featurePost(body, user)
-    case 'pin-post':
-      return pinPost(body, user)
-    case 'respond-feedback':
-      return respondToFeedback(body, user)
-    default:
-      return Response.json({ error: 'Not found' }, { 
-        status: 404, 
-        headers: corsHeaders 
-      })
-  }
-}
-
-// PUT 请求处理
-async function handlePut(req: Request, path: string | undefined, user: any) {
-  const body = await req.json()
-  
-  switch (path) {
-    case 'category':
-      return updateCategory(body, user)
-    case 'user-role':
-      return updateUserRole(body, user)
-    default:
-      return Response.json({ error: 'Not found' }, { 
-        status: 404, 
-        headers: corsHeaders 
-      })
-  }
-}
-
-// DELETE 请求处理
-async function handleDelete(req: Request, path: string | undefined, user: any) {
-  const url = new URL(req.url)
-  const id = url.searchParams.get('id')
-  
-  switch (path) {
-    case 'post':
-      return deletePostAdmin(parseInt(id || '0'), user)
-    case 'comment':
-      return deleteCommentAdmin(parseInt(id || '0'), user)
-    case 'category':
-      return deleteCategory(parseInt(id || '0'), user)
-    default:
-      return Response.json({ error: 'Not found' }, { 
-        status: 404, 
-        headers: corsHeaders 
-      })
-  }
-}
-
-// 获取待审核帖子
-async function getPendingPosts(req: Request) {
-  const url = new URL(req.url)
-  const page = parseInt(url.searchParams.get('page') || '1')
-  const limit = parseInt(url.searchParams.get('limit') || '10')
-  const status = url.searchParams.get('status') || 'moderating' // moderating, rejected
-  
-  const offset = (page - 1) * limit
-  
-  const { data, error, count } = await supabase
-    .from('forum_posts')
-    .select(`
-      *,
-      author:auth.users(email, raw_user_meta_data),
-      category:forum_categories(name, slug)
-    `, { count: 'exact' })
-    .eq('status', status)
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1)
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ 
-    data, 
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
-  }, { headers: corsHeaders })
-}
-
-// 获取待审核评论
-async function getPendingComments(req: Request) {
-  const url = new URL(req.url)
-  const page = parseInt(url.searchParams.get('page') || '1')
-  const limit = parseInt(url.searchParams.get('limit') || '10')
-  const status = url.searchParams.get('status') || 'moderating'
-  
-  const offset = (page - 1) * limit
-  
-  const { data, error, count } = await supabase
-    .from('forum_comments')
-    .select(`
-      *,
-      user:auth.users(email),
-      post:forum_posts(title, id)
-    `, { count: 'exact' })
-    .eq('status', status)
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1)
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ 
-    data, 
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
-  }, { headers: corsHeaders })
-}
-
-// 获取用户管理数据
-async function getUserManagement(req: Request) {
-  const url = new URL(req.url)
-  const page = parseInt(url.searchParams.get('page') || '1')
-  const limit = parseInt(url.searchParams.get('limit') || '10')
-  const search = url.searchParams.get('search')
-  
-  const offset = (page - 1) * limit
-  
-  // 获取用户活动统计
-  const query = supabase
-    .rpc('get_user_forum_stats', {})
-    .range(offset, offset + limit - 1)
-
-  if (search) {
-    // 这里需要在应用层进行搜索过滤，或在数据库层面创建索引视图
-    console.log('Search functionality would be implemented here')
-  }
-
-  const { data, error, count } = await query as any
-  
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ 
-    data, 
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
-  }, { headers: corsHeaders })
-}
-
-// 获取反馈管理数据
-async function getFeedbackManagement(req: Request) {
-  const url = new URL(req.url)
-  const page = parseInt(url.searchParams.get('page') || '1')
-  const limit = parseInt(url.searchParams.get('limit') || '10')
-  const status = url.searchParams.get('status') // open, in_progress, resolved, closed
-  const type = url.searchParams.get('type') // bug, feature, content, general
-  
-  const offset = (page - 1) * limit
-  
-  let query = supabase
-    .from('user_feedback')
-    .select(`
-      *,
-      user:auth.users(email, raw_user_meta_data),
-      admin:auth.users(email) as admin_email
-    `, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + limit - 1)
-
-  if (status) {
-    query = query.eq('status', status)
-  }
-  
-  if (type) {
-    query = query.eq('feedback_type', type)
-  }
-
-  const { data, error, count } = await query
-  
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ 
-    data, 
-    pagination: {
-      page,
-      limit,
-      total: count || 0,
-      totalPages: Math.ceil((count || 0) / limit)
-    }
-  }, { headers: corsHeaders })
-}
-
-// 获取论坛分析数据
-async function getForumAnalytics(req: Request) {
-  const url = new URL(req.url)
-  const days = parseInt(url.searchParams.get('days') || '30')
-  
-  // 获取基本统计
-  const { data: stats } = await supabase
-    .from('forum_stats')
-    .select('*')
-    .limit(1)
-    .single()
-
-  // 获取分类统计
-  const { data: categoryStats } = await supabase
-    .rpc('get_category_stats', {})
-
-  // 获取活跃用户统计
-  const { data: activeUsers } = await supabase
-    .from('user_activity_stats')
-    .select('*')
-    .limit(10)
-
-  // 获取热门帖子
-  const { data: hotPosts } = await supabase
-    .from('hot_posts')
-    .select('*')
-    .limit(10)
-
-  // 获取最近增长数据
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - days)
-  
-  const { count: recentPosts } = await supabase
-    .from('forum_posts')
-    .select('id', { count: 'exact' })
-    .gte('created_at', startDate.toISOString())
-  
-  const { count: recentComments } = await supabase
-    .from('forum_comments')
-    .select('id', { count: 'exact' })
-    .gte('created_at', startDate.toISOString())
-
-  return Response.json({
-    stats,
-    categoryStats,
-    activeUsers,
-    hotPosts,
-    growthData: {
-      recentPosts,
-      recentComments,
-      periodDays: days
-    }
-  }, { headers: corsHeaders })
-}
-
-// 获取分类管理数据
-async function getCategoriesAdmin(req: Request) {
-  const { data, error } = await supabase
-    .from('forum_categories')
-    .select('*')
-    .order('sort_order')
-    .order('name')
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 审核帖子
-async function moderatePost(body: any, user: any) {
-  const { post_id, action, reason } = body // action: approve, reject
-  
-  if (!post_id || !action) {
-    return Response.json({ error: 'Missing required fields' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  let newStatus = action === 'approve' ? 'published' : 'rejected'
-  
-  const { data, error } = await supabase
-    .from('forum_posts')
-    .update({
-      status: newStatus,
-      moderated_at: new Date().toISOString(),
-      moderator_id: user.id
-    })
-    .eq('id', post_id)
-    .select()
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  if (newStatus === 'published') {
-    // 设置发布时间
-    await supabase
-      .from('forum_posts')
-      .update({ published_at: new Date().toISOString() })
-      .eq('id', post_id)
-
-    // 创建通知给用户
-    const { data: post } = await supabase
-      .from('forum_posts')
-      .select('author_id, title')
-      .eq('id', post_id)
-      .single()
-
-    if (post && post.author_id !== user.id) {
-      await supabase
-        .from('forum_notifications')
-        .insert({
-          user_id: post.author_id,
-          type: 'moderation',
-          title: '你的帖子已通过审核',
-          content: `帖子《${post.title}》已通过审核并发布`,
-          post_id,
-          from_user_id: user.id
-        })
-    }
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 审核评论
-async function moderateComment(body: any, user: any) {
-  const { comment_id, action } = body
-  
-  if (!comment_id || !action) {
-    return Response.json({ error: 'Missing required fields' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  const newStatus = action === 'approve' ? 'published' : 'rejected'
-  
-  const { data, error } = await supabase
-    .from('forum_comments')
-    .update({
-      status: newStatus,
-      moderated_at: new Date().toISOString(),
-      moderator_id: user.id
-    })
-    .eq('id', comment_id)
-    .select()
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 更新分类
-async function updateCategory(body: any, user: any) {
-  const { id, name, description, slug, sort_order, is_active } = body
-  
-  if (!id || !name) {
-    return Response.json({ error: 'Missing required fields' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  const { data, error } = await supabase
-    .from('forum_categories')
-    .update({
-      name,
-      description,
-      slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
-      sort_order: sort_order || 0,
-      is_active: is_active !== undefined ? is_active : true,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 推荐帖子
-async function featurePost(body: any, user: any) {
-  const { post_id, featured } = body
-  
-  if (!post_id) {
-    return Response.json({ error: 'Missing post_id' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  const { data, error } = await supabase
-    .from('forum_posts')
-    .update({ is_featured: featured })
-    .eq('id', post_id)
-    .select()
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 置顶帖子
-async function pinPost(body: any, user: any) {
-  const { post_id, pinned } = body
-  
-  if (!post_id) {
-    return Response.json({ error: 'Missing post_id' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  const { data, error } = await supabase
-    .from('forum_posts')
-    .update({ is_pinned: pinned })
-    .eq('id', post_id)
-    .select()
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 回复反馈
-async function respondToFeedback(body: any, user: any) {
-  const { feedback_id, response, status } = body
-  
-  if (!feedback_id || !response) {
-    return Response.json({ error: 'Missing required fields' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  const { data, error } = await supabase
-    .from('user_feedback')
-    .update({
-      admin_response: response,
-      status: status || 'in_progress',
-      admin_id: user.id,
-      updated_at: new Date().toISOString(),
-      ...(status === 'resolved' && { resolved_at: new Date().toISOString() })
-    })
-    .eq('id', feedback_id)
-    .select()
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ data }, { headers: corsHeaders })
-}
-
-// 更新用户角色
-async function updateUserRole(body: any, user: any) {
-  const { user_id, role } = body
-  
-  if (!user_id || !role) {
-    return Response.json({ error: 'Missing required fields' }, { 
-      status: 400, 
-      headers: corsHeaders 
-    })
-  }
-
-  const { error } = await supabase
-    .from('auth.users')
-    .update({ 
-      raw_user_meta_data: { role } 
-    })
-    .eq('id', user_id)
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ success: true }, { headers: corsHeaders })
-}
-
-// 删除帖子（管理员）
-async function deletePostAdmin(id: number, user: any) {
-  const { error } = await supabase
-    .from('forum_posts')
-    .delete()
-    .eq('id', id)
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ success: true }, { headers: corsHeaders })
-}
-
-// 删除评论（管理员）
-async function deleteCommentAdmin(id: number, user: any) {
-  const { error } = await supabase
-    .from('forum_comments')
-    .delete()
-    .eq('id', id)
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ success: true }, { headers: corsHeaders })
-}
-
-// 删除分类
-async function deleteCategory(id: number, user: any) {
-  const { error } = await supabase
-    .from('forum_categories')
-    .delete()
-    .eq('id', id)
-
-  if (error) {
-    throw error
-  }
-
-  return Response.json({ success: true }, { headers: corsHeaders })
-}
+});
