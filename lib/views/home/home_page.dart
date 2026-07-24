@@ -693,7 +693,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              AppIcons.historyToggleOff,
+              AppIcons.history,
               size: adaptive.Adaptive.sp(32),
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             ),

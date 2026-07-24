@@ -1,9 +1,10 @@
 # 开发环境配置指南
 
-> **版本**: v1.0.0
-> **最后更新**: 2026-07-12
+> **版本**: v2.1.0
+> **最后更新**: 2026-07-24
 > **状态**: ✅ 已启用
 > **适用平台**: macOS / Windows / Linux
+> **变更**: v2.1 更新恢复脚本为统一版 restore_build_cache.sh，新增 Android Gradle 缓存说明
 
 ---
 
@@ -571,6 +572,63 @@ supabase stop
 
 ## 常见问题
 
+> **完整的构建环境问题排查**，参见 [构建环境问题排查知识库](../developer/design/code-knowledge-base/build-environment-troubleshooting-V1.0.md)
+
+### Q0: iOS 构建报 sqlite3 dylib 下载超时？（⭐ 最常见）
+
+**现象**: `SocketException: Operation timed out, address = github.com`，构建 iOS 应用时 sqlite3 包无法从 GitHub 下载预编译库。
+
+**根因**: `sqflite_common_ffi` → `sqlite3` 包使用 Hooks 机制从 GitHub Releases 下载预编译 dylib，`flutter clean` 会清除 `.dart_tool/` 缓存导致重新下载。
+
+**解决方案**: 使用项目内置的统一缓存恢复脚本：
+
+```bash
+# 从 pods-cache 恢复所有构建缓存（iOS sqlite3 + Android Gradle）
+./scripts/restore_build_cache.sh
+
+# 也可仅恢复 iOS
+./scripts/restore_build_cache.sh --ios
+
+# 然后正常构建
+flutter run -d <device-id>
+```
+
+详见知识库文档: `docs/developer/design/code-knowledge-base/build-environment-troubleshooting-V1.0.md`
+
+### Q0.5: `flutter clean` 后的标准恢复流程？
+
+```bash
+# 1. 恢复 Flutter 依赖
+flutter pub get
+
+# 2. 恢复所有构建缓存（iOS sqlite3 + Android Gradle）
+./scripts/restore_build_cache.sh
+
+# 3. 恢复 iOS CocoaPods
+cd ios && pod install --repo-update && cd ..
+
+# 4. 运行
+flutter run -d <device-id>
+```
+
+### Q0.6: 更换设备时如何快速搭建环境？
+
+```bash
+# 0. 安装 Flutter SDK / Xcode / Android Studio（系统级）
+# 1. 克隆项目
+git clone <repository-url> && cd vidlang
+# 2. 从旧设备复制 pods-cache/ 目录（或从网盘下载）
+# 3. 恢复依赖
+flutter pub get
+./scripts/restore_build_cache.sh
+cd ios && pod install --repo-update && cd ..
+flutter doctor --android-licenses  # Android 首次
+# 4. 运行
+flutter run -d <device-id>
+```
+
+> **重要**: `pods-cache/` 不在 Git 中（.gitignore 排除），更换设备时需手动复制。
+
 ### Q1: `flutter pub get` 失败？
 
 **原因**: 网络问题或依赖版本冲突。
@@ -656,15 +714,28 @@ class AppKeysService {
     );
   }
 }
+```
 
+```bash
 # 通过环境变量切换
 SUPABASE_URL=https://dev-xxx.supabase.co SUPABASE_ANON_KEY=xxx flutter run
 ```
+
+### Q6: iOS 构建出现 IPHONEOS_DEPLOYMENT_TARGET 警告？
+
+**原因**: 某些插件最低版本设为 9.0，但 Xcode 要求最低 12.0。
+
+**解决方案**: 在 `ios/Podfile` 的 `post_install` 中统一覆盖部署目标为 13.0，参见知识库文档 B03 章节。
+
+### Q7: iOS 构建出现 Swift Package Manager 不支持警告？
+
+**说明**: flutter_tts、flutter_secure_storage、flutter_pcm_player 等插件尚未适配 SPM。当前可忽略，不影响构建。
 
 ---
 
 ## 📚 相关文档
 
+- [构建环境问题排查知识库](../developer/design/code-knowledge-base/build-environment-troubleshooting-V1.0.md) ⭐ 构建问题首选
 - [Flutter 官方文档](https://docs.flutter.dev/)
 - [Dart 官方文档](https://dart.dev/guides)
 - [Riverpod 文档](https://riverpod.dev/)
@@ -678,6 +749,8 @@ SUPABASE_URL=https://dev-xxx.supabase.co SUPABASE_ANON_KEY=xxx flutter run
 
 | 版本 | 日期 | 变更内容 | 作者 |
 |------|------|----------|------|
+| v2.1.0 | 2026-07-24 | 更新为统一恢复脚本 restore_build_cache.sh，新增 Android Gradle 缓存、更换设备流程 | AI Assistant |
+| v2.0.0 | 2026-07-24 | 新增 sqlite3 下载超时解决方案、flutter clean 恢复流程、构建环境知识库索引 | AI Assistant |
 | v1.0.0 | 2026-07-12 | 初版建立 | AI Assistant |
 
 ---

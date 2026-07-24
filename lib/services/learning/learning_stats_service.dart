@@ -1013,14 +1013,18 @@ class LearningStatsService {
   }
 
   /// 获取今日学习时长（秒）
+  ///
+  /// 日期范围：[今天00:00:00, 明天00:00:00)，使用 start_time 字段过滤
+  /// 用户隔离：findByCondition 自动过滤 user_code
   static Future<int> getTodayDuration() async {
     final today = DateTime.now();
-    final todayStr = today.toIso8601String().substring(0, 10);
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
 
     final records = await DatabaseService.findByCondition(
       () => StudyRecord(),
-      where: "is_deleted = 0 AND date >= ? AND date < ?",
-      whereArgs: ['${todayStr}T00:00:00', '${todayStr}T23:59:59'],
+      where: "is_deleted = 0 AND start_time >= ? AND start_time < ?",
+      whereArgs: [todayStart.toIso8601String(), todayEnd.toIso8601String()],
     );
 
     int total = 0;
@@ -1061,18 +1065,18 @@ class LearningStatsService {
   }
 
   /// 获取今日学习资源数（不重复）
+  ///
+  /// 日期范围：[今天00:00:00, 明天00:00:00)，使用 start_time 字段过滤
+  /// 用户隔离：findByCondition 自动过滤 user_code
   static Future<int> getResourceCountToday() async {
     final today = DateTime.now();
-    final todayStr = DateTime(
-      today.year,
-      today.month,
-      today.day,
-    ).toIso8601String().substring(0, 10);
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
 
     final records = await DatabaseService.findByCondition(
       () => StudyRecord(),
-      where: "is_deleted = 0 AND date >= ? AND date < ?",
-      whereArgs: ['${todayStr}T00:00:00', '${todayStr}T23:59:59'],
+      where: "is_deleted = 0 AND start_time >= ? AND start_time < ?",
+      whereArgs: [todayStart.toIso8601String(), todayEnd.toIso8601String()],
     );
 
     final Set<String> unique = {};
@@ -1770,12 +1774,23 @@ class LearningStatsService {
 
     // 计算每个资源的平均分
     final resourceAvgScores = <String, double>{};
+    final resourceNames = <String, String>{};
     resourceScores.forEach((code, scores) {
       if (scores.isNotEmpty) {
         resourceAvgScores[code] =
             scores.reduce((a, b) => a + b) / scores.length;
       }
     });
+
+    // 查询资源名称
+    for (final code in resourceAvgScores.keys) {
+      // 跟读记录中可能有 resourceType，但 RecordingRecord 不一定有，先尝试 video/music 再 article
+      String? name = await _getResourceName(code, 'video');
+      name ??= await _getResourceName(code, 'article');
+      if (name != null && name.isNotEmpty) {
+        resourceNames[code] = name;
+      }
+    }
 
     return FollowMetrics(
       totalCount: totalCount,
@@ -1784,6 +1799,7 @@ class LearningStatsService {
       minScore: minScore ?? 0,
       resourceAvgScores: resourceAvgScores,
       dailyCount: dailyCount,
+      resourceNames: resourceNames,
     );
   }
 
@@ -2152,25 +2168,41 @@ class LearningStatsService {
   }
 
   /// 获取「我的」页面汇总统计（内部方法）
+  ///
+  /// 统计口径：全部为累计数据
+  /// - totalDays: 累计学习天数（StudyRecord.date 去重计数）
+  /// - videoTotal/audioTotal/articleTotal: 累计导入的资源文件夹数（含软删除）
+  ///
+  /// 用户隔离：使用 DatabaseService.count()，自动过滤 user_code
+  /// 叶子过滤：parent_code IS NOT NULL，排除分组/分类文件夹（如"未分组"）
   static Future<SummaryStats> _getSummaryStats() async {
-    final counts = await Future.wait([
-      DatabaseService.rawQuery(
-        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'video' AND is_deleted = 0",
+    // 并行查询：累计学习天数 + 各类型累计资源数（含软删除）
+    // _getLearningDays() 使用 findByCondition，已自动过滤 user_code
+    // count() 也自动过滤 user_code
+    // parent_code IS NOT NULL AND parent_code != '': 只统计叶子文件夹（实际资源），不统计分组
+    final results = await Future.wait<dynamic>([
+      _getLearningDays(),
+      DatabaseService.count(
+        () => VideoFolder(),
+        where: "folder_type = 'video' AND parent_code IS NOT NULL AND parent_code != ''",
       ),
-      DatabaseService.rawQuery(
-        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'music' AND is_deleted = 0",
+      DatabaseService.count(
+        () => VideoFolder(),
+        where: "folder_type = 'music' AND parent_code IS NOT NULL AND parent_code != ''",
       ),
-      DatabaseService.rawQuery(
-        "SELECT COUNT(*) AS cnt FROM video_folder WHERE folder_type = 'article' AND is_deleted = 0",
+      DatabaseService.count(
+        () => VideoFolder(),
+        where: "folder_type = 'article' AND parent_code IS NOT NULL AND parent_code != ''",
       ),
     ]);
 
-    final videoTotal = (counts[0].first['cnt'] as int?) ?? 0;
-    final audioTotal = (counts[1].first['cnt'] as int?) ?? 0;
-    final articleTotal = (counts[2].first['cnt'] as int?) ?? 0;
+    final totalDays = results[0] as int;
+    final videoTotal = results[1] as int;
+    final audioTotal = results[2] as int;
+    final articleTotal = results[3] as int;
 
     return SummaryStats(
-      totalDays: 0, // 由调用方计算
+      totalDays: totalDays,
       videoTotal: videoTotal,
       audioTotal: audioTotal,
       articleTotal: articleTotal,
@@ -2617,21 +2649,24 @@ class DurationMetrics {
 
 /// 跟读指标
 class FollowMetrics {
-  final int totalCount;
-  final double avgScore;
-  final double maxScore;
-  final double minScore;
-  final Map<String, double> resourceAvgScores;
-  final Map<String, int> dailyCount;
+final int totalCount;
+final double avgScore;
+final double maxScore;
+final double minScore;
+final Map<String, double> resourceAvgScores;
+final Map<String, int> dailyCount;
+/// 资源名称映射（resourceCode -> resourceName）
+final Map<String, String> resourceNames;
 
-  const FollowMetrics({
-    required this.totalCount,
-    required this.avgScore,
-    required this.maxScore,
-    required this.minScore,
-    required this.resourceAvgScores,
-    required this.dailyCount,
-  });
+const FollowMetrics({
+required this.totalCount,
+required this.avgScore,
+required this.maxScore,
+required this.minScore,
+required this.resourceAvgScores,
+required this.dailyCount,
+this.resourceNames = const {},
+});
 }
 
 /// 评测指标

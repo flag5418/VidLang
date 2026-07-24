@@ -27,8 +27,7 @@ class WordDetailPage extends StatefulWidget {
 class _WordDetailPageState extends State<WordDetailPage> {
   WordMetrics? _metrics;
   bool _loading = true;
-
-  String _timeRange = 'all';
+  late String _timeRange;
 
   @override
   void initState() {
@@ -73,7 +72,10 @@ class _WordDetailPageState extends State<WordDetailPage> {
             currentValue: _timeRange,
             onSelected: (value) {
               if (_timeRange != value) {
-                setState(() => _timeRange = value);
+                setState(() {
+                  _timeRange = value;
+                  _loading = true;
+                });
                 _loadData();
               }
             },

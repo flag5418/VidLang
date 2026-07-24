@@ -736,8 +736,8 @@ class AppIcons {
   /// 计时器 - 使用 time（TDesign无timer）
   static const IconData timer = TDIcons.time;
 
-  /// 历史切换关闭 - 使用 history 或 close
-  static const IconData historyToggleOff = TDIcons.close;
+  /// 历史切换关闭 - 使用 history 图标（原 close 图标语义不当）
+  static const IconData historyToggleOff = TDIcons.history;
 
   /// 重命名 - 使用 edit
   static const IconData driveFileRename = TDIcons.edit;

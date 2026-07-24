@@ -1,6 +1,6 @@
 # VidLang 文档索引
 
-> **版本**: V1.0 | **日期**: 2026-07-13
+> **版本**: V1.1 | **日期**: 2026-07-24
 > **说明**: 精简后的文档结构，所有文档均为当前有效状态
 
 ---
@@ -33,7 +33,12 @@ docs/
 │   ├── supabase-integration.md     ← Supabase 集成指南（18个Edge Functions，多通道AI架构，V1.1）
 │   ├── ai-service-integration.md   ← AI 服务集成（V1.1，多通道混合架构：5大通道/12个rule_code/WordDetail模型） │
 │   ├── tdesign-components.md       ← TDesign 组件使用参考
-│   └── design-style-guide.md       ← UI 设计规范
+│   ├── design-style-guide.md       ← UI 设计规范
+│   └── development-setup.md        ← 开发环境配置指南（V2.0，含构建问题排查）
+│
+├── developer/design/code-knowledge-base/  ← 【知识库】常见问题排查
+│   ├── orientation-handling-V1.0.md           ← 横竖屏方向处理
+│   └── build-environment-troubleshooting-V1.0.md ← 构建环境问题排查（iOS/Android）
 │
 │   ├── ai-engineering-optimization-plan-V1.0.md ← 【优化方案】AI 工程化优化计划（V1.0）
 │   └── testing-standards-V1.0.md ← 【测试规范】测试策略、Mock、覆盖率、CI（V1.0）
@@ -58,6 +63,9 @@ docs/
 | Flutter 代码目录结构 | `reference/flutter-code-structure.md` |
 | 服务层有哪些服务 | `reference/services-architecture.md` |
 | 如何使用 TDesign 组件 | `reference/tdesign-components.md` |
+| **iOS/Android 构建失败怎么排查** | `developer/design/code-knowledge-base/build-environment-troubleshooting-V1.0.md` |
+| **flutter clean 后如何恢复** | `reference/development-setup.md` → Q0.5 |
+| 开发环境如何配置 | `reference/development-setup.md` |
 
 ---
 

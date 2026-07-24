@@ -81,7 +81,7 @@ async function handleGet(req: Request, url: URL) {
     .select(`
       *,
       tag:forum_tags(id, name, color),
-      author:user_profiles(id, raw_user_meta_data)
+      author:user_profiles!forum_posts_author_id_fkey(id, raw_user_meta_data)
     `, { count: 'exact' })
     .eq('is_deleted', false);
 
@@ -182,7 +182,7 @@ async function handlePost(req: Request, user: any) {
     .select(`
       *,
       tag:forum_tags(id, name, color),
-      author:user_profiles(id, raw_user_meta_data)
+      author:user_profiles!forum_posts_author_id_fkey(id, raw_user_meta_data)
     `)
     .single();
 

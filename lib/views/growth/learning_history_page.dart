@@ -285,11 +285,12 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           confirmText: '确定',
           fieldLabelText: label,
           builder: (pickerContext, child) {
+            final brightness = Theme.of(pickerContext).brightness;
             return Theme(
-              data: ThemeData.light().copyWith(
+              data: ThemeData(brightness: brightness).copyWith(
                 colorScheme: ColorScheme.fromSeed(
                   seedColor: colorScheme.primary,
-                  brightness: Brightness.light,
+                  brightness: brightness,
                 ),
               ),
               child: child!,
@@ -307,7 +308,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           vertical: adaptive.Adaptive.h( 14),
         ),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(adaptive.Adaptive.r( 10)),
         ),
         child: Row(
@@ -658,7 +659,7 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              AppIcons.historyToggleOff,
+              AppIcons.history,
               size: adaptive.Adaptive.sp(48),
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
             ),

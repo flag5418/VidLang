@@ -26,8 +26,7 @@ class _DurationDetailPageState extends State<DurationDetailPage> {
   DurationMetrics? _metrics;
   List<ResourceDurationDetail> _resourceRanking = [];
   bool _loading = true;
-
-  String _timeRange = 'all';
+  late String _timeRange;
 
   @override
   void initState() {
@@ -84,7 +83,10 @@ class _DurationDetailPageState extends State<DurationDetailPage> {
             currentValue: _timeRange,
             onSelected: (value) {
               if (_timeRange != value) {
-                setState(() => _timeRange = value);
+                setState(() {
+                  _timeRange = value;
+                  _loading = true;
+                });
                 _loadData();
               }
             },
@@ -175,7 +177,7 @@ class _DurationDetailPageState extends State<DurationDetailPage> {
                           children: [
                             if (minutes > 0)
                               Text(
-                                '$minutes',
+                                '$minutes分',
                                 style: TextStyle(
                                   fontSize: adaptive.Adaptive.sp(9),
                                   fontWeight: FontWeight.w600,

@@ -16,17 +16,16 @@ import '../app_keys_service.dart';
 class ForumService {
   final SupabaseClient _supabase;
 
-  static String get _baseUrl =>
-      '${AppKeysService.supabaseUrl}/functions/v1';
+  static String get _baseUrl => '${AppKeysService.supabaseUrl}/functions/v1';
 
   ForumService(this._supabase);
 
   String? get _token => _supabase.auth.currentSession?.accessToken;
 
   Map<String, String> _authHeaders() => {
-        'Authorization': 'Bearer $_token',
-        'Content-Type': 'application/json',
-      };
+    'Authorization': 'Bearer $_token',
+    'Content-Type': 'application/json',
+  };
 
   // ─────────────────────────────────────────────
   // 帖子 (forum-posts) — V2.0: tag_id + followed 筛选
@@ -57,9 +56,9 @@ class ForumService {
 
   Future<ForumPost> getPostDetail(int id) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-post-detail').replace(
-        queryParameters: {'id': id.toString()},
-      ),
+      Uri.parse(
+        '$_baseUrl/forum-post-detail',
+      ).replace(queryParameters: {'id': id.toString()}),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取帖子详情');
@@ -92,11 +91,7 @@ class ForumService {
     return ForumPost.fromJson(data['data']);
   }
 
-  Future<ForumPost> updatePost(
-    int id, {
-    String? title,
-    String? content,
-  }) async {
+  Future<ForumPost> updatePost(int id, {String? title, String? content}) async {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
     if (content != null) body['content'] = content;
@@ -129,11 +124,13 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-replies').replace(queryParameters: {
-        'post_id': postId.toString(),
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-replies').replace(
+        queryParameters: {
+          'post_id': postId.toString(),
+          'page': page.toString(),
+          'limit': limit.toString(),
+        },
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取回复列表');
@@ -152,10 +149,7 @@ class ForumService {
     required String content,
     List<String>? imageUrls,
   }) async {
-    final body = <String, dynamic>{
-      'post_id': postId,
-      'content': content,
-    };
+    final body = <String, dynamic>{'post_id': postId, 'content': content};
     if (imageUrls != null && imageUrls.isNotEmpty) {
       body['image_urls'] = imageUrls;
     }
@@ -186,10 +180,7 @@ class ForumService {
     final res = await http.post(
       Uri.parse('$_baseUrl/forum-likes'),
       headers: _authHeaders(),
-      body: json.encode({
-        'target_type': targetType,
-        'target_id': targetId,
-      }),
+      body: json.encode({'target_type': targetType, 'target_id': targetId}),
     );
     _checkStatus(res, '点赞操作');
     final data = json.decode(res.body);
@@ -216,10 +207,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-favorites').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-favorites').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '我的收藏');
@@ -246,10 +236,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-follows').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-follows').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '我的关注');
@@ -324,10 +313,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-notifications').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-notifications').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取通知');
@@ -376,10 +364,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-my/posts').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-my/posts').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '我的帖子');
@@ -391,10 +378,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-my/replies').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-my/replies').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '我的回复');
@@ -413,10 +399,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-my/likes').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-my/likes').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '我点赞的帖子');
@@ -437,11 +422,13 @@ class ForumService {
     final ext = filePath.substring(filePath.lastIndexOf('.')).toLowerCase();
     final mediaType = _getMediaType(ext);
 
-    request.files.add(await http.MultipartFile.fromPath(
-      'file',
-      filePath,
-      contentType: mediaType,
-    ));
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'file',
+        filePath,
+        contentType: mediaType,
+      ),
+    );
 
     final streamed = await request.send();
     final res = await http.Response.fromStream(streamed);
@@ -479,9 +466,7 @@ class ForumService {
     );
     _checkStatus(res, '获取标签');
     final data = json.decode(res.body);
-    return (data['data'] as List)
-        .map((e) => ForumTag.fromJson(e))
-        .toList();
+    return (data['data'] as List).map((e) => ForumTag.fromJson(e)).toList();
   }
 
   // ─────────────────────────────────────────────
@@ -528,10 +513,9 @@ class ForumService {
     int limit = 20,
   }) async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-feedback/my').replace(queryParameters: {
-        'page': page.toString(),
-        'limit': limit.toString(),
-      }),
+      Uri.parse('$_baseUrl/forum-feedback/my').replace(
+        queryParameters: {'page': page.toString(), 'limit': limit.toString()},
+      ),
       headers: _authHeaders(),
     );
     _checkStatus(res, '我的反馈');
@@ -563,8 +547,7 @@ class ForumService {
     if (search != null && search.isNotEmpty) params['search'] = search;
 
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-admin-posts')
-          .replace(queryParameters: params),
+      Uri.parse('$_baseUrl/forum-admin-posts').replace(queryParameters: params),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取管理帖子列表');
@@ -605,8 +588,9 @@ class ForumService {
     if (status != null && status.isNotEmpty) params['status'] = status;
 
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-admin-replies')
-          .replace(queryParameters: params),
+      Uri.parse(
+        '$_baseUrl/forum-admin-replies',
+      ).replace(queryParameters: params),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取管理回复列表');
@@ -654,8 +638,9 @@ class ForumService {
     if (status != null && status.isNotEmpty) params['status'] = status;
 
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-admin-reports')
-          .replace(queryParameters: params),
+      Uri.parse(
+        '$_baseUrl/forum-admin-reports',
+      ).replace(queryParameters: params),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取举报列表');
@@ -698,8 +683,7 @@ class ForumService {
     if (isBanned != null) params['is_banned'] = isBanned.toString();
 
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-admin-users')
-          .replace(queryParameters: params),
+      Uri.parse('$_baseUrl/forum-admin-users').replace(queryParameters: params),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取用户列表');
@@ -749,8 +733,9 @@ class ForumService {
     if (status != null && status.isNotEmpty) params['status'] = status;
 
     final res = await http.get(
-      Uri.parse('$_baseUrl/forum-admin-feedback')
-          .replace(queryParameters: params),
+      Uri.parse(
+        '$_baseUrl/forum-admin-feedback',
+      ).replace(queryParameters: params),
       headers: _authHeaders(),
     );
     _checkStatus(res, '获取反馈列表');
@@ -865,12 +850,13 @@ class PaginationInfo {
       totalPages: json['totalPages'] is int
           ? json['totalPages']
           : (json['total_pages'] is int
-              ? json['total_pages']
-              : int.tryParse(
-                      json['total_pages']?.toString() ??
-                          json['totalPages']?.toString() ??
-                          '0') ??
-                  0),
+                ? json['total_pages']
+                : int.tryParse(
+                        json['total_pages']?.toString() ??
+                            json['totalPages']?.toString() ??
+                            '0',
+                      ) ??
+                      0),
     );
   }
 }

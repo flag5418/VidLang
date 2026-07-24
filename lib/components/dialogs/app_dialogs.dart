@@ -690,7 +690,10 @@ class _AppSelectionDialogState<T> extends State<AppSelectionDialog<T>> {
                             backgroundColor: AppColors.primary,
                             textColor: AppColors.onPrimary,
                           ),
-                          onTap: () => widget.onSelected(_selected),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            widget.onSelected(_selected);
+                          },
                         ),
                       ),
                     ],

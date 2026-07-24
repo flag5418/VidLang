@@ -314,7 +314,10 @@ class _TimeRangePickerDialogState extends State<_TimeRangePickerDialog> {
                             backgroundColor: AppColors.primary,
                             textColor: AppColors.onPrimary,
                           ),
-                          onTap: () => widget.onSelected(_selectedValue),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            widget.onSelected(_selectedValue);
+                          },
                         ),
                       ),
                     ],

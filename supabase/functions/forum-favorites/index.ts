@@ -95,7 +95,7 @@ async function getMyFavorites(user: any, url: URL) {
       *,
       post:forum_posts(id, title, content, reply_count, like_count, favorite_count, is_deleted, created_at,
         tag:forum_tags(id, name, color),
-        author:user_profiles(id, raw_user_meta_data))
+        author:user_profiles!forum_posts_author_id_fkey(id, raw_user_meta_data))
     `, { count: 'exact' })
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })

@@ -60,7 +60,7 @@ async function handleGet(url: URL) {
     .from('forum_replies')
     .select(`
       *,
-      author:user_profiles(id, raw_user_meta_data)
+      author:user_profiles!forum_replies_author_id_fkey(id, raw_user_meta_data)
     `, { count: 'exact' })
     .eq('post_id', postId)
     .eq('is_deleted', false)

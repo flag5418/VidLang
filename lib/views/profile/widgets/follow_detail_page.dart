@@ -28,8 +28,7 @@ class FollowDetailPage extends StatefulWidget {
 class _FollowDetailPageState extends State<FollowDetailPage> {
   FollowMetrics? _metrics;
   bool _loading = true;
-
-  String _timeRange = 'all';
+  late String _timeRange;
 
   @override
   void initState() {
@@ -74,7 +73,10 @@ class _FollowDetailPageState extends State<FollowDetailPage> {
             currentValue: _timeRange,
             onSelected: (value) {
               if (_timeRange != value) {
-                setState(() => _timeRange = value);
+                setState(() {
+                  _timeRange = value;
+                  _loading = true;
+                });
                 _loadData();
               }
             },
@@ -224,7 +226,7 @@ class _FollowDetailPageState extends State<FollowDetailPage> {
                           children: [
                             if (count > 0)
                               Text(
-                                '$count',
+                                '$count次',
                                 style: TextStyle(fontSize: adaptive.Adaptive.sp(9), fontWeight: FontWeight.w600, color: colorScheme.primary),
                               ),
                             if (count > 0) SizedBox(height: adaptive.Adaptive.h(3)),
@@ -349,13 +351,14 @@ class _FollowDetailPageState extends State<FollowDetailPage> {
           final index = entry.key;
           final resourceCode = entry.value.key;
           final avgScore = entry.value.value;
-          return _resourceFollowItem(index + 1, resourceCode, avgScore, colorScheme);
+          final resourceName = _metrics?.resourceNames[resourceCode] ?? resourceCode;
+          return _resourceFollowItem(index + 1, resourceName, avgScore, colorScheme);
         }),
       ],
     );
   }
 
-  Widget _resourceFollowItem(int rank, String resourceCode, double avgScore, ColorScheme colorScheme) {
+  Widget _resourceFollowItem(int rank, String resourceName, double avgScore, ColorScheme colorScheme) {
     final scoreColor = avgScore >= 80
         ? const Color(0xFF30D158)
         : avgScore >= 60
@@ -405,7 +408,7 @@ class _FollowDetailPageState extends State<FollowDetailPage> {
               SizedBox(width: adaptive.Adaptive.w(12)),
               Expanded(
                 child: Text(
-                  resourceCode,
+                  resourceName,
                   style: TextStyle(fontSize: adaptive.Adaptive.sp(14), fontWeight: FontWeight.w500, color: colorScheme.onSurface),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

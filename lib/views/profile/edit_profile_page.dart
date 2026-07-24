@@ -14,7 +14,6 @@ import 'package:vidlang/services/app_keys_service.dart';
 import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/components/dialogs/app_dialogs.dart';
-import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/theme/theme.dart';
 
 
@@ -54,29 +53,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickAvatar() async {
-    String? selectedSource;
-
-    TDActionSheet(
+    // 使用 AppBottomSheetMenu 替代 TDActionSheet
+    // 原因：TDActionSheet 依赖 TDTheme 体系，项目未配置其暗色模式，
+    // 导致暗色下背景始终为白色；且原代码存在竞态条件（未 await 用户选择）。
+    // AppBottomSheetMenu 使用 context.colors.surface，主题自适应正确。
+    final result = await AppBottomSheetMenu.show(
       context,
-      description: '选择头像来源',
+      title: '选择头像来源',
       items: [
-        TDActionSheetItem(
-          label: '相册',
-          icon: Icon(AppIcons.photoLibrary, size: adaptive.Adaptive.sp(22)),
+        AppBottomSheetMenuItem(
+          text: '相册',
+          icon: AppIcons.photoLibrary,
         ),
-        TDActionSheetItem(
-          label: '拍照',
-          icon: Icon(AppIcons.cameraAlt, size: adaptive.Adaptive.sp(22)),
+        AppBottomSheetMenuItem(
+          text: '拍照',
+          icon: AppIcons.cameraAlt,
         ),
       ],
-      onSelected: (item, _) {
-        selectedSource = item.label == '相册' ? 'gallery' : 'camera';
-      },
-      visible: true,
     );
 
-    if (selectedSource == null) return;
-    final source = selectedSource == 'camera'
+    if (result == null || !mounted) return;
+
+    final source = result.text == '拍照'
         ? ImageSource.camera
         : ImageSource.gallery;
     try {

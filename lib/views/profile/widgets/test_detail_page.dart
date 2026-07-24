@@ -28,8 +28,7 @@ class TestDetailPage extends StatefulWidget {
 class _TestDetailPageState extends State<TestDetailPage> {
   TestMetrics? _metrics;
   bool _loading = true;
-
-  String _timeRange = 'all';
+  late String _timeRange;
 
   @override
   void initState() {
@@ -74,7 +73,10 @@ class _TestDetailPageState extends State<TestDetailPage> {
             currentValue: _timeRange,
             onSelected: (value) {
               if (_timeRange != value) {
-                setState(() => _timeRange = value);
+                setState(() {
+                  _timeRange = value;
+                  _loading = true;
+                });
                 _loadData();
               }
             },

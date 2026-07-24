@@ -6,9 +6,28 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+const ALLOWED_EXTENSIONS: Record<string, string> = {
+  'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'webp': 'image/webp',
+  'heic': 'image/heic', 'heif': 'image/heif',
+};
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const BUCKET = 'forum-images';
+
+function detectType(file: File): { mime: string; ext: string } | null {
+  // 先用 file.type
+  const raw = file.type?.toLowerCase() || '';
+  if (raw && Object.values(ALLOWED_EXTENSIONS).includes(raw)) {
+    return { mime: raw, ext: raw.split('/')[1] };
+  }
+  // Deno 不支持 HEIC MIME，回退到文件名扩展名检测
+  const name = file.name?.toLowerCase() || '';
+  const ext = name.split('.').pop() || '';
+  const mime = ALLOWED_EXTENSIONS[ext];
+  if (mime) return { mime, ext };
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -44,8 +63,9 @@ serve(async (req) => {
     }
 
     // 校验文件类型
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return Response.json({ error: 'Invalid file type, only jpg/png/webp allowed' }, { status: 400, headers: corsHeaders });
+    const detected = detectType(file);
+    if (!detected) {
+      return Response.json({ error: 'Invalid file type, only jpg/png/webp/heic/heif allowed' }, { status: 400, headers: corsHeaders });
     }
 
     // 校验文件大小
@@ -54,16 +74,15 @@ serve(async (req) => {
     }
 
     // 生成唯一文件名
-    const ext = file.type.split('/')[1];
     const uuid = crypto.randomUUID();
-    const filePath = `${user.id}/${uuid}.${ext}`;
+    const filePath = `${user.id}/${uuid}.${detected.ext}`;
 
     // 上传到 Storage
     const arrayBuffer = await file.arrayBuffer();
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
       .upload(filePath, arrayBuffer, {
-        contentType: file.type,
+        contentType: detected.mime,
         upsert: false,
       });
 
@@ -75,7 +94,7 @@ serve(async (req) => {
     return Response.json({
       url: publicUrl,
       path: filePath,
-      type: file.type,
+      type: detected.mime,
       size: file.size,
     }, { headers: corsHeaders });
 

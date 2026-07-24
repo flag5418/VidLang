@@ -59,6 +59,9 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
   double? _followAvgScore;
   double? _testAvgScore;
 
+  // 当日收藏单词数
+  int _todayWordCount = 0;
+
   // 时间段筛选
   String _timeRange = '30d';
 
@@ -75,6 +78,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         LearningStatsService.getCalendarData(_calendarMonth.year, _calendarMonth.month),
         LearningStatsService.getFollowMetrics(_timeRange),
         LearningStatsService.getTestMetrics(_timeRange),
+        LearningStatsService.getWordCountToday(),
       ]);
       if (!mounted) return;
       final followMetrics = results[2] as FollowMetrics;
@@ -84,6 +88,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
         _calendarData = results[1] as List<CalendarDayData>;
         _followAvgScore = followMetrics.totalCount > 0 ? followMetrics.avgScore : null;
         _testAvgScore = testMetrics.totalCount > 0 ? testMetrics.avgScore : null;
+        _todayWordCount = results[4] as int;
         _loading = false;
       });
       debugPrint('[LearningStats] 加载成功: overview=${_overview?.totalDays}天, calendar=${_calendarData.length}条');
@@ -383,12 +388,12 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
             SizedBox(width: adaptive.Adaptive.w(10)),
             _overviewCard(
               '跟读评分',
-              _followAvgScore != null ? _followAvgScore!.toStringAsFixed(1) : '详情',
-              _followAvgScore != null ? '分' : '',
+              _followAvgScore != null ? _followAvgScore!.toStringAsFixed(1) : '0.0',
+              '分',
               AppIcons.mic,
               colorScheme,
               valueColor: _followAvgScore != null ? const Color(0xFF30D158) : null,
-              onTap: () => _navigateToDetail(context, const FollowDetailPage()),
+              onTap: () => _navigateToDetail(context, FollowDetailPage(timeRange: _timeRange)),
             ),
           ],
         ),
@@ -397,21 +402,21 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
           children: [
             _overviewCard(
               '评测成绩',
-              _testAvgScore != null ? _testAvgScore!.toStringAsFixed(1) : '详情',
-              _testAvgScore != null ? '分' : '',
+              _testAvgScore != null ? _testAvgScore!.toStringAsFixed(1) : '0.0',
+              '分',
               AppIcons.rule,
               colorScheme,
               valueColor: _testAvgScore != null ? const Color(0xFFFFCC00) : null,
-              onTap: () => _navigateToDetail(context, const TestDetailPage()),
+              onTap: () => _navigateToDetail(context, TestDetailPage(timeRange: _timeRange)),
             ),
             SizedBox(width: adaptive.Adaptive.w(10)),
             _overviewCard(
               '单词收藏',
-              '${ov.learnedResources}',
+              '$_todayWordCount',
               '个',
               AppIcons.book,
               colorScheme,
-              onTap: () => _navigateToDetail(context, const WordDetailPage()),
+              onTap: () => _navigateToDetail(context, WordDetailPage(timeRange: _timeRange)),
             ),
           ],
         ),
@@ -553,6 +558,37 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
             // 允许查看过去12个月到未来3个月
             minDate: DateTime.now().subtract(const Duration(days: 365)).millisecondsSinceEpoch,
             maxDate: DateTime.now().add(const Duration(days: 90)).millisecondsSinceEpoch,
+            // 主题自适应样式（修复暗黑模式下日历明亮问题）
+            style: TDCalendarStyle(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(adaptive.Adaptive.r(14)),
+                ),
+              ),
+              weekdayStyle: TextStyle(
+                fontSize: adaptive.Adaptive.sp(12),
+                color: colorScheme.onSurfaceVariant,
+              ),
+              monthTitleStyle: TextStyle(
+                fontSize: adaptive.Adaptive.sp(14),
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            // 自定义月份标题（确保暗黑模式颜色正确）
+            monthTitleBuilder: (context, monthDate) {
+              return Center(
+                child: Text(
+                  '${monthDate.year}年${monthDate.month}月',
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(14),
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              );
+            },
             onMonthChange: (date) {
               // 避免与外部切换重复刷新
               if (date.year != _calendarMonth.year || date.month != _calendarMonth.month) {

@@ -1,8 +1,8 @@
 # VidLang 学习统计分析设计文档
 
-> **版本**: V2.1 | **日期**: 2026-07-22
+> **版本**: V2.2 | **日期**: 2026-07-24
 > **状态**: 当前有效
-> **设计范围**: 学习统计首页 + 二级详情页 + 荣誉系统 + AI 分析
+> **设计范围**: 学习统计首页 + 二级详情页 + 荣誉系统 + AI 分析 + 统计指标数据源对照
 
 ---
 
@@ -489,7 +489,65 @@ Future<LearningHabitAnalysis> analyzeLearningHabits(String timeRange);
 
 ---
 
-## 十一、变更记录
+## 十一、统计指标数据源对照表（V2.2 新增）
+
+> 本节记录所有统计指标的精确定义、数据来源、计算方法和用户隔离机制。
+> 所有使用 `DatabaseService.findByCondition()` / `count()` 的查询**自动添加 `user_code` 过滤**；
+> 使用 `DatabaseService.rawQuery()` 的查询需**手动添加 `user_code` 过滤**。
+
+### 11.1 首页顶部统计（HomePage → `_buildBrandStatsCard`）
+
+| # | UI标签 | 字段 | 调用方法 | 数据表 | 计算逻辑 | 时间范围 | 用户隔离 |
+|---|--------|------|---------|--------|---------|---------|----------|
+| 1 | 🔥 连续 | `streakDays` | `calculateStreakDays()` | `study_record` | `StudyRecord.date` 去重日期，从今天/昨天往前数连续天数 | 全部记录 | ✅ findByCondition 自动 |
+| 2 | 📱 资源 | `resourceCount` | `getResourceCountToday()` | `study_record` | 今日记录中 `resourceType_resourceCode` 去重计数 | 今日 `[00:00, 次日00:00)` | ✅ findByCondition 自动 |
+| 3 | 📖 单词 | `wordCount` | `getWordCountToday()` | `word_book` | 今日 `WordBook.created_at` 计数 | 今日 `[00:00, 次日00:00)` | ✅ count 自动 |
+| 4 | ⏰ 时长 | `todayDuration` | `getTodayDuration()` | `study_record` | 今日 `StudyRecord.duration` 累加（秒） | 今日 `[00:00, 次日00:00)` | ✅ findByCondition 自动 |
+
+**日期范围规范**：统一使用 `[今天00:00:00, 明天00:00:00)` 半开区间，以 `start_time` 字段过滤。
+
+### 11.2 个人页面快速统计（ProfilePage → `_buildProfileHeader`）
+
+| # | UI标签 | 字段 | 调用方法 | 数据表 | 计算逻辑 | 时间范围 | 用户隔离 |
+|---|--------|------|---------|--------|---------|---------|----------|
+| 1 | 📅 天数 | `totalDays` | `_getLearningDays()` | `study_record` | `StudyRecord.date` 去重日期计数 | 累计（全部） | ✅ findByCondition 自动 |
+| 2 | 🎬 视频 | `videoTotal` | `_getSummaryStats()` rawQuery | `video_folder` | `COUNT(*) WHERE folder_type='video'` | 累计（含软删除） | ✅ rawQuery 手动过滤 |
+| 3 | 🎵 音频 | `audioTotal` | `_getSummaryStats()` rawQuery | `video_folder` | `COUNT(*) WHERE folder_type='music'` | 累计（含软删除） | ✅ rawQuery 手动过滤 |
+| 4 | 📄 文章 | `articleTotal` | `_getSummaryStats()` rawQuery | `video_folder` | `COUNT(*) WHERE folder_type='article'` | 累计（含软删除） | ✅ rawQuery 手动过滤 |
+
+**统计口径**：个人页面统计全部为**累计数据**——累计学习天数、累计导入资源数（含已软删除的）。
+
+### 11.3 学习统计详情页核心指标（LearningStatsPage）
+
+| # | UI标签 | 数据来源 | 计算逻辑 | 时间范围 | 用户隔离 |
+|---|--------|---------|---------|---------|----------|
+| 1 | 总学习时长 | `DetailOverview.totalDurationSeconds` | `StudyRecord.duration` 累加 | 累计（全部） | ✅ findByCondition 自动 |
+| 2 | 跟读评分 | `FollowMetrics.avgScore` | `RecordingRecord.overallScore` 平均值 | 时间段筛选 | ✅ findByCondition 自动 |
+| 3 | 评测成绩 | `TestMetrics.avgScore` | `TestSession.score` 平均值 | 时间段筛选 | ✅ findByCondition 自动 |
+| 4 | 单词收藏 | `getWordCountToday()` | 今日 `WordBook` 计数 | 今日 | ✅ count 自动 |
+
+### 11.4 用户隔离机制
+
+| 查询方式 | 自动过滤 user_code | 说明 |
+|----------|-------------------|------|
+| `DatabaseService.findByCondition()` | ✅ 是 | 除 `user` 表外自动添加 `AND user_code = ?` |
+| `DatabaseService.count()` | ✅ 是 | 同上 |
+| `DatabaseService.findAll()` | ✅ 是 | 同上 |
+| `DatabaseService.rawQuery()` | ❌ 否 | 需手动添加 `AND user_code = ?` |
+| `DatabaseService.findById()` | ❌ 否 | 按主键查询，不涉及用户隔离 |
+
+---
+
+## 十二、变更记录
+
+### V2.2 (2026-07-24)
+- **修复**：`_getSummaryStats()` 中 `totalDays` 硬编码为 0 的 Bug → 改为调用 `_getLearningDays()` 计算累计学习天数
+- **修复**：`_getSummaryStats()` 使用 `rawQuery` 未过滤 `user_code` → 手动添加用户隔离条件
+- **修复**：`_getSummaryStats()` 视频/音频/文章计数仅查 `is_deleted=0` → 移除过滤，统计累计导入数（含软删除）
+- **修复**：`getTodayDuration()` 日期范围 `T23:59:59` 配合 `<` 遗漏当天最后一条记录 → 改为次日 `T00:00:00` 半开区间
+- **修复**：`getTodayDuration()` 和 `getResourceCountToday()` 使用 `date` 字段过滤 → 改为 `start_time` 字段（与实例方法一致）
+- **修复**：学习统计详情页"单词收藏"卡片显示 `learnedResources`（已学习资源数）→ 改为当日收藏单词数 `getWordCountToday()`
+- **新增**：第十一节「统计指标数据源对照表」，完整记录所有统计指标的定义、数据来源、计算方法和用户隔离机制
 
 ### V2.1 (2026-07-22)
 - **调整**：荣誉阈值校准（学习时长王 Lv5 从 5000h→2000h，视频/音频/文章达人 Lv5 从 500h→300h，学习坚持者 Lv5 从 1000天→730天）
@@ -505,11 +563,11 @@ Future<LearningHabitAnalysis> analyzeLearningHabits(String timeRange);
 
 ---
 
-## 十二、需要手动处理的逻辑
+## 十三、需要手动处理的逻辑
 
 1. **云端荣誉配置表**：需要在 Supabase 创建 `badge_configs` 表或 Edge Function
 2. **AI 对话次数统计**：当前 `conversation_session` 表是否有学习时长/次数记录？
-3. **单词收藏"当天新增"**：需要按 `created_at` 日期分组查询
+3. **单词收藏"当天新增"**：✅ 已实现（`getWordCountToday()` 按 `created_at` 查询今日新增）
 4. **日历数据性能**：整月数据建议一次性查询，避免 30 次单天查询
 5. **环比计算**：需要缓存上个周期的数据，或每次查询两个周期
 6. **资源标题解析**：二级页面中资源排行目前显示 resourceCode，需接入 `_resolveResourceTitle` 获取真实标题
