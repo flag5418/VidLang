@@ -26,7 +26,7 @@ serve(async (req) => {
       if (user) userId = user.id;
     }
 
-    const { s, error } = await supabase
+    const { data: tags, error } = await supabase
       .from('forum_tags')
       .select('*')
       .eq('is_active', true)
