@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/components/time_range_selector.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -155,17 +156,10 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
+      appBar: AppNavBar(
+        title: '学习统计',
         backgroundColor: colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(AppIcons.arrowBackIos, color: colorScheme.onSurface, size: adaptive.Adaptive.icon(20)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '学习统计',
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(17), fontWeight: FontWeight.w600, color: colorScheme.onSurface),
-        ),
+        foregroundColor: colorScheme.onSurface,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -363,14 +357,17 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
           children: [
             _sectionTitle('核心指标', AppIcons.dashboard, colorScheme),
             // 时间段筛选下拉
-            TimeRangeSelector(
-              currentValue: _timeRange,
-              onSelected: (value) {
-                if (_timeRange != value) {
-                  setState(() => _timeRange = value);
-                  _reloadMetrics();
-                }
-              },
+            Padding(
+              padding: EdgeInsets.only(right: adaptive.Adaptive.w(16)),
+              child: TimeRangeSelector(
+                currentValue: _timeRange,
+                onSelected: (value) {
+                  if (_timeRange != value) {
+                    setState(() => _timeRange = value);
+                    _reloadMetrics();
+                  }
+                },
+              ),
             ),
           ],
         ),
@@ -553,6 +550,7 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
             firstDayOfWeek: 1,
             height: adaptive.Adaptive.h(380),
             cellHeight: adaptive.Adaptive.h(50),
+            monthTitleHeight: adaptive.Adaptive.h(32), // 增加月份标题高度，防止文字被截断
             value: [DateTime.now().millisecondsSinceEpoch],
             type: CalendarType.single,
             // 允许查看过去12个月到未来3个月
@@ -600,12 +598,18 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
               final dateStr = '${tdate.date.year}-${tdate.date.month.toString().padLeft(2, '0')}-${tdate.date.day.toString().padLeft(2, '0')}';
               final dayData = dayMap[dateStr];
               final hasData = dayData != null && (dayData.durationSeconds > 0 || dayData.followCount > 0 || dayData.testCount > 0 || dayData.wordCount > 0);
+              final isSelected = selectType == DateSelectType.selected;
 
                       return GestureDetector(
                         onTap: hasData ? () => _showDayDetail(dateStr, dayData, colorScheme) : null,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: hasData ? colorScheme.primary.withValues(alpha: 0.1) : null,
+                    // 当天选中状态：主色背景 + 白色文字（浅色/深色模式都清晰）
+                    color: isSelected
+                        ? colorScheme.primary
+                        : hasData
+                            ? colorScheme.primary.withValues(alpha: 0.1)
+                            : null,
                     borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
                   ),
                   child: Column(
@@ -615,9 +619,10 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                         '${tdate.date.day}',
                         style: TextStyle(
                           fontSize: adaptive.Adaptive.sp(14),
-                          fontWeight: FontWeight.w500,
-                          color: selectType == DateSelectType.selected
-                              ? colorScheme.primary
+                          fontWeight: FontWeight.w600,
+                          // 选中时用 onPrimary（白底蓝字或蓝底白字，自适应）
+                          color: isSelected
+                              ? colorScheme.onPrimary
                               : hasData
                                   ? colorScheme.primary
                                   : colorScheme.onSurfaceVariant,
@@ -629,13 +634,13 @@ class _LearningStatsPageState extends State<LearningStatsPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (dayData.durationSeconds > 0)
-                              _calendarDot(colorScheme.primary),
+                              _calendarDot(isSelected ? Colors.white : colorScheme.primary),
                             if (dayData.followCount > 0)
-                              _calendarDot(const Color(0xFF30D158)),
+                              _calendarDot(isSelected ? Colors.white : const Color(0xFF30D158)),
                             if (dayData.testCount > 0)
-                              _calendarDot(const Color(0xFFFFCC00)),
+                              _calendarDot(isSelected ? const Color(0xFFFFE066) : const Color(0xFFFFCC00)),
                             if (dayData.wordCount > 0)
-                              _calendarDot(const Color(0xFFFF3B30)),
+                              _calendarDot(isSelected ? const Color(0xFFFF9A9A) : const Color(0xFFFF3B30)),
                           ],
                         ),
                       ],

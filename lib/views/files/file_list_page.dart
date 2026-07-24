@@ -84,17 +84,10 @@ class _FileListPageState extends ConsumerState<FileListPage> {
 
     return Scaffold(
       backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
-      appBar: AppBar(
-        title: Text(
-          '资源',
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(18),
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-          ),
-        ),
-        elevation: 0,
+      appBar: AppNavBar(
+        title: '资源',
         backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+        foregroundColor: colorScheme.onSurface,
         scrolledUnderElevation: 0.5,
         actions: [
           IconButton(

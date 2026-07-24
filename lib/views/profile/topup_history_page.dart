@@ -107,12 +107,7 @@ class _TopupHistoryPageState extends State<TopupHistoryPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          '充值明细',
-          style: TextStyle(fontSize: Adaptive.sp(16)),
-        ),
-      ),
+      appBar: AppNavBar(title: '充值明细'),
       body: FutureBuilder<List<TopupRecord>>(
         future: _future,
         builder: (context, snapshot) {

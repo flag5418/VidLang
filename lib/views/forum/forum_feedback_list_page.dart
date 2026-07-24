@@ -82,12 +82,12 @@ class _ForumFeedbackListPageState extends ConsumerState<ForumFeedbackListPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('我的反馈'),
-        backgroundColor: colors.surface,
-        foregroundColor: colors.textPrimary,
-        elevation: 1,
-      ),
+appBar: AppNavBar(
+  title: '我的反馈',
+  backgroundColor: colors.surface,
+  foregroundColor: colors.textPrimary,
+  elevation: 1,
+),
       body: _feedbacks.isEmpty && _isLoading
           ? const Center(child: LoadingWidget())
           : _feedbacks.isEmpty

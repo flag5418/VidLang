@@ -8,6 +8,7 @@ import 'package:vidlang/models/forum/forum_feedback.dart';
 import 'package:vidlang/models/forum/forum_follow.dart';
 import 'package:vidlang/models/forum/forum_tag_follow.dart';
 import 'package:vidlang/services/forum/forum_service.dart';
+import 'package:vidlang/services/forum/forum_tag_follow_local_service.dart';
 
 // ═══════════════════════════════════════════════
 // 基础 Provider
@@ -23,17 +24,48 @@ final forumServiceProvider = Provider<ForumService>((ref) {
 });
 
 // ═══════════════════════════════════════════════
-// 标签
+// 标签（isFollowed 由本地 SQLite 决定）
 // ═══════════════════════════════════════════════
 
+/// 标签列表 Provider — 从 Supabase 获取标签基础信息，从本地 DB 获取关注状态
+///
+/// 初始化策略：
+/// - 首次进入时，如果本地无数据 → 默认全部关注（写入本地）
+/// - 如果写入失败（表不存在等），使用内存态兜底（仍显示全部已关注）
 final forumTagsProvider = FutureProvider<List<ForumTag>>((ref) async {
   final service = ref.watch(forumServiceProvider);
-  return service.getTags();
+  // 1. 从远程获取所有活跃标签
+  final tags = await service.getTags();
+
+  if (tags.isEmpty) return [];
+
+  // 2. 初始化本地数据（首次进入时默认全量关注）
+  final localService = ForumTagFollowLocalService.instance;
+  await localService.initializeIfNeeded(tags);
+
+  // 3. 获取本地已关注的标签 ID 集合
+  final followedIds = await localService.getFollowedTagIds();
+
+  // 4. 兜底逻辑：如果本地读取为空（初始化写入可能失败），默认全部关注
+  final effectiveFollowedIds = followedIds.isNotEmpty
+      ? followedIds
+      : tags.map((t) => t.id).toSet();
+
+  // 5. 合并：设置每个标签的 isFollowed 状态
+  return tags.map((tag) => tag.copyWith(
+    isFollowed: effectiveFollowedIds.contains(tag.id),
+  )).toList();
 });
 
+/// 远程标签关注 Provider — 仅用于与 Supabase 同步场景，一般 UI 不直接使用
 final forumTagFollowsProvider = FutureProvider<List<ForumTagFollow>>((ref) async {
   final service = ref.watch(forumServiceProvider);
   return service.getMyTagFollows();
+});
+
+/// 本地标签关注服务 Provider（单例）
+final forumTagFollowLocalServiceProvider = Provider<ForumTagFollowLocalService>((ref) {
+  return ForumTagFollowLocalService.instance;
 });
 
 // ═══════════════════════════════════════════════

@@ -10,6 +10,7 @@ import 'package:vidlang/models/article.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/services/database_service.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/views/player/unified/unified_player_page.dart';
@@ -380,18 +381,10 @@ class _LearningHistoryPageState extends State<LearningHistoryPage> {
     final colors = context.colors;
     return Scaffold(
       backgroundColor: colors.surface,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: adaptive.Adaptive.sp(18)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '学习记录',
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(17),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+      appBar: AppNavBar(
+        title: '学习记录',
+        backgroundColor: colors.surface,
+        foregroundColor: colors.onSurface,
         centerTitle: true,
       ),
       body: Column(

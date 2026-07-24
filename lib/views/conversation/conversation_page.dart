@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/models/conversation_message.dart';
 import 'package:vidlang/views/conversation/providers/conversation_provider.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/theme/theme.dart';
 
 import 'package:vidlang/views/conversation/conversation_history_page.dart';
@@ -129,27 +130,10 @@ class _ConversationPageState extends ConsumerState<ConversationPage>
     AppColorsData colors,
     AppTextStylesData textStyles,
   ) {
-    return AppBar(
+    return AppNavBar(
+      title: widget.sourceTitle ?? 'AI Conversation',
       backgroundColor: colors.background,
-      elevation: 0,
-      leading: IconButton(
-        icon: Icon(
-          AppIcons.arrowBackIosNew,
-          color: colors.textSecondary,
-          size: adaptive.Adaptive.icon(20),
-        ),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Text(
-        widget.sourceTitle ?? 'AI Conversation',
-        style: TextStyle(
-          color: colors.textPrimary,
-          fontSize: adaptive.Adaptive.sp(18),
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      foregroundColor: colors.textPrimary,
       actions: [
         _buildConversationListButton(convState, colors),
         SizedBox(width: adaptive.Adaptive.w(8)),

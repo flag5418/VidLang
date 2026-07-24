@@ -73,8 +73,8 @@ class _ForumNotificationsPageState
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('通知'),
+      appBar: AppNavBar(
+        title: '通知',
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 1,

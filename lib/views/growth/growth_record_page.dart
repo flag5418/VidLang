@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vidlang/views/growth/providers/growth_provider.dart';
 import 'package:vidlang/views/growth/growth_detail_page.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/theme/theme.dart';
 
 /// 成长记录主页 — 年→月→日→评测 四层结构 + 日历热力图 + 能力雷达图
@@ -28,15 +29,15 @@ class _GrowthRecordPageState extends ConsumerState<GrowthRecordPage> {
     final summary = state.summary;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('成长记录'),
-        actions: [
-          IconButton(
-            icon: const Icon(AppIcons.refresh),
-            onPressed: () => ref.read(growthProvider.notifier).loadGrowthData(),
-          ),
-        ],
-      ),
+appBar: AppNavBar(
+  title: '成长记录',
+  actions: [
+    IconButton(
+      icon: const Icon(AppIcons.refresh),
+      onPressed: () => ref.read(growthProvider.notifier).loadGrowthData(),
+    ),
+  ],
+),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : summary == null

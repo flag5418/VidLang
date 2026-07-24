@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:vidlang/models/billing_summary.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/services/billing/billing_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -88,12 +89,7 @@ class _BillingPageState extends State<BillingPage> {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          '消费明细',
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
-        ),
-      ),
+      appBar: AppNavBar(title: '消费明细'),
       body: FutureBuilder<_BillingData>(
         future: _dataFuture,
         builder: (context, snapshot) {
@@ -693,12 +689,7 @@ class _BillingCategoryDetailPageState extends State<BillingCategoryDetailPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${widget.categoryName} · ${widget.timeMode.label}',
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
-        ),
-      ),
+appBar: AppNavBar(title: '${widget.categoryName} · ${widget.timeMode.label}'),
       body: FutureBuilder<BillingCategoryDetailResponse>(
         future: _future,
         builder: (context, snapshot) {
@@ -967,12 +958,7 @@ class BillingSourceGroupDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '$sourceTypeZh · ${timeMode.label}',
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
-        ),
-      ),
+appBar: AppNavBar(title: '$sourceTypeZh · ${timeMode.label}'),
       body: ListView(
         padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         children: [
@@ -1135,12 +1121,7 @@ class _BillingSourceDetailPageState extends State<BillingSourceDetailPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.sourceTitle,
-          style: TextStyle(fontSize: adaptive.Adaptive.sp(16)),
-        ),
-      ),
+appBar: AppNavBar(title: widget.sourceTitle),
       body: FutureBuilder<BillingSourceDetailResponse>(
         future: _future,
         builder: (context, snapshot) {

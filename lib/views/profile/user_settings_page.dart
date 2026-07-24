@@ -52,25 +52,10 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
 
     return Scaffold(
       backgroundColor: cs.surface,
-      appBar: AppBar(
+      appBar: AppNavBar(
+        title: '子账号设置',
         backgroundColor: cs.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            AppIcons.arrowBackIos,
-            color: cs.onSurface,
-            size: adaptive.Adaptive.icon(20),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '子账号设置',
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(17),
-            fontWeight: FontWeight.w600,
-            color: cs.onSurface,
-          ),
-        ),
+        foregroundColor: cs.onSurface,
       ),
       body: Column(
         children: [

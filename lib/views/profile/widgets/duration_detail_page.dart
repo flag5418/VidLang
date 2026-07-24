@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/components/time_range_selector.dart';
 import 'package:vidlang/services/learning/learning_stats_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -59,37 +60,25 @@ class _DurationDetailPageState extends State<DurationDetailPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
+      appBar: AppNavBar(
+        title: '学习时长详情',
         backgroundColor: colorScheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            AppIcons.arrowBackIos,
-            color: colorScheme.onSurface,
-            size: adaptive.Adaptive.icon(20),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '学习时长详情',
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(17),
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-          ),
-        ),
+        foregroundColor: colorScheme.onSurface,
         actions: [
-          TimeRangeSelector(
-            currentValue: _timeRange,
-            onSelected: (value) {
-              if (_timeRange != value) {
-                setState(() {
-                  _timeRange = value;
-                  _loading = true;
-                });
-                _loadData();
-              }
-            },
+          Padding(
+            padding: EdgeInsets.only(right: adaptive.Adaptive.w(16)),
+            child: TimeRangeSelector(
+              currentValue: _timeRange,
+              onSelected: (value) {
+                if (_timeRange != value) {
+                  setState(() {
+                    _timeRange = value;
+                    _loading = true;
+                  });
+                  _loadData();
+                }
+              },
+            ),
           ),
         ],
       ),

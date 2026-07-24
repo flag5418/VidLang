@@ -7,15 +7,15 @@
 /// 4. 设置列表
 /// 5. 底部固定（退出登录）
 library;
-import 'dart:io';import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
+import 'dart:io';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vidlang/services/app_keys_service.dart';
-import 'package:vidlang/services/billing/billing_service.dart';
 import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/device_type.dart';
 import 'package:vidlang/models/user.dart';
@@ -39,7 +39,6 @@ import 'package:vidlang/views/profile/user_settings_page.dart';
 import 'package:vidlang/views/forum/forum_home_page.dart';
 import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
-
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
 
@@ -60,23 +59,30 @@ class _SettingItem {
   });
 }
 
+/// 功能项数据模型（用于模式卡片中的功能标签）
+class _FeatureItem {
+  final IconData icon;
+  final String label;
+  _FeatureItem({required this.icon, required this.label});
+}
+
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _isSupabaseUser = false;
   User? _currentUser;
   SummaryStats _summaryStats = const SummaryStats();
+  int _companionshipDays = 0; // 陪伴天数（从注册日计算）
   int _wifiPort = 9999;
   String _ttsCacheLabel = '加载中...';
-  double _todayCost = 0;
 
   @override
   void initState() {
     super.initState();
     _checkUser();
     _loadSummaryStats();
+    _loadCompanionshipDays();
     _loadWifiPort();
     _loadTtsCacheInfo();
-    _refreshBalance(); // 进入页面时刷新最新余额
-    _loadTodayCost(); // 加载今日消费
+_refreshBalance(); // 进入页面时刷新最新余额
   }
 
   Future<void> _checkUser() async {
@@ -222,13 +228,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   // ═══════════════════════════════════════════════
 
   Widget _buildProfileHeader(ColorScheme colorScheme, Brightness brightness) {
-    final displayName = _currentUser?.nickname.isNotEmpty == true
-        ? _currentUser!.nickname
-        : (_currentUser?.username ?? '未登录');
-    final avatarPath = _currentUser?.avatar;
-    final daysLabel = _summaryStats.totalDays > 0
-        ? '已坚持学习 ${_summaryStats.totalDays} 天'
-        : '开始学习之旅';
+final displayName = _currentUser?.nickname.isNotEmpty == true
+    ? _currentUser!.nickname
+    : (_currentUser?.username ?? '未登录');
+final avatarPath = _currentUser?.avatar;
+// 陪伴天数：从注册日计算，和学习统计口径不同
+final companionshipLabel = _companionshipDays > 0
+    ? '已陪伴您 $_companionshipDays 天'
+    : '欢迎加入 VidLang';
 
     return Container(
       width: double.infinity,
@@ -300,23 +307,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: adaptive.Adaptive.h(6)),
-                    // 学习天数 — 简洁文字，不用红色标签
-                    Row(
-                      children: [
-                        Icon(
-                          AppIcons.schedule,
-                          size: adaptive.Adaptive.sp(14),
-                          color: colorScheme.primary.withValues(alpha: 0.7),
-                        ),
-                        SizedBox(width: adaptive.Adaptive.w(4)),
-                        Text(
-                          daysLabel,
-                          style: TextStyle(
-                            fontSize: adaptive.Adaptive.sp(13),
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                    // 陪伴天数 — 从注册日计算，无图标，和昵称左对齐
+                    Text(
+                      companionshipLabel,
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(13),
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -472,51 +469,398 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  // ==================== 模式切换 ====================
+  // ==================== 模式切换（iOS / Android 差异化） ====================
 
   Widget _buildModeSwitch(ColorScheme colorScheme, SubscriptionState subState) {
+    if (subState.isIOS) {
+      return _buildIOSModeCard(colorScheme, subState);
+    } else {
+      return _buildAndroidModeCard(colorScheme, subState);
+    }
+  }
+
+  /// iOS 模式区域：横向双卡片（免费 | 收费 并排）
+  Widget _buildIOSModeCard(ColorScheme colorScheme, SubscriptionState subState) {
     final isPremium = subState.mode == SubscriptionMode.premium;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 左卡片：免费模式
+          Expanded(
+            child: _buildFreeModeCard(colorScheme, !isPremium, onTap: () async {
+              if (isPremium) {
+                await ref.read(subscriptionProvider.notifier).setMode(SubscriptionMode.free);
+              }
+            }),
+          ),
+          SizedBox(width: adaptive.Adaptive.w(12)),
+          // 右卡片：收费模式
+          Expanded(
+            child: _buildPremiumModeCard(colorScheme, subState, isPremium, onTap: () async {
+              if (!isPremium) {
+                await ref.read(subscriptionProvider.notifier).setMode(SubscriptionMode.premium);
+              }
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 免费模式卡片（左侧）— 带功能说明的丰满版
+  /// 
+  /// 与右侧收费卡片保持等高：通过 IntrinsicHeight + Expanded 布局实现
+  Widget _buildFreeModeCard(ColorScheme colorScheme, bool isActive, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.all(AppSpacing.space5),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: isActive
+                ? colorScheme.primary.withValues(alpha: 0.6)
+                : colorScheme.outlineVariant.withValues(alpha: 0.3),
+            width: isActive ? 1.5 : 1,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.08),
+                    blurRadius: adaptive.Adaptive.w(8),
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 标题行 + 选择圆圈
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '免费模式',
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(16),
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? colorScheme.primary : colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: adaptive.Adaptive.w(24),
+                  height: adaptive.Adaptive.w(24),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive ? colorScheme.primary : Colors.transparent,
+                    border: Border.all(
+                      color: isActive ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                  ),
+                  child: isActive
+                      ? Icon(AppIcons.check, size: adaptive.Adaptive.sp(14), color: Colors.white)
+                      : null,
+                ),
+              ],
+            ),
+
+            SizedBox(height: adaptive.Adaptive.h(10)),
+
+            // ✅ 可用功能（基础能力）
+            _buildFeatureTag(context, Icons.menu_book, '简单释义', true),
+            SizedBox(height: adaptive.Adaptive.h(5)),
+            _buildFeatureTag(context, Icons.record_voice_over, '原生发音', true),
+            SizedBox(height: adaptive.Adaptive.h(5)),
+            _buildFeatureTag(context, Icons.mic_none, '语音识别', true),
+
+            SizedBox(height: adaptive.Adaptive.h(12)),
+
+            // 分割线
+            Container(
+              height: 1,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+            ),
+            SizedBox(height: adaptive.Adaptive.h(10)),
+
+            // ❌ 不可用功能（AI 能力）
+            _buildFeatureTag(context, Icons.translate, 'AI 翻译', false),
+            SizedBox(height: adaptive.Adaptive.h(5)),
+            _buildFeatureTag(context, Icons.chat_bubble_outline, 'AI 对话', false),
+            SizedBox(height: adaptive.Adaptive.h(5)),
+            _buildFeatureTag(context, Icons.assessment_outlined, 'AI 评测', false),
+
+            // 底部填充，与右侧卡片对齐
+            const Spacer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建单个功能标签（✅ 可用 / ❌ 不可用）
+  Widget _buildFeatureTag(BuildContext context, IconData icon, String label, bool available) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(
+          available ? Icons.check_circle_outline : Icons.cancel_outlined,
+          size: adaptive.Adaptive.sp(15),
+          color: available
+              ? colorScheme.primary.withValues(alpha: 0.7)
+              : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+        ),
+        SizedBox(width: adaptive.Adaptive.w(6)),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(12.5),
+              color: available
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 收费模式卡片（右侧）— 带余额和充值
+  Widget _buildPremiumModeCard(ColorScheme colorScheme, SubscriptionState subState, bool isActive, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.all(AppSpacing.space5),
+        decoration: BoxDecoration(
+          color: isActive ? colorScheme.primary.withValues(alpha: 0.05) : colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: isActive
+                ? colorScheme.primary.withValues(alpha: 0.5)
+                : colorScheme.outlineVariant.withValues(alpha: 0.2),
+            width: isActive ? 1.5 : 1,
+          ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.08),
+                    blurRadius: adaptive.Adaptive.w(12),
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 标题行 + 选择圆圈
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '收费模式',
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(16),
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? colorScheme.primary : colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                // 选择指示器
+                Container(
+                  width: adaptive.Adaptive.w(24),
+                  height: adaptive.Adaptive.w(24),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive ? colorScheme.primary : Colors.transparent,
+                    border: Border.all(
+                      color: isActive ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
+                  ),
+                  child: isActive
+                      ? Icon(
+                          AppIcons.check,
+                          size: adaptive.Adaptive.sp(14),
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+              ],
+            ),
+
+            SizedBox(height: adaptive.Adaptive.h(12)),
+
+            // 金额大字
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '¥',
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(20),
+                    fontWeight: FontWeight.w700,
+                    color: isActive ? colorScheme.primary : colorScheme.onSurface,
+                  ),
+                ),
+                SizedBox(width: adaptive.Adaptive.w(2)),
+                Text(
+                  subState.balance.toStringAsFixed(2),
+                  style: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(28),
+                    fontWeight: FontWeight.w800,
+                    color: isActive ? colorScheme.primary : colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: adaptive.Adaptive.h(4)),
+            Text(
+              '当前余额',
+              style: TextStyle(
+                fontSize: adaptive.Adaptive.sp(12),
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+
+            SizedBox(height: adaptive.Adaptive.h(14)),
+
+            // 今日消费行
+            GestureDetector(
+              onTap: _navigateToBillingPage,
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: adaptive.Adaptive.h(8)),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '今日消费',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(14),
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '¥0.00',
+                          style: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(14),
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(width: adaptive.Adaptive.w(2)),
+                        Icon(
+                          AppIcons.chevronRight,
+                          size: adaptive.Adaptive.sp(16),
+                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(height: adaptive.Adaptive.h(14)),
+
+            // 充值按钮
+            SizedBox(
+              width: double.infinity,
+              height: adaptive.Adaptive.h(44),
+              child: FilledButton(
+                onPressed: _navigateToTopupPage,
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(adaptive.Adaptive.r(10)),
+                  ),
+                  textStyle: TextStyle(
+                    fontSize: adaptive.Adaptive.sp(15),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: const Text('立即充值'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Android 模式卡片：自然展示为收费产品，无切换开关
+  Widget _buildAndroidModeCard(ColorScheme colorScheme, SubscriptionState subState) {
+    final balance = subState.balance;
 
     return Container(
       padding: EdgeInsets.all(AppSpacing.space5),
       decoration: BoxDecoration(
-        color: isPremium
-            ? AppColors.premium.withValues(alpha: 0.08)
-            : colorScheme.primary.withValues(alpha: 0.06),
+        gradient: LinearGradient(
+          colors: [
+            colorScheme.primary.withValues(alpha: 0.06),
+            colorScheme.primary.withValues(alpha: 0.02),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color: isPremium
-              ? AppColors.premium.withValues(alpha: 0.25)
-              : colorScheme.primary.withValues(alpha: 0.15),
+          color: colorScheme.primary.withValues(alpha: 0.12),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.05),
+            blurRadius: adaptive.Adaptive.w(12),
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 标题行
           Row(
             children: [
               Icon(
-                isPremium ? AppIcons.workspacePremium : AppIcons.person,
-                color: isPremium ? AppColors.premium : colorScheme.primary,
+                AppIcons.workspacePremium,
+                color: colorScheme.primary,
                 size: adaptive.Adaptive.w(22),
               ),
-              SizedBox(width: adaptive.Adaptive.w(12)),
+              SizedBox(width: adaptive.Adaptive.w(10)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isPremium ? '收费模式' : '免费模式',
+                      'VidLang Pro',
                       style: TextStyle(
-                        fontSize: adaptive.Adaptive.sp(15),
-                        fontWeight: FontWeight.w600,
+                        fontSize: adaptive.Adaptive.sp(16),
+                        fontWeight: FontWeight.w700,
                         color: colorScheme.onSurface,
                       ),
                     ),
                     SizedBox(height: adaptive.Adaptive.h(2)),
                     Text(
-                      isPremium
-                          ? '余额：¥${subState.balance.toStringAsFixed(2)}'
-                          : '使用基础功能，不产生费用',
+                      'AI 驱动的语言学习助手',
                       style: TextStyle(
                         fontSize: adaptive.Adaptive.sp(12),
                         color: colorScheme.onSurfaceVariant,
@@ -525,133 +869,143 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ],
                 ),
               ),
-              // Toggle switch（仅 iOS 可切换，Android 强制 premium 不显示开关）
-              if (subState.isIOS)
-                GestureDetector(
-                  onTap: () async {
-                    await ref
-                        .read(subscriptionProvider.notifier)
-                        .setMode(
-                          isPremium
-                              ? SubscriptionMode.free
-                              : SubscriptionMode.premium,
-                        );
-                  },
-                child: Container(
-                  width: adaptive.Adaptive.w(50),
-                  height: adaptive.Adaptive.h(28),
-                  padding: EdgeInsets.all(adaptive.Adaptive.w(2)),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(
-                      adaptive.Adaptive.r(14),
+            ],
+          ),
+
+          SizedBox(height: adaptive.Adaptive.h(16)),
+
+          // 功能亮点（简洁展示）
+          _buildAndroidFeatureHighlights(colorScheme),
+
+          SizedBox(height: adaptive.Adaptive.h(16)),
+
+          // 余额 + 充值行
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: adaptive.Adaptive.w(12),
+              vertical: adaptive.Adaptive.h(12),
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.surface.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      AppIcons.accountBalanceWallet,
+                      size: adaptive.Adaptive.icon(18),
+                      color: colorScheme.primary.withValues(alpha: 0.7),
                     ),
-                    color: isPremium
-                        ? AppColors.premium
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                  ),
-                  child: AnimatedAlign(
-                    duration: const Duration(milliseconds: 200),
-                    alignment: isPremium
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      width: adaptive.Adaptive.w(24),
-                      height: adaptive.Adaptive.w(24),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+                    Text(
+                      '账户余额',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(13),
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    SizedBox(width: adaptive.Adaptive.w(8)),
+                    Text(
+                      '¥${balance.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(17),
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: _navigateToTopupPage,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: adaptive.Adaptive.w(16),
+                      vertical: adaptive.Adaptive.h(8),
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(adaptive.Adaptive.r(8)),
+                    ),
+                    child: Text(
+                      '充值',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(13),
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
-                    ),
                   ),
                 ),
-              // Android 显示锁定图标提示（强制 premium 不可切换）
-              if (!subState.isIOS)
-                Padding(
-                  padding: EdgeInsets.only(right: adaptive.Adaptive.w(4)),
-                  child: Icon(
-                    AppIcons.lock,
-                    size: adaptive.Adaptive.w(16),
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                ),
-            ],
-          ),
-          // 付费模式下额外显示今日消费和充值按钮
-          if (isPremium) ...[
-            SizedBox(height: adaptive.Adaptive.h(12)),
-            Container(
-              padding: EdgeInsets.only(top: adaptive.Adaptive.h(12)),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: AppColors.premium.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // 今日消费
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _navigateToBillingPage,
-                      child: Row(
-                        children: [
-                          Text(
-                            '今日消费',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(13),
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          SizedBox(width: adaptive.Adaptive.w(8)),
-                          Text(
-                            '¥${_todayCost.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(14),
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          SizedBox(width: adaptive.Adaptive.w(4)),
-                          Icon(
-                            AppIcons.chevronRight,
-                            size: adaptive.Adaptive.sp(16),
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // 充值按钮
-                  GestureDetector(
-                    onTap: _navigateToTopupPage,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: adaptive.Adaptive.w(14),
-                        vertical: adaptive.Adaptive.h(6),
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.premium.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(
-                          adaptive.Adaptive.r(8),
-                        ),
-                      ),
-                      child: Text(
-                        '充值',
-                        style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(13),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.premium,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Android 功能亮点（更自然的展示方式）
+  Widget _buildAndroidFeatureHighlights(ColorScheme colorScheme) {
+    final features = [
+      _FeatureItem(icon: AppIcons.translate, label: '智能翻译'),
+      _FeatureItem(icon: AppIcons.volumeUp, label: '标准发音'),
+      _FeatureItem(icon: AppIcons.micRounded, label: '跟读评测'),
+      _FeatureItem(icon: AppIcons.chatBubbleOutline, label: 'AI 对话'),
+      _FeatureItem(icon: AppIcons.assignment, label: '单元评测'),
+      _FeatureItem(icon: AppIcons.analytics, label: '综合评测'),
+      _FeatureItem(icon: AppIcons.showChart, label: 'AI 学习分析'),
+    ];
+
+    return Wrap(
+      spacing: adaptive.Adaptive.w(8),
+      runSpacing: adaptive.Adaptive.h(8),
+      children: features.map((f) => _buildFeatureChip(f, true)).toList(),
+    );
+  }
+
+  /// 单个功能标签 Chip
+  Widget _buildFeatureChip(_FeatureItem item, bool available) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(10),
+        vertical: adaptive.Adaptive.h(6),
+      ),
+      decoration: BoxDecoration(
+        color: available
+            ? colorScheme.primaryContainer.withValues(alpha: 0.5)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
+        border: Border.all(
+          color: available
+              ? colorScheme.primary.withValues(alpha: 0.15)
+              : colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            item.icon,
+            size: adaptive.Adaptive.sp(14),
+            color: available
+                ? colorScheme.primary.withValues(alpha: 0.8)
+                : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+          ),
+          SizedBox(width: adaptive.Adaptive.w(4)),
+          Text(
+            item.label,
+            style: TextStyle(
+              fontSize: adaptive.Adaptive.sp(12),
+              color: available
+                  ? colorScheme.onSurface
+                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );
@@ -710,7 +1064,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             Text(
                               item.title,
                               style: TextStyle(
-                                fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeBase),
+                                fontSize: adaptive.Adaptive.sp(
+                                  AppTypography.fontSizeBase,
+                                ),
                                 fontWeight: FontWeight.w500,
                                 color: colorScheme.onSurface,
                               ),
@@ -720,7 +1076,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               Text(
                                 item.subtitle!,
                                 style: TextStyle(
-                                  fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeXSmall),
+                                  fontSize: adaptive.Adaptive.sp(
+                                    AppTypography.fontSizeXSmall,
+                                  ),
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
@@ -897,10 +1255,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context,
       MaterialPageRoute(builder: (_) => const TopupPage()),
     ).then((_) {
-      if (!mounted) return;
-      _refreshBalance();
-      _loadTodayCost();
-    });
+if (!mounted) return;
+_refreshBalance();
+});
   }
 
   void _navigateToBillingRulesPage() {
@@ -925,6 +1282,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       subtitle: '选择你喜欢的界面风格',
       icon: Icons.palette_outlined,
       items: items,
+      width: adaptive.Adaptive.w(320),
       currentValue: currentMode,
     );
     if (result != null && result != currentMode) {
@@ -948,6 +1306,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       subtitle: '选择适合你的学习水平',
       icon: Icons.school_outlined,
       items: items,
+      width: adaptive.Adaptive.w(400),
       currentValue: currentLevel,
     );
     if (result != null && result != currentLevel) {
@@ -971,6 +1330,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       icon: Icons.devices_rounded,
       items: items,
       currentValue: currentType,
+      width: adaptive.Adaptive.w(350),
     );
     if (result != null && result != currentType) {
       await ref.read(deviceTypeProvider.notifier).setDeviceType(result);
@@ -1059,14 +1419,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                   SizedBox(height: adaptive.Adaptive.h(16)),
 
-                  // 当前状态
+                  // 当前状态 - 统计卡片
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
                     decoration: BoxDecoration(
-                      color: cs.primaryContainer.withValues(alpha: 0.5),
+                      color: cs.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(
                         adaptive.Adaptive.r(10),
+                      ),
+                      border: Border.all(
+                        color: cs.outline.withValues(alpha: 0.15),
+                        width: 0.5,
                       ),
                     ),
                     child: Row(
@@ -1299,13 +1663,38 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
-  Future<void> _loadSummaryStats() async {
-    try {
-      final stats = await StatsService.getSummaryStats();
-      if (!mounted) return;
-      setState(() => _summaryStats = stats);
-    } catch (_) {}
-  }
+Future<void> _loadSummaryStats() async {
+  try {
+    final stats = await StatsService.getSummaryStats();
+    if (!mounted) return;
+    setState(() => _summaryStats = stats);
+  } catch (_) {}
+}
+
+/// 加载陪伴天数（从用户注册日期到今天的天数）
+Future<void> _loadCompanionshipDays() async {
+  try {
+    final user = _currentUser;
+    if (user == null) return;
+    
+    // 优先使用 createdAt，如果没有则尝试从 Supabase 获取
+    DateTime? registeredAt = user.createdAt;
+    if (registeredAt == null && _isSupabaseUser) {
+      // 尝试从 Supabase 用户 metadata 获取
+      final userData = AuthService.instance.currentUser?.userMetadata;
+      final createdAtStr = userData?['created_at']?.toString();
+      if (createdAtStr != null && createdAtStr.isNotEmpty) {
+        registeredAt = DateTime.parse(createdAtStr);
+      }
+    }
+    
+    if (registeredAt != null && mounted) {
+      final now = DateTime.now();
+      final days = now.difference(registeredAt).inDays;
+      setState(() => _companionshipDays = days > 0 ? days : 0);
+    }
+  } catch (_) {}
+}
 
   Future<void> _loadWifiPort() async {
     final port = await SettingsService.getWifiPort();
@@ -1318,17 +1707,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     await ref.read(subscriptionProvider.notifier).refreshBalance();
   }
 
-  /// 加载今日消费
-  Future<void> _loadTodayCost() async {
-    try {
-      final overview = await BillingService.fetchOverview();
-      if (mounted) {
-        setState(() => _todayCost = overview.totalCost);
-      }
-    } catch (_) {
-      // 静默失败
-    }
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════

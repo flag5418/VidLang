@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_vscode_logger/flutter_vscode_logger.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/models/forum/forum_tag.dart';
 import 'package:vidlang/views/forum/providers/forum_providers.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -55,8 +57,8 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('发布帖子'),
+      appBar: AppNavBar(
+        title: '发布帖子',
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 1,
@@ -425,24 +427,36 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
   }
 
   Future<void> _submitPost(BuildContext context) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      logger.debug('表单验证未通过', tag: 'FORUM');
+      return;
+    }
     if (_selectedTag == null) {
+      logger.debug('未选择标签', tag: 'FORUM');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('请选择标签')));
       return;
     }
 
-    // 上传图片
+    if (_localImages.isNotEmpty) {
+      logger.debug('开始上传 ${_localImages.length} 张图片', tag: 'FORUM');
+    } else {
+      logger.debug('无图片，直接创建帖子', tag: 'FORUM');
+    }
+
     setState(() => _isUploading = true);
     try {
       final service = ref.read(forumServiceProvider);
       for (final file in _localImages) {
+        logger.debug('上传图片: ${file.path}', tag: 'FORUM');
         final url = await service.uploadImage(file.path);
         _uploadedUrls.add(url);
+        logger.debug('上传成功: $url', tag: 'FORUM');
       }
       _localImages.clear();
     } catch (e) {
+      logger.error('图片上传失败', tag: 'FORUM', error: e);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -454,7 +468,7 @@ class _ForumCreatePostPageState extends ConsumerState<ForumCreatePostPage> {
 
     setState(() => _isUploading = false);
 
-    // 创建帖子 — V2.0: tagId + 无 resourceType/resourceCode
+    logger.debug('开始创建帖子: tagId=${_selectedTag!.id}', tag: 'FORUM');
     final notifier = ref.read(createPostProvider.notifier);
     await notifier.createPost(
       tagId: _selectedTag!.id,

@@ -1,6 +1,7 @@
 /// UI 基础组件库
 ///
 /// VidLang 统一组件规范，基于项目设计系统：
+/// - [AppNavBar] 通用导航栏（统一返回按钮、间距、标题样式）
 /// - [BaseCard] 基础卡片（支持 outlined/elevated/filled 三种变体）
 /// - [TitledCard] 带标题的卡片
 /// - [EmptyState] 空状态组件
@@ -10,6 +11,12 @@
 /// 使用示例：
 /// ```dart
 /// import 'package:vidlang/components/ui/ui_components.dart';
+///
+/// // 导航栏
+/// Scaffold(
+///   appBar: AppNavBar(context: context, title: '页面标题'),
+///   ...
+/// )
 ///
 /// // 卡片
 /// BaseCard.outlined(
@@ -34,6 +41,7 @@
 /// ```
 library;
 
+export 'app_nav_bar.dart';
 export 'base_card.dart';
 export 'empty_state.dart';
 export 'avatar.dart';

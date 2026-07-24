@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -130,7 +131,7 @@ class _TestSessionPageState extends ConsumerState<TestSessionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('测试')),
+      appBar: AppNavBar(title: '测试'),
       body: const Center(child: Text('Test Session Page')),
     );
   }

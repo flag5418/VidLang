@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
 import 'package:vidlang/services/parsers/article_parser.dart';
 import 'package:vidlang/services/ai/conversation_service.dart';
@@ -97,11 +98,7 @@ class _ArticleImportPageState extends State<ArticleImportPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('创建文章'),
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-      ),
+      appBar: AppNavBar(title: '创建文章', backgroundColor: colorScheme.surface),
       body: Column(
         children: [
           Expanded(

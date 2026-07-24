@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,9 +58,7 @@ class _TestHomePageState extends ConsumerState<TestHomePage> {
     final state = ref.watch(testProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('评测设置'),
-      ),
+      appBar: AppNavBar(title: '评测设置'),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

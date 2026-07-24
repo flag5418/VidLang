@@ -63,8 +63,8 @@ class _ForumFollowsPageState extends ConsumerState<ForumFollowsPage>
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('我的关注'),
+      appBar: AppNavBar(
+        title: '我的关注',
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 1,

@@ -12,6 +12,7 @@ import 'package:vidlang/views/forum/forum_create_post_page.dart';
 import 'package:vidlang/views/forum/forum_search_page.dart';
 import 'package:vidlang/views/forum/forum_notifications_page.dart';
 import 'package:vidlang/views/forum/forum_my_page.dart';
+import 'package:vidlang/views/forum/widgets/forum_tag_manage_sheet.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
@@ -141,30 +142,66 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage> {
     BuildContext context,
     AppColorsData colors,
   ) {
+    final isPad = adaptive.isIPad();
+    final iconSize = adaptive.Adaptive.icon(isPad ? 26 : 22);
+    final titleSize = adaptive.Adaptive.sp(isPad ? 20 : 17);
+    final btnPadding = EdgeInsets.all(adaptive.Adaptive.w(isPad ? 10 : 6));
+
     return AppBar(
-      title: const Text('学习论坛'),
+      title: Text(
+        '学习论坛',
+        style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w600),
+      ),
       backgroundColor: colors.surface,
       foregroundColor: colors.textPrimary,
       elevation: 1,
+      titleSpacing: adaptive.Adaptive.w(isPad ? 12 : 4),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: () => _navigateToSearch(context),
+        // 搜索按钮
+        _buildAppBarAction(
+          icon: Icons.search,
+          iconSize: iconSize,
+          padding: btnPadding,
+          onTap: () => _navigateToSearch(context),
         ),
+        // 通知按钮（带未读角标）
         Stack(
           children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () => _navigateToNotifications(context),
+            _buildAppBarAction(
+              icon: Icons.notifications_outlined,
+              iconSize: iconSize,
+              padding: btnPadding,
+              onTap: () => _navigateToNotifications(context),
             ),
             const _UnreadBadge(),
           ],
         ),
-        IconButton(
-          icon: const Icon(Icons.person_outline),
-          onPressed: () => _navigateToMyPage(context),
+        // 个人中心按钮
+        _buildAppBarAction(
+          icon: Icons.person_outline,
+          iconSize: iconSize,
+          padding: btnPadding,
+          onTap: () => _navigateToMyPage(context),
         ),
       ],
+    );
+  }
+
+  /// 自适应 AppBar 操作按钮 — 统一尺寸和点击区域
+  Widget _buildAppBarAction({
+    required IconData icon,
+    required double iconSize,
+    required EdgeInsets padding,
+    required VoidCallback onTap,
+  }) {
+    return IconButton(
+      icon: Icon(icon, size: iconSize),
+      padding: padding,
+      constraints: BoxConstraints(
+        minWidth: adaptive.Adaptive.w(44),
+        minHeight: adaptive.Adaptive.h(44),
+      ),
+      onPressed: onTap,
     );
   }
 
@@ -193,15 +230,16 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage> {
               Expanded(
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(
-                      horizontal: adaptive.Adaptive.w(12)),
+                  padding: EdgeInsets.only(
+                      left: adaptive.Adaptive.w(12)),
                   itemCount: tags.length + 1,
                   separatorBuilder: (_, _) =>
                       SizedBox(width: adaptive.Adaptive.w(4)),
                   itemBuilder: (context, index) {
                     if (index == 0) {
+                      // 第一个 tab 是「全部」
                       return _buildTabChip(
-                        context, colors, '关注',
+                        context, colors, '全部',
                         isActive: _isFollowedTab,
                         onTap: () => _switchTab(isFollowed: true),
                       );
@@ -213,6 +251,33 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage> {
                       onTap: () => _switchTab(tagId: tag.id),
                     );
                   },
+                ),
+              ),
+              // 标签管理按钮（固定在标签栏右侧，始终可见）
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(
+                      color: colors.border.withAlpha(80),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showTagManageSheet(context),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: adaptive.Adaptive.w(10),
+                      ),
+                      child: Icon(
+                        Icons.more_horiz,
+                        size: adaptive.Adaptive.sp(22),
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -234,32 +299,17 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage> {
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(14),
-          vertical: adaptive.Adaptive.h(8),
+          horizontal: adaptive.Adaptive.w(12),
+          vertical: adaptive.Adaptive.h(6),
         ),
         alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(14),
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                color: isActive ? colors.primary : colors.textSecondary,
-              ),
-            ),
-            if (isActive)
-              Container(
-                margin: EdgeInsets.only(top: adaptive.Adaptive.h(4)),
-                width: adaptive.Adaptive.w(16),
-                height: adaptive.Adaptive.h(2),
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: adaptive.Adaptive.sp(14),
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            color: isActive ? colors.primary : colors.textSecondary,
+          ),
         ),
       ),
     );
@@ -370,6 +420,14 @@ class _ForumHomePageState extends ConsumerState<ForumHomePage> {
       context,
       MaterialPageRoute(builder: (_) => const ForumMyPage()),
     );
+  }
+
+  void _showTagManageSheet(BuildContext context) {
+    ForumTagManageSheet.show(context).then((_) {
+      // 关闭后刷新标签和帖子列表，使关注变更生效
+      ref.invalidate(forumTagsProvider);
+      ref.invalidate(forumPostsProvider(_params));
+    });
   }
 }
 

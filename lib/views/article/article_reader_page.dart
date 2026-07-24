@@ -1,4 +1,5 @@
-import 'dart:async';import 'package:vidlang/utils/adaptive.dart' as adaptive;
+import 'dart:async';import 'package:vidlang/components/ui/ui_components.dart';
+import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'dart:convert';
 
@@ -1320,22 +1321,11 @@ class _ArticleReaderPageState extends State<ArticleReaderPage> {
         },
         child: Scaffold(
           backgroundColor: cs.surface,
-          appBar: AppBar(
+          appBar: AppNavBar(
+            title: _article!.title,
             backgroundColor: cs.surface,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(AppIcons.arrowBack, size: adaptive.Adaptive.icon(24)),
-              onPressed: _onBackPressed,
-            ),
-            title: Text(
-              _article!.title,
-              style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(18),
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            foregroundColor: cs.onSurface,
+            onBack: _onBackPressed,
             actions: [
               IconButton(
                 icon: Icon(

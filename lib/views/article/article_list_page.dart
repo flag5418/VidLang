@@ -67,11 +67,7 @@ class _ArticleListPageState extends State<ArticleListPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('文章'),
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-      ),
+      appBar: AppNavBar(title: '文章', backgroundColor: colorScheme.surface),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _articles.isEmpty

@@ -6,6 +6,7 @@ import 'package:vidlang/models/conversation_record.dart';
 import 'package:vidlang/views/conversation/providers/conversation_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/views/conversation/conversation_page.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/components/dialogs/app_dialogs.dart';
 
 /// 对话历史记录列表页面
@@ -85,25 +86,10 @@ class _ConversationHistoryPageState extends State<ConversationHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppNavBar(
+        title: '对话历史',
         backgroundColor: context.colors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            AppIcons.arrowBackIosNew,
-            color: context.colors.textSecondary,
-            size: 20,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '对话历史',
-          style: TextStyle(
-            color: context.colors.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        foregroundColor: context.colors.textPrimary,
         actions: [
           if (_records.isNotEmpty)
             IconButton(

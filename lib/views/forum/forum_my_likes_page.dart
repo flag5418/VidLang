@@ -7,16 +7,15 @@ import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/views/forum/providers/forum_providers.dart';
 
-/// 我的收藏页 — V2.0
-class ForumFavoritesPage extends ConsumerStatefulWidget {
-  const ForumFavoritesPage({super.key});
+/// 我的点赞页
+class ForumMyLikesPage extends ConsumerStatefulWidget {
+  const ForumMyLikesPage({super.key});
 
   @override
-  ConsumerState<ForumFavoritesPage> createState() =>
-      _ForumFavoritesPageState();
+  ConsumerState<ForumMyLikesPage> createState() => _ForumMyLikesPageState();
 }
 
-class _ForumFavoritesPageState extends ConsumerState<ForumFavoritesPage> {
+class _ForumMyLikesPageState extends ConsumerState<ForumMyLikesPage> {
   final ScrollController _scrollController = ScrollController();
   final List<ForumPost> _posts = [];
   int _page = 1;
@@ -51,7 +50,7 @@ class _ForumFavoritesPageState extends ConsumerState<ForumFavoritesPage> {
     setState(() => _isLoading = true);
     try {
       final service = ref.read(forumServiceProvider);
-      final response = await service.getMyFavorites(page: _page);
+      final response = await service.getMyLikes(page: _page);
       setState(() {
         _posts.addAll(response.data);
         _hasMore = response.pagination.hasMore;
@@ -82,20 +81,20 @@ class _ForumFavoritesPageState extends ConsumerState<ForumFavoritesPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppNavBar(
-        title: '我的收藏',
-        backgroundColor: colors.surface,
-        foregroundColor: colors.textPrimary,
-        elevation: 1,
-      ),
+appBar: AppNavBar(
+  title: '我的点赞',
+  backgroundColor: colors.surface,
+  foregroundColor: colors.textPrimary,
+  elevation: 1,
+),
       body: _posts.isEmpty && _isLoading
           ? const Center(child: LoadingWidget())
           : _posts.isEmpty
               ? Center(
                   child: EmptyState(
-                    icon: Icons.star_outline,
-                    title: '暂无收藏',
-                    description: '浏览帖子时可以点击收藏',
+                    icon: Icons.thumb_up_outlined,
+                    title: '暂无点赞',
+                    description: '浏览帖子时可以点赞喜欢的内容',
                   ),
                 )
               : RefreshIndicator(
@@ -115,18 +114,17 @@ class _ForumFavoritesPageState extends ConsumerState<ForumFavoritesPage> {
                         );
                       }
                       final post = _posts[index];
-                      return _buildFavoriteCard(context, colors, post, index);
+                      return _buildLikeCard(context, colors, post);
                     },
                   ),
                 ),
     );
   }
 
-  Widget _buildFavoriteCard(
+  Widget _buildLikeCard(
     BuildContext context,
     AppColorsData colors,
     ForumPost post,
-    int index,
   ) {
     return BaseCard.outlined(
       padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
@@ -182,12 +180,12 @@ class _ForumFavoritesPageState extends ConsumerState<ForumFavoritesPage> {
                       ),
                     ),
                     SizedBox(width: adaptive.Adaptive.w(8)),
-                    Icon(Icons.thumb_up_outlined,
+                    Icon(Icons.favorite_outline,
                         size: adaptive.Adaptive.sp(12),
                         color: colors.textWeak),
                     SizedBox(width: adaptive.Adaptive.w(2)),
                     Text(
-                      '${post.likeCount}',
+                      '${post.favoriteCount}',
                       style: TextStyle(
                         fontSize: adaptive.Adaptive.sp(11),
                         color: colors.textWeak,
@@ -199,26 +197,9 @@ class _ForumFavoritesPageState extends ConsumerState<ForumFavoritesPage> {
             ),
           ),
           SizedBox(width: adaptive.Adaptive.w(8)),
-          GestureDetector(
-            onTap: () => _unfavorite(post, index),
-            child: const Icon(Icons.star, color: Colors.amber, size: 22),
-          ),
+          const Icon(Icons.thumb_up, color: AppColors.primary, size: 22),
         ],
       ),
     );
-  }
-
-  Future<void> _unfavorite(ForumPost post, int index) async {
-    try {
-      final service = ref.read(forumServiceProvider);
-      await service.toggleFavorite(post.id);
-      setState(() => _posts.removeAt(index));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('取消收藏失败: $e')));
-      }
-    }
   }
 }

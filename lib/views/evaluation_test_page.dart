@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:vidlang/views/audio_player/widgets/pronunciation_evaluation_modal.dart';
@@ -29,8 +30,8 @@ class _EvaluationTestPageState extends State<EvaluationTestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('跟读评测测试'),
+      appBar: AppNavBar(
+        title: '跟读评测测试',
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: AppColors.surface,
         elevation: 2,

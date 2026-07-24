@@ -67,7 +67,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
     final subState = ref.watch(subscriptionProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: AppColors.getSurfaceHighest(brightness: Theme.of(context).brightness),
       body: Stack(
         children: [
           CustomScrollView(
@@ -94,7 +94,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
   SliverToBoxAdapter _buildAppBar(ColorScheme colorScheme) {
     return SliverToBoxAdapter(
       child: Container(
-        color: const Color(0xFFF7F7F7),
+        color: AppColors.getSurfaceHighest(brightness: Theme.of(context).brightness),
         child: SafeArea(
           bottom: false,
           child: Padding(
@@ -361,7 +361,7 @@ class _TopupPageState extends ConsumerState<TopupPage> {
         crossAxisCount: 2,
         mainAxisSpacing: adaptive.Adaptive.h(12),
         crossAxisSpacing: adaptive.Adaptive.w(12),
-        childAspectRatio: 1.25,
+        childAspectRatio: 0.85,
       ),
       itemCount: 4,
       itemBuilder: (_, _) => Container(
@@ -385,16 +385,14 @@ class _TopupPageState extends ConsumerState<TopupPage> {
         crossAxisCount: 2,
         mainAxisSpacing: adaptive.Adaptive.h(12),
         crossAxisSpacing: adaptive.Adaptive.w(12),
-        childAspectRatio: 1.15,
+        childAspectRatio: 0.95,
       ),
       itemCount: _options.length,
       itemBuilder: (context, index) {
         final option = _options[index];
         final isSelected = _selectedIndex == index;
         final hasBonus = option.bonusAmount > 0;
-        final isBest = option.label == '最划算';
         final totalAmount = option.originalAmount + option.bonusAmount;
-        final isExperience = option.originalAmount <= 10;
 
         return GestureDetector(
           onTap: () => setState(() => _selectedIndex = index),
@@ -402,178 +400,226 @@ class _TopupPageState extends ConsumerState<TopupPage> {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(12)),
+              borderRadius: BorderRadius.circular(adaptive.Adaptive.r(14)),
               color: isSelected
-                  ? colorScheme.primary.withValues(alpha: 0.06)
+                  ? colorScheme.primaryContainer.withValues(alpha: 0.35)
                   : Colors.white,
               border: Border.all(
                 color: isSelected
                     ? colorScheme.primary
-                    : (isBest
-                          ? colorScheme.primary.withValues(alpha: 0.35)
-                          : const Color(0xFFE8E8E8)),
+                    : const Color(0xFFE5E7EB),
                 width: isSelected ? 2 : 1,
               ),
             ),
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                // 内容：居中布局
+                // 主内容区
                 Padding(
-                  padding: EdgeInsets.all(adaptive.Adaptive.w(12)),
+                  padding: EdgeInsets.fromLTRB(
+                    adaptive.Adaptive.w(14),
+                    adaptive.Adaptive.h(14),
+                    adaptive.Adaptive.w(14),
+                    adaptive.Adaptive.h(12),
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Spacer(),
-                      // 居中金额
+                      // 顶部：标签 + 选择圆圈
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '¥',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(16),
-                              fontWeight: FontWeight.w600,
+                          // 档位标签（简洁灰色系）
+                          _buildAmountBadge(option, colorScheme),
+                          // 选择指示器
+                          Container(
+                            width: adaptive.Adaptive.r(20),
+                            height: adaptive.Adaptive.r(20),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
                               color: isSelected
                                   ? colorScheme.primary
-                                  : colorScheme.onSurface,
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : const Color(0xFFD1D5DB),
+                                width: 1.5,
+                              ),
                             ),
-                          ),
-                          Text(
-                            option.originalAmount.toStringAsFixed(0),
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(36),
-                              fontWeight: FontWeight.w800,
-                              color: isSelected
-                                  ? colorScheme.primary
-                                  : colorScheme.onSurface,
-                              height: 1.0,
-                            ),
+                            child: isSelected
+                                ? Icon(
+                                    AppIcons.check,
+                                    size: adaptive.Adaptive.sp(11),
+                                    color: Colors.white,
+                                  )
+                                : null,
                           ),
                         ],
                       ),
-                      SizedBox(height: adaptive.Adaptive.h(6)),
-                      // 原价（划线）
-                      if (hasBonus)
-                        Text(
-                          '¥${totalAmount.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: adaptive.Adaptive.sp(13),
-                            color: const Color(0xFFAAAAAA),
-                            decoration: TextDecoration.lineThrough,
-                            decorationColor: const Color(0xFFCCCCCC),
+
+                      // 中间区域：金额（视觉焦点）
+                      Expanded(
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // 金额数字
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '¥',
+                                    style: TextStyle(
+                                      fontSize: adaptive.Adaptive.sp(17),
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected
+                                          ? colorScheme.primary
+                                          : colorScheme.onSurface.withValues(alpha: 0.55),
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                  Text(
+                                    option.originalAmount.toStringAsFixed(0),
+                                    style: TextStyle(
+                                      fontSize: adaptive.Adaptive.sp(38),
+                                      fontWeight: FontWeight.w900,
+                                      color: isSelected
+                                          ? colorScheme.primary
+                                          : colorScheme.onSurface,
+                                      height: 1.0,
+                                      letterSpacing: -1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: adaptive.Adaptive.h(6)),
+                              // 原价 / 到账信息
+                              if (hasBonus)
+                                Text(
+                                  '原价 ¥${totalAmount.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: adaptive.Adaptive.sp(12),
+                                    color: const Color(0xFFBDBDBD),
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: const Color(0xFFE0E0E0),
+                                  ),
+                                )
+                              else
+                                Text(
+                                  '到账 ¥${option.originalAmount.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: adaptive.Adaptive.sp(12),
+                                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                      const Spacer(),
-                      // 底部信息
-                      if (isExperience)
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: adaptive.Adaptive.w(10),
-                            vertical: adaptive.Adaptive.h(4),
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? colorScheme.primary.withValues(alpha: 0.1)
-                                : const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(
-                              adaptive.Adaptive.r(8),
-                            ),
-                          ),
-                          child: Text(
-                            '到账 ${totalAmount.toStringAsFixed(0)} 元',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(12),
-                              color: isSelected
+                      ),
+
+                      // 底部：赠送/到账信息条（醒目）
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: adaptive.Adaptive.w(10),
+                          vertical: adaptive.Adaptive.h(8),
+                        ),
+                        decoration: BoxDecoration(
+                          color: hasBonus
+                              ? colorScheme.primary.withValues(alpha: 0.06)
+                              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius:
+                              BorderRadius.circular(adaptive.Adaptive.r(8)),
+                          border: hasBonus
+                              ? Border.all(
+                                  color: colorScheme.primary.withValues(alpha: 0.15),
+                                  width: 1,
+                                )
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              hasBonus
+                                  ? Icons.card_giftcard_rounded
+                                  : Icons.check_circle_outline_rounded,
+                              size: adaptive.Adaptive.sp(14),
+                              color: hasBonus
                                   ? colorScheme.primary
-                                  : const Color(0xFF666666),
-                              fontWeight: FontWeight.w500,
+                                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                             ),
-                          ),
-                        )
-                      else if (hasBonus)
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: adaptive.Adaptive.w(8),
-                            vertical: adaptive.Adaptive.h(3),
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF22C55E,
-                            ).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(
-                              adaptive.Adaptive.r(6),
+                            SizedBox(width: adaptive.Adaptive.w(5)),
+                            Text(
+                              hasBonus
+                                  ? '送 ¥${option.bonusAmount.toInt()}'
+                                  : '到账 ¥${option.originalAmount.toInt()}',
+                              style: TextStyle(
+                                fontSize: adaptive.Adaptive.sp(13),
+                                color: hasBonus
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            '送${option.bonusAmount.toStringAsFixed(0)}元',
-                            style: TextStyle(
-                              fontSize: adaptive.Adaptive.sp(11),
-                              color: const Color(0xFF16A34A),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
-                // 最划算标签：右上角小标签，不遮挡内容
-                if (isBest)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: adaptive.Adaptive.w(6),
-                        vertical: adaptive.Adaptive.h(2),
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(
-                          adaptive.Adaptive.r(6),
-                        ),
-                        border: Border.all(
-                          color: colorScheme.primary.withValues(alpha: 0.25),
-                          width: 0.5,
-                        ),
-                      ),
-                      child: Text(
-                        '最划算',
-                        style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(10),
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                // 选中标记：右下角
-                if (isSelected)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: adaptive.Adaptive.r(24),
-                      height: adaptive.Adaptive.r(24),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(adaptive.Adaptive.r(10)),
-                          bottomRight: Radius.circular(adaptive.Adaptive.r(10)),
-                        ),
-                      ),
-                      child: Icon(
-                        AppIcons.check,
-                        size: adaptive.Adaptive.sp(14),
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// 构建档位角标徽章（根据金额显示不同标签）
+  Widget _buildAmountBadge(TopupConfig option, ColorScheme colorScheme) {
+    String badgeText;
+    if (option.label == '最划算') {
+      badgeText = '推荐';
+    } else if (option.originalAmount >= 100) {
+      badgeText = '推荐';
+    } else if (option.originalAmount >= 50) {
+      badgeText = '实惠';
+    } else {
+      badgeText = '经济';
+    }
+
+    final isHighlight = badgeText == '推荐';
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.Adaptive.w(8),
+        vertical: adaptive.Adaptive.h(3),
+      ),
+      decoration: BoxDecoration(
+        color: isHighlight
+            ? colorScheme.primary.withValues(alpha: 0.08)
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(adaptive.Adaptive.r(6)),
+        border: isHighlight
+            ? Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.2),
+                width: 0.5,
+              )
+            : null,
+      ),
+      child: Text(
+        badgeText,
+        style: TextStyle(
+          fontSize: adaptive.Adaptive.sp(11),
+          fontWeight: FontWeight.w600,
+          color: isHighlight
+              ? colorScheme.primary
+              : colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 

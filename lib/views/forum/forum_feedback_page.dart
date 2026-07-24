@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/views/forum/providers/forum_providers.dart';
@@ -38,8 +39,8 @@ class _ForumFeedbackPageState extends ConsumerState<ForumFeedbackPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('提交反馈'),
+      appBar: AppNavBar(
+        title: '提交反馈',
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 1,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'dart:convert';
@@ -371,10 +372,10 @@ class _AudioTestPageState extends State<AudioTestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('音频服务测试'),
-        backgroundColor: AppColors.primary,
-      ),
+appBar: AppNavBar(
+  title: '音频服务测试',
+  backgroundColor: AppColors.primary,
+),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(adaptive.Adaptive.w(16)),
         child: Column(

@@ -114,9 +114,7 @@ class _BillingRulesPageState extends State<BillingRulesPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: Text('计费规则', style: TextStyle(fontSize: Adaptive.sp(16))),
-      ),
+      appBar: AppNavBar(title: '计费规则'),
       body: FutureBuilder<List<BillingRule>>(
         future: _future,
         builder: (context, snapshot) {

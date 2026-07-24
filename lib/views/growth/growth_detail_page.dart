@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,9 +34,7 @@ class _GrowthDetailPageState extends ConsumerState<GrowthDetailPage> {
     final items = state.selectedItems;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('评测详情'),
-      ),
+      appBar: AppNavBar(title: '评测详情'),
       body: test == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

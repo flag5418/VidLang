@@ -85,8 +85,8 @@ class _ForumPostDetailPageState extends ConsumerState<ForumPostDetailPage> {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('帖子详情'),
+      appBar: AppNavBar(
+        title: '帖子详情',
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 1,
@@ -622,7 +622,7 @@ class _ForumPostDetailPageState extends ConsumerState<ForumPostDetailPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('删除回复'),
+        title: Text('删除回复', style: TextStyle(fontSize: adaptive.Adaptive.sp(17))),
         content: const Text('确定删除此回复吗？'),
         actions: [
           TextButton(
@@ -695,7 +695,7 @@ class _ForumPostDetailPageState extends ConsumerState<ForumPostDetailPage> {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('举报'),
+          title: Text('举报', style: TextStyle(fontSize: adaptive.Adaptive.sp(17))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

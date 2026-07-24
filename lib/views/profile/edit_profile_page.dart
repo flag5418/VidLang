@@ -8,6 +8,7 @@ import 'dart:io';import 'package:vidlang/utils/adaptive.dart' as adaptive;
 
 
 import 'package:flutter/material.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vidlang/services/app_keys_service.dart';
@@ -134,22 +135,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     return Scaffold(
       backgroundColor: AppColors.getSurfaceElevated(brightness: brightness),
-      appBar: AppBar(
-        title: Text(
-          '编辑资料',
-          style: TextStyle(
-            fontSize: adaptive.Adaptive.sp(18),
-            fontWeight: FontWeight.w600,
-            color: cs.onSurface,
-          ),
-        ),
+      appBar: AppNavBar(
+        title: '编辑资料',
         centerTitle: true,
         backgroundColor: cs.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(AppIcons.arrowBackIos, color: cs.onSurface, size: adaptive.Adaptive.icon(20)),
-          onPressed: () => Navigator.pop(context),
-        ),
+        foregroundColor: cs.onSurface,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(

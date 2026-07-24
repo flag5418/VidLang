@@ -3,6 +3,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:tdesign_flutter/tdesign_flutter.dart';
+import 'package:vidlang/components/ui/ui_components.dart';
 import 'package:vidlang/services/settings_service.dart';
 import 'package:vidlang/services/files/wifi_transfer_service.dart';
 import 'package:vidlang/theme/theme.dart';
@@ -66,20 +67,12 @@ class _WifiTransferPageState extends State<WifiTransferPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          'WiFi 传输',
-          style: TextStyle(fontSize: Adaptive.sp(16), fontWeight: FontWeight.w600),
-        ),
+      appBar: AppNavBar(
+        title: 'WiFi 传输',
         centerTitle: true,
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
-        elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(AppIcons.arrowBackIosNew, size: Adaptive.sp(20)),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: _starting
           ? Center(

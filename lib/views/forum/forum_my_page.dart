@@ -14,8 +14,8 @@ class ForumMyPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('我的论坛'),
+      appBar: AppNavBar(
+        title: '我的论坛',
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 1,
