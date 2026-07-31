@@ -43,6 +43,7 @@ import 'package:vidlang/models/user.dart';
 import 'package:vidlang/models/video_folder.dart';
 import 'package:vidlang/models/video_info.dart';
 import 'package:vidlang/models/word_book.dart';
+import 'package:vidlang/models/forum/forum_tag_follow_local.dart';
 import 'package:vidlang/models/word_book_tag.dart';
 import 'package:vidlang/models/word_tag.dart';
 import 'package:vidlang/models/device_type.dart';
@@ -66,6 +67,14 @@ import 'package:vidlang/views/main/main_page.dart';
 import 'package:vidlang/components/dialogs/app_dialogs.dart';
 import 'package:tdesign_flutter/src/util/adaptive_extension.dart'
     as plugin_adaptive;
+import 'package:vidlang/views/forum/forum_my_posts_page.dart';
+import 'package:vidlang/views/forum/forum_my_replies_page.dart';
+import 'package:vidlang/views/forum/forum_my_likes_page.dart';
+import 'package:vidlang/views/forum/forum_favorites_page.dart';
+import 'package:vidlang/views/forum/forum_follows_page.dart';
+import 'package:vidlang/views/forum/forum_feedback_page.dart';
+import 'package:vidlang/views/forum/forum_feedback_list_page.dart';
+import 'package:vidlang/views/forum/forum_post_detail_page.dart';
 
 /// 全局 Navigator Key，用于排他性登录被顶号时从任意位置跳转至登录页
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -232,6 +241,10 @@ Future<void> _initializeAsyncDependencies() async {
         creator: () => AiEvaluationLog(),
         description: 'AI学习评价日志表',
       ),
+      'forum_tag_follow_local': EntityConfig(
+        creator: () => ForumTagFollowLocal(),
+        description: '论坛标签关注本地表（用户级隔离）',
+      ),
     });
 
     try {
@@ -349,6 +362,7 @@ class _VidLangAppState extends State<VidLangApp> {
                 // '/shengtong-http-test': (_) => const ShengtongHttpTestPage(), // 已删除 HTTP 评测器
                 '/orientation-test': (_) => const OrientationTestPage(),  // 🧪 方向测试页面
               },
+              onGenerateRoute: _onGenerateRoute,
               navigatorKey: navigatorKey,
               // 🧪 测试模式已关闭，恢复正常首页
               // home: const OrientationTestPage(),  // 测试页面（已验证成功）
@@ -359,6 +373,42 @@ class _VidLangAppState extends State<VidLangApp> {
       },
     );
   }
+}
+
+/// 论坛路由表
+final _forumRoutes = {
+  '/forum/my/posts': (_) => const ForumMyPostsPage(),
+  '/forum/my/replies': (_) => const ForumMyRepliesPage(),
+  '/forum/my/likes': (_) => const ForumMyLikesPage(),
+  '/forum/favorites': (_) => const ForumFavoritesPage(),
+  '/forum/follows': (_) => const ForumFollowsPage(),
+  '/forum/feedback': (_) => const ForumFeedbackPage(),
+  '/forum/feedback/list': (_) => const ForumFeedbackListPage(),
+};
+
+Route<dynamic>? _onGenerateRoute(RouteSettings settings) {
+  final routeName = settings.name;
+  if (routeName == null) return null;
+
+  // 参数化路由: /forum/post/:id
+  final postMatch = RegExp(r'^/forum/post/(\d+)$').firstMatch(routeName);
+  if (postMatch != null) {
+    final postId = int.parse(postMatch.group(1)!);
+    return MaterialPageRoute(
+      settings: settings,
+      builder: (_) => ForumPostDetailPage(postId: postId),
+    );
+  }
+
+  // 静态论坛路由
+  if (_forumRoutes.containsKey(routeName)) {
+    return MaterialPageRoute(
+      settings: settings,
+      builder: _forumRoutes[routeName]!,
+    );
+  }
+
+  return null;
 }
 
 class _AppEntry extends StatefulWidget {

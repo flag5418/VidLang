@@ -478,7 +478,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         _buildResourceRow(
           type: 'video',
           title: '视频',
-          icon: AppIcons.movie,
+          icon: ResourceIcons.displayVideo,
           color: AppColors.videoColor,
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
@@ -487,7 +487,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         _buildResourceRow(
           type: 'music',
           title: '音频',
-          icon: AppIcons.musicNote,
+          icon: ResourceIcons.displayAudio,
           color: AppColors.audioColor,
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
@@ -496,7 +496,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         _buildResourceRow(
           type: 'article',
           title: '文章',
-          icon: AppIcons.menuBook,
+          icon: ResourceIcons.displayArticle,
           color: AppColors.articleColor,
           colorScheme: colorScheme,
           surfaceColor: surfaceColor,
@@ -988,16 +988,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return 0.0;
   }
 
-  IconData _iconForType(String type) {
-    switch (type) {
-      case 'article':
-        return AppIcons.menuBook;
-      case 'music':
-        return AppIcons.musicNote;
-      default:
-        return AppIcons.movie;
-    }
-  }
+  IconData _iconForType(String type) => ResourceIcons.displayIconFor(type);
 
   String _getResourceTitle(RecentResource resource) {
     if (resource.folderCode != null && resource.folderCode!.isNotEmpty) {

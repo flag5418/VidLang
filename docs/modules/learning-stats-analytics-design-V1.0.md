@@ -511,11 +511,12 @@ Future<LearningHabitAnalysis> analyzeLearningHabits(String timeRange);
 | # | UI标签 | 字段 | 调用方法 | 数据表 | 计算逻辑 | 时间范围 | 用户隔离 |
 |---|--------|------|---------|--------|---------|---------|----------|
 | 1 | 📅 天数 | `totalDays` | `_getLearningDays()` | `study_record` | `StudyRecord.date` 去重日期计数 | 累计（全部） | ✅ findByCondition 自动 |
-| 2 | 🎬 视频 | `videoTotal` | `_getSummaryStats()` rawQuery | `video_folder` | `COUNT(*) WHERE folder_type='video'` | 累计（含软删除） | ✅ rawQuery 手动过滤 |
-| 3 | 🎵 音频 | `audioTotal` | `_getSummaryStats()` rawQuery | `video_folder` | `COUNT(*) WHERE folder_type='music'` | 累计（含软删除） | ✅ rawQuery 手动过滤 |
-| 4 | 📄 文章 | `articleTotal` | `_getSummaryStats()` rawQuery | `video_folder` | `COUNT(*) WHERE folder_type='article'` | 累计（含软删除） | ✅ rawQuery 手动过滤 |
+| 2 | 🎬 视频 | `videoTotal` | `count()` | `video_folder` | `COUNT(*) WHERE folder_type='video' AND parent_code IS NOT NULL` | 累计（含软删除） | ✅ count 自动 |
+| 3 | 🎵 音频 | `audioTotal` | `count()` | `video_folder` | `COUNT(*) WHERE folder_type='music' AND parent_code IS NOT NULL` | 累计（含软删除） | ✅ count 自动 |
+| 4 | 📄 文章 | `articleTotal` | `count()` | `video_folder` | `COUNT(*) WHERE folder_type='article' AND parent_code IS NOT NULL` | 累计（含软删除） | ✅ count 自动 |
 
 **统计口径**：个人页面统计全部为**累计数据**——累计学习天数、累计导入资源数（含已软删除的）。
+**叶子过滤**：通过 `parent_code IS NOT NULL AND parent_code != ''` 排除分组/分类文件夹（如"未分组"），只统计实际资源文件夹。
 
 ### 11.3 学习统计详情页核心指标（LearningStatsPage）
 
@@ -542,7 +543,8 @@ Future<LearningHabitAnalysis> analyzeLearningHabits(String timeRange);
 
 ### V2.2 (2026-07-24)
 - **修复**：`_getSummaryStats()` 中 `totalDays` 硬编码为 0 的 Bug → 改为调用 `_getLearningDays()` 计算累计学习天数
-- **修复**：`_getSummaryStats()` 使用 `rawQuery` 未过滤 `user_code` → 手动添加用户隔离条件
+- **修复**：`_getSummaryStats()` 使用 `rawQuery` 未过滤 `user_code` → 改用 `DatabaseService.count()`，由框架自动过滤用户
+- **修复**：`_getSummaryStats()` 视频/音频/文章计数包含分组文件夹（如"未分组"）→ 增加 `parent_code IS NOT NULL AND parent_code != ''` 过滤，只统计叶子资源文件夹
 - **修复**：`_getSummaryStats()` 视频/音频/文章计数仅查 `is_deleted=0` → 移除过滤，统计累计导入数（含软删除）
 - **修复**：`getTodayDuration()` 日期范围 `T23:59:59` 配合 `<` 遗漏当天最后一条记录 → 改为次日 `T00:00:00` 半开区间
 - **修复**：`getTodayDuration()` 和 `getResourceCountToday()` 使用 `date` 字段过滤 → 改为 `start_time` 字段（与实例方法一致）

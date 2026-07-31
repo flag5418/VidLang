@@ -1,18 +1,17 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vidlang/models/base_entity.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_book_query_models.dart';
 import 'package:vidlang/models/word_tag.dart';
+import 'package:vidlang/providers/test_basket_provider.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/services/word_book/word_tag_service.dart';
-import 'package:vidlang/providers/subscription_provider.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/app_globals.dart';
 import 'package:vidlang/utils/adaptive.dart' as adaptive;
 import 'package:vidlang/views/test/test_page.dart';
+import 'package:vidlang/views/word_book/test_manage_page.dart';
 import 'package:vidlang/views/word_book/widgets/collection_detail_sheet.dart';
 import 'package:vidlang/views/word_book/widgets/collection_word_card.dart';
 import 'package:vidlang/views/word_book/widgets/collection_tag_manager.dart';
@@ -23,7 +22,6 @@ import 'package:vidlang/views/word_book/widgets/word_card.dart';
 import 'package:vidlang/views/word_book/camera_translate_page.dart';
 import 'package:vidlang/components/ui/ui_components.dart';
 import 'word_book_detail_sheet.dart';
-import 'word_book_review_page.dart';
 
 class CollectionPage extends ConsumerStatefulWidget {
   const CollectionPage({super.key});
@@ -42,9 +40,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
   bool _loading = true;
   String _selectedStatus = 'learning';
   String? _selectedTagCode;
-  String _selectionAction = 'test';
-  bool _selectionMode = false;
-  final Set<String> _selectedWordCodes = <String>{};
   final TextEditingController _searchController = TextEditingController();
   int _todayReviewed = 0;
   int _totalWords = 0;
@@ -52,6 +47,14 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
 
   bool get _isKnowledgeBase => _currentTab == 1;
   String get _currentContentType => _isKnowledgeBase ? 'sentence' : 'word';
+
+  /// Tab 标题映射
+  String get _mainTitle => '我的收藏';
+  String get _tab0Label => '单词';
+  String get _tab1Label => '短语';
+
+  /// 获取测试篮状态
+  TestBasketState get _basketState => ref.watch(testBasketProvider);
 
   @override
   void initState() {
@@ -85,12 +88,15 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
   Future<void> _reload() async {
     setState(() => _loading = true);
     try {
-      final learningItems = _isKnowledgeBase
-          ? await WordBookService.loadNavItemsForKnowledgeBase('learning')
-          : await WordBookService.loadNavItems('learning');
-      final masteredItems = _isKnowledgeBase
-          ? await WordBookService.loadNavItemsForKnowledgeBase('mastered')
-          : await WordBookService.loadNavItems('mastered');
+      // 根据当前 contentType 加载对应的导航数据
+      final learningItems = await WordBookService.loadNavItems(
+        'learning',
+        contentType: _currentContentType,
+      );
+      final masteredItems = await WordBookService.loadNavItems(
+        'mastered',
+        contentType: _currentContentType,
+      );
       final rows = await WordBookService.queryWords(
         WordBookFilter(
           status: _selectedStatus,
@@ -137,8 +143,6 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
       _currentTab = tab;
       _selectedStatus = 'learning';
       _selectedTagCode = null;
-      _selectedWordCodes.clear();
-      _selectionMode = false;
     });
     _reload();
   }
@@ -149,90 +153,142 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
     final brightness = Theme.of(context).brightness;
     final isPad = AppGlobals.isTablet;
 
-    return GestureDetector(
-      onTap: _selectionMode ? _cancelSelection : null,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
-        drawer: !isPad ? _buildDrawer(context) : null,
-        bottomNavigationBar: _selectionMode
-            ? _buildSelectionBar(context)
-            : null,
-        body: SafeArea(
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: AppColors.getSurfaceHighest(brightness: brightness),
+      drawer: !isPad ? _buildDrawer(context) : null,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ═══ 全局标题栏 ═══
+            Container(
+              color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
+              padding: EdgeInsets.fromLTRB(
+                adaptive.Adaptive.r(16),
+                adaptive.Adaptive.h(12),
+                adaptive.Adaptive.r(16),
+                adaptive.Adaptive.h(14),
+              ),
+              child: Row(
+                children: [
+                  // ── 左侧按钮：iPad 返回 / iPhone 菜单 ──
+                  if (isPad)
+                    Padding(
+                      padding: EdgeInsets.only(right: adaptive.Adaptive.w(4)),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(AppIcons.arrowBack),
+                        constraints: BoxConstraints(
+                          minWidth: adaptive.Adaptive.w(36),
+                          minHeight: adaptive.Adaptive.h(36),
+                        ),
+                        padding: EdgeInsets.zero,
+                        tooltip: '返回',
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: EdgeInsets.only(right: adaptive.Adaptive.w(4)),
+                      child: IconButton(
+                        onPressed: () =>
+                            _scaffoldKey.currentState?.openDrawer(),
+                        icon: const Icon(AppIcons.menu),
+                        constraints: BoxConstraints(
+                          minWidth: adaptive.Adaptive.w(36),
+                          minHeight: adaptive.Adaptive.h(36),
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                  Text(
+                    _mainTitle,
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(22),
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  SizedBox(width: adaptive.Adaptive.w(8)),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: adaptive.Adaptive.w(8),
+                      vertical: adaptive.Adaptive.h(3),
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(
+                        adaptive.Adaptive.r(999),
+                      ),
+                    ),
+                    child: Text(
+                      '${_allWords.length}${_isKnowledgeBase ? "句" : "词"}',
+                      style: TextStyle(
+                        fontSize: adaptive.Adaptive.sp(13),
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '今日 $_todayReviewed/$_totalWords',
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(12),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ═══ 主内容区域 ═══
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : isPad
+                      ? _buildSplitLayout(context, colorScheme)
+                      : _buildPhoneLayout(context, colorScheme),
+            ),
+          ],
+        ),
+      ),
+      // 右下角悬浮 FAB（测试篮入口）
+      floatingActionButton: _buildBasketFAB(colorScheme),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 布局构建方法
+  // ═══════════════════════════════════════════════════════════════
+
+  /// iPad 左右分栏布局
+  Widget _buildSplitLayout(BuildContext context, AppColorsData colorScheme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── 左侧导航面板 ──
+        SizedBox(
+          width: adaptive.Adaptive.w(240),
+          height: double.infinity,
+          child: _buildNavPanel(),
+        ),
+
+        SizedBox(width: adaptive.Adaptive.w(16)),
+
+        // ── 右侧内容区 ──
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
-                padding: EdgeInsets.fromLTRB(
-                  adaptive.Adaptive.r(16),
-                  adaptive.Adaptive.h(12),
-                  adaptive.Adaptive.r(16),
-                  adaptive.Adaptive.h(14),
-                ),
-                child: Row(
-                  children: [
-                    if (!isPad) ...[
-                      Padding(
-                        padding: EdgeInsets.only(right: adaptive.Adaptive.w(4)),
-                        child: IconButton(
-                          onPressed: () =>
-                              _scaffoldKey.currentState?.openDrawer(),
-                          icon: const Icon(AppIcons.menu),
-                          constraints: BoxConstraints(
-                            minWidth: adaptive.Adaptive.w(36),
-                            minHeight: adaptive.Adaptive.h(36),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
-                    Text(
-                      _isKnowledgeBase ? '知识库' : '生词本',
-                      style: TextStyle(
-                        fontSize: adaptive.Adaptive.sp(22),
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    SizedBox(width: adaptive.Adaptive.w(8)),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: adaptive.Adaptive.w(8),
-                        vertical: adaptive.Adaptive.h(3),
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(
-                          adaptive.Adaptive.r(999),
-                        ),
-                      ),
-                      child: Text(
-                        '${_allWords.length}${_isKnowledgeBase ? '句' : '词'}',
-                        style: TextStyle(
-                          fontSize: adaptive.Adaptive.sp(13),
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '今日 $_todayReviewed/$_totalWords',
-                      style: TextStyle(
-                        fontSize: adaptive.Adaptive.sp(12),
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Tab 切换 + 搜索框（在右侧内容区内）
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  adaptive.Adaptive.r(16),
+                  adaptive.Adaptive.r(0),
                   adaptive.Adaptive.h(12),
-                  adaptive.Adaptive.r(16),
-                  0,
+                  adaptive.Adaptive.r(0),
+                  adaptive.Adaptive.h(8),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,103 +299,59 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
                   ],
                 ),
               ),
-              if (_selectionMode)
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: adaptive.Adaptive.r(16),
-                    vertical: adaptive.Adaptive.h(6),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: adaptive.Adaptive.w(12),
-                      vertical: adaptive.Adaptive.h(8),
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(
-                        alpha: 0.3,
-                      ),
-                      borderRadius: BorderRadius.circular(
-                        adaptive.Adaptive.r(10),
-                      ),
-                    ),
-                    child: Text(
-                      '已选择 ${_selectedWordCodes.length}/${_words.length}，点击下方按钮开始，或点击任意位置取消',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: adaptive.Adaptive.sp(12),
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
+
+              // 单词列表
               Expanded(
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          adaptive.Adaptive.r(16),
-                          adaptive.Adaptive.h(12),
-                          adaptive.Adaptive.r(16),
-                          adaptive.Adaptive.h(8),
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final wide =
-                                constraints.maxWidth >=
-                                adaptive.Adaptive.w(900);
-                            if (wide) {
-                              return Row(
-                                children: [
-                                  SizedBox(
-                                    width: adaptive.Adaptive.w(240),
-                                    child: _buildNavPanel(),
-                                  ),
-                                  SizedBox(width: adaptive.Adaptive.w(16)),
-                                  Expanded(
-                                    child: _words.isEmpty
-                                        ? _buildEmptyState(colorScheme)
-                                        : _buildWordList(),
-                                  ),
-                                ],
-                              );
-                            }
-                            return _words.isEmpty
-                                ? _buildEmptyState(colorScheme)
-                                : _buildWordList();
-                          },
-                        ),
-                      ),
+                child: _words.isEmpty
+                    ? _buildEmptyState(colorScheme)
+                    : _buildWordList(),
               ),
-              if (!_selectionMode && _allWords.isNotEmpty)
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: adaptive.Adaptive.r(16),
-                    vertical: adaptive.Adaptive.h(10),
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      top: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.3,
-                        ),
-                      ),
-                    ),
-                  ),
-                  child: _buildActionBar(context),
-                ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
-  void _cancelSelection() {
-    setState(() {
-      _selectionMode = false;
-      _selectedWordCodes.clear();
-    });
+  /// iPhone 上下布局
+  Widget _buildPhoneLayout(BuildContext context, AppColorsData colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Tab 切换 + 搜索框
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            adaptive.Adaptive.r(16),
+            adaptive.Adaptive.h(12),
+            adaptive.Adaptive.r(16),
+            0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTabBar(colorScheme),
+              SizedBox(height: adaptive.Adaptive.h(8)),
+              _buildSearchBar(colorScheme),
+            ],
+          ),
+        ),
+
+        // 单词列表
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              adaptive.Adaptive.r(16),
+              adaptive.Adaptive.h(12),
+              adaptive.Adaptive.r(16),
+              adaptive.Adaptive.h(8),
+            ),
+            child: _words.isEmpty
+                ? _buildEmptyState(colorScheme)
+                : _buildWordList(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildDrawer(BuildContext context) {
@@ -363,9 +375,9 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
       padding: EdgeInsets.all(adaptive.Adaptive.r(3)),
       child: Row(
         children: [
-          _buildTabChip('单词', AppIcons.spellcheck, 0, cs),
+          _buildTabChip(_tab0Label, AppIcons.spellcheck, 0, cs),
           SizedBox(width: adaptive.Adaptive.w(3)),
-          _buildTabChip('知识库', AppIcons.libraryBooks, 1, cs),
+          _buildTabChip(_tab1Label, AppIcons.libraryBooks, 1, cs),
         ],
       ),
     );
@@ -395,7 +407,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
               Icon(
                 icon,
                 size: adaptive.Adaptive.sp(16),
-                color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+                color: selected ? AppColors.onPrimary : cs.onSurfaceVariant,
               ),
               SizedBox(width: adaptive.Adaptive.w(4)),
               Text(
@@ -403,7 +415,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
                 style: TextStyle(
                   fontSize: adaptive.Adaptive.sp(13),
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+                  color: selected ? AppColors.onPrimary : cs.onSurfaceVariant,
                 ),
               ),
             ],
@@ -470,7 +482,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
   Future<void> _handleSearchSubmit() async {
     final keyword = _searchController.text.trim();
     if (keyword.isEmpty || _isKnowledgeBase) return;
-    final wordPattern = RegExp(r"^[a-zA-Z']+$");
+    final wordPattern = RegExp(r"^[a-zA']+$");
     if (!wordPattern.hasMatch(keyword)) return;
     if (!mounted) return;
     await WordCard.show(
@@ -481,46 +493,58 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
     );
   }
 
-  Widget _buildActionBar(BuildContext context) {
-    final colorScheme = context.colors;
-    final isPremium =
-        ref.watch(subscriptionProvider).mode == SubscriptionMode.premium;
+  // ═══════════════════════════════════════════════════════════════
+  // 悬浮 FAB（测试篮入口）
+  // ═══════════════════════════════════════════════════════════════
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (!_isKnowledgeBase && isPremium) ...[
-          FilledButton.icon(
-            onPressed: () => _enterSelectionMode('test'),
-            icon: Icon(AppIcons.quiz, size: adaptive.Adaptive.icon(18)),
-            label: const Text('测试'),
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.tertiaryContainer,
-              foregroundColor: colorScheme.onTertiaryContainer,
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.Adaptive.w(16),
-                vertical: adaptive.Adaptive.h(10),
+  Widget _buildBasketFAB(AppColorsData cs) {
+    final count = _basketState.count;
+    return FloatingActionButton(
+      onPressed: () => _handleFABTap(context),
+      backgroundColor: cs.primary,
+      foregroundColor: AppColors.onPrimary,
+      elevation: 6,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(AppIcons.quiz, size: adaptive.Adaptive.icon(24)),
+          if (count > 0)
+            Positioned(
+              right: -6,
+              top: -6,
+              child: Container(
+                constraints: BoxConstraints(
+                  minWidth: adaptive.Adaptive.w(18),
+                  minHeight: adaptive.Adaptive.h(18),
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.Adaptive.w(5),
+                  vertical: adaptive.Adaptive.h(2),
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(999)),
+                ),
+                child: Center(
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: adaptive.Adaptive.sp(10),
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-          SizedBox(width: adaptive.Adaptive.w(12)),
         ],
-        FilledButton.icon(
-          onPressed: () => _enterSelectionMode('review'),
-          icon: Icon(AppIcons.refresh, size: adaptive.Adaptive.icon(18)),
-          label: const Text('复习'),
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.primaryContainer,
-            foregroundColor: colorScheme.onPrimaryContainer,
-            padding: EdgeInsets.symmetric(
-              horizontal: adaptive.Adaptive.w(16),
-              vertical: adaptive.Adaptive.h(10),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 导航与列表相关方法
+  // ═══════════════════════════════════════════════════════════════
 
   Widget _buildNavPanel() {
     return WordBookNavPanel(
@@ -528,23 +552,12 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
       selectedTagCode: _selectedTagCode,
       learningItems: _learningNavItems,
       masteredItems: _masteredNavItems,
-      selectionMode: _selectionMode,
-      selectedWordCodes: _selectedWordCodes,
-      words: _words,
       onSelect: (item) async {
         setState(() {
           _selectedStatus = item.status;
           _selectedTagCode = item.tagCode;
-          _selectionMode = false;
-          _selectedWordCodes.clear();
         });
         await _reload();
-      },
-      onSmartSelect: (Set<String> codes) {
-        setState(() {
-          _selectedWordCodes.clear();
-          _selectedWordCodes.addAll(codes);
-        });
       },
     );
   }
@@ -568,13 +581,13 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
       itemBuilder: (context, index) {
         final item = _words[index];
         final tags = _tagsByWordCode[item.code] ?? const <WordTag>[];
+        final isInBasket = _basketState.isSelected(item.code ?? '');
+
         if (_isKnowledgeBase) {
           return SnippetListCard(
             snippet: item,
             tags: tags,
-            selectionMode: _selectionMode,
-            selected:
-                item.code != null && _selectedWordCodes.contains(item.code),
+            isInBasket: isInBasket,
             onTap: () => _handleItemTap(item),
             onTagTap: () => _editItemTags(item),
           );
@@ -582,8 +595,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
         return CollectionWordCard(
           word: item,
           tags: tags,
-          selectionMode: _selectionMode,
-          selected: item.code != null && _selectedWordCodes.contains(item.code),
+          isInBasket: isInBasket,
           onTap: () => _handleItemTap(item),
           onTagTap: () => _editItemTags(item),
         );
@@ -592,18 +604,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
   }
 
   void _handleItemTap(WordBook item) {
-    if (_selectionMode) {
-      final code = item.code;
-      if (code == null) return;
-      setState(() {
-        if (_selectedWordCodes.contains(code)) {
-          _selectedWordCodes.remove(code);
-        } else {
-          _selectedWordCodes.add(code);
-        }
-      });
-      return;
-    }
+    // 点击进入详情页（复习操作入口）
     if (_isKnowledgeBase) {
       _showSnippetDetail(item);
     } else if (AppGlobals.isTablet) {
@@ -617,6 +618,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
 
   Future<void> _showWordDetail(WordBook word) async {
     final tags = _tagsByWordCode[word.code] ?? const <WordTag>[];
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -646,6 +648,7 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
 
   Future<void> _showSnippetDetail(WordBook snippet) async {
     final tags = _tagsByWordCode[snippet.code] ?? const <WordTag>[];
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -671,7 +674,8 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
             : null,
         onNoteChanged: (note) async {
           snippet.note = note;
-          await snippet.save();
+          // 使用 DatabaseService 更新备注
+          // TODO: 添加 WordBookService.updateNote 方法
         },
         onEditTags: () async {
           Navigator.of(context).pop();
@@ -682,12 +686,31 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
   }
 
   void _showCollectionDetail(WordBook word) {
+    final tags = _tagsByWordCode[word.code] ?? const <WordTag>[];
+
     showDialog<void>(
       context: context,
       barrierColor: Colors.black54,
       builder: (_) => CollectionDetailSheet(
         word: word,
+        tags: tags,
         onClose: () => Navigator.of(context).pop(),
+        onRecognized: () async {
+          Navigator.of(context).pop();
+          await _handleMasteryChange(word, true);
+        },
+        onUnrecognized: () async {
+          Navigator.of(context).pop();
+          await _handleMasteryChange(word, false);
+        },
+        onDelete: word.isMastered
+            ? () async {
+                Navigator.of(context).pop();
+                final ok = await WordBookService.softDeleteWord(word.code!);
+                if (!ok || !mounted) return;
+                await _reload();
+              }
+            : null,
       ),
     );
   }
@@ -717,145 +740,43 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
     await _reload();
   }
 
-  void _enterSelectionMode(String action) {
-    if (_words.isEmpty) return;
-    setState(() {
-      _selectionAction = action;
-      _selectionMode = true;
-      _selectedWordCodes.clear();
-    });
-  }
+  // ═══════════════════════════════════════════════════════════════
+  // 测试相关方法
+  // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildSelectionBar(BuildContext context) {
-    final colorScheme = context.colors;
-    final actionLabel = _isKnowledgeBase || _selectionAction == 'review'
-        ? '开始复习'
-        : '开始测试';
-    final selectedCount = _selectedWordCodes.length;
-    final totalCount = _words.length;
-    final allSelected = selectedCount == totalCount && totalCount > 0;
-    final someSelected = selectedCount > 0 && selectedCount < totalCount;
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: adaptive.Adaptive.w(12),
-          vertical: adaptive.Adaptive.h(8),
-        ),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
-          border: Border(
-            top: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: adaptive.Adaptive.w(36),
-              height: adaptive.Adaptive.h(36),
-              child: Checkbox(
-                value: allSelected ? true : (someSelected ? null : false),
-                tristate: true,
-                onChanged: (val) {
-                  setState(() {
-                    if (val == true) {
-                      _selectedWordCodes
-                        ..clear()
-                        ..addAll(
-                          _words.map((item) => item.code).whereType<String>(),
-                        );
-                    } else {
-                      _selectedWordCodes.clear();
-                    }
-                  });
-                },
-              ),
-            ),
-            SizedBox(width: adaptive.Adaptive.w(4)),
-            Text(
-              '$selectedCount/$totalCount',
-              style: TextStyle(
-                fontSize: adaptive.Adaptive.sp(13),
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const Spacer(),
-            FilledButton.icon(
-              onPressed: selectedCount == 0
-                  ? null
-                  : () async {
-                      final selectedItems = _words
-                          .where(
-                            (item) =>
-                                item.code != null &&
-                                _selectedWordCodes.contains(item.code),
-                          )
-                          .toList();
-                      if (_isKnowledgeBase || _selectionAction == 'review') {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                WordBookReviewPage(words: selectedItems),
-                          ),
-                        );
-                        setState(() {
-                          _selectionMode = false;
-                          _selectedWordCodes.clear();
-                        });
-                        await _reload();
-                        return;
-                      }
-                      if (!mounted) return;
-                      final changed = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TestPage(
-                            videoTitle: '生词本测试',
-                            seedWords: selectedItems
-                                .map(
-                                  (item) => {
-                                    'word': item.word,
-                                    'context_sentence':
-                                        item.contextSentence ?? item.word,
-                                    'word_book_code': item.code,
-                                    'source_type': item.sourceType,
-                                    'source_code': item.sourceCode,
-                                    'source_title': item.sourceTitle,
-                                    'segment_code': item.segmentCode,
-                                    'definitions_json': item.definitionsJson,
-                                    'phonetic_uk': item.phoneticUk,
-                                    'phonetic_us': item.phoneticUs,
-                                    'difficulty': item.difficulty,
-                                  },
-                                )
-                                .toList(),
-                          ),
-                        ),
-                      );
-                      if (changed == true && mounted) await _reload();
-                    },
-              icon: Icon(
-                _selectionAction == 'review' ? AppIcons.refresh : AppIcons.quiz,
-                size: adaptive.Adaptive.sp(18),
-              ),
-              label: Text(actionLabel),
-              style: FilledButton.styleFrom(
-                padding: EdgeInsets.symmetric(
-                  horizontal: adaptive.Adaptive.w(20),
-                  vertical: adaptive.Adaptive.h(10),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(adaptive.Adaptive.r(20)),
-                ),
-              ),
-            ),
-          ],
-        ),
+  /// 处理 FAB 点击（导航到测试管理页面）
+  Future<void> _handleFABTap(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const TestManagePage(),
       ),
     );
   }
+
+  /// 导航到 TestPage（从测试篮获取数据）
+  Future<void> _navigateToTest(BuildContext context) async {
+    final basketState = ref.read(testBasketProvider);
+    if (basketState.isEmpty) return;
+
+    final seedWords = basketState.toSeedWords();
+
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TestPage(
+          videoTitle: '我的收藏测试',
+          seedWords: seedWords,
+          testScope: TestScope.wordBook,
+        ),
+      ),
+    );
+
+    // 测试完成后清空测试篮并刷新
+    if (changed == true && mounted) {
+      ref.read(testBasketProvider.notifier).clear();
+      await _reload();
+    }
+  }
+
 }

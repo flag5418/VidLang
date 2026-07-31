@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收费模式切换 UI 设计方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro Display', 'Noto Sans SC', sans-serif;
+    background: #E8EAED;
+    padding: 40px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  
+  .design-card {
+    width: 390px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  
+  .design-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+  }
+  .design-header h2 { font-size: 16px; font-weight: 700; }
+  .design-header p { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+  
+  .phone-frame {
+    margin: 16px;
+    background: #F5F5F5;
+    border-radius: 16px;
+    padding: 16px;
+    min-height: 240px;
+  }
+
+  /* ========== 方案 A: 分段控制器 ========== */
+  .plan-a .segment-control {
+    display: flex;
+    background: #F4F4F5;
+    border-radius: 10px;
+    padding: 4px;
+    height: 44px;
+    margin-bottom: 14px;
+  }
+  .plan-a .seg-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .plan-a .seg-item.free { color: #71717A; }
+  .plan-a .seg-item.premium {
+    background: #fff;
+    color: #F59E0B;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .plan-a .balance-bar {
+    background: #FFFBEB;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .plan-a .balance-bar .icon { font-size: 22px; }
+  .plan-a .balance-bar .label { font-size: 12px; color: #92400E; }
+  .plan-a .balance-bar .amount { font-size: 22px; font-weight: 800; color: #B45309; margin-left: auto; }
+  .plan-a .action-row {
+    display: flex;
+    gap: 10px;
+  }
+  .plan-a .today-btn {
+    flex: 1;
+    height: 40px;
+    border: 1px solid #E4E4E7;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .plan-a .today-btn .val { font-weight: 600; color: #18181B; }
+  .plan-a .topup-btn {
+    width: 70px;
+    height: 40px;
+    background: #F59E0B;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ========== 方案 B: 双卡片并列 ========== */
+  .plan-b .cards-row {
+    display: flex;
+    gap: 8px;
+  }
+  .plan-b .mode-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    border: 1.5px solid #E4E4E7;
+    padding: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .plan-b .mode-card.selected {
+    background: #FFFBEB;
+    border-color: #F59E0B;
+  }
+  .plan-b .card-radio {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #D4D4D8;
+  }
+  .plan-b .selected .card-radio {
+    background: #F59E0B;
+    border-color: #F59E0B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .plan-b .card-radio::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .plan-b .card-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .plan-b .free-card .card-title { color: #71717A; }
+  .plan-b .premium-card .card-title { color: #B45309; }
+  .plan-b .card-sub { font-size: 12px; color: #A1A1AA; line-height: 1.5; }
+  .plan-b .premium-card .balance-big {
+    font-size: 30px;
+    font-weight: 800;
+    color: #F59E0B;
+    margin: 8px 0 4px;
+  }
+  .plan-b .premium-card .balance-label { font-size: 12px; color: #92400E; }
+  .plan-b .divider {
+    height: 1px;
+    background: #FEF3C7;
+    margin: 10px 0;
+  }
+  .plan-b .cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #92400E;
+    margin-bottom: 10px;
+  }
+  .plan-b .topup-full {
+    width: 100%;
+    height: 38px;
+    background: #F59E0B;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ========== 方案 C: 紧凑信息条 ========== */
+  .plan-c .compact-card {
+    background: #fff;
+    border: 1px solid #E4E4E7;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .plan-c .avatar-circle {
+    width: 44px;
+    height: 44px;
+    background: #FFFBEB;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .plan-c .info-col { flex: 1; }
+  .plan-c .mode-name { font-size: 15px; font-weight: 600; color: #1E2A2F; }
+  .plan-c .mode-detail { font-size: 12px; color: #71717A; margin-top: 2px; }
+  .plan-c .toggle-switch {
+    width: 50px;
+    height: 28px;
+    background: #F59E0B;
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .plan-c .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .plan-c .btn-row {
+    display: flex;
+    gap: 8px;
+  }
+  .plan-c .action-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .plan-c .action-btn.primary {
+    background: #F59E0B;
+    color: #fff;
+    font-weight: 600;
+  }
+  .plan-c .action-btn.secondary {
+    background: #fff;
+    border: 1px solid #E4E4E7;
+    color: #52525B;
+  }
+  .plan-c .hint-text {
+    font-size: 11px;
+    color: #A1A1AA;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  /* ========== 方案 D: 钱包卡片 ========== */
+  .plan-d .wallet-card {
+    background: linear-gradient(135deg, #1E2A2F 0%, #2D3A36 100%);
+    border-radius: 16px;
+    padding: 18px 20px;
+    color: #fff;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-d .wallet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .plan-d .wallet-mode {
+    font-size: 14px;
+    font-weight: 600;
+    color: #F59E0B;
+  }
+  .plan-d .wallet-toggle {
+    width: 44px;
+    height: 24px;
+    background: #F59E0B;
+    border-radius: 12px;
+    position: relative;
+  }
+  .plan-d .wallet-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .plan-d .wallet-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .plan-d .wallet-balance-label { font-size: 12px; color: #9CA3AF; margin-bottom: 4px; }
+  .plan-d .wallet-balance-amount { font-size: 36px; font-weight: 800; color: #FFFFFF; }
+  .plan-d .wallet-cost-box {
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .plan-d .cost-box-label { font-size: 11px; color: #9CA3AF; }
+  .plan-d .cost-box-val { font-size: 18px; font-weight: 700; color: #fff; margin-top: 2px; }
+  .plan-d .wallet-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .plan-d .wallet-btn {
+    flex: 1;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .plan-d .wallet-btn.main {
+    background: #F59E0B;
+    color: #fff;
+    font-weight: 600;
+  }
+  .plan-d .wallet-btn.sub {
+    background: #fff;
+    border: 1px solid #E4E4E7;
+    color: #374151;
+    font-weight: 500;
+  }
+  .plan-d .wallet-hint {
+    font-size: 11px;
+    color: #A1A1AA;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  /* 分析区域 */
+  .analysis {
+    margin: 0 16px 16px;
+    padding: 12px 14px;
+    background: #F8FAFC;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #475569;
+  }
+  .analysis strong { color: #1E293B; }
+  .pros { color: #059669; }
+  .cons { color: #DC2626; }
+
+  @media (max-width: 420px) {
+    body { padding: 16px 8px; }
+    .design-card { width: 100%; max-width: 390px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 方案 A -->
+<div class="design-card">
+  <div class="design-header" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+    <h2>📱 方案 A：分段控制器</h2>
+    <p>Segmented Control · iOS 原生风格</p>
+  </div>
+  <div class="phone-frame plan-a">
+    <div class="segment-control">
+      <div class="seg-item free">免费模式</div>
+      <div class="seg-item premium">收费模式</div>
+    </div>
+    <div class="balance-bar">
+      <span class="icon">💰</span>
+      <span class="label">账户余额</span>
+      <span class="amount">¥ 8.26</span>
+    </div>
+    <div class="action-row">
+      <div class="today-btn">
+        <span>今日消费</span>
+        <span class="val">¥0.00 ›</span>
+      </div>
+      <div class="topup-btn">充值</div>
+    </div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>模仿 iOS Segmented Control<br>
+    <span class="pros">✅ 模式切换意图清晰，用户一看就懂</span><br>
+    <span class="pros">✅ 信息层级分明（模式→余额→操作）</span><br>
+    <span class="cons">❌ 占用垂直空间较多</span><br>
+    <span class="cons">❌ 与当前设计差异较大，改动成本高</span>
+  </div>
+</div>
+
+<!-- 方案 B -->
+<div class="design-card">
+  <div class="design-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+    <h2>🃏 方案 B：双卡片并列</h2>
+    <p>Dual Card Selection · 对比选择式</p>
+  </div>
+  <div class="phone-frame plan-b">
+    <div class="cards-row">
+      <div class="mode-card free-card">
+        <div class="card-radio"></div>
+        <div class="card-title">免费模式</div>
+        <div class="card-sub">使用基础功能<br>不产生费用</div>
+      </div>
+      <div class="mode-card premium-card selected">
+        <div class="card-radio"></div>
+        <div class="card-title">收费模式</div>
+        <div class="balance-big">¥ 8.26</div>
+        <div class="balance-label">当前余额</div>
+        <div class="divider"></div>
+        <div class="cost-row">
+          <span>今日消费</span>
+          <span>¥0.00 ›</span>
+        </div>
+        <div class="topup-full">立即充值</div>
+      </div>
+    </div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>左右对比卡片，选中态突出<br>
+    <span class="pros">✅ 视觉冲击力强，两种模式差异一目了然</span><br>
+    <span class="pros">✅ 收费模式的操作入口都在右侧卡片内</span><br>
+    <span class="cons">❌ 宽度受限时信息展示不够</span><br>
+    <span class="cons">❌ 免费模式下右侧大片空白</span>
+  </div>
+</div>
+
+<!-- 方案 C -->
+<div class="design-card">
+  <div class="design-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+    <h2>⚡ 方案 C：紧凑信息条</h2>
+    <p>Compact Info Bar · 高效利用空间</p>
+  </div>
+  <div class="phone-frame plan-c">
+    <div class="compact-card">
+      <div class="avatar-circle">👤</div>
+      <div class="info-col">
+        <div class="mode-name">收费模式</div>
+        <div class="mode-detail">余额 ¥8.26 · 今日消费 ¥0.00</div>
+      </div>
+      <div class="toggle-switch"></div>
+    </div>
+    <div class="btn-row">
+      <div class="action-btn primary">💰 充值</div>
+      <div class="action-btn secondary">📋 账单</div>
+      <div class="action-btn secondary">📊 统计</div>
+    </div>
+    <div class="hint-text">切换开关即可在免费/收费模式间切换</div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>单行信息 + 开关 + 操作按钮组<br>
+    <span class="pros">✅ 最节省空间，适合放在设置列表中</span><br>
+    <span class="pros">✅ 操作按钮平铺，触达路径短</span><br>
+    <span class="cons">❌ 余额信息不够醒目</span><br>
+    <span class="cons">❌ 信息密度高可能造成认知负担</span>
+  </div>
+</div>
+
+<!-- 方案 D -->
+<div class="design-card">
+  <div class="design-header" style="background: linear-gradient(135deg, #1e2a2f 0%, #374151 100%);">
+    <h2>💳 方案 D：钱包卡片</h2>
+    <p>Wallet Card · 金融级视觉体验</p>
+  </div>
+  <div class="phone-frame plan-d">
+    <div class="wallet-card">
+      <div class="wallet-header">
+        <span class="wallet-mode">收费模式</span>
+        <div class="wallet-toggle"></div>
+      </div>
+      <div class="wallet-body">
+        <div>
+          <div class="wallet-balance-label">账户余额</div>
+          <div class="wallet-balance-amount">¥ 8.26</div>
+        </div>
+        <div class="wallet-cost-box">
+          <div class="cost-box-label">今日消费</div>
+          <div class="cost-box-val">¥0.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="wallet-actions">
+      <div class="wallet-btn main">💳 充值</div>
+      <div class="wallet-btn sub">📄 账单明细</div>
+    </div>
+    <div class="wallet-hint">iOS 用户可自由切换模式 · Android 默认开启收费模式</div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>深色大卡片，金融 App 风格<br>
+    <span class="pros">✅ 余额最醒目，视觉焦点明确</span><br>
+    <span class="pros">✅ 高端感强，与项目定位匹配</span><br>
+    <span class="pros">✅ 深色背景与亮色页面形成对比</span><br>
+    <span class="cons">❌ 风格跳跃较大，需要整体配合</span><br>
+    <span class="cons">❌ 深色模式适配需额外处理</span>
+  </div>
+</div>
+
+</body>
+</html>

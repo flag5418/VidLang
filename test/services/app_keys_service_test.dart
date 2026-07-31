@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vidlang/models/user.dart';
 import 'package:vidlang/services/app_keys_service.dart';
 
 /// AppKeysService 单元测试
@@ -134,15 +135,13 @@ void main() {
 }
 
 /// 创建一个模拟用户对象用于测试
-///
-/// 注意：这里不能直接使用 User() 构造函数因为它可能需要特定参数，
-/// 所以我们用一个简单的动态类型来模拟。
-dynamic _mockUser() {
-  return _MockUser();
-}
-
-class _MockUser {
-  final String code = 'test_user_001';
-  final String email = 'test@example.com';
-  final String authProvider = 'supabase';
+User _mockUser() {
+  final user = User(
+    username: 'test_user',
+    email: 'test@example.com',
+    authProvider: 'supabase',
+  );
+  // 手动设置 code，因为 BaseEntity 构造函数会自动生成 UUID
+  user.code = 'test_user_001';
+  return user;
 }

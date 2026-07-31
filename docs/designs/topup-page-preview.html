@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>充值页面 UI 设计原型</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro Display', 'Noto Sans SC', sans-serif;
+    background: #F0F2F5;
+    padding: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+  }
+
+  .design-card {
+    width: 390px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .design-header {
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #3B6EFF 0%, #2563EB 100%);
+    color: #fff;
+  }
+  .design-header h2 { font-size: 15px; font-weight: 700; }
+  .design-header p { font-size: 11px; opacity: 0.8; margin-top: 3px; }
+  .phone-frame { padding: 16px; background: #F5F7FA; min-height: 520px; }
+
+  /* ========== 方案 A：简洁列表式 ========== */
+  .balance-overview {
+    background: linear-gradient(135deg, #3B6EFF 0%, #2563EB 100%);
+    border-radius: 14px;
+    padding: 20px;
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .balance-label { font-size: 13px; opacity: 0.8; }
+  .balance-amount { font-size: 36px; font-weight: 800; margin-top: 4px; letter-spacing: -1px; }
+  .balance-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
+  .balance-meta { text-align: right; }
+  .balance-meta-label { font-size: 11px; opacity: 0.7; }
+  .balance-meta-val { font-size: 16px; font-weight: 600; margin-top: 2px; }
+
+  .section-title {
+    font-size: 14px; font-weight: 600; color: #374151;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* 金额选择器 */
+  .amount-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .amount-item {
+    background: #fff; border: 1.5px solid #E5E7EB; border-radius: 12px;
+    padding: 14px 8px; text-align: center; cursor: pointer;
+    transition: all 0.2s; position: relative;
+  }
+  .amount-item:hover { border-color: #3B6EFF; transform: translateY(-1px); }
+  .amount-item.selected {
+    background: #EFF6FF; border-color: #3B6EFF;
+    box-shadow: 0 2px 8px rgba(59,110,255,0.15);
+  }
+  .amount-item.selected::after {
+    content: '✓'; position: absolute; top: 6px; right: 6px;
+    width: 18px; height: 18px; background: #3B6EFF; border-radius: 50%;
+    color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center;
+  }
+  .amount-val { font-size: 20px; font-weight: 700; color: #1E293B; }
+  .amount-unit { font-size: 12px; color: #6B7280; margin-top: 2px; }
+  .amount-item.selected .amount-val { color: #2563EB; }
+  .amount-item.popular { position: relative; }
+  .amount-item.popular::before {
+    content: '热门'; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #F59E0B, #D97706); color: #fff;
+    font-size: 10px; font-weight: 600; padding: 2px 10px; border-radius: 10px;
+  }
+
+  /* 自定义金额 */
+  .custom-amount {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 1.5px dashed #D1D5DB; border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 16px; transition: border-color 0.2s;
+  }
+  .custom-amount:focus-within { border-color: #3B6EFF; border-style: solid; }
+  .custom-amount input {
+    flex: 1; border: none; outline: none; font-size: 20px; font-weight: 700;
+    color: #1E293B; background: transparent;
+  }
+  .custom-amount .unit { font-size: 14px; color: #6B7280; font-weight: 500; }
+
+  /* 充值按钮 */
+  .topup-btn {
+    width: 100%; height: 50px; background: linear-gradient(135deg, #3B6EFF, #2563EB);
+    border: none; border-radius: 14px; color: #fff; font-size: 16px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(59,110,255,0.3);
+  }
+  .topup-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,110,255,0.35); }
+  .topup-btn:active { transform: translateY(0); }
+
+  /* 支付方式 */
+  .pay-methods { margin-top: 16px; }
+  .pay-methods-title { font-size: 13px; color: #6B7280; margin-bottom: 10px; }
+  .pay-options { display: flex; gap: 10px; }
+  .pay-option {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px; border: 1.5px solid #E5E7EB; border-radius: 10px;
+    cursor: pointer; transition: all 0.2s; font-size: 13px; color: #4B5563;
+  }
+  .pay-option:hover { border-color: #3B6EFF; color: #2563EB; }
+  .pay-option.selected { background: #EFF6FF; border-color: #3B6EFF; color: #2563EB; }
+
+  /* 提示文字 */
+  .hint-text { font-size: 11px; color: #9CA3AF; text-align: center; margin-top: 12px; line-height: 1.5; }
+
+  /* ========== 方案 B：卡片突出式 ========== */
+  .plan-b .balance-overview {
+    background: #fff; border: 2px solid #E5E7EB; text-align: center; padding: 24px 16px;
+  }
+  .plan-b .balance-amount { color: #2563EB; }
+  .plan-b .balance-label { color: #6B7280; }
+  .plan-b .recharge-cards { display: flex; flex-direction: column; gap: 10px; }
+  .plan-b .recharge-card {
+    display: flex; align-items: center; padding: 16px;
+    background: #fff; border: 1.5px solid #E5E7EB; border-radius: 14px;
+    cursor: pointer; transition: all 0.25s; gap: 14px;
+  }
+  .plan-b .recharge-card:hover { border-color: #3B6EFF; transform: translateX(4px);
+    box-shadow: 0 4px 14px rgba(59,110,255,0.1);
+  }
+  .plan-b .recharge-card.selected {
+    background: linear-gradient(135deg, #EFF6FF, #DBEAFE); border-color: #3B6EFF;
+    border-width: 2px;
+  }
+  .plan-b .card-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .plan-b .card-info { flex: 1; }
+  .plan-b .card-name { font-size: 15px; font-weight: 600; color: #1E293B; }
+  .plan-b .card-desc { font-size: 12px; color: #6B7280; margin-top: 2px; }
+  .plan-b .card-price { font-size: 22px; font-weight: 800; color: #2563EB; }
+  .plan-b .card-price .unit { font-size: 13px; font-weight: 500; }
+  .plan-b .card-check {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid #D1D5DB;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.2s;
+  }
+  .plan-b .recharge-card.selected .card-check {
+    background: #3B6EFF; border-color: #3B6EFF; color: #fff;
+  }
+  .plan-b .card-bonus {
+    font-size: 11px; color: #059669; background: #D1FAE5; padding: 2px 8px;
+    border-radius: 6px; font-weight: 500;
+  }
+
+  /* 分析区域 */
+  .analysis {
+    margin: 0 16px 14px; padding: 12px 14px; background: #F8FAFC;
+    border-radius: 10px; font-size: 11.5px; line-height: 1.65; color: #475569;
+  }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 4px; }
+  .tag-pro { background: #DCFCE7; color: #166534; }
+  .tag-con { background: #FEE2E2; color: #991B1B; }
+
+  @media (max-width: 420px) {
+    body { padding: 12px 8px; gap: 16px; }
+    .design-card { width: 100%; max-width: 390px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 方案 A：简洁列表式 -->
+<div class="design-card">
+  <div class="design-header">
+    <h2>💰 方案 A：简洁列表式</h2>
+    <p>Amount Grid + Custom Input · 传统充值风格</p>
+  </div>
+  <div class="phone-frame">
+    <!-- 余额概览 -->
+    <div class="balance-overview">
+      <div class="balance-label">当前余额</div>
+      <div class="balance-amount">¥ 8.26</div>
+      <div class="balance-row">
+        <span style="font-size:12px;opacity:0.7;">💡 余额用于 AI 功能按量扣费</span>
+        <div class="balance-meta">
+          <div class="balance-meta-label">今日已消费</div>
+          <div class="balance-meta-val">¥ 0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 选择金额 -->
+    <div class="section-title">📌 选择充值金额</div>
+    <div class="amount-grid">
+      <div class="amount-item"><div class="amount-val">10</div><div class="amount-unit">元</div></div>
+      <div class="amount-item popular selected"><div class="amount-val">30</div><div class="amount-unit">元</div></div>
+      <div class="amount-item"><div class="amount-val">50</div><div class="amount-unit">元</div></div>
+      <div class="amount-item"><div class="amount-val">100</div><div class="amount-unit">元</div></div>
+      <div class="amount-item"><div class="amount-val">200</div><div class="amount-unit">元</div></div>
+      <div class="amount-item"><div class="amount-val">500</div><div class="amount-unit">元</div></div>
+    </div>
+
+    <!-- 自定义金额 -->
+    <div class="custom-amount">
+      <span class="unit">¥</span>
+      <input type="number" placeholder="输入其他金额" value="">
+    </div>
+
+    <!-- 充值按钮 -->
+    <button class="topup-btn">立即充值</button>
+
+    <!-- 支付方式提示 -->
+    <div class="pay-methods">
+      <div class="pay-methods-title">支付方式</div>
+      <div class="pay-options">
+        <div class="pay-option selected">🍎 Apple Pay</div>
+        <div class="pay-option">💳 银行卡</div>
+        <div class="pay-option">💰 微信支付</div>
+      </div>
+    </div>
+
+    <div class="hint-text">充值后余额实时到账 · 支持开具发票 · 7天无理由退款</div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>经典的金额网格 + 自定义输入<br><br>
+    <span class="tag tag-pro">✅ 信息密度高，一屏展示完整</span><br>
+    <span class="tag tag-pro">✅ 热门标签引导用户决策</span><br>
+    <span class="tag tag-pro">✅ 自定义金额满足特殊需求</span><br>
+    <span class="tag con">⚠️ 视觉上较传统，缺乏品牌感</span>
+  </div>
+</div>
+
+<!-- 方案 B：卡片突出式 -->
+<div class="design-card plan-b">
+  <div class="design-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+    <h2>🎫 方案 B：套餐卡片式</h2>
+    <p>Recharge Cards · 产品化充值体验</p>
+  </div>
+  <div class="phone-frame">
+    <!-- 余额（简化） -->
+    <div class="balance-overview">
+      <div class="balance-label">当前余额</div>
+      <div class="balance-amount">¥ 8.26</div>
+    </div>
+
+    <div class="section-title">🎯 选择充值套餐</div>
+
+    <!-- 套餐卡片 -->
+    <div class="recharge-cards">
+      <div class="recharge-card">
+        <div class="card-icon" style="background:#FEF3C7;">⚡</div>
+        <div class="card-info">
+          <div class="card-name">体验包</div>
+          <div class="card-desc">约 100 次AI对话 / 翻译</div>
+        </div>
+        <div class="card-price"><span class="unit">¥</span>10</div>
+        <div class="card-check"></div>
+      </div>
+
+      <div class="recharge-card selected">
+        <div class="card-icon" style="background:#DBEAFE;">🔥</div>
+        <div class="card-info">
+          <div class="card-name">标准包 <span class="card-bonus">最畅销</span></div>
+          <div class="card-desc">约 300 次AI对话 / 翻译 / 评测</div>
+        </div>
+        <div class="card-price"><span class="unit">¥</span>30</div>
+        <div class="card-check">✓</div>
+      </div>
+
+      <div class="recharge-card">
+        <div class="card-icon" style="background:#EDE9FE;">👑</div>
+        <div class="card-info">
+          <div class="card-name">专业包</div>
+          <div class="card-desc">约 1000 次 · 含全部AI功能</div>
+        </div>
+        <div class="card-price"><span class="unit">¥</span>98</div>
+        <div class="card-check"></div>
+      </div>
+
+      <div class="recharge-card">
+        <div class="card-icon" style="background:#FCE7F3;">💎</div>
+        <div class="card-info">
+          <div class="card-name">企业包</div>
+          <div class="card-desc">无限次 · 适合重度学习者</div>
+        </div>
+        <div class="card-price"><span class="unit">¥</span>298</div>
+        <div class="card-check"></div>
+      </div>
+    </div>
+
+    <!-- 自定义金额入口 -->
+    <div style="margin-top:12px;padding:12px;border:1.5px dashed #D1D5DB;border-radius:12px;text-align:center;
+      cursor:pointer;color:#6B7280;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;">
+      ✏️ 输入自定义金额
+    </div>
+
+    <button class="topup-btn" style="margin-top:16px;background:linear-gradient(135deg,#10b981,#059669);
+      box-shadow:0 4px 14px rgba(16,185,129,0.3);">确认充值</button>
+
+    <div class="hint-text">套餐余额永不过期 · 随用随扣 · 余额可随时查看</div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>将充值包装为产品套餐，增强价值感知<br><br>
+    <span class="tag tag-pro">✅ 价值导向：次数比金额更有体感</span><br>
+    <span class="tag tag-pro">✅ 套餐差异化：用户更容易做决定</span><br>
+    <span class="tag tag-pro">✅ 品牌感强：图标+描述+徽章组合</span><br>
+    <span class="tag con">⚠️ 需要 backend 配合：按次数/套餐管理</span><br>
+    <span class="tag con">⚠️ "约N次"是估算，可能产生歧义</span>
+  </div>
+</div>
+
+<!-- 方案 C：极简弹窗式 -->
+<div class="design-card">
+  <div class="design-header" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+    <h2>⚡ 方案 C：极简弹窗式</h2>
+    <p>Bottom Sheet / Modal Style · 快速充值</p>
+  </div>
+  <div class="phone-frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:480px;">
+    <div style="width:100%;max-width:340px;">
+      <!-- 模拟底部弹出层 -->
+      <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 28px;
+        box-shadow:0 -4px 30px rgba(0,0,0,0.1);">
+        <!-- 把手 -->
+        <div style="width:36px;height:4px;background:#D1D5DB;border-radius:2px;margin:0 auto 16px;"></div>
+        
+        <div style="text-align:center;margin-top:16px;">
+          <div style="font-size:15px;font-weight:700;color:#1E293B;">充值余额</div>
+          <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">当前余额 ¥8.26</div>
+        </div>
+
+        <!-- 快捷金额 chips -->
+        <div style="display:flex;gap:8px;justify-content:center;margin:20px 0;flex-wrap:wrap;">
+          <span style="padding:8px 18px;background:#F3F4F6;border-radius:20px;font-size:14px;font-weight:600;
+            color:#374151;cursor:pointer;">¥10</span>
+          <span style="padding:8px 22px;background:#3B6EFF;color:#fff;border-radius:20px;font-size:14px;
+            font-weight:600;box-shadow:0 2px 8px rgba(59,110,255,0.3);">¥30</span>
+          <span style="padding:8px 18px;background:#F3F4F6;border-radius:20px;font-size:14px;font-weight:600;
+            color:#374151;cursor:pointer;">¥50</span>
+          <span style="padding:8px 18px;background:#F3F4F6;border-radius:20px;font-size:14px;font-weight:600;
+            color:#374151;cursor:pointer;">¥100</span>
+        </div>
+
+        <!-- 输入框 -->
+        <div style="display:flex;align-items:center;border-bottom:2px solid #E5E7EB;padding:8px 0;
+          gap:8px;">
+          <span style="font-size:20px;font-weight:700;color:#3B6EFF;">¥</span>
+          <input type="number" placeholder="输入金额" value="30"
+            style="flex:1;border:none;outline:none;font-size:24px;font-weight:700;color:#1E293B;background:transparent;">
+        </div>
+
+        <!-- 按钮 -->
+        <button style="width:100%;height:52px;margin-top:24px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);
+          border:none;border-radius:14px;color:#fff;font-size:17px;font-weight:600;cursor:pointer;
+          box-shadow:0 4px 14px rgba(139,92,246,0.3);">
+          确认充值 ¥30
+        </button>
+
+        <div style="text-align:center;margin-top:14px;font-size:11px;color:#9CA3AF;">
+          Apple Pay · 银行卡 · 微信支付
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="analysis">
+    <strong>特点：</strong>模拟 BottomSheet 弹窗，聚焦核心操作<br><br>
+    <span class="tag tag-pro">✅ 极致精简：只保留金额选择和确认</span><br>
+    <span class="tag tag-pro">✅ 大数字输入：视觉焦点明确</span><br>
+    <span class="tag tag-pro">✅ 适合从模式卡片内触发</span><br>
+    <span class="tag con">⚠️ 缺少套餐/产品信息</span><br>
+    <span class="tag con">⚠️ 适合已有明确意图的用户</span>
+  </div>
+</div>
+
+</body>
+</html>

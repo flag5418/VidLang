@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vidlang/models/word_book.dart';
 import 'package:vidlang/models/word_tag.dart';
+import 'package:vidlang/providers/test_basket_provider.dart';
 import 'package:vidlang/services/word_book/word_book_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
-class WordBookDetailSheet extends StatelessWidget {
+/// 手机模式下的单词详情弹窗（BottomSheet）
+///
+/// V3.1 变更：
+/// - 使用 ConsumerWidget 实现实时状态更新
+/// - 图标和文案改为测试基调
+class WordBookDetailSheet extends ConsumerWidget {
   final WordBook word;
   final List<WordTag> tags;
   final VoidCallback onRecognized;
@@ -22,11 +29,15 @@ class WordBookDetailSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final definitions = WordBookService.parseDefinitions(word.definitionsJson);
     final morphology = WordBookService.parseMorphology(word.morphologyJson);
     final accuracy = word.reviewCount == 0 ? 0 : (word.correctCount * 100 ~/ word.reviewCount);
+
+    // 实时监听测试篮状态
+    final basketState = ref.watch(testBasketProvider);
+    final isInBasket = basketState.isSelected(word.code ?? '');
 
     return SafeArea(
       child: Padding(
@@ -58,6 +69,9 @@ class WordBookDetailSheet extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // 加入测试按钮（实时状态）
+                  _buildTestButton(colorScheme, isInBasket, ref),
+                  SizedBox(width: Adaptive.w(8)),
                   if (onDelete != null)
                     IconButton(
                       onPressed: onDelete,
@@ -193,6 +207,52 @@ class WordBookDetailSheet extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 构建测试按钮（测试基调）
+  Widget _buildTestButton(ColorScheme colorScheme, bool isInBasket, WidgetRef ref) {
+    return Material(
+      elevation: 0,
+      borderRadius: BorderRadius.circular(Adaptive.r(20)),
+      child: InkWell(
+        onTap: () {
+          ref.read(testBasketProvider.notifier).toggle(word);
+        },
+        borderRadius: BorderRadius.circular(Adaptive.r(20)),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: Adaptive.w(12),
+            vertical: Adaptive.h(6),
+          ),
+          decoration: BoxDecoration(
+            color: isInBasket ? colorScheme.primary.withValues(alpha: 0.15) : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(Adaptive.r(20)),
+            border: Border.all(
+              color: isInBasket ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isInBasket ? AppIcons.checkCircle : AppIcons.addCircleOutline,
+                size: Adaptive.sp(14),
+                color: isInBasket ? colorScheme.primary : colorScheme.onSurfaceVariant,
+              ),
+              SizedBox(width: Adaptive.w(4)),
+              Text(
+                isInBasket ? '待测' : '加测',
+                style: TextStyle(
+                  fontSize: Adaptive.sp(12),
+                  fontWeight: FontWeight.w600,
+                  color: isInBasket ? colorScheme.primary : colorScheme.onSurface,
+                ),
               ),
             ],
           ),

@@ -156,26 +156,34 @@ class _TimeRangePickerDialogState extends State<_TimeRangePickerDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isIpad = adaptive.isIPad();
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 黄金比例弹窗尺寸策略：
+    // - iPad: 宽度屏幕的 40%，最小 480，最大 560；高度按内容自适应但保持视觉舒适比例
+    // - iPhone: 宽度屏幕的 82%，限制在 300-400 之间
+    final dialogWidth = isIpad
+        ? (screenWidth * 0.4).clamp(480.0, 560.0)
+        : (screenWidth * 0.82).clamp(300.0, 400.0);
+    final horizontalPadding = (screenWidth - dialogWidth) / 2;
 
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: isIpad
-              ? adaptive.Adaptive.w(80)
-              : adaptive.Adaptive.w(32),
-        ),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
         child: Material(
           color: Colors.transparent,
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
+            constraints: BoxConstraints(
+              minWidth: dialogWidth,
+              maxWidth: dialogWidth,
+            ),
             decoration: BoxDecoration(
               color: cs.surface,
-              borderRadius: BorderRadius.circular(isIpad ? 16 : 14),
+              borderRadius: BorderRadius.circular(isIpad ? 18 : 14),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: adaptive.Adaptive.w(32),
-                  offset: const Offset(0, 12),
+                  blurRadius: isIpad ? 40 : 32,
+                  offset: Offset(0, isIpad ? 16 : 12),
                 ),
               ],
             ),
@@ -279,10 +287,10 @@ class _TimeRangePickerDialogState extends State<_TimeRangePickerDialog> {
                 // ── 按钮区 ──
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    adaptive.Adaptive.w(20),
-                    adaptive.Adaptive.h(20),
-                    adaptive.Adaptive.w(20),
-                    adaptive.Adaptive.h(20),
+                    adaptive.Adaptive.w(24),
+                    adaptive.Adaptive.h(24),
+                    adaptive.Adaptive.w(24),
+                    adaptive.Adaptive.h(isIpad ? 28 : 24),
                   ),
                   child: Row(
                     children: [
@@ -292,7 +300,11 @@ class _TimeRangePickerDialogState extends State<_TimeRangePickerDialog> {
                           size: TDButtonSize.large,
                           type: TDButtonType.outline,
                           shape: TDButtonShape.round,
-                          height: adaptive.Adaptive.h(48),
+                          height: adaptive.Adaptive.h(isIpad ? 56 : 48),
+                          textStyle: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(isIpad ? 18 : 16),
+                            fontWeight: FontWeight.w500,
+                          ),
                           style: TDButtonStyle(
                             backgroundColor: Colors.transparent,
                             textColor: AppColors.primary,
@@ -301,7 +313,7 @@ class _TimeRangePickerDialogState extends State<_TimeRangePickerDialog> {
                           onTap: () => Navigator.of(context).pop(),
                         ),
                       ),
-                      SizedBox(width: adaptive.Adaptive.w(12)),
+                      SizedBox(width: adaptive.Adaptive.w(isIpad ? 16 : 12)),
                       Expanded(
                         child: TDButton(
                           text: '确定',
@@ -309,7 +321,11 @@ class _TimeRangePickerDialogState extends State<_TimeRangePickerDialog> {
                           type: TDButtonType.fill,
                           theme: TDButtonTheme.primary,
                           shape: TDButtonShape.round,
-                          height: adaptive.Adaptive.h(48),
+                          height: adaptive.Adaptive.h(isIpad ? 56 : 48),
+                          textStyle: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(isIpad ? 18 : 16),
+                            fontWeight: FontWeight.w600,
+                          ),
                           style: TDButtonStyle(
                             backgroundColor: AppColors.primary,
                             textColor: AppColors.onPrimary,

@@ -14,9 +14,9 @@ class AppSpacing {
   /// 同类内容之间
   static const double itemGap    = 12.0;
   /// iPhone 页面水平边距
-  static const double pageH      = 16.0;
+  static const double pageH      = 20.0;
   /// iPad 页面水平边距
-  static const double pageHiPad  = 24.0;
+  static const double pageHiPad  = 28.0;
   /// 卡片内边距
   static const double cardInner  = 16.0;
 

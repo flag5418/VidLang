@@ -22,10 +22,35 @@ class ForumService {
 
   String? get _token => _supabase.auth.currentSession?.accessToken;
 
-  Map<String, String> _authHeaders() => {
-    'Authorization': 'Bearer $_token',
-    'Content-Type': 'application/json',
-  };
+  /// 确保 session 有效，过期时自动刷新。不阻塞已登录的正常流程。
+  Future<void> _ensureSession() async {
+    final session = _supabase.auth.currentSession;
+    if (session == null) {
+      throw Exception('登录已过期，请重新登录');
+    }
+    if (session.expiresAt != null) {
+      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (session.expiresAt! <= nowSec + 60) {
+        // token 已过期或将在 60 秒内过期，主动刷新
+        try {
+          await _supabase.auth.refreshSession(session.refreshToken);
+        } catch (_) {
+          throw Exception('登录已过期，请重新登录');
+        }
+      }
+    }
+  }
+
+  Map<String, String> _authHeaders() {
+    final token = _token;
+    if (token == null) {
+      throw Exception('登录已过期，请重新登录');
+    }
+    return {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+  }
 
   // ─────────────────────────────────────────────
   // 帖子 (forum-posts) — V2.0: tag_id + followed 筛选
@@ -72,6 +97,8 @@ class ForumService {
     required String content,
     List<String>? imageUrls,
   }) async {
+    await _ensureSession();
+
     final body = <String, dynamic>{
       'tag_id': tagId,
       'title': title,
@@ -92,6 +119,7 @@ class ForumService {
   }
 
   Future<ForumPost> updatePost(int id, {String? title, String? content}) async {
+    await _ensureSession();
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
     if (content != null) body['content'] = content;
@@ -107,6 +135,7 @@ class ForumService {
   }
 
   Future<void> deletePost(int id) async {
+    await _ensureSession();
     final res = await http.delete(
       Uri.parse('$_baseUrl/forum-posts/$id'),
       headers: _authHeaders(),
@@ -149,6 +178,8 @@ class ForumService {
     required String content,
     List<String>? imageUrls,
   }) async {
+    await _ensureSession();
+
     final body = <String, dynamic>{'post_id': postId, 'content': content};
     if (imageUrls != null && imageUrls.isNotEmpty) {
       body['image_urls'] = imageUrls;
@@ -165,6 +196,7 @@ class ForumService {
   }
 
   Future<void> deleteReply(int id) async {
+    await _ensureSession();
     final res = await http.delete(
       Uri.parse('$_baseUrl/forum-replies/$id'),
       headers: _authHeaders(),
@@ -177,6 +209,7 @@ class ForumService {
   // ─────────────────────────────────────────────
 
   Future<bool> toggleLike(String targetType, int targetId) async {
+    await _ensureSession();
     final res = await http.post(
       Uri.parse('$_baseUrl/forum-likes'),
       headers: _authHeaders(),
@@ -192,6 +225,7 @@ class ForumService {
   // ─────────────────────────────────────────────
 
   Future<bool> toggleFavorite(int postId) async {
+    await _ensureSession();
     final res = await http.post(
       Uri.parse('$_baseUrl/forum-favorites'),
       headers: _authHeaders(),
@@ -221,6 +255,7 @@ class ForumService {
   // ─────────────────────────────────────────────
 
   Future<bool> toggleFollow(String targetUserId) async {
+    await _ensureSession();
     final res = await http.post(
       Uri.parse('$_baseUrl/forum-follows'),
       headers: _authHeaders(),
@@ -257,6 +292,7 @@ class ForumService {
   // ─────────────────────────────────────────────
 
   Future<bool> toggleTagFollow(int tagId) async {
+    await _ensureSession();
     final res = await http.post(
       Uri.parse('$_baseUrl/forum-tag-follows'),
       headers: _authHeaders(),
@@ -264,7 +300,7 @@ class ForumService {
     );
     _checkStatus(res, '标签关注操作');
     final data = json.decode(res.body);
-    return data['action'] == 'followed';
+    return data['data']?['followed'] == true;
   }
 
   Future<List<ForumTagFollow>> getMyTagFollows() async {
@@ -274,7 +310,9 @@ class ForumService {
     );
     _checkStatus(res, '我的标签关注');
     final data = json.decode(res.body);
-    return (data['data'] as List)
+    final raw = data['data'];
+    if (raw == null) return [];
+    return (raw as List)
         .map((e) => ForumTagFollow.fromJson(e))
         .toList();
   }
@@ -289,6 +327,7 @@ class ForumService {
     String reason,
     String? detail,
   ) async {
+    await _ensureSession();
     final body = <String, dynamic>{
       'target_type': targetType,
       'target_id': targetId,
@@ -413,6 +452,8 @@ class ForumService {
   // ─────────────────────────────────────────────
 
   Future<String> uploadImage(String filePath) async {
+    await _ensureSession();
+
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$_baseUrl/forum-upload'),
@@ -492,6 +533,7 @@ class ForumService {
     String content,
     List<String>? imageUrls,
   ) async {
+    await _ensureSession();
     final body = <String, dynamic>{
       'type': type,
       'title': title,

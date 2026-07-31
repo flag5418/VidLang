@@ -38,13 +38,15 @@ class AppTheme {
     ),
 
     cardTheme: CardThemeData(
-      elevation: 2,
+      elevation: 0,
       color: AppColors.lightSurface,
-      surfaceTintColor: AppColors.primary.withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
-      margin: EdgeInsets.all(AppSpacing.sm),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.borderLight, width: 0.8),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       clipBehavior: Clip.antiAlias,
-      shadowColor: AppColors.primary.withValues(alpha: 0.12),
     ),
 
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -52,21 +54,21 @@ class AppTheme {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
-        minimumSize: const Size(0, AppSpacing.space10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
-        textStyle: const TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        minimumSize: const Size(0, 48),
+        shape: const StadiumBorder(),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
       ),
     ),
 
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space5, vertical: AppSpacing.space4),
-        minimumSize: const Size(0, AppSpacing.space10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button)),
-        side: const BorderSide(color: Color(0xFFDDDDDD)),
-        textStyle: const TextStyle(fontSize: AppTypography.fontSizeBase, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        minimumSize: const Size(0, 48),
+        shape: const StadiumBorder(),
+        side: const BorderSide(color: AppColors.borderLight, width: 1.2),
+        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, letterSpacing: 0.5),
       ),
     ),
 
@@ -88,13 +90,16 @@ class AppTheme {
 
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.lightSurfaceElevated,
-      contentPadding: const EdgeInsets.all(AppSpacing.inputPadding),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.input), borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.input), borderSide: BorderSide.none),
+      fillColor: AppColors.surfaceSecondaryLight,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.borderLight, width: 0.8),
+      ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.input),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.input),

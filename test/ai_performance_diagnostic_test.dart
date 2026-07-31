@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vidlang/services/ai/ai_service.dart';
 
 /// AI 调用性能诊断测试
@@ -16,6 +17,14 @@ import 'package:vidlang/services/ai/ai_service.dart';
 void main() {
   // 设置更长的超时，因为 AI 调用可能较慢
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  // 检查 Supabase 是否已初始化，未初始化则跳过所有测试
+  bool isSupabaseInitialized = false;
+  try {
+    isSupabaseInitialized = Supabase.instance.isInitialized;
+  } catch (e) {
+    // Supabase 未初始化，isSupabaseInitialized 保持 false
+  }
 
   group('AI 调用性能诊断', () {
     // 测试词库：覆盖不同难度和长度
@@ -37,6 +46,10 @@ void main() {
     ];
 
     test('🔬 诊断：测量首次 AI 调用耗时（无缓存）', () async {
+      if (!isSupabaseInitialized) {
+        print('⏭️ 跳过：Supabase 未初始化');
+        return;
+      }
       print(
         '\n╔══════════════════════════════════════════════════════════════╗',
       );
@@ -87,6 +100,10 @@ void main() {
     }, timeout: const Timeout(Duration(minutes: 3)));
 
     test('🔬 诊断：测量内存缓存命中耗时', () async {
+      if (!isSupabaseInitialized) {
+        print('⏭️ 跳过：Supabase 未初始化');
+        return;
+      }
       print(
         '\n╔══════════════════════════════════════════════════════════════╗',
       );
@@ -117,6 +134,10 @@ void main() {
     });
 
     test('🔬 诊断：测量重复查询（同一句子）耗时', () async {
+      if (!isSupabaseInitialized) {
+        print('⏭️ 跳过：Supabase 未初始化');
+        return;
+      }
       print(
         '\n╔══════════════════════════════════════════════════════════════╗',
       );
@@ -165,6 +186,10 @@ void main() {
     }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('🔬 诊断：测量不同上下文句子的 enrich 耗时', () async {
+      if (!isSupabaseInitialized) {
+        print('⏭️ 跳过：Supabase 未初始化');
+        return;
+      }
       print(
         '\n╔══════════════════════════════════════════════════════════════╗',
       );

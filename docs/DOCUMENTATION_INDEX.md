@@ -20,11 +20,14 @@ docs/
 │
 ├── modules/                   ← 【模块】各功能模块的详细设计
 │   ├── scoring-design.md      ← 跟读/跟唱评分系统设计
-│   ├── wordbook-design.md     ← 单词本系统设计
+│   ├── wordbook-design.md     ← 我的收藏系统设计（V2.0：购物车式测试+详情页复习）
 │   ├── test-system-design.md  ← 测试引擎设计
 │   ├── ai-conversation-design.md  ← AI 对话系统设计
-│   ├── billing-redesign.md      ← 计费系统设计（V1.1，充值/扣费/优惠策略/billing-center）
-│   └── forum-design.md          ← 论坛功能设计（V1.1，自定义域名+Cloudflare代理方案+iOS审核细节） │
+│   ├── billing-redesign.md        ← 计费系统设计（V1.1，充值/扣费/优惠策略/billing-center）
+│   ├── forum-design.md            ← 论坛功能设计（V1.1，自定义域名+Cloudflare代理方案+iOS审核细节）
+│   ├── typing-module-design.md    ← 打字模块总体设计（Phase 6，全免费引流模块）
+│   ├── typing-module-evaluation.md ← 打字模块可行性评估报告
+│   └── typing-ui-prototype.html   ← 打字模块 HTML UI 原型
 │
 ├── reference/                 ← 【参考】代码级知识库（给 AI/开发者查）
 │   ├── flutter-code-structure.md   ← Flutter 代码结构详解
@@ -55,11 +58,12 @@ docs/
 | 产品定位、导航结构、技术栈 | `architecture/overview-V1.1.md` |
 | 数据库有哪些表、字段定义 | `architecture/database-schema-V2.0.md` |
 | 评分系统怎么工作 | `modules/scoring-design.md` |
-| 单词本两档记忆体系 | `modules/wordbook-design.md` |
+| 我的收藏（购物车式测试+详情页复习） | `modules/wordbook-design.md` (V2.0) |
 | 测试引擎填空/听写/选择 | `modules/test-system-design.md` |
 | AI 对话如何实现 | `modules/ai-conversation-design.md` |
 | 充值扣费怎么算 | `modules/billing-redesign.md` |
 | 论坛功能怎么设计 | `modules/forum-design.md` |
+| 打字模块怎么设计 | `modules/typing-module-design.md` |
 | Flutter 代码目录结构 | `reference/flutter-code-structure.md` |
 | 服务层有哪些服务 | `reference/services-architecture.md` |
 | 如何使用 TDesign 组件 | `reference/tdesign-components.md` |

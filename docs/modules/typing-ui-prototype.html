@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VidLang — Typing · The Power of Believing</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1E1E2E;
+    --surface: #282840;
+    --surface-hover: #2F2F4A;
+    --border: #383858;
+    --text: #CDD6F4;
+    --text-secondary: #8989AB;
+    --text-dim: #5C5C7A;
+    --correct: #A6E3A1;
+    --error: #F38BA8;
+    --error-bg: rgba(243, 139, 168, 0.12);
+    --highlight: #45475A;
+    --accent: #89B4FA;
+    --accent-dim: rgba(137, 180, 250, 0.15);
+    --wpm: #F9E2AF;
+    --radius: 8px;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* === MAIN CONTENT === */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* === TOP BAR === */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .topbar .back {
+    background: none; border: none; color: var(--text-secondary); cursor: pointer;
+    font-size: 14px; padding: 6px 10px; border-radius: var(--radius);
+    font-family: var(--font-ui);
+  }
+  .topbar .back:hover { background: var(--surface-hover); color: var(--text); }
+  .topbar .title {
+    font-size: 14px; font-weight: 500; color: var(--text-secondary);
+  }
+  .topbar .title strong { color: var(--text); font-weight: 600; }
+  .topbar .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    background: var(--accent-dim); color: var(--accent); font-weight: 500;
+  }
+
+  /* === CONTENT AREA === */
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .source-panel {
+    flex: 1;
+  }
+  .source-line {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    line-height: 2;
+    letter-spacing: 0.02em;
+    padding: 4px 0;
+    color: var(--text-dim);
+    transition: color 0.15s;
+  }
+  .source-line.active {
+    background: var(--highlight);
+    margin: 0 -12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+  .source-line .char {
+    transition: color 0.1s;
+  }
+  .source-line .char.correct { color: var(--correct); }
+  .source-line .char.error { color: var(--error); background: var(--error-bg); border-radius: 2px; }
+  .source-line .char.current {
+    border-bottom: 2px solid var(--accent);
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { border-color: transparent; } }
+
+  /* === INPUT AREA === */
+  .input-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .input-row .prompt {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .input-row input {
+    flex: 1;
+    background: none; border: none; outline: none;
+    font-family: var(--font-mono); font-size: 18px; color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .input-hint {
+    font-size: 12px; color: var(--text-dim); margin-top: 8px;
+  }
+
+  /* === STATS BAR === */
+  .stats-bar {
+    display: flex; gap: 32px; flex-shrink: 0;
+    padding: 0 0 8px 0;
+  }
+  .stat-item {
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .stat-value {
+    font-family: var(--font-mono); font-size: 22px; font-weight: 600;
+  }
+  .stat-label {
+    font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .stat-item.wpm .stat-value { color: var(--wpm); }
+  .stat-item.acc .stat-value { color: var(--correct); }
+  .stat-item.progress .stat-value { color: var(--accent); }
+
+  /* === TOOLBAR === */
+  .toolbar {
+    display: flex; gap: 8px; padding: 16px 0 0 0;
+    border-top: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tool-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text-secondary); font-size: 13px; font-family: var(--font-ui);
+    padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tool-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .tool-btn:active { transform: scale(0.98); }
+  .tool-btn.danger { color: var(--error); border-color: transparent; }
+  .tool-btn.danger:hover { background: var(--error-bg); }
+  .tool-btn .icon { font-size: 15px; }
+
+  /* === RIGHT SIDEBAR === */
+  .sidebar {
+    width: 300px; flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 20px;
+    transition: width 0.2s, opacity 0.2s, padding 0.2s;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar.collapsed {
+    width: 0; opacity: 0; padding: 24px 0; border: none;
+  }
+  .sidebar-toggle {
+    position: fixed; right: 300px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 48px; background: var(--surface); border: 1px solid var(--border);
+    border-right: none; border-radius: var(--radius) 0 0 var(--radius);
+    color: var(--text-secondary); cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    transition: right 0.2s; z-index: 10;
+  }
+  .sidebar.collapsed + .sidebar-toggle { right: 0; }
+  .sidebar-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-dim); font-weight: 600;
+  }
+  .sidebar-stat-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .sidebar-stat-row .label { font-size: 13px; color: var(--text-secondary); }
+  .sidebar-stat-row .value {
+    font-family: var(--font-mono); font-size: 15px; font-weight: 500; color: var(--text);
+  }
+  .sidebar-stat-row .value.good { color: var(--correct); }
+  .sidebar-stat-row .value.warn { color: var(--error); }
+
+  /* === MODAL === */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px; max-width: 480px; width: 90%;
+  }
+  .modal h2 {
+    font-size: 18px; font-weight: 600; margin-bottom: 24px;
+  }
+  .modal-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .modal-item { text-align: center; }
+  .modal-item .big {
+    font-family: var(--font-mono); font-size: 28px; font-weight: 700;
+  }
+  .modal-item .big.green { color: var(--correct); }
+  .modal-item .big.yellow { color: var(--wpm); }
+  .modal-item .big.blue { color: var(--accent); }
+  .modal-item .big.red { color: var(--error); }
+  .modal-item .desc {
+    font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+    letter-spacing: 0.08em; margin-top: 4px;
+  }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-actions button {
+    padding: 10px 20px; border-radius: var(--radius); font-family: var(--font-ui);
+    font-size: 13px; font-weight: 500; cursor: pointer; border: none;
+  }
+  .modal-actions .btn-primary {
+    background: var(--accent); color: var(--bg);
+  }
+  .modal-actions .btn-secondary {
+    background: var(--surface-hover); color: var(--text);
+  }
+  .error-list {
+    margin: 16px 0; max-height: 160px; overflow-y: auto;
+    font-family: var(--font-mono); font-size: 13px;
+  }
+  .error-list .err-row {
+    display: flex; gap: 8px; padding: 4px 0; align-items: center;
+  }
+  .error-list .err-row .arrow { color: var(--text-dim); }
+  .error-list .err-row .bad { color: var(--error); text-decoration: line-through; }
+  .error-list .err-row .good { color: var(--correct); }
+
+  /* === EMPTY STATE === */
+  .empty-state {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; gap: 16px;
+  }
+  .empty-state .hint { font-size: 14px; color: var(--text-secondary); }
+  .empty-state .hint kbd {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="back" onclick="resetSession()">← 返回</button>
+    <span class="title">打字训练 · <strong>The Power of Believing</strong></span>
+    <span class="badge">全文本模式</span>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-area" id="contentArea">
+    <div class="source-panel" id="sourcePanel"></div>
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item wpm"><span class="stat-value" id="wpmValue">0</span><span class="stat-label">WPM</span></div>
+      <div class="stat-item acc"><span class="stat-value" id="accValue">—</span><span class="stat-label">准确率</span></div>
+      <div class="stat-item progress"><span class="stat-value" id="progValue">0</span><span class="stat-label">字符</span></div>
+    </div>
+    <div class="input-area" id="inputArea">
+      <div class="input-row">
+        <span class="prompt" id="inputPrompt"></span>
+        <input type="text" id="typingInput" placeholder="开始输入..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="input-hint">Enter 提交当前行 · Esc 暂停</div>
+    </div>
+    <div class="toolbar">
+      <button class="tool-btn" onclick="toolStub('查词')"><span class="icon">🔍</span> 查词</button>
+      <button class="tool-btn" onclick="toolStub('播放原音')"><span class="icon">🔊</span> 播放原音</button>
+      <button class="tool-btn" onclick="toolStub('跟读评分')"><span class="icon">🎤</span> 跟读评分</button>
+      <button class="tool-btn" onclick="toolStub('视频播放')"><span class="icon">📺</span> 视频播放</button>
+      <span style="flex:1"></span>
+      <button class="tool-btn" onclick="togglePause()"><span class="icon" id="pauseIcon">⏸</span> <span id="pauseLabel">暂停</span></button>
+      <button class="tool-btn danger" onclick="resetSession()">🔄 重来</button>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div class="empty-state" id="emptyState">
+    <div style="font-size:48px;opacity:.3;margin-bottom:8px">⌨️</div>
+    <div class="hint">点击 <kbd>Enter</kbd> 开始打字训练</div>
+    <div class="hint">或从素材库选择内容</div>
+    <button class="tool-btn" style="margin-top:12px" onclick="startSession()">开始训练</button>
+  </div>
+</div>
+
+<!-- RIGHT SIDEBAR -->
+<button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">◀</button>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-title">本次训练</div>
+
+  <div class="sidebar-stat-row"><span class="label">素材类型</span><span class="value" id="sType">视频字幕</span></div>
+  <div class="sidebar-stat-row"><span class="label">行数</span><span class="value" id="sLines">0 / 8</span></div>
+  <div class="sidebar-stat-row"><span class="label">打字时长</span><span class="value" id="sTime">00:00</span></div>
+  <div class="sidebar-stat-row"><span class="label">最高 WPM</span><span class="value good" id="sBestWpm">—</span></div>
+  <div class="sidebar-stat-row"><span class="label">错误字符</span><span class="value warn" id="sErrors">0</span></div>
+</div>
+
+<!-- SUMMARY MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>训练完成</h2>
+    <div class="modal-grid">
+      <div class="modal-item"><div class="big yellow" id="mWpm">0</div><div class="desc">WPM</div></div>
+      <div class="modal-item"><div class="big green" id="mAcc">0%</div><div class="desc">准确率</div></div>
+      <div class="modal-item"><div class="big blue" id="mChars">0</div><div class="desc">正确字符</div></div>
+      <div class="modal-item"><div class="big red" id="mErrors">0</div><div class="desc">错误字符</div></div>
+    </div>
+    <div class="error-list" id="errorList"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="resetSession()">再来一次</button>
+      <button class="btn-primary" onclick="showStatsPage()">查看统计</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === SAMPLE CONTENT ===
+const sourceLines = [
+  "The quick brown fox jumps over the lazy dog.",
+  "Pack my box with five dozen liquor jugs.",
+  "How vexingly quick daft zebras jump.",
+  "The five boxing wizards jump quickly.",
+  "Sphinx of black quartz, judge my vow.",
+  "Waltz, bad nymph, for quick jigs vex.",
+  "Glib jocks quiz nymph to vex dwarf.",
+  "Jackdaws love my big sphinx of quartz."
+];
+
+// === STATE ===
+let state = {
+  lineIndex: 0,
+  charIndex: 0,
+  totalCorrect: 0,
+  totalErrors: 0,
+  errorDetails: [],
+  startTime: null,
+  paused: false,
+  pausedAt: null,
+  totalPausedMs: 0,
+  finished: false,
+  bestWpm: 0,
+};
+
+// === DOM ===
+const sourcePanel = document.getElementById('sourcePanel');
+const typingInput = document.getElementById('typingInput');
+const inputPrompt = document.getElementById('inputPrompt');
+const contentArea = document.getElementById('contentArea');
+const emptyState = document.getElementById('emptyState');
+const inputArea = document.getElementById('inputArea');
+const statsBar = document.getElementById('statsBar');
+
+// === RENDER SOURCE ===
+function renderSource() {
+  sourcePanel.innerHTML = sourceLines.map((line, i) => {
+    if (i === state.lineIndex && !state.finished) {
+      let html = '<div class="source-line active">';
+      for (let j = 0; j < line.length; j++) {
+        let cls = 'char';
+        if (j < state.charIndex) {
+          const typed = typingInput.value[j] || '';
+          cls += typed === line[j] ? ' correct' : ' error';
+        } else if (j === state.charIndex) {
+          cls += ' current';
+        }
+        html += `<span class="${cls}">${line[j]}</span>`;
+      }
+      html += '</div>';
+      return html;
+    } else {
+      const done = i < state.lineIndex || (i === state.lineIndex && state.finished);
+      return `<div class="source-line" style="color:${done?'var(--text-dim)':'var(--text-dim)'}">${line}</div>`;
+    }
+  }).join('');
+}
+
+function updatePrompt() {
+  if (state.finished) {
+    inputPrompt.textContent = '';
+    return;
+  }
+  const line = sourceLines[state.lineIndex];
+  const done = line.substring(0, state.charIndex);
+  inputPrompt.textContent = done;
+}
+
+function updateStats() {
+  document.getElementById('progValue').textContent = state.totalCorrect + state.totalErrors;
+  document.getElementById('sLines').textContent = `${Math.min(state.lineIndex + 1, sourceLines.length)} / ${sourceLines.length}`;
+  document.getElementById('sErrors').textContent = state.totalErrors;
+
+  const now = state.paused ? state.pausedAt : Date.now();
+  const elapsed = state.startTime ? ((now - state.startTime - state.totalPausedMs) / 1000) : 0;
+  if (elapsed > 0 && !state.finished) {
+    const wpm = Math.round((state.totalCorrect / 5) / (elapsed / 60));
+    document.getElementById('wpmValue').textContent = wpm;
+    if (wpm > state.bestWpm) { state.bestWpm = wpm; document.getElementById('sBestWpm').textContent = wpm; }
+    const acc = state.totalCorrect + state.totalErrors > 0
+      ? Math.round((state.totalCorrect / (state.totalCorrect + state.totalErrors)) * 1000) / 10
+      : 0;
+    document.getElementById('accValue').textContent = acc + '%';
+  }
+
+  const mins = Math.floor(elapsed / 60);
+  const secs = Math.floor(elapsed % 60);
+  document.getElementById('sTime').textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+}
+
+// === CORE TYPING LOGIC ===
+typingInput.addEventListener('input', () => {
+  if (state.finished || state.paused) return;
+  if (!state.startTime) { state.startTime = Date.now(); }
+
+  const line = sourceLines[state.lineIndex];
+  const typed = typingInput.value;
+  let correct = 0;
+  let errors = 0;
+
+  for (let i = 0; i < typed.length && i < line.length; i++) {
+    if (typed[i] === line[i]) correct++;
+    else errors++;
+  }
+
+  state.charIndex = typed.length;
+  state.totalCorrect = state.totalCorrect - (state._prevCorrect || 0) + correct;
+  state.totalErrors = state.totalErrors - (state._prevErrors || 0) + errors;
+  state._prevCorrect = correct;
+  state._prevErrors = errors;
+
+  renderSource();
+  updatePrompt();
+  updateStats();
+
+  // Auto-advance when line complete
+  if (typed.length >= line.length && state.lineIndex < sourceLines.length - 1) {
+    state.lineIndex++;
+    state.charIndex = 0;
+    state._prevCorrect = 0;
+    state._prevErrors = 0;
+    typingInput.value = '';
+    inputPrompt.textContent = '';
+    renderSource();
+    updateStats();
+  } else if (typed.length >= line.length && state.lineIndex === sourceLines.length - 1) {
+    finishSession();
+  }
+});
+
+typingInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (state.finished) return;
+    if (state.paused) { togglePause(); return; }
+    const line = sourceLines[state.lineIndex];
+    const typed = typingInput.value;
+
+    // Record errors for this line
+    for (let i = 0; i < Math.max(typed.length, line.length); i++) {
+      if (i >= typed.length || i >= line.length || typed[i] !== line[i]) {
+        state.errorDetails.push({
+          expected: line[i] || '',
+          typed: typed[i] || '(missing)',
+          position: i,
+          line: state.lineIndex
+        });
+      }
+    }
+
+    if (state.lineIndex < sourceLines.length - 1) {
+      state.lineIndex++;
+      state.charIndex = 0;
+      state._prevCorrect = 0;
+      state._prevErrors = 0;
+      typingInput.value = '';
+      inputPrompt.textContent = '';
+      renderSource();
+      updateStats();
+    } else {
+      finishSession();
+    }
+  }
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    togglePause();
+  }
+});
+
+// === PAUSE ===
+function togglePause() {
+  if (state.finished) return;
+  state.paused = !state.paused;
+  if (state.paused) {
+    state.pausedAt = Date.now();
+    typingInput.disabled = true;
+    document.getElementById('pauseIcon').textContent = '▶';
+    document.getElementById('pauseLabel').textContent = '继续';
+  } else {
+    state.totalPausedMs += Date.now() - state.pausedAt;
+    state.pausedAt = null;
+    typingInput.disabled = false;
+    typingInput.focus();
+    document.getElementById('pauseIcon').textContent = '⏸';
+    document.getElementById('pauseLabel').textContent = '暂停';
+  }
+  updateStats();
+}
+
+// === SESSION ===
+function startSession() {
+  state = {
+    lineIndex: 0, charIndex: 0,
+    totalCorrect: 0, totalErrors: 0, errorDetails: [],
+    startTime: null, paused: false, pausedAt: null, totalPausedMs: 0,
+    finished: false, bestWpm: 0, _prevCorrect: 0, _prevErrors: 0
+  };
+  typingInput.value = '';
+  typingInput.disabled = false;
+  document.getElementById('pauseIcon').textContent = '⏸';
+  document.getElementById('pauseLabel').textContent = '暂停';
+  document.getElementById('wpmValue').textContent = '0';
+  document.getElementById('accValue').textContent = '—';
+  document.getElementById('progValue').textContent = '0';
+  document.getElementById('sBestWpm').textContent = '—';
+  document.getElementById('sErrors').textContent = '0';
+  document.getElementById('sTime').textContent = '00:00';
+
+  emptyState.style.display = 'none';
+  contentArea.style.display = '';
+  inputArea.style.display = '';
+  statsBar.style.display = '';
+
+  renderSource();
+  updatePrompt();
+  typingInput.focus();
+}
+
+function finishSession() {
+  state.finished = true;
+  if (state.paused) { state.totalPausedMs += Date.now() - state.pausedAt; state.paused = false; }
+  typingInput.disabled = true;
+  const elapsed = state.startTime ? ((Date.now() - state.startTime - state.totalPausedMs) / 1000) : 0;
+  const wpm = elapsed > 0 ? Math.round((state.totalCorrect / 5) / (elapsed / 60)) : 0;
+  const acc = state.totalCorrect + state.totalErrors > 0
+    ? Math.round((state.totalCorrect / (state.totalCorrect + state.totalErrors)) * 1000) / 10 : 0;
+
+  document.getElementById('mWpm').textContent = wpm;
+  document.getElementById('mAcc').textContent = acc + '%';
+  document.getElementById('mChars').textContent = state.totalCorrect;
+  document.getElementById('mErrors').textContent = state.totalErrors;
+
+  const el = document.getElementById('errorList');
+  const topErrors = state.errorDetails.slice(0, 15);
+  el.innerHTML = topErrors.map(e =>
+    `<div class="err-row"><span style="color:var(--text-dim)">L${e.line+1}:</span> <span class="bad">${e.typed}</span> <span class="arrow">→</span> <span class="good">${e.expected}</span></div>`
+  ).join('');
+
+  document.getElementById('modalOverlay').classList.add('active');
+  renderSource();
+  updateStats();
+}
+
+function resetSession() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  emptyState.style.display = 'flex';
+  contentArea.style.display = 'none';
+  inputArea.style.display = 'none';
+  statsBar.style.display = 'none';
+  typingInput.value = '';
+  typingInput.disabled = true;
+}
+
+// === SIDEBAR ===
+let sidebarOpen = true;
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  document.getElementById('sidebarToggle').textContent = sidebarOpen ? '◀' : '▶';
+}
+
+// === STUBS ===
+function toolStub(name) {
+  typingInput.blur();
+  const hint = document.querySelector('.input-hint');
+  const orig = hint.textContent;
+  hint.textContent = `> ${name} — 将通过 JS Bridge 调用 Flutter 原生能力`;
+  hint.style.color = 'var(--accent)';
+  setTimeout(() => { hint.textContent = orig; hint.style.color = ''; typingInput.focus(); }, 1500);
+}
+
+function showStatsPage() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  resetSession();
+  const hint = document.querySelector('.input-hint');
+  hint.textContent = '> 跳转至统计仪表盘页面（typing-web Edge Function 渲染）';
+  hint.style.color = 'var(--accent)';
+}
+
+// === INIT ===
+resetSession();
+renderSource();
+</script>
+</body>
+</html>

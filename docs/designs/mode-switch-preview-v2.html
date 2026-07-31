@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收费模式切换 UI - 方案B蓝色版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro Display', 'Noto Sans SC', sans-serif;
+    background: #E8EAED;
+    padding: 32px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* ====== VidLang 蓝色主题变量 ====== */
+  :root {
+    --primary: #3B6EFF;
+    --primary-dark: #2563EB;
+    --primary-light: #DCE8FF;
+    --primary-bg: #EFF6FF;
+    --primary-soft: rgba(59,110,255,0.08);
+    --on-primary: #FFFFFF;
+    --surface: #FFFFFF;
+    --bg: #F5F7FA;
+    --border: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-weak: #94A3B8;
+  }
+
+  .design-card {
+    width: 400px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .design-header {
+    padding: 14px 20px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .design-header h2 { font-size: 15px; font-weight: 700; flex: 1; }
+  .platform-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.2);
+    font-weight: 500;
+  }
+
+  .phone-frame {
+    margin: 14px;
+    background: var(--bg);
+    border-radius: 14px;
+    padding: 14px;
+    min-height: 200px;
+  }
+
+  /* ========== iOS：双卡片模式 ========== */
+  .cards-row {
+    display: flex;
+    gap: 10px;
+  }
+  .mode-card {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    padding: 14px 13px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  .mode-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,110,255,0.1); }
+  .mode-card.selected {
+    background: var(--primary-bg);
+    border-color: var(--primary);
+    box-shadow: 0 2px 12px rgba(59,110,255,0.15);
+  }
+  .card-radio {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--text-weak);
+    transition: all 0.2s;
+  }
+  .mode-card.selected .card-radio {
+    background: var(--primary);
+    border-color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mode-card.selected .card-radio::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; margin-right: 24px; }
+  .free-card .card-title { color: var(--text-secondary); }
+  .premium-card .card-title { color: var(--primary-dark); }
+  .card-sub { font-size: 11.5px; color: var(--text-weak); line-height: 1.55; }
+  .premium-card .balance-big {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+    margin: 8px 0 3px;
+    letter-spacing: -0.5px;
+  }
+  .premium-card .balance-label { font-size: 11.5px; color: var(--primary-dark); opacity: 0.8; }
+  .divider {
+    height: 1px;
+    background: rgba(59,110,255,0.15);
+    margin: 10px 0;
+  }
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    color: var(--primary-dark);
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .cost-row .arrow { opacity: 0.6; }
+  .topup-full {
+    width: 100%;
+    height: 36px;
+    background: var(--primary);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .topup-full:hover { background: var(--primary-dark); }
+
+  /* ========== Android：单卡片模式 ========== */
+  .android-single {
+    background: var(--primary-bg);
+    border: 1.5px solid var(--primary);
+    border-radius: 14px;
+    padding: 18px 18px;
+    position: relative;
+    box-shadow: 0 2px 12px rgba(59,110,255,0.12);
+  }
+  .android-badge {
+    position: absolute;
+    top: -8px;
+    left: 16px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--primary);
+    background: #fff;
+    padding: 2px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--primary-light);
+  }
+  .android-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+  .android-mode-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+  .android-lock-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-weak);
+    background: rgba(0,0,0,0.04);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .android-balance-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .android-balance-amount {
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -1px;
+  }
+  .android-balance-unit {
+    font-size: 14px;
+    color: var(--primary-dark);
+    font-weight: 500;
+  }
+  .android-balance-sub { font-size: 12px; color: var(--primary-dark); opacity: 0.7; margin-bottom: 14px; }
+  .android-divider { height: 1px; background: rgba(59,110,255,0.15); margin-bottom: 12px; }
+  .android-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .android-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .android-btn.primary-btn {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .android-btn.primary-btn:hover { background: var(--primary-dark); }
+  .android-btn.secondary-btn {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .android-btn.secondary-btn:hover { border-color: var(--primary-light); color: var(--primary); }
+
+  /* 分析区域 */
+  .analysis {
+    margin: 0 14px 14px;
+    padding: 12px 14px;
+    background: #F8FAFC;
+    border-radius: 10px;
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: #475569;
+  }
+  .analysis strong { color: #1E293B; }
+  .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .tag-pro { background: #DCFCE7; color: #166534; }
+  .tag-con { background: #FEE2E2; color: #991B1B; }
+  .diff-note {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #E2E8F0;
+    font-size: 11px;
+    color: var(--primary-dark);
+    background: var(--primary-bg);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  @media (max-width: 440px) {
+    body { padding: 12px 8px; gap: 20px; }
+    .design-card { width: 100%; max-width: 400px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== iOS 版本：双卡片 ========== -->
+<div class="design-card">
+  <div class="design-header">
+    <h2>📱 iOS：双卡片并列选择</h2>
+    <span class="platform-badge">iOS Only</span>
+  </div>
+  <div class="phone-frame">
+    <div class="cards-row">
+      <!-- 免费模式卡片 -->
+      <div class="mode-card free-card">
+        <div class="card-radio"></div>
+        <div class="card-title">免费模式</div>
+        <div class="card-sub">使用基础功能<br>不产生费用</div>
+      </div>
+      <!-- 收费模式卡片（选中） -->
+      <div class="mode-card premium-card selected">
+        <div class="card-radio"></div>
+        <div class="card-title">收费模式</div>
+        <div class="balance-big">¥ 8.26</div>
+        <div class="balance-label">当前余额</div>
+        <div class="divider"></div>
+        <div class="cost-row">
+          <span>今日消费</span>
+          <span class="arrow">¥0.00 ›</span>
+        </div>
+        <div class="topup-full">立即充值</div>
+      </div>
+    </div>
+  </div>
+  <div class="analysis">
+    <strong>iOS 行为：</strong>用户可在免费/收费间自由切换<br><br>
+    <span class="tag tag-pro">✅ 视觉对比强烈</span> 两种模式差异一目了然<br>
+    <span class="tag tag-pro">✅ 操作内聚</span> 收费操作全部在右侧卡片内<br>
+    <span class="tag tag-con">⚠️ 空间占用</span> 横向需要足够宽度
+    <div class="diff-note">
+      💡 <strong>平台差异：</strong>iOS 显示双卡片，Android 仅显示右侧收费卡片
+    </div>
+  </div>
+</div>
+
+<!-- ========== Android 版本：单卡片 ========== -->
+<div class="design-card">
+  <div class="design-header" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+    <h2>🤖 Android：单卡片（仅收费）</h2>
+    <span class="platform-badge" style="background:rgba(255,255,255,0.15)">Android Only</span>
+  </div>
+  <div class="phone-frame">
+    <div class="android-single">
+      <div class="android-badge">默认 · 不可切换</div>
+      <div class="android-header">
+        <span class="android-mode-label">收费模式</span>
+        <div class="android-lock-hint">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 10 0v2h1zm-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3z"/></svg>
+          强制开启
+        </div>
+      </div>
+      <div class="android-balance-row">
+        <span class="android-balance-amount">8.26</span>
+        <span class="android-balance-unit">元</span>
+      </div>
+      <div class="android-balance-sub">账户余额</div>
+      <div class="android-divider"></div>
+      <div class="android-actions">
+        <div class="android-btn secondary-btn">📋 今日消费 ¥0.00</div>
+        <div class="android-btn primary-btn">💰 充值</div>
+      </div>
+    </div>
+  </div>
+  <div class="analysis">
+    <strong>Android 行为：</strong>强制收费模式，无切换选项<br><br>
+    <span class="tag tag-pro">✅ 更简洁</span> 去掉选择，直接展示余额和操作<br>
+    <span class="tag tag-pro">✅ 锁定提示清晰</span> 左上角 Badge + 锁图标双重提示<br>
+    <span class="tag tag-pro">✅ 空间利用好</span> 单卡片全宽，余额更突出<br>
+    <span class="tag tag-con">⚠️ 需处理</span> 用户可能疑惑为什么不能切换
+    <div class="diff-note">
+      🔒 <strong>锁定策略：</strong>显示「强制开启」徽章 + 小锁图标，暗示这是平台限制而非 bug
+    </div>
+  </div>
+</div>
+
+<!-- ========== 对比总结 ========== -->
+<div class="design-card" style="width: 840px; max-width: 100%;">
+  <div class="design-header" style="background: linear-gradient(135deg, #4f46e5 0%, #3b6eff 100%);">
+    <h2>🔄 平台差异对比 & 实现要点</h2>
+  </div>
+  <div style="padding: 20px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+      <thead>
+        <tr style="background: #F1F5F9;">
+          <th style="padding: 10px 14px; text-align: left; border-radius: 8px 0 0 0;">维度</th>
+          <th style="padding: 10px 14px; text-align: left;">iOS</th>
+          <th style="padding: 10px 14px; text-align: left; border-radius: 0 8px 0 0;">Android</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid #E2E8F0;">
+          <td style="padding: 10px 14px; font-weight: 600; color: #475569;">布局结构</td>
+          <td style="padding: 10px 14px;">Row → [免费卡片] [收费卡片]</td>
+          <td style="padding: 10px 14px;">单个收费卡片 (full-width)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #E2E8F0; background: #FAFBFC;">
+          <td style="padding: 10px 14px; font-weight: 600; color: #475569;">切换能力</td>
+          <td style="padding: 10px 14px;">点击左侧卡片即可切换到免费</td>
+          <td style="padding: 10px 14px;">❌ 无切换，显示锁定标识</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #E2E8F0;">
+          <td style="padding: 10px 14px; font-weight: 600; color: #475569;">颜色主题</td>
+          <td style="padding: 10px 14px;" colspan="2">
+            <code style="background: #EFF6FF; padding: 2px 8px; border-radius: 4px; color: #2563EB;">primary: #3B6EFF</code> ·
+            <code style="background: #EFF6FF; padding: 2px 8px; border-radius: 4px; color: #2563EB;">primaryDark: #2563EB</code> ·
+            <code style="background: #EFF6FF; padding: 2px 8px; border-radius: 4px; color: #2563EB;">primaryBg: #EFF6FF</code>
+          </td>
+        </tr>
+        <tr style="background: #FAFBFC;">
+          <td style="padding: 10px 14px; font-weight: 600; color: #475569;">代码判断</td>
+          <td style="padding: 10px 14px;" colspan="2">
+            <code style="background: #F1F5F9; padding: 2px 8px; border-radius: 4px; font-size: 12px;">subState.isIOS ? _buildDualCard() : _buildSingleCard()</code>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%); border-radius: 12px; border: 1px solid #BFDBFE;">
+      <div style="font-weight: 700; font-size: 14px; color: #1E293B; margin-bottom: 8px;">💡 设计决策建议</div>
+      <ul style="font-size: 12.5px; color: #475569; line-height: 1.8; padding-left: 18px;">
+        <li><strong>颜色统一：</strong>将原金色 (#F59E0B) 替换为项目主色蓝色 (#3B6EFF)，保持视觉一致性</li>
+        <li><strong>平台适配：</strong>通过 <code style="background:#fff;padding:1px 5px;border-radius:3px;">subState.isIOS</code> 条件渲染不同布局</li>
+        <li><strong>Android 锁定体验：</strong>用 Badge + 图标明确告知"不可切换"，避免用户误以为是 bug</li>
+        <li><strong>交互细节：</strong>iOS 点击卡片有轻微上浮动画；Android 卡片始终处于"选中态"样式</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

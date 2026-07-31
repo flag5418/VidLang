@@ -201,6 +201,8 @@ bool _slowToFastActive = false;
   Timer? _shutdownTimer;
   int _playedEpisodeCount = 0;
   bool _settingsLoaded = false;
+  /// 片尾跳过防抖标记：避免 positionStream 频繁触发导致重复处理
+  bool _endingTriggered = false;
 
   PlayerEngineNotifier(this.ref) : super(const PlayerEngineState());
 
@@ -261,6 +263,7 @@ bool _slowToFastActive = false;
     _folder = folder;
     _lastProgressSavedAt = null;
     _lastPausedSubtitleIndex = null;
+    _endingTriggered = false;
 
     // 切换资源时，通过 LearningStatsService 统一管理会话
     await _completeCurrentStudyRecord();
@@ -373,6 +376,7 @@ bool _slowToFastActive = false;
     _folder = folder;
     _lastProgressSavedAt = null;
     _lastPausedSubtitleIndex = null;
+    _endingTriggered = false;
 
     // 切换资源时，通过 LearningStatsService 统一管理会话
     await _completeCurrentStudyRecord();
@@ -847,6 +851,7 @@ _shutdownTimer?.cancel();
         _handleSingleSentencePauseIfNeeded(ms);
         _handleSlowToFastIfNeeded(ms);
         _handleABLoopIfNeeded(p);
+        _handleSkipEndingIfNeeded(p);
       }),
       _player.durationStream.listen((d) {
         if (_closed) return;
@@ -1083,6 +1088,73 @@ _shutdownTimer?.cancel();
     if (state.playerState != PlayerState.playing) return;
     if (position >= end) {
       _player.seek(start);
+    }
+  }
+
+  /// 片尾跳过处理
+  ///
+  /// 当播放位置超过「总时长 - 片尾时长」时，视为到达有效结尾，
+  /// 触发与 PlayerState.completed 相同的循环/切换逻辑。
+  /// 使用 [_endingTriggered] 防抖，避免 positionStream 高频回调导致重复触发。
+  void _handleSkipEndingIfNeeded(Duration position) {
+    if (_endingTriggered) return;
+    if (state.playerState != PlayerState.playing) return;
+
+    final folder = _folder;
+    if (folder == null || !folder.skipEnding || folder.skipEndingDuration <= 0) return;
+
+    final durationMs = state.duration.inMilliseconds;
+    if (durationMs <= 0) return;
+
+    // 有效终点 = 总时长 - 片尾跳过时长（毫秒）
+    final effectiveEndMs = durationMs - folder.skipEndingDuration * 1000;
+    if (effectiveEndMs <= 0) return;
+
+    final posMs = position.inMilliseconds;
+    if (posMs < effectiveEndMs) return;
+
+    // 到达片尾区域，标记已触发并执行结束行为
+    _endingTriggered = true;
+    _onEffectiveEndingReached();
+  }
+
+  /// 到达有效播放终点时的行为
+  ///
+  /// 复用与 PlayerState.completed 相同的逻辑：
+  /// - 单集循环 → seek 到开头
+  /// - 列表循环 → 播放下一个
+  /// - 顺序播放 → 播放下一个
+  /// - 单集播放 → 停留
+  /// 同时检查集数定时关闭。
+  void _onEffectiveEndingReached() {
+    // Episode-based shutdown check
+    if (state.shutdownTimerType == 'episode' &&
+        state.shutdownEpisodeCount > 0) {
+      _playedEpisodeCount++;
+      if (_playedEpisodeCount >= state.shutdownEpisodeCount) {
+        _playedEpisodeCount = 0;
+        unawaited(_player.pause());
+        return;
+      }
+    }
+
+    switch (state.loopingMode) {
+      case 'single_loop':
+        unawaited(_player.seek(Duration.zero).then((_) => _player.play()));
+        // 允许下次再次触发片尾跳过
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!_closed) _endingTriggered = false;
+        });
+        break;
+      case 'list_loop':
+        unawaited(_playNextInList(loopBack: true));
+        break;
+      case 'single_play':
+        unawaited(_player.pause());
+        break;
+      case 'sequence_play':
+        unawaited(_playNextInList(loopBack: false));
+        break;
     }
   }
 

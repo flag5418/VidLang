@@ -634,6 +634,9 @@ class AppIcons {
   /// 商店
   static const IconData shop = TDIcons.shop;
 
+  /// 购物车/测试篮 - 使用 shop 图标
+  static const IconData shoppingCart = TDIcons.shop;
+
   /// 标签
   static const IconData tag = TDIcons.tag;
 

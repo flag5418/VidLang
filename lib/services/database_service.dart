@@ -66,7 +66,7 @@ class DatabaseService {
   ///
   /// 用于数据库升级迁移。每次数据库结构发生变更（新增表、修改字段类型、数据迁移等）时，
   /// 必须递增此版本号，并在 [_onUpgrade] 中编写对应的迁移逻辑。
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   /// 实体 Schema 哈希存储键名
   ///
@@ -682,9 +682,18 @@ class DatabaseService {
         }
       }
 
+      if (oldVersion < 3) {
+        // v2 -> v3: 新增 forum_tag_follow_local 表（论坛标签关注本地表）
+        // 对所有已注册实体执行自动迁移，确保新增表被创建
+        for (var entry in _registeredEntities.entries) {
+          BaseEntity entity = entry.value.creator();
+          await _autoMigrateTable(db, entity, enableFTS: entry.value.enableFullTextSearch);
+        }
+      }
+
       // 后续版本迁移在此继续添加：
-      // if (oldVersion < 3) { ... }
       // if (oldVersion < 4) { ... }
+      // if (oldVersion < 5) { ... }
 
       logger.info('database upgrade completed', tag: 'DB', extra: {'from': oldVersion, 'to': newVersion});
     } catch (e, st) {

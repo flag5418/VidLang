@@ -5,11 +5,17 @@ import 'package:vidlang/services/tts/tts_service.dart';
 import 'package:vidlang/theme/theme.dart';
 import 'package:vidlang/utils/adaptive.dart';
 
+/// 短语列表卡片
+///
+/// V3.0 变更：
+/// - 移除 checkbox，纯展示模式
+/// - 显示测试篮状态图标
+/// - 点击进入详情页复习
 class SnippetListCard extends StatelessWidget {
   final WordBook snippet;
   final List<WordTag> tags;
-  final bool selectionMode;
-  final bool selected;
+  /// 是否已在测试篮中
+  final bool isInBasket;
   final VoidCallback onTap;
   final VoidCallback onTagTap;
 
@@ -17,8 +23,7 @@ class SnippetListCard extends StatelessWidget {
     super.key,
     required this.snippet,
     required this.tags,
-    required this.selectionMode,
-    required this.selected,
+    this.isInBasket = false,
     required this.onTap,
     required this.onTagTap,
   });
@@ -26,6 +31,7 @@ class SnippetListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final cs = context.colors;
     final sourceText = snippet.sourceText ?? snippet.word;
     final sourceTitle = snippet.sourceTitle ?? '';
 
@@ -40,21 +46,13 @@ class SnippetListCard extends StatelessWidget {
             color: colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(Adaptive.r(16)),
             border: Border.all(
-              color: selected ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.35),
+              color: colorScheme.outlineVariant.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (selectionMode)
-                Padding(
-                  padding: EdgeInsets.only(right: Adaptive.w(10), top: Adaptive.h(2)),
-                  child: Icon(
-                    selected ? AppIcons.checkCircle : AppIcons.radioButtonUnchecked,
-                    size: Adaptive.sp(20),
-                    color: selected ? colorScheme.primary : colorScheme.outline,
-                  ),
-                ),
+              // ── 中间内容区 ──
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +104,16 @@ class SnippetListCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          SizedBox(width: Adaptive.w(8)),
+                          // 测试篮状态图标
+                          if (isInBasket)
+                            Padding(
+                              padding: EdgeInsets.only(right: Adaptive.w(4)),
+                              child: Icon(
+                                AppIcons.shoppingCart,
+                                size: Adaptive.sp(14),
+                                color: colorScheme.primary,
+                              ),
+                            ),
                           Text(
                             '复习${snippet.reviewCount}',
                             style: TextStyle(
@@ -147,10 +154,33 @@ class SnippetListCard extends StatelessWidget {
                   ],
                 ),
               ),
+
+               // ── 右侧更多按钮 ──
+               _buildMoreButton(cs),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// 右侧更多操作按钮
+  Widget _buildMoreButton(AppColorsData cs) {
+    return IconButton(
+      onPressed: () {
+        // TODO: 展开更多操作菜单（加入测试、删除等）
+      },
+      icon: Icon(
+        AppIcons.moreVert,
+        size: Adaptive.sp(18),
+        color: cs.onSurfaceVariant,
+      ),
+      constraints: BoxConstraints(
+        minWidth: Adaptive.w(32),
+        minHeight: Adaptive.w(32),
+      ),
+      padding: EdgeInsets.zero,
+      tooltip: '更多操作',
     );
   }
 

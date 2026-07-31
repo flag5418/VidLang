@@ -70,6 +70,15 @@ class _MainPageState extends ConsumerState<MainPage>
     _currentPage = index;
     final deviceType = ref.read(deviceTypeProvider);
     final isIpad = deviceType.isTablet;
+
+    // iPad 下收藏页面使用独立导航（Navigator.push）
+    if (isIpad && index == 2) {
+      // 收藏页面的导航在 context 可用时通过 Navigator.push 处理
+      // 这里只更新索引状态，实际导航在 _IpadNavItem 中处理
+      ref.read(navigationIndexProvider.notifier).setIndex(index);
+      return;
+    }
+
     // iPad 布局使用 IndexedStack，不需要 PageController
     if (!isIpad) {
       _pageController.animateToPage(
@@ -79,6 +88,15 @@ class _MainPageState extends ConsumerState<MainPage>
       );
     }
     ref.read(navigationIndexProvider.notifier).setIndex(index);
+  }
+
+  /// iPad 下导航到收藏独立页面
+  void _navigateToCollection(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CollectionPage(),
+      ),
+    );
   }
 
   @override
@@ -201,10 +219,14 @@ class _MainPageState extends ConsumerState<MainPage>
                     children: List.generate(navigationItems.length, (index) {
                       final item = navigationItems[index];
                       final isActive = currentIndex == index;
+                      // iPad 下收藏页面使用独立导航
+                      final isCollectionIndex = index == 2;
                       return _IpadNavItem(
                         item: item,
                         isActive: isActive,
-                        onTap: () => _onTabTapped(index),
+                        onTap: isCollectionIndex
+                            ? () => _navigateToCollection(context)
+                            : () => _onTabTapped(index),
                       );
                     }),
                   ),

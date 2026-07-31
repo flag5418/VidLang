@@ -343,11 +343,24 @@ class WordBookService {
     return rows.map((row) => WordBook().fromMap(row) as WordBook).toList();
   }
 
-  static Future<List<WordBookNavItem>> loadNavItems(String status) async {
+  /// 加载导航项列表（按标签分组）
+  ///
+  /// [status] - masteryLevel：learning / mastered
+  /// [contentType] - 可选，内容类型过滤：word / sentence。不传则返回所有类型
+  static Future<List<WordBookNavItem>> loadNavItems(
+    String status, {
+    String? contentType,
+  }) async {
     final normalizedStatus = WordBook.normalizeMasteryLevel(status);
     final userCode = await DatabaseService.getCurrentUserCode();
     final args = <Object?>[normalizedStatus];
     final baseWhere = <String>['wb.is_deleted = 0', 'wb.mastery_level = ?'];
+
+    // 可选的 contentType 过滤
+    if (contentType != null && contentType.isNotEmpty) {
+      baseWhere.add('wb.content_type = ?');
+      args.add(contentType);
+    }
 
     if (userCode != null) {
       baseWhere.add('wb.user_code = ?');

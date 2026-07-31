@@ -42,13 +42,13 @@ async function toggleTagFollow(req: Request, user: any) {
     return Response.json({ error: 'Missing tag_id' }, { status: 400, headers: corsHeaders });
   }
 
-  const { tag } = await supabase
+  const { data: tag, error: tagError } = await supabase
     .from('forum_tags')
     .select('id')
     .eq('id', tag_id)
     .eq('is_active', true)
     .single();
-  if (!tag) {
+  if (tagError || !tag) {
     return Response.json({ error: 'Tag not found' }, { status: 404, headers: corsHeaders });
   }
 

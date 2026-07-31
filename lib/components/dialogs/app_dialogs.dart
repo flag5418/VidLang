@@ -34,11 +34,11 @@ class AppBaseDialog extends StatelessWidget {
     final isIpad = context.ipad;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // 弹窗尺寸策略：
-    // - iPad: 固定宽度 450，居中显示，不随屏幕缩放
+    // 黄金比例弹窗尺寸策略：
+    // - iPad: 宽度屏幕的 40%，最小 480，最大 560；视觉舒适不显细长
     // - iPhone: 屏幕宽度的 85%，限制在 300-400 之间
     final dialogWidth = isIpad
-        ? 450.0
+        ? (screenWidth * 0.4).clamp(480.0, 560.0)
         : (screenWidth * 0.85).clamp(300.0, 400.0);
     final horizontalPadding = (screenWidth - dialogWidth) / 2;
 
@@ -53,12 +53,12 @@ class AppBaseDialog extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: cs.surface,
-              borderRadius: BorderRadius.circular(isIpad ? 16 : 14),
+              borderRadius: BorderRadius.circular(isIpad ? 18 : 14),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 32,
-                  offset: const Offset(0, 12),
+                  blurRadius: isIpad ? 40 : 32,
+                  offset: Offset(0, isIpad ? 16 : 12),
                 ),
               ],
             ),
@@ -127,14 +127,15 @@ class AppBaseDialog extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     final cs = context.colors;
+    final isIpad = context.ipad;
     return TDButton(
       text: text,
       size: TDButtonSize.large,
       type: TDButtonType.fill,
       shape: TDButtonShape.round,
-      height: adaptive.Adaptive.h(48),
+      height: adaptive.Adaptive.h(isIpad ? 56 : 48),
       textStyle: TextStyle(
-        fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeBase),
+        fontSize: adaptive.Adaptive.sp(isIpad ? 18 : AppTypography.fontSizeBase),
         fontWeight: FontWeight.w500,
       ),
       style: TDButtonStyle(
@@ -153,6 +154,7 @@ class AppBaseDialog extends StatelessWidget {
     TDButtonTheme theme = TDButtonTheme.primary,
     VoidCallback? onTap,
   }) {
+    final isIpad = context.ipad;
     final bgColor = theme == TDButtonTheme.danger
         ? AppColors.error
         : AppColors.primary;
@@ -162,9 +164,9 @@ class AppBaseDialog extends StatelessWidget {
       type: TDButtonType.fill,
       theme: theme,
       shape: TDButtonShape.round,
-      height: adaptive.Adaptive.h(48),
+      height: adaptive.Adaptive.h(isIpad ? 56 : 48),
       textStyle: TextStyle(
-        fontSize: adaptive.Adaptive.sp(AppTypography.fontSizeBase),
+        fontSize: adaptive.Adaptive.sp(isIpad ? 18 : AppTypography.fontSizeBase),
         fontWeight: FontWeight.w600,
       ),
       style: TDButtonStyle(
@@ -492,6 +494,10 @@ class AppSelectionDialog<T> extends StatefulWidget {
   final String confirmText;
   final String cancelText;
 
+  /// 弹窗宽度，null 时根据选项特征自动选择屏幕比例（Adaptive 自适应）
+  /// 仅在特殊布局需求时手动指定
+  final double? width;
+
   const AppSelectionDialog({
     super.key,
     required this.dialogTitle,
@@ -502,12 +508,16 @@ class AppSelectionDialog<T> extends StatefulWidget {
     required this.onSelected,
     this.confirmText = '确定',
     this.cancelText = '取消',
+    this.width,
   });
 
   @override
   State<AppSelectionDialog<T>> createState() => _AppSelectionDialogState<T>();
 
   /// 便捷显示方法
+  ///
+  /// [width] 弹窗宽度，null 时根据选项特征自动选择屏幕比例（Adaptive 自适应）。
+  /// 一般不需要手动指定，仅在特殊布局需求时覆盖使用。
   static Future<T?> show<T>(
     BuildContext context, {
     required String title,
@@ -517,6 +527,7 @@ class AppSelectionDialog<T> extends StatefulWidget {
     required T currentValue,
     String confirmText = '确定',
     String cancelText = '取消',
+    double? width,
   }) async {
     T? result;
     await showGeneralDialog(
@@ -533,6 +544,7 @@ class AppSelectionDialog<T> extends StatefulWidget {
         currentValue: currentValue,
         confirmText: confirmText,
         cancelText: cancelText,
+        width: width,
         onSelected: (value) => result = value,
       ),
       transitionBuilder: (_, animation, _, child) =>
@@ -557,12 +569,16 @@ class _AppSelectionDialogState<T> extends State<AppSelectionDialog<T>> {
     final isIpad = context.ipad;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // 弹窗尺寸策略：
-    // - iPad: 固定宽度 450，居中显示，不随屏幕缩放
-    // - iPhone: 屏幕宽度的 85%，限制在 300-400 之间
-    final dialogWidth = isIpad
-        ? 450.0
-        : (screenWidth * 0.85).clamp(300.0, 400.0);
+    // 弹窗宽度策略：
+    // 1. 调用方通过 width 参数指定时，直接使用（绝对覆盖）
+    // 2. 否则根据选项特征自动选择屏幕比例（Adaptive 自适应 iPad/iPhone）：
+    //    - 含副标题的选项 → 88%屏幕宽，容纳图标+标题+副标题不换行
+    //    - 纯标题短文本选项 → 85%屏幕宽，与 AppBaseDialog 一致
+    final hasSubtitle = widget.items.any((item) => item.subtitle != null && item.subtitle!.isNotEmpty);
+    final dialogWidth = widget.width ?? (
+      (screenWidth * (hasSubtitle ? 0.88 : 0.85))
+          .clamp(hasSubtitle ? 340.0 : 300.0, hasSubtitle ? 480.0 : 400.0)
+    );
     final horizontalPadding = (screenWidth - dialogWidth) / 2;
 
     return Center(
@@ -574,13 +590,13 @@ class _AppSelectionDialogState<T> extends State<AppSelectionDialog<T>> {
             constraints: BoxConstraints(maxWidth: dialogWidth),
             decoration: BoxDecoration(
               color: cs.surface,
-              borderRadius: BorderRadius.circular(isIpad ? 16 : 14),
+              borderRadius: BorderRadius.circular(isIpad ? 18 : 14),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 32,
-                  offset: const Offset(0, 12),
-                ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: isIpad ? 40 : 32,
+                offset: Offset(0, isIpad ? 16 : 12),
+              ),
               ],
             ),
             child: Column(
@@ -668,7 +684,11 @@ class _AppSelectionDialogState<T> extends State<AppSelectionDialog<T>> {
                           size: TDButtonSize.large,
                           type: TDButtonType.outline,
                           shape: TDButtonShape.round,
-                          height: adaptive.Adaptive.h(48),
+                          height: adaptive.Adaptive.h(isIpad ? 56 : 48),
+                          textStyle: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(isIpad ? 18 : AppTypography.fontSizeBase),
+                            fontWeight: FontWeight.w500,
+                          ),
                           style: TDButtonStyle(
                             backgroundColor: Colors.transparent,
                             textColor: AppColors.primary,
@@ -685,7 +705,11 @@ class _AppSelectionDialogState<T> extends State<AppSelectionDialog<T>> {
                           type: TDButtonType.fill,
                           theme: TDButtonTheme.primary,
                           shape: TDButtonShape.round,
-                          height: adaptive.Adaptive.h(48),
+                          height: adaptive.Adaptive.h(isIpad ? 56 : 48),
+                          textStyle: TextStyle(
+                            fontSize: adaptive.Adaptive.sp(isIpad ? 18 : AppTypography.fontSizeBase),
+                            fontWeight: FontWeight.w600,
+                          ),
                           style: TDButtonStyle(
                             backgroundColor: AppColors.primary,
                             textColor: AppColors.onPrimary,
